@@ -1,0 +1,14 @@
+{
+  "id": "{D2D79D30-B458-48F1-A2E5-83C9AFD65C97}",
+  "name": "PVWallboxManager",
+  "type": 3,
+  "vendor": "pesensie",
+  "aliases": ["PV Wallbox Manager"],
+  "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
+  "version": "1.0",
+  "copyright": "MIT License",
+  "author": "Siegfried Pesendorfer",
+  "build": 1,
+  "date": "2025-06-14",
+  "components": []
+}
