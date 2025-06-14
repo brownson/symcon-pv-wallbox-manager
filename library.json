@@ -1,5 +1,6 @@
 {
   "id": "{B5F6B672-4F83-11EC-81D3-0242AC130003}",
+  "name": "PVWallboxManager",
   "author": "Siegfried Pesendorfer",
   "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
   "version": "1.1.0",
