@@ -204,13 +204,20 @@ class PVWallboxManager extends IPSModule
     SetValue($this->GetIDForIdent('PV_Berechnet'), $pv_berechnet);
     SetValue($this->GetIDForIdent('PV_Effektiv'), $effektiv);
 
-   // Moduswahl
+    // Moduswahl
     if ($manuell) {
-        $this->LadenSofortMaximal(3); return;
-    }
+    $this->LadenSofortMaximal(3);
+    return;
+}
     if ($pv2car) {
-        $this->LadenPV2CarPercent(3, $effektiv, $pv2car_percent, $soc_haus); return;
-    }
+    $this->LadenPV2CarPercent(3, $effektiv, $pv2car_percent, $soc_haus);
+    return;
+}
+    if ($zielzeitmodus) {
+    $this->LadenMitZielzeit(3, $soc_auto, $soc_ziel, $zielzeit);
+    return;
+}
+    $this->LadenMitPVUeberschuss(3, $effektiv);
     // Zielzeitmodus, falls gewünscht (ergänze eigenen Button)
     // if ($zielzeitmodus) { $this->LadenMitZielzeit(...); return; }
 
@@ -225,7 +232,7 @@ class PVWallboxManager extends IPSModule
         $this->LogWB("⏸ Zwischenbereich – keine Ladeänderung");
     }
 }
-    
+
     // Hilfsmethode: Pufffaktor dynamisch bestimmen
     protected function BerechnePufferFaktor($effektiv)
     {
@@ -254,93 +261,100 @@ class PVWallboxManager extends IPSModule
             $this->LogWB("⏸ Zwischenbereich – keine Ladeänderung");
         }
     
-    // Manueller Modus: Maximale Leistung sofort
-    protected function LadenSofortMaximal($phasen)
-    {
-        $volt    = $this->ReadPropertyInteger('Volt');
-        $max_amp = $this->ReadPropertyInteger('MaxAmp');
-        $ladeleistung = $phasen * $volt * $max_amp;
-        // Beispiel: Deine eigene API
-        GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $this->ReadPropertyInteger('MinAmp'));
-        RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
-        $this->SetValue('Geplante_Ladeleistung', $ladeleistung);
-        $this->LogWB("Manueller Modus: Sofort maximale Ladeleistung $ladeleistung W ($phasen-phasig)");
-    }
+    // Manueller Modus: Sofort maximale Leistung
+    protected function LadenSofortMaximal($phasen = 3)
+{
+    $volt    = $this->ReadPropertyInteger('Volt');
+    $max_amp = $this->ReadPropertyInteger('MaxAmp');
+    $ladeleistung = $phasen * $volt * $max_amp;
+
+    // Wallbox aktivieren & volle Leistung einstellen
+    GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $this->ReadPropertyInteger('MinAmp'));
+    RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
+    SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
+
+    $this->LogWB("Manueller Modus: Sofort maximale Ladeleistung $ladeleistung W ($phasen-phasig)");
+}
 
     // PV2Car-Modus: Prozentualer Überschuss ins Auto
     protected function LadenPV2CarPercent($phasen, $effektiv, $prozent, $soc_hausspeicher)
-    {
-        $volt    = $this->ReadPropertyInteger('Volt');
-        $max_amp = $this->ReadPropertyInteger('MaxAmp');
-        $ladeleistung = round($effektiv * max(0, min(100, $prozent)) / 100);
-        // Wenn Hausspeicher voll -> alles ins Auto
-        if ($soc_hausspeicher >= 98) {
-            $ladeleistung = min($effektiv, $phasen * $volt * $max_amp);
-        }
-        if ($ladeleistung > 0) {
-            GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $this->ReadPropertyInteger('MinAmp'));
-            RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
-            $this->SetValue('Geplante_Ladeleistung', $ladeleistung);
-            $this->LogWB("PV2Car: $prozent% von $effektiv W = $ladeleistung W (Hausspeicher-SOC $soc_hausspeicher%)");
-        } else {
-            GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), 0, $this->ReadPropertyInteger('MinAmp'));
-            RequestAction($this->ReadPropertyInteger('WallboxModusID'), 0);
-            $this->SetValue('Geplante_Ladeleistung', 0);
-            $this->LogWB("PV2Car: Zu wenig PV-Überschuss, Wallbox aus.");
-        }
+{
+    $volt    = $this->ReadPropertyInteger('Volt');
+    $max_amp = $this->ReadPropertyInteger('MaxAmp');
+
+    // Hausspeicher-Logik: Ist er voll, alles ins Auto!
+    if ($soc_hausspeicher !== null && $soc_hausspeicher >= 98) {
+        $prozent = 100;
     }
+
+    $ladeleistung = round($effektiv * max(0, min(100, $prozent)) / 100);
+
+    if ($ladeleistung > 0) {
+        GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $this->ReadPropertyInteger('MinAmp'));
+        RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
+        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
+        $this->LogWB("PV2Car: $prozent% von $effektiv W = $ladeleistung W (Hausspeicher-SOC: $soc_hausspeicher%)");
+    } else {
+        GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), 0, $this->ReadPropertyInteger('MinAmp'));
+        RequestAction($this->ReadPropertyInteger('WallboxModusID'), 0);
+        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), 0);
+        $this->LogWB("PV2Car: Zu wenig PV-Überschuss, Wallbox aus.");
+    }
+}
 
     // Zielzeit-Ladung: Ladeleistung so wählen, dass um Zielzeit der Ziel-SOC erreicht ist
-    protected function LadenMitZielzeit($phasen, $soc_ist, $soc_soll, $ziel_hour, $ziel_min)
-    {
-        $akku_kapazitaet = 52; // kWh, anpassbar für ID.3
-        $volt    = $this->ReadPropertyInteger('Volt');
-        $max_amp = $this->ReadPropertyInteger('MaxAmp');
-        $min_amp = $this->ReadPropertyInteger('MinAmp');
+    protected function LadenMitZielzeit($phasen, $soc_ist, $soc_soll, $ziel_timestamp)
+{
+    $akku_kapazitaet = 52; // kWh, anpassbar für deinen ID.3
+    $volt    = $this->ReadPropertyInteger('Volt');
+    $max_amp = $this->ReadPropertyInteger('MaxAmp');
+    $min_amp = $this->ReadPropertyInteger('MinAmp');
 
-        $bedarf_kwh = max(0, ($soc_soll - $soc_ist) * $akku_kapazitaet / 100);
+    $bedarf_kwh = max(0, ($soc_soll - $soc_ist) * $akku_kapazitaet / 100);
 
-        // Zielzeit bestimmen
-        $jetzt = time();
-        $ziel_uhrzeit = mktime($ziel_hour, $ziel_min, 0);
-        if ($ziel_uhrzeit <= $jetzt) $ziel_uhrzeit += 86400;
-        $restzeit_stunden = ($ziel_uhrzeit - $jetzt) / 3600;
-        $leistung_watt = ($bedarf_kwh * 1000) / max($restzeit_stunden, 0.5);
+    $jetzt = time();
+    if ($ziel_timestamp <= $jetzt) $ziel_timestamp += 86400;
+    $restzeit_stunden = ($ziel_timestamp - $jetzt) / 3600;
+    $leistung_watt = ($bedarf_kwh * 1000) / max($restzeit_stunden, 0.5);
 
-        $ladeleistung = min($leistung_watt, $phasen * $volt * $max_amp);
-        if ($ladeleistung > 0) {
-            GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $min_amp);
-            RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
-            $this->SetValue('Geplante_Ladeleistung', $ladeleistung);
-            $this->LogWB("Zielladung: $ladeleistung W bis $ziel_hour:$ziel_min Uhr (Ziel $soc_soll%, Bedarf $bedarf_kwh kWh)");
-        } else {
-            GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), 0, $min_amp);
-            RequestAction($this->ReadPropertyInteger('WallboxModusID'), 0);
-            $this->SetValue('Geplante_Ladeleistung', 0);
-            $this->LogWB("Zielladung: Ziel bereits erreicht oder keine Restladung nötig");
-        }
+    $ladeleistung = min($leistung_watt, $phasen * $volt * $max_amp);
+    if ($ladeleistung > 0) {
+        GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $min_amp);
+        RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
+        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
+        $uhrzeit = date("H:i", $ziel_timestamp);
+        $this->LogWB("Zielladung: $ladeleistung W bis $uhrzeit Uhr (Ziel $soc_soll%, Bedarf $bedarf_kwh kWh)");
+    } else {
+        GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), 0, $min_amp);
+        RequestAction($this->ReadPropertyInteger('WallboxModusID'), 0);
+        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), 0);
+        $this->LogWB("Zielladung: Ziel bereits erreicht oder keine Restladung nötig");
     }
+}
+
 
     // Nur PV-Überschuss laden
     protected function LadenMitPVUeberschuss($phasen, $effektiv)
-    {
-        $volt    = $this->ReadPropertyInteger('Volt');
-        $max_amp = $this->ReadPropertyInteger('MaxAmp');
-        $min_start_watt = $this->ReadPropertyFloat('MinStartWatt');
+{
+    $volt    = $this->ReadPropertyInteger('Volt');
+    $max_amp = $this->ReadPropertyInteger('MaxAmp');
+    $min_amp = $this->ReadPropertyInteger('MinAmp');
+    $min_start_watt = $this->ReadPropertyFloat('MinStartWatt');
 
-        if ($effektiv < $min_start_watt) {
-            GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), 0, $this->ReadPropertyInteger('MinAmp'));
-            RequestAction($this->ReadPropertyInteger('WallboxModusID'), 0);
-            $this->SetValue('Geplante_Ladeleistung', 0);
-            $this->LogWB("PV-Überschuss < $min_start_watt W: Wallbox gestoppt");
-            return;
-        }
-        $ladeleistung = min($effektiv, $phasen * $volt * $max_amp);
-        GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $this->ReadPropertyInteger('MinAmp'));
-        RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
-        $this->SetValue('Geplante_Ladeleistung', $ladeleistung);
-        $this->LogWB("PV-Überschuss-Ladung: $ladeleistung W");
+    if ($effektiv < $min_start_watt) {
+        GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), 0, $min_amp);
+        RequestAction($this->ReadPropertyInteger('WallboxModusID'), 0);
+        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), 0);
+        $this->LogWB("PV-Überschuss < $min_start_watt W: Wallbox gestoppt");
+        return;
     }
+    $ladeleistung = min($effektiv, $phasen * $volt * $max_amp);
+    GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $min_amp);
+    RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
+    SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
+    $this->LogWB("PV-Überschuss-Ladung: $ladeleistung W");
+}
+
 
     // Hysterese/Phasenumschaltung, Modbus & weitere Utilitys können hier ergänzt werden!
     // ...
