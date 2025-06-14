@@ -348,3 +348,5 @@ class PVWallboxManager extends IPSModule
     // Hysterese/Phasenumschaltung, Modbus & weitere Utilitys können hier ergänzt werden!
     // ...
 }
+
+?>
