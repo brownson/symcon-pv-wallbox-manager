@@ -1,5 +1,5 @@
 {
-    "id": "{FAA18EC0-B0C8-D3CB-499D-6E6653E86083}",
+    "id": "{35495161-0972-0CA7-B3FB-A1E4003D7021}",
     "name": "PVWallboxManager",
     "type": 3,
     "vendor": "Pesendorfer",
@@ -9,6 +9,6 @@
     "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
     "parentRequirements": [],
     "childRequirements": [],
-    "implemented": [],
+    "implemented": ["{018EF6B5-AB94-40C6-AA53-46943E824ACF}"],
     "prefix": "PVWM"
 }
