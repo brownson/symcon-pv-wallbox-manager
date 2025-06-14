@@ -1,6 +1,7 @@
 {
   "id": "{B5F6B672-4F83-11EC-81D3-0242AC130003}",
-  "name": "PV Wallbox Manager",
+  "name": "PVWallboxManager",
+  "class": "PVWallboxManager.php"
   "type": 3,
   "vendor": "Pesendorfer",
   "aliases": ["PVWallboxManager"],
@@ -8,7 +9,7 @@
   "author": "Siegfried Pesendorfer",
   "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
   "compatibility": {
-    "version": "6.3"
+  "version": "6.3"
   },
   "description": "Modul zur PV-Überschussladung von go-e Charger Wallboxen"
 }
