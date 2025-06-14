@@ -72,3 +72,10 @@ symcon-pv-wallbox-manager/
 ## Lizenz
 
 MIT License – siehe `LICENSE.md`
+
+## Changelog
+
+| Version | Datum       | Änderungen                                          |
+|---------|-------------|----------------------------------------------------|
+| 1.0.0   | 2025-06-14  | Erste Veröffentlichung, PV-Überschuss, Modbus, etc.|
+| 1.1.0   | 2025-06-20  | Zielzeit-Logik, Hysterese, Batterie-SOC integriert |
