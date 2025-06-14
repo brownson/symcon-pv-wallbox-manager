@@ -3,6 +3,7 @@
     "name": "symcon-pv-wallbox-manager",
     "author": "Siegfried Pesendorfer",
     "build": 1,
+    "date": 20250614,
     "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
     "version": "1.1.0",
     "compatibility": {
@@ -14,8 +15,7 @@
             "name": "PVWallboxManager",
             "type": 3,
             "vendor": "Pesendorfer",
-            "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
-            "date": 20250614
+            "url": "https://github.com/pesensie/symcon-pv-wallbox-manager"
         }
     ]
 }
