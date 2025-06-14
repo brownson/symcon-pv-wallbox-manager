@@ -38,8 +38,7 @@ symcon-pv-wallbox-manager/
 ├── module.json
 └── PVWallboxManager/
     ├── module.php
-    ├── PVWallboxManager.json
-    └── EnergieScript.php
+    └── module.json
 ```
 
 
