@@ -81,6 +81,34 @@ public function Create()
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+    // IDs der wichtigsten Messwert-Properties einsammeln
+    $requiredIDs = [
+        'PVErzeugungID',
+        'HausverbrauchID',
+        'BatterieladungID',
+        'WallboxLadeleistungID',
+        'WallboxAktivID'
+        // ggf. weitere IDs, die unbedingt notwendig sind
+    ];
+
+    $missing = [];
+    foreach ($requiredIDs as $prop) {
+        $id = $this->ReadPropertyInteger($prop);
+        if ($id == 0 || !@IPS_VariableExists($id)) {
+            $missing[] = $prop;
+        }
+    }
+
+    // Falls IDs fehlen, Log-Ausgabe und Deaktivieren des Timers!
+    if (!empty($missing)) {
+        $msg = "Fehlende oder ungültige Variablen-IDs: ".implode(', ', $missing).". Modul ist inaktiv!";
+        $this->LogWB($msg);   // Eigene Logging-Funktion verwenden!
+        $this->SetTimerInterval('ZyklischCheck', 0); // Timer stoppen
+        return;
+    }
+
+    // Wenn alles OK: Timer (wieder) aktivieren
+    $this->SetTimerInterval('ZyklischCheck', 60 * 1000);
 
         // Zielzeit-Variablen (Profile anlegen, falls nicht vorhanden)
         if (!IPS_VariableProfileExists('~Hour')) {
