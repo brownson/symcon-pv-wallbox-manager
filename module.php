@@ -1,53 +1,64 @@
 <?php
 namespace pesensie\PVWallboxManager;
-
 class PVWallboxManager extends \IPSModule
 {
-    public function Create()
-    {
-        // Standard
-        parent::Create();
+public function Create()
+{
+    parent::Create();
 
-        // === Gerätespezifische Properties (Variablen-IDs zuweisen) ===
-        $this->RegisterPropertyInteger('PVErzeugungID', 0);
-        $this->RegisterPropertyInteger('HausverbrauchID', 0);
-        $this->RegisterPropertyInteger('BatterieladungID', 0);
-        $this->RegisterPropertyInteger('WallboxLadeleistungID', 0);
-        $this->RegisterPropertyInteger('WallboxAktivID', 0);
-        $this->RegisterPropertyInteger('ModbusRegisterID', 0);
-        $this->RegisterPropertyInteger('SOC_HausspeicherID', 0);
-        $this->RegisterPropertyInteger('SOC_AutoID', 0);
+    // === Messwerte (IDs bestehender Variablen im Konfigurator auswählen) ===
+    $this->RegisterPropertyInteger('PVErzeugungID', 0);        
+    $this->RegisterPropertyInteger('HausverbrauchID', 0);      
+    $this->RegisterPropertyInteger('BatterieladungID', 0);     
+    $this->RegisterPropertyInteger('WallboxLadeleistungID', 0);
+    $this->RegisterPropertyInteger('WallboxAktivID', 0);       
 
-        // === Modus/Button-Variablen ===
-        $this->RegisterPropertyInteger('ManuellerModusID', 0);
-        $this->RegisterPropertyInteger('PV2CarModusID', 0);
-        $this->RegisterPropertyInteger('PV2CarPercentID', 0);
-        $this->RegisterPropertyInteger('ZielzeitladungID', 0);
-        $this->RegisterPropertyInteger('SOC_ZielwertID', 0);
-        $this->RegisterPropertyInteger('Zielzeit_Stunde_ID', 0);
-        $this->RegisterPropertyInteger('Zielzeit_Minute_ID', 0);
+    // === Steuerung/Modbus/SOC ===
+    $this->RegisterPropertyInteger('ModbusRegisterID', 0);     
+    $this->RegisterPropertyInteger('SOC_HausspeicherID', 0);   
+    $this->RegisterPropertyInteger('SOC_AutoID', 0);           
 
-        // === Ladeparameter/Settings ===
-        $this->RegisterPropertyFloat('MinStartWatt', 1400);
-        $this->RegisterPropertyFloat('MinStopWatt', 300);
-        $this->RegisterPropertyInteger('PhasenSwitchWatt3', 4200);
-        $this->RegisterPropertyInteger('PhasenSwitchWatt1', 1000);
-        $this->RegisterPropertyFloat('SOC_Limit', 10);
+    // === Schalt- und Steuerbuttons ===
+    $this->RegisterPropertyInteger('ManuellerModusID', 0);     
+    $this->RegisterPropertyInteger('PV2CarModusID', 0);        
+    $this->RegisterPropertyInteger('PV2CarPercentID', 0);      
+    $this->RegisterPropertyInteger('ZielzeitladungID', 0);     
+    $this->RegisterPropertyInteger('SOC_ZielwertID', 0);       
 
-        // === Logging/Status-Variablen werden automatisch erzeugt
-        $this->RegisterVariableFloat('PV_Berechnet', 'PV berechnet', '~Watt', 1);
-        $this->RegisterVariableFloat('PV_Effektiv', 'PV Überschuss effektiv', '~Watt', 2);
-        $this->RegisterVariableFloat('Geplante_Ladeleistung', 'Geplante Ladeleistung', '~Watt', 3);
-        $this->RegisterVariableString('Wallbox_Log', 'Wallbox Log', '', 10);
+    // === Zielzeit als komfortabler Zeit-Picker (Profil ~UnixTimestampTime) ===
+    $this->RegisterVariableInteger('Zielzeit_Uhr', 'Ziel-Zeit (bis wann geladen?)', '~UnixTimestampTime', 22);
 
-        // === Zielzeit-Variablen (schön editierbar im WebFront)
-        $this->RegisterVariableInteger('Zielzeit_Stunde', 'Ziel-Zeit (Stunde)', '~Hour', 20);
-        $this->RegisterVariableInteger('Zielzeit_Minute', 'Ziel-Zeit (Minute)', '~Minute', 21);
-
-        // === Timer für zyklische Ausführung (1x pro Minute als Standard)
-        $this->RegisterTimer('ZyklischCheck', 60 * 1000, 'PVWALLBOX_RunLogic($InstanceID);');
+    // Standardwert für Zielzeit auf 6:00 Uhr setzen, falls leer
+    $vid = $this->GetIDForIdent('Zielzeit_Uhr');
+    if (GetValue($vid) == 0) {
+        SetValue($vid, strtotime("06:00")); // Standard: 6 Uhr früh
     }
-    
+
+    // === Ladeparameter ===
+    $this->RegisterPropertyFloat('MinStartWatt', 1400);        
+    $this->RegisterPropertyFloat('MinStopWatt', 300);          
+    $this->RegisterPropertyInteger('PhasenSwitchWatt3', 4200); 
+    $this->RegisterPropertyInteger('PhasenSwitchWatt1', 1000); 
+    $this->RegisterPropertyFloat('SOC_Limit', 10);             
+    $this->RegisterPropertyInteger('Volt', 230);               
+    $this->RegisterPropertyInteger('MinAmp', 6);               
+    $this->RegisterPropertyInteger('MaxAmp', 16);              
+
+    // === Logging & Statusvariablen ===
+    $this->RegisterVariableString('Wallbox_Log', 'Wallbox Log', '', 999);
+    $this->RegisterVariableFloat('PV_Berechnet', 'PV berechnet', '~Watt', 10);
+    $this->RegisterVariableFloat('PV_Effektiv', 'PV Überschuss effektiv', '~Watt', 11);
+    $this->RegisterVariableFloat('Geplante_Ladeleistung', 'Geplante Ladeleistung', '~Watt', 12);
+
+    // (Optional) Hysterese-Zähler automatisch anlegen
+    $this->RegisterVariableInteger('PhasenHystUp', 'Hysterese 3-Phasen', '', 50);
+    $this->RegisterVariableInteger('PhasenHystDn', 'Hysterese 1-Phasen', '', 51);
+
+    // Timer für die zyklische Logik
+    $this->RegisterTimer('ZyklischCheck', 60 * 1000, 'Pesensie\PVWallboxManager_CheckWallboxLogic($_IPS[\'TARGET\']);');
+    }
+}
+
     public function ApplyChanges()
     {
         parent::ApplyChanges();
@@ -97,23 +108,30 @@ class PVWallboxManager extends \IPSModule
         }
         return null;
     }
-    // === TimerEvent für Zyklischen Durchlauf ===
+
     public function CheckWallboxLogic()
+    {
+        // Hier rufst du deine Ladelogik auf
+        $this->MainLogic();
+    }
+
+    // === TimerEvent für Zyklischen Durchlauf ===
+    protected function MainLogic()
     {
         // IDs und Werte aus den Properties holen
         $pv = $this->ReadValue('PVErzeugungID');
         $verbrauch = $this->ReadValue('HausverbrauchID');
         $batterie = $this->ReadValue('BatterieladungID');
-        $wb_power = $this->ReadValue('WallboxLeistungID');
-        $wb_status = $this->ReadValue('WallboxStatusID');
-        $soc_hausspeicher = $this->ReadValue('SOCHausbatterieID');
-        $soc_fahrzeug = $this->ReadValue('SOCFahrzeugID');
-        $manuell = $this->ReadValue('ButtonManuellID');
-        $pv2car = $this->ReadValue('ButtonPV2CarID');
-        $zielzeit = $this->ReadValue('ButtonZielzeitID');
-        $zielzeit_hour = $this->ReadValue('ZielzeitStundeID');
-        $zielzeit_min = $this->ReadValue('ZielzeitMinuteID');
-        $ziel_soc = $this->ReadValue('SOCAutoZielID');
+        $wb_power = $this->ReadValue('WallboxLadeleistungID');
+        $wb_status = $this->ReadValue('WallboxAktivID');
+        $soc_hausspeicher = $this->ReadValue('SOC_HausspeicherID');
+        $soc_fahrzeug = $this->ReadValue('SOC_AutoID');
+        $manuell = $this->ReadValue('ManuellerModusID');
+        $pv2car = $this->ReadValue('PV2CarModusID');
+        $zielzeit = $this->ReadValue('ZielzeitladungID');
+        $zielzeit_hour = $this->ReadValue('Zielzeit_Stunde_ID');
+        $zielzeit_min = $this->ReadValue('Zielzeit_Minute_ID');
+        $ziel_soc = $this->ReadValue('SOC_ZielwertID');
         $pv2car_percent = $this->ReadValue('PV2CarPercentID');
         $phase_var = $this->ReadValue('PhaseVarID');
         $phasen = $phase_var ? 3 : 1;
