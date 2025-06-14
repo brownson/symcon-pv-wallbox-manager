@@ -64,9 +64,8 @@ class PVWallboxManager extends IPSModule
 
         // Timer für zyklische Prüfung
         $this->RegisterTimer('ZyklischCheck', 60 * 1000, 'PVWallboxManager_CheckWallboxLogic($_IPS[\'TARGET\']);');
-    }
-}
-
+	}
+	
     public function ApplyChanges()
     {
         parent::ApplyChanges();
@@ -94,10 +93,6 @@ class PVWallboxManager extends IPSModule
             return;
         }
         $this->SetTimerInterval('ZyklischCheck', 60 * 1000);
-    }
-
-    // Wenn alles OK: Timer (wieder) aktivieren
-    $this->SetTimerInterval('ZyklischCheck', 60 * 1000);
 
         // Zielzeit-Variablen (Profile anlegen, falls nicht vorhanden)
         if (!IPS_VariableProfileExists('~Hour')) {
@@ -124,8 +119,8 @@ class PVWallboxManager extends IPSModule
         $this->SetTimerInterval('ZyklischCheck', 60 * 1000); // alle 60 Sekunden
     }
 
-    // Logging-Funktion: WebFront + Systemlog
-    protected function LogWB($msg)
+	// Logging-Funktion: WebFront + Systemlog
+	protected function LogWB($msg)
     {
         IPS_LogMessage("PVWallbox", $msg);
 
@@ -226,6 +221,7 @@ class PVWallboxManager extends IPSModule
             // ...hier GOeCharger_SetCurrentChargingWatt() einbauen
             return;
         }
+	}
         
     // Hilfsmethode: Pufffaktor dynamisch bestimmen
     protected function BerechnePufferFaktor($effektiv)
