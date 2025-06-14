@@ -1,6 +1,4 @@
 <?php
-/** @moduleID {FAA18EC0-B0C8-D3CB-499D-6E6653E86083} */
-
 declare(strict_types=1);
 
 class PVWallboxManager extends IPSModule
