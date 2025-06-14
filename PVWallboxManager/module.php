@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 class PVWallboxManager extends IPSModule
 {
     public function Create()
@@ -330,7 +332,6 @@ class PVWallboxManager extends IPSModule
     }
 }
 
-
     // Nur PV-Überschuss laden
     protected function LadenMitPVUeberschuss($phasen, $effektiv)
 {
@@ -357,5 +358,3 @@ class PVWallboxManager extends IPSModule
     // Hysterese/Phasenumschaltung, Modbus & weitere Utilitys können hier ergänzt werden!
     // ...
 }
-
-?>
