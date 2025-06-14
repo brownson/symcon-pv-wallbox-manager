@@ -1,12 +1,27 @@
 {
-  "id": "{A1B2C3D4-E5F6-47A8-B9C0-1234567890AB}",
+  "id": "{A31B7D32-2025-0001-AUTO-PV-WALLBOX}",
   "name": "PV Wallbox Manager",
-  "type": 3,
-  "vendor": "pesensie",
-  "version": "1.0",
+  "type": 4,
+  "vendor": "symcon-pesensie",
+  "version": "1.0.0",
   "build": 1,
-  "date": 1718275200,
-  "compatibility": {
-    "version": "6.3"
-  }
+  "date": 20250614,
+  "author": "Siegfried Pesendorfer",
+  "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
+  "aliases": [
+    "PV Wallbox Manager",
+    "go-e Charger PV Steuerung"
+  ],
+  "startup": "register",
+  "modules": [
+    {
+      "id": "{A31B7D32-2025-0001-MODUL}",
+      "name": "PVWallboxManager",
+      "type": 1,
+      "vendor": "symcon-pesensie",
+      "version": "1.0.0",
+      "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
+      "aliases": ["PVWallboxManager"]
+    }
+  ]
 }
