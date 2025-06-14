@@ -1,12 +1,19 @@
 {
     "id": "{B5F6B672-4F83-11EC-81D3-0242AC130003}",
-    "author": "Siegfried Pesendorfer",
     "name": "symcon-pv-wallbox-manager",
+    "author": "Siegfried Pesendorfer",
     "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
     "compatibility": {
         "version": ">=8.0"
     },
-    "version": "1.1.0",
-    "build": 1,
-    "date": 20250614
+    "modules": [
+        {
+            "id": "{B5F6B672-4F83-11EC-81D3-0242AC130003}",
+            "name": "PVWallboxManager",
+            "type": 3,
+            "vendor": "Pesendorfer",
+            "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
+            "date": 20250614
+        }
+    ]
 }
