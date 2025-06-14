@@ -1,0 +1,13 @@
+{
+  "id": "{A1B2C3D4-E5F6-47A8-B9C0-1234567890AB}",
+  "name": "PV Wallbox Manager",
+  "type": 3,
+  "vendor": "pesensie",
+  "version": "1.0",
+  "build": 1,
+  "date": 1718275200,
+  "compatibility": {
+    "version": "6.3",
+    "date": 1718275200
+  }
+}
