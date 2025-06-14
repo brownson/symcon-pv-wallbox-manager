@@ -6,7 +6,24 @@ public function Create()
 {
     parent::Create();
 
-    // === Messwerte (IDs bestehender Variablen im Konfigurator auswählen) ===
+    // === Eigene Profile (wird nur einmal pro System erzeugt) ===
+
+    // Prozent-Regler z.B. für PV2Car-Prozent
+    if (!@IPS_VariableProfileExists('PVW.Percent')) {
+        IPS_CreateVariableProfile('PVW.Percent', 1); // Integer
+        IPS_SetVariableProfileDigits('PVW.Percent', 0);
+        IPS_SetVariableProfileText('PVW.Percent', '', ' %');
+        IPS_SetVariableProfileValues('PVW.Percent', 0, 100, 1);
+    }
+    // SOC-Profil für Hausspeicher/Auto (0-100 %)
+    if (!@IPS_VariableProfileExists('PVW.SOC')) {
+        IPS_CreateVariableProfile('PVW.SOC', 1);
+        IPS_SetVariableProfileDigits('PVW.SOC', 0);
+        IPS_SetVariableProfileText('PVW.SOC', '', ' %');
+        IPS_SetVariableProfileValues('PVW.SOC', 0, 100, 1);
+    }
+
+    // === Messwert-Properties: IDs von Variablen, die du im Konfigurator zuweist ===
     $this->RegisterPropertyInteger('PVErzeugungID', 0);        
     $this->RegisterPropertyInteger('HausverbrauchID', 0);      
     $this->RegisterPropertyInteger('BatterieladungID', 0);     
@@ -25,16 +42,14 @@ public function Create()
     $this->RegisterPropertyInteger('ZielzeitladungID', 0);     
     $this->RegisterPropertyInteger('SOC_ZielwertID', 0);       
 
-    // === Zielzeit als komfortabler Zeit-Picker (Profil ~UnixTimestampTime) ===
+    // === Zielzeit als Zeit-Picker (Profil ~UnixTimestampTime) ===
     $this->RegisterVariableInteger('Zielzeit_Uhr', 'Ziel-Zeit (bis wann geladen?)', '~UnixTimestampTime', 22);
-
-    // Standardwert für Zielzeit auf 6:00 Uhr setzen, falls leer
     $vid = $this->GetIDForIdent('Zielzeit_Uhr');
     if (GetValue($vid) == 0) {
         SetValue($vid, strtotime("06:00")); // Standard: 6 Uhr früh
     }
 
-    // === Ladeparameter ===
+    // === Ladeparameter-Properties (mit Defaults) ===
     $this->RegisterPropertyFloat('MinStartWatt', 1400);        
     $this->RegisterPropertyFloat('MinStopWatt', 300);          
     $this->RegisterPropertyInteger('PhasenSwitchWatt3', 4200); 
@@ -44,18 +59,22 @@ public function Create()
     $this->RegisterPropertyInteger('MinAmp', 6);               
     $this->RegisterPropertyInteger('MaxAmp', 16);              
 
-    // === Logging & Statusvariablen ===
+    // === Status- und Hilfsvariablen für Anzeige/Logging ===
     $this->RegisterVariableString('Wallbox_Log', 'Wallbox Log', '', 999);
     $this->RegisterVariableFloat('PV_Berechnet', 'PV berechnet', '~Watt', 10);
     $this->RegisterVariableFloat('PV_Effektiv', 'PV Überschuss effektiv', '~Watt', 11);
     $this->RegisterVariableFloat('Geplante_Ladeleistung', 'Geplante Ladeleistung', '~Watt', 12);
+
+    // SOC-Zielwert, Prozentregler für PV2Car
+    $this->RegisterVariableInteger('SOC_Zielwert', 'Ziel-SOC Auto', 'PVW.SOC', 30);
+    $this->RegisterVariableInteger('PV2CarPercent', 'PV2Car-Prozent', 'PVW.Percent', 31);
 
     // (Optional) Hysterese-Zähler automatisch anlegen
     $this->RegisterVariableInteger('PhasenHystUp', 'Hysterese 3-Phasen', '', 50);
     $this->RegisterVariableInteger('PhasenHystDn', 'Hysterese 1-Phasen', '', 51);
 
     // Timer für die zyklische Logik
-    $this->RegisterTimer('ZyklischCheck', 60 * 1000, 'Pesensie\PVWallboxManager_CheckWallboxLogic($_IPS[\'TARGET\']);');
+    $this->RegisterTimer('ZyklischCheck', 60 * 1000, 'pesensie\PVWallboxManager_CheckWallboxLogic($_IPS[\'TARGET\']);');
     }
 }
 
