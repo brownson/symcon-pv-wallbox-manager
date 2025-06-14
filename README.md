@@ -1,35 +1,47 @@
 # Symcon PV Wallbox Manager
 
-Ein leistungsfähiges IP-Symcon-Modul zur intelligenten Steuerung einer go-e Charger Wallbox (ab Hardware V3/V4) auf Basis von PV-Überschuss, Batteriespeicher, SOC-Zielladung und flexiblen Lademodi.
+Ein leistungsfähiges IP-Symcon-Modul zur intelligenten Steuerung einer go-e Charger Wallbox (ab Hardware V3/V4) auf Basis von PV-Überschuss, Batterie-Status, SOC-Zielladung und frei definierbaren Lade-Modi.
 
-## Features
+## Funktionen
 
-- ⚡ PV-Überschussladen mit automatischer Leistungsanpassung
-- 🔁 Dynamische 1-/3-phasige Umschaltung mit Hysterese
-- 🚗 Manueller Ladebefehl (volle Netzladung)
-- 🌤️ PV2Car-Modus: Anteiliger PV-Überschuss fürs Auto
-- ⏰ Zielladung nach Uhrzeit und SOC-Ziel
-- 🔌 SofarSolar-Modbus-Steuerung (optional)
-- 📋 Logging & Visualisierung im WebFront
+- ⚡ PV-Überschussladen mit automatischer Stromanpassung
+- 🔄 1-/3-phasige Umschaltung mit Hysterese
+- 🔘 Manueller Lademodus (volle Leistung sofort)
+- ☀️ PV2Car-Modus (prozentuale PV-Zuweisung)
+- ⏰ Zielladung bis Uhrzeit und SOC
+- 🔒 Nur-Netzladung via SofarSolar-Modbus
+- 📊 Visualisierung & Logging im WebFront
 
 ## Voraussetzungen
 
-- IP-Symcon ab Version 6.3
-- go-e Charger ab Hardwareversion V3/V4
-- Messwerte: PV-Leistung, Hausverbrauch, Batteriespeicher (kW)
-- Optional: SofarSolar Hybrid-Wechselrichter via Modbus
+- IP-Symcon 6.3 oder neuer
+- go-e Charger V3 oder V4
+- PV-Erzeugung, Hausverbrauch, Batteriespeicher via Symcon (z. B. per Modbus oder MQTT)
+- Optional: SofarSolar Wechselrichter via Modbus TCP
 
 ## Installation
 
-Füge das Modul in der IP-Symcon Modulverwaltung hinzu:
+1. Modul in IP-Symcon einbinden:
+    ```
+    https://github.com/pesensie/symcon-pv-wallbox-manager.git
+    ```
 
-https://github.com/pesensie/symcon-pv-wallbox-manager.git
+2. Instanz im Objektbaum erstellen
 
+3. Konfiguration: Variablen & Lade-Modi zuweisen
 
-## Beispiel – Visualisierung im WebFront
+## Struktur
 
-...
+```text
+symcon-pv-wallbox-manager/
+├── README.md
+├── module.json
+└── PVWallboxManager/
+    ├── module.php
+    ├── PVWallboxManager.json
+    └── EnergieScript.php
+```
 
 ## Lizenz
 
-Dieses Projekt steht unter der MIT-Lizenz – siehe [LICENSE](LICENSE).
+MIT License – siehe `LICENSE.md`

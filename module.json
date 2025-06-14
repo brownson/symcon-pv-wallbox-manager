@@ -1,27 +1,14 @@
 {
-  "id": "{A31B7D32-2025-0001-AUTO-PV-WALLBOX}",
+  "id": "{B5F6B672-4F83-11EC-81D3-0242AC130003}",
   "name": "PV Wallbox Manager",
-  "type": 4,
-  "vendor": "symcon-pesensie",
-  "version": "1.0.0",
-  "build": 1,
-  "date": 20250614,
+  "type": 3,
+  "vendor": "Pesendorfer",
+  "aliases": ["PVWallboxManager"],
+  "version": "1.0",
   "author": "Siegfried Pesendorfer",
   "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
-  "aliases": [
-    "PV Wallbox Manager",
-    "go-e Charger PV Steuerung"
-  ],
-  "startup": "register",
-  "modules": [
-    {
-      "id": "{A31B7D32-2025-0001-MODUL}",
-      "name": "PVWallboxManager",
-      "type": 1,
-      "vendor": "symcon-pesensie",
-      "version": "1.0.0",
-      "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
-      "aliases": ["PVWallboxManager"]
-    }
-  ]
+  "compatibility": {
+    "version": "6.3"
+  },
+  "description": "Modul zur PV-Überschussladung von go-e Charger Wallboxen"
 }
