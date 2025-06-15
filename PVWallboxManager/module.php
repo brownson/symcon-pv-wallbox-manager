@@ -64,8 +64,23 @@ class PVWallboxManager extends IPSModule
 
         // Timer für zyklische Prüfung
         $this->RegisterTimer('ZyklischCheck', 60 * 1000, 'PVWallboxManager_CheckWallboxLogic($_IPS[\'TARGET\']);');
-	}
 	
+	// Modus-Buttons (Boolean) – immer nur EINER darf aktiv sein
+	$this->RegisterVariableBoolean('Button_Manuell', 'Manueller Modus (Maximal)', '', 101);
+	$this->RegisterVariableBoolean('Button_PV2Car', 'PV2Car-Regler', '', 102);
+	$this->RegisterVariableBoolean('Button_Zielladung', 'Zielladung', '', 103);
+
+	// Profil für Buttons anlegen (einfach Standard-Boolean-Profil)
+	if (!IPS_VariableProfileExists('Switch')) {
+	    IPS_CreateVariableProfile('Switch', 0);
+	    IPS_SetVariableProfileIcon('Switch', 'Power');
+	    IPS_SetVariableProfileText('Switch', '', '');
+	}
+	IPS_SetVariableCustomProfile($this->GetIDForIdent('Button_Manuell'), 'Switch');
+	IPS_SetVariableCustomProfile($this->GetIDForIdent('Button_PV2Car'), 'Switch');
+	IPS_SetVariableCustomProfile($this->GetIDForIdent('Button_Zielladung'), 'Switch');
+   }
+
     public function ApplyChanges()
     {
         parent::ApplyChanges();
@@ -120,6 +135,28 @@ class PVWallboxManager extends IPSModule
 	$this->SetTimerInterval('ZyklischCheck', $interval * 1000);
     }
 
+     public function RequestAction($ident, $value)
+ 	{
+	// Buttons: Nur einer darf auf TRUE stehen
+	switch ($ident) {
+		case 'Button_Manuell':
+		case 'Button_PV2Car':
+		case 'Button_Zielladung':
+		    // Wenn auf true gesetzt, alle anderen auf false
+		    if ($value) {
+			SetValue($this->GetIDForIdent('Button_Manuell'), $ident == 'Button_Manuell');
+			SetValue($this->GetIDForIdent('Button_PV2Car'), $ident == 'Button_PV2Car');
+			SetValue($this->GetIDForIdent('Button_Zielladung'), $ident == 'Button_Zielladung');
+	            } else {
+	                SetValue($this->GetIDForIdent($ident), false);
+	            }
+	            break;
+	        // ... weitere Actions (z.B. für Schieberegler) hier einbauen
+	        default:
+	            throw new Exception("Invalid Ident for RequestAction: " . $ident);
+	    }
+	}
+	
 	// Logging-Funktion: WebFront + Systemlog
 	protected function LogWB($msg)
     {
@@ -205,46 +242,43 @@ class PVWallboxManager extends IPSModule
     SetValue($this->GetIDForIdent('PV_Berechnet'), $pv_berechnet);
     SetValue($this->GetIDForIdent('PV_Effektiv'), $effektiv);
 
+    // === MODUS-WAHL: Nur ein Modus kann aktiv sein ===
+    $manuell    = GetValue($this->GetIDForIdent('Button_Manuell'));
+    $pv2car     = GetValue($this->GetIDForIdent('Button_PV2Car'));
+    $zielladung = GetValue($this->GetIDForIdent('Button_Zielladung'));
+	
     // Moduswahl
-    if ($manuell) {
-    $this->LadenSofortMaximal(3);
+    // Jetzt kannst du die Ladelogik steuern:
+if ($manuell) {
+    // Manueller Modus: Maximal laden
+    $this->LadenSofortMaximal();
+    $this->LogWB("Manueller Modus aktiviert: maximale Ladeleistung.");
     return;
 }
-    if ($pv2car) {
-    $this->LadenPV2CarPercent(3, $effektiv, $pv2car_percent, $soc_haus);
+if ($pv2car) {
+    // PV2Car: prozentualer PV-Überschuss ins Auto
+    $prozent = GetValue($this->GetIDForIdent('PV2CarPercent'));
+    $soc_hausspeicher = $this->ReadValue('SOC_HausspeicherID');
+    $effektiv = GetValue($this->GetIDForIdent('PV_Effektiv'));
+    $this->LadenPV2CarPercent($prozent, $soc_hausspeicher, $effektiv);
+    $this->LogWB("PV2Car-Modus aktiviert: $prozent% PV-Überschuss ins Auto.");
     return;
 }
-    if ($zielzeitmodus) {
-    $this->LadenMitZielzeit(3, $soc_auto, $soc_ziel, $zielzeit);
+if ($zielladung) {
+    // Zielladung: Ladeziel bis Zielzeit/SOC
+    $soc_auto = $this->ReadValue('SOC_AutoID');
+    $soc_ziel = $this->ReadValue('SOC_ZielwertID');
+    $zielzeit = GetValue($this->GetIDForIdent('Zielzeit_Uhr'));
+    // Zielzeit als UnixTimestampTime (Stunden und Minuten extrahieren)
+    $ziel_hour = (int)date('H', $zielzeit);
+    $ziel_min = (int)date('i', $zielzeit);
+    $this->LadenMitZielzeit($soc_auto, $soc_ziel, $ziel_hour, $ziel_min);
+    $this->LogWB("Zielladung aktiviert: Ziel $soc_ziel% bis $ziel_hour:$ziel_min.");
     return;
-}
-    $this->LadenMitPVUeberschuss(3, $effektiv);
-    // Zielzeitmodus, falls gewünscht (ergänze eigenen Button)
-    // if ($zielzeitmodus) { $this->LadenMitZielzeit(...); return; }
-
-    // Nur PV-Überschuss laden
-    if ($effektiv >= $min_start) {
-        $this->LadenMitPVUeberschuss(3, $effektiv);
-    } elseif ($effektiv < $min_stop) {
-        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), 0);
-        $this->LogWB("🛑 Kein Überschuss, Laden gestoppt!");
-        // GOeCharger_SetCurrentChargingWatt() auf 0
-    } else {
-        $this->LogWB("⏸ Zwischenbereich – keine Ladeänderung");
-    }
-      
-          // === Überschussmodus: nur laden wenn Überschuss > min_start ===
-    if ($effektiv >= $min_start) {
-        $ladeleistung = $effektiv;
-        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
-        $this->LogWB("✅ Überschuss-Ladung: $ladeleistung W");
-        // hier ggf. GOeCharger_SetCurrentChargingWatt()
-    } elseif ($effektiv < $min_stop) {
-        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), 0);
-        $this->LogWB("🛑 Kein Überschuss, Laden gestoppt!");
-    } else {
-        $this->LogWB("⏸ Zwischenbereich – keine Ladeänderung");
-    }
+  }
+    // Kein Button → Standardfall: PV-Überschuss
+    $this->LadenMitPVUeberschuss($effektiv);
+    $this->LogWB("Standard: Nur PV-Überschuss laden.");
 }
   // Hilfsmethode: Pufffaktor dynamisch bestimmen
     protected function BerechnePufferFaktor($effektiv)
