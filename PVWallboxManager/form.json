@@ -1,1 +1,60 @@
-
+{
+  "elements": [
+    {
+      "type": "SelectVariable",
+      "name": "PVErzeugungID",
+      "caption": "PV-Erzeugung (W)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "HausverbrauchID",
+      "caption": "Hausverbrauch (W)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "BatterieladungID",
+      "caption": "Batterieladung (W)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "WallboxLadeleistungID",
+      "caption": "Wallbox Ladeleistung (W)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "WallboxAktivID",
+      "caption": "Wallbox Aktiv (Bool)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "SOC_AutoID",
+      "caption": "SOC Auto (%)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "SOC_HausspeicherID",
+      "caption": "SOC Hausbatterie (%)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "ManuellerModusID",
+      "caption": "Manueller Ladebefehl (Bool)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "PV2CarModusID",
+      "caption": "PV2Car Modus (Bool)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "PV2CarPercentID",
+      "caption": "PV2Car Prozent (Integer)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "SOC_ZielwertID",
+      "caption": "SOC Zielwert (%)"
+    }
+  ],
+  "actions": []
+}
