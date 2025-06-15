@@ -186,100 +186,47 @@ class PVWallboxManager extends IPSModule
         $this->MainLogic();
     }
 
-    // === TimerEvent für Zyklischen Durchlauf ===
-    protected function MainLogic()
+protected function MainLogic()
 {
-    // IDs einlesen
-    $pv_id       = $this->ReadPropertyInteger('PVErzeugungID');
-    $verbrauch_id= $this->ReadPropertyInteger('HausverbrauchID');
-    $batt_id     = $this->ReadPropertyInteger('BatterieladungID');
-    $wb_power_id = $this->ReadPropertyInteger('WallboxLadeleistungID');
-    $wb_aktiv_id = $this->ReadPropertyInteger('WallboxAktivID');
-    $soc_auto_id = $this->ReadPropertyInteger('SOC_AutoID');
-    $soc_haus_id = $this->ReadPropertyInteger('SOC_HausspeicherID');
-    $soc_ziel_id = $this->ReadPropertyInteger('SOC_ZielwertID');
-    $pv2car_percent_id = $this->ReadPropertyInteger('PV2CarPercentID');
-    $manuell_id  = $this->ReadPropertyInteger('ManuellerModusID');
-    $pv2car_id   = $this->ReadPropertyInteger('PV2CarModusID');
-    $zielzeit_id = $this->GetIDForIdent('Zielzeit_Uhr');
+    // IDs und Werte holen
+    $effektiv     = GetValue($this->GetIDForIdent('PV_Effektiv'));
+    $manuell      = GetValue($this->GetIDForIdent('Button_Manuell'));
+    $pv2car       = GetValue($this->GetIDForIdent('Button_PV2Car'));
+    $zielladung   = GetValue($this->GetIDForIdent('Button_Zielladung'));
 
-    // Werte holen
-    $pv         = GetValue($pv_id);
-    $verbrauch  = GetValue($verbrauch_id);
-    $batterie   = GetValue($batt_id);
-    $wb_power   = GetValue($wb_power_id);
-    $wb_aktiv   = GetValue($wb_aktiv_id);
-    $soc_auto   = ($soc_auto_id > 0) ? GetValue($soc_auto_id) : null;
-    $soc_haus   = ($soc_haus_id > 0) ? GetValue($soc_haus_id) : null;
-    $soc_ziel   = ($soc_ziel_id > 0) ? GetValue($soc_ziel_id) : 80;
-    $pv2car_percent = ($pv2car_percent_id > 0) ? GetValue($pv2car_percent_id) : 100;
-    $manuell    = ($manuell_id > 0) ? GetValue($manuell_id) : false;
-    $pv2car     = ($pv2car_id > 0) ? GetValue($pv2car_id) : false;
-    $zielzeit   = ($zielzeit_id > 0) ? GetValue($zielzeit_id) : strtotime("06:00");
+    // Optional: Weitere benötigte Variablen für die Modi holen
+    $pv2car_percent = GetValue($this->GetIDForIdent('PV2CarPercent'));
+    $soc_auto       = GetValue($this->GetIDForIdent('SOC_Auto'));
+    $soc_ziel       = GetValue($this->GetIDForIdent('SOC_Zielwert'));
+    $zielzeit       = GetValue($this->GetIDForIdent('Zielzeit_Uhr'));
+    $phasen         = 3; // Phasenlogik ggf. dynamisch!
 
-    $volt       = $this->ReadPropertyInteger('Volt');
-    $min_amp    = $this->ReadPropertyInteger('MinAmp');
-    $max_amp    = $this->ReadPropertyInteger('MaxAmp');
-    $min_start  = $this->ReadPropertyFloat('MinStartWatt');
-    $min_stop   = $this->ReadPropertyFloat('MinStopWatt');
-
-    // PV-Berechnung
-    $pv_berechnet = $pv - $verbrauch - $batterie;
-    $effektiv = max($pv_berechnet + ($wb_aktiv ? $wb_power : 0), 0);
-
-    // Dynamischer Puffer
-    if ($effektiv < 2000) {
-        $puffer_faktor = 0.80;
-    } elseif ($effektiv < 4000) {
-        $puffer_faktor = 0.85;
-    } elseif ($effektiv < 6000) {
-        $puffer_faktor = 0.90;
-    } else {
-        $puffer_faktor = 0.93;
+    // 1. Manueller Modus
+    if ($manuell) {
+        $this->LadenSofortMaximal($phasen);
+        $this->LogWB("Manueller Modus aktiv: Maximale Leistung.");
+        return;
     }
-    $effektiv = (int)($effektiv * $puffer_faktor);
 
-    SetValue($this->GetIDForIdent('PV_Berechnet'), $pv_berechnet);
-    SetValue($this->GetIDForIdent('PV_Effektiv'), $effektiv);
+    // 2. PV2Car-Modus
+    if ($pv2car) {
+        $this->LadenPV2CarPercent($phasen, $effektiv, $pv2car_percent);
+        $this->LogWB("PV2Car aktiv: $pv2car_percent% des Überschusses ins Auto.");
+        return;
+    }
 
-    // === MODUS-WAHL: Nur ein Modus kann aktiv sein ===
-    $manuell    = GetValue($this->GetIDForIdent('Button_Manuell'));
-    $pv2car     = GetValue($this->GetIDForIdent('Button_PV2Car'));
-    $zielladung = GetValue($this->GetIDForIdent('Button_Zielladung'));
-	
-    // Moduswahl
-    // Jetzt kannst du die Ladelogik steuern:
-if ($manuell) {
-    // Manueller Modus: Maximal laden
-    $this->LadenSofortMaximal();
-    $this->LogWB("Manueller Modus aktiviert: maximale Ladeleistung.");
-    return;
+    // 3. Zielladung
+    if ($zielladung) {
+        $this->LadenMitZielzeit($phasen, $soc_auto, $soc_ziel, $zielzeit);
+        $this->LogWB("Zielladung aktiv: bis $zielzeit Ziel-SOC $soc_ziel%.");
+        return;
+    }
+
+    // 4. Standardfall: Nur PV-Überschuss laden
+    $this->LadenMitPVUeberschuss($phasen, $effektiv);
+    $this->LogWB("Standardmodus: Nur PV-Überschuss laden.");
 }
-if ($pv2car) {
-    // PV2Car: prozentualer PV-Überschuss ins Auto
-    $prozent = GetValue($this->GetIDForIdent('PV2CarPercent'));
-    $soc_hausspeicher = $this->ReadValue('SOC_HausspeicherID');
-    $effektiv = GetValue($this->GetIDForIdent('PV_Effektiv'));
-    $this->LadenPV2CarPercent($prozent, $soc_hausspeicher, $effektiv);
-    $this->LogWB("PV2Car-Modus aktiviert: $prozent% PV-Überschuss ins Auto.");
-    return;
-}
-if ($zielladung) {
-    // Zielladung: Ladeziel bis Zielzeit/SOC
-    $soc_auto = $this->ReadValue('SOC_AutoID');
-    $soc_ziel = $this->ReadValue('SOC_ZielwertID');
-    $zielzeit = GetValue($this->GetIDForIdent('Zielzeit_Uhr'));
-    // Zielzeit als UnixTimestampTime (Stunden und Minuten extrahieren)
-    $ziel_hour = (int)date('H', $zielzeit);
-    $ziel_min = (int)date('i', $zielzeit);
-    $this->LadenMitZielzeit($soc_auto, $soc_ziel, $ziel_hour, $ziel_min);
-    $this->LogWB("Zielladung aktiviert: Ziel $soc_ziel% bis $ziel_hour:$ziel_min.");
-    return;
-  }
-    // Kein Button → Standardfall: PV-Überschuss
-    $this->LadenMitPVUeberschuss($effektiv);
-    $this->LogWB("Standard: Nur PV-Überschuss laden.");
-}
+
   // Hilfsmethode: Pufffaktor dynamisch bestimmen
     protected function BerechnePufferFaktor($effektiv)
     {
