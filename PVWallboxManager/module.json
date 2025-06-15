@@ -3,7 +3,8 @@
     "name": "PVWallboxManager",
     "type": 3,
     "vendor": "",
-    "aliases": [
+    "aliases":
+    [
         "PVWallboxManager"
     ],
     "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
