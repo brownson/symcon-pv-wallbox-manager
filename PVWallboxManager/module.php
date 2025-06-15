@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 class PVWallboxManager extends IPSModule
 {
     public function Create()
@@ -231,9 +229,21 @@ class PVWallboxManager extends IPSModule
     } else {
         $this->LogWB("⏸ Zwischenbereich – keine Ladeänderung");
     }
+      
+          // === Überschussmodus: nur laden wenn Überschuss > min_start ===
+    if ($effektiv >= $min_start) {
+        $ladeleistung = $effektiv;
+        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
+        $this->LogWB("✅ Überschuss-Ladung: $ladeleistung W");
+        // hier ggf. GOeCharger_SetCurrentChargingWatt()
+    } elseif ($effektiv < $min_stop) {
+        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), 0);
+        $this->LogWB("🛑 Kein Überschuss, Laden gestoppt!");
+    } else {
+        $this->LogWB("⏸ Zwischenbereich – keine Ladeänderung");
+    }
 }
-
-    // Hilfsmethode: Pufffaktor dynamisch bestimmen
+  // Hilfsmethode: Pufffaktor dynamisch bestimmen
     protected function BerechnePufferFaktor($effektiv)
     {
         if ($effektiv < 2000) {
@@ -247,20 +257,6 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    // === Überschussmodus: nur laden wenn Überschuss > min_start ===
-        if ($effektiv >= $min_start) {
-            $ladeleistung = $effektiv;
-            SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
-            $this->LogWB("✅ Überschuss-Ladung: $ladeleistung W");
-            // ...hier GOeCharger_SetCurrentChargingWatt() einbauen
-        } elseif ($effektiv < $min_stop) {
-            SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), 0);
-            $this->LogWB("🛑 Kein Überschuss, Laden gestoppt!");
-            // ...hier GOeCharger_SetCurrentChargingWatt() mit 0 einbauen
-        } else {
-            $this->LogWB("⏸ Zwischenbereich – keine Ladeänderung");
-        }
-    
     // Manueller Modus: Sofort maximale Leistung
     protected function LadenSofortMaximal($phasen = 3)
 {
