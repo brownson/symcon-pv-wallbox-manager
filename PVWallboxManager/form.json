@@ -54,6 +54,14 @@
       "type": "SelectVariable",
       "name": "SOC_ZielwertID",
       "caption": "SOC Zielwert (%)"
+    },
+    {
+    "type": "NumberSpinner",
+    "name": "TimerInterval",
+    "caption": "Intervall (Sekunden)",
+    "minimum": 15,
+    "maximum": 600,
+    "suffix": "s"
     }
   ],
   "actions": []
