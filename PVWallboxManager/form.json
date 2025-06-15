@@ -56,13 +56,39 @@
       "caption": "SOC Zielwert (%)"
     },
     {
-    "type": "NumberSpinner",
-    "name": "TimerInterval",
-    "caption": "Intervall (Sekunden)",
-    "minimum": 15,
-    "maximum": 600,
-    "suffix": "s"
+      "type": "SelectVariable",
+      "name": "Button_Zielladung",
+      "caption": "Zielladung (Bool)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "Zielzeit_Uhr",
+      "caption": "Zielzeit (Uhrzeit)"
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "TimerInterval",
+      "caption": "Intervall (Sekunden)",
+      "minimum": 15,
+      "maximum": 600,
+      "suffix": "s"
     }
   ],
-  "actions": []
+  "actions": [
+    {
+      "type": "Button",
+      "caption": "Sofort Laden (Manuell)",
+      "onClick": "IPS_RequestAction($id, 'Button_Manuell', true);"
+    },
+    {
+      "type": "Button",
+      "caption": "PV2Car-Modus aktivieren",
+      "onClick": "IPS_RequestAction($id, 'Button_PV2Car', true);"
+    },
+    {
+      "type": "Button",
+      "caption": "Zielladung aktivieren",
+      "onClick": "IPS_RequestAction($id, 'Button_Zielladung', true);"
+    }
+  ]
 }
