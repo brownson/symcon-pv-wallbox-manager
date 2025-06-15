@@ -33,7 +33,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('PV2CarPercentID', 0);
         $this->RegisterPropertyInteger('ZielzeitladungID', 0);
         $this->RegisterPropertyInteger('SOC_ZielwertID', 0);
-	$this->RegisterPropertyInteger('TimerInterval', 60); // Standard 60s
+	    $this->RegisterPropertyInteger('TimerInterval', 60); // Standard 60s
 
 
         // === Variablen ===
@@ -65,21 +65,21 @@ class PVWallboxManager extends IPSModule
         // Timer für zyklische Prüfung
         $this->RegisterTimer('ZyklischCheck', 60 * 1000, 'PVWallboxManager_CheckWallboxLogic($_IPS[\'TARGET\']);');
 	
-	// Modus-Buttons (Boolean) – immer nur EINER darf aktiv sein
-	$this->RegisterVariableBoolean('Button_Manuell', 'Manueller Modus (Maximal)', '', 101);
-	$this->RegisterVariableBoolean('Button_PV2Car', 'PV2Car-Regler', '', 102);
-	$this->RegisterVariableBoolean('Button_Zielladung', 'Zielladung', '', 103);
+        // Modus-Buttons (Boolean) – immer nur EINER darf aktiv sein
+        $this->RegisterVariableBoolean('Button_Manuell', 'Manueller Modus (Maximal)', '', 101);
+        $this->RegisterVariableBoolean('Button_PV2Car', 'PV2Car-Regler', '', 102);
+        $this->RegisterVariableBoolean('Button_Zielladung', 'Zielladung', '', 103);
 
-	// Profil für Buttons anlegen (einfach Standard-Boolean-Profil)
-	if (!IPS_VariableProfileExists('Switch')) {
+        // Profil für Buttons anlegen (einfach Standard-Boolean-Profil)
+        if (!IPS_VariableProfileExists('Switch')) {
 	    IPS_CreateVariableProfile('Switch', 0);
 	    IPS_SetVariableProfileIcon('Switch', 'Power');
 	    IPS_SetVariableProfileText('Switch', '', '');
-	}
-	IPS_SetVariableCustomProfile($this->GetIDForIdent('Button_Manuell'), 'Switch');
-	IPS_SetVariableCustomProfile($this->GetIDForIdent('Button_PV2Car'), 'Switch');
-	IPS_SetVariableCustomProfile($this->GetIDForIdent('Button_Zielladung'), 'Switch');
-   }
+        }
+        IPS_SetVariableCustomProfile($this->GetIDForIdent('Button_Manuell'), 'Switch');
+        IPS_SetVariableCustomProfile($this->GetIDForIdent('Button_PV2Car'), 'Switch');
+        IPS_SetVariableCustomProfile($this->GetIDForIdent('Button_Zielladung'), 'Switch');
+    }
 
     public function ApplyChanges()
     {
@@ -131,31 +131,31 @@ class PVWallboxManager extends IPSModule
         }
 
         // Timer ggf. wieder aktivieren
-	$interval = max(15, $this->ReadPropertyInteger('TimerInterval')); // min. 15s
-	$this->SetTimerInterval('ZyklischCheck', $interval * 1000);
+        $interval = max(15, $this->ReadPropertyInteger('TimerInterval')); // min. 15s
+        $this->SetTimerInterval('ZyklischCheck', $interval * 1000);
     }
 
-     public function RequestAction($ident, $value)
+    public function RequestAction($ident, $value)
  	{
-	// Buttons: Nur einer darf auf TRUE stehen
-	switch ($ident) {
-		case 'Button_Manuell':
-		case 'Button_PV2Car':
-		case 'Button_Zielladung':
-		    // Wenn auf true gesetzt, alle anderen auf false
-		    if ($value) {
-			SetValue($this->GetIDForIdent('Button_Manuell'), $ident == 'Button_Manuell');
-			SetValue($this->GetIDForIdent('Button_PV2Car'), $ident == 'Button_PV2Car');
-			SetValue($this->GetIDForIdent('Button_Zielladung'), $ident == 'Button_Zielladung');
-	            } else {
-	                SetValue($this->GetIDForIdent($ident), false);
-	            }
-	            break;
-	        // ... weitere Actions (z.B. für Schieberegler) hier einbauen
-	        default:
-	            throw new Exception("Invalid Ident for RequestAction: " . $ident);
-	    }
-	}
+        // Buttons: Nur einer darf auf TRUE stehen
+        switch ($ident) {
+            case 'Button_Manuell':
+            case 'Button_PV2Car':
+            case 'Button_Zielladung':
+                // Wenn auf true gesetzt, alle anderen auf false
+                if ($value) {
+                SetValue($this->GetIDForIdent('Button_Manuell'), $ident == 'Button_Manuell');
+                SetValue($this->GetIDForIdent('Button_PV2Car'), $ident == 'Button_PV2Car');
+                SetValue($this->GetIDForIdent('Button_Zielladung'), $ident == 'Button_Zielladung');
+                    } else {
+                        SetValue($this->GetIDForIdent($ident), false);
+                    }
+                    break;
+                // ... weitere Actions (z.B. für Schieberegler) hier einbauen
+                default:
+                    throw new Exception("Invalid Ident for RequestAction: " . $ident);
+            }
+    }
 	
 	// Logging-Funktion: WebFront + Systemlog
 	protected function LogWB($msg)
@@ -186,46 +186,46 @@ class PVWallboxManager extends IPSModule
         $this->MainLogic();
     }
 
-protected function MainLogic()
-{
-    // IDs und Werte holen
-    $effektiv     = GetValue($this->GetIDForIdent('PV_Effektiv'));
-    $manuell      = GetValue($this->GetIDForIdent('Button_Manuell'));
-    $pv2car       = GetValue($this->GetIDForIdent('Button_PV2Car'));
-    $zielladung   = GetValue($this->GetIDForIdent('Button_Zielladung'));
+    protected function MainLogic()
+    {
+        // IDs und Werte holen
+        $effektiv     = GetValue($this->GetIDForIdent('PV_Effektiv'));
+        $manuell      = GetValue($this->GetIDForIdent('Button_Manuell'));
+        $pv2car       = GetValue($this->GetIDForIdent('Button_PV2Car'));
+        $zielladung   = GetValue($this->GetIDForIdent('Button_Zielladung'));
 
-    // Optional: Weitere benötigte Variablen für die Modi holen
-    $pv2car_percent = GetValue($this->GetIDForIdent('PV2CarPercent'));
-    $soc_auto       = GetValue($this->GetIDForIdent('SOC_Auto'));
-    $soc_ziel       = GetValue($this->GetIDForIdent('SOC_Zielwert'));
-    $zielzeit       = GetValue($this->GetIDForIdent('Zielzeit_Uhr'));
-    $phasen         = 3; // Phasenlogik ggf. dynamisch!
+        // Optional: Weitere benötigte Variablen für die Modi holen
+        $pv2car_percent = GetValue($this->GetIDForIdent('PV2CarPercent'));
+        $soc_auto       = GetValue($this->GetIDForIdent('SOC_Auto'));
+        $soc_ziel       = GetValue($this->GetIDForIdent('SOC_Zielwert'));
+        $zielzeit       = GetValue($this->GetIDForIdent('Zielzeit_Uhr'));
+        $phasen         = 3; // Phasenlogik ggf. dynamisch!
 
-    // 1. Manueller Modus
-    if ($manuell) {
-        $this->LadenSofortMaximal($phasen);
-        $this->LogWB("Manueller Modus aktiv: Maximale Leistung.");
-        return;
+        // 1. Manueller Modus
+        if ($manuell) {
+            $this->LadenSofortMaximal($phasen);
+            $this->LogWB("Manueller Modus aktiv: Maximale Leistung.");
+            return;
+        }
+
+        // 2. PV2Car-Modus
+        if ($pv2car) {
+            $this->LadenPV2CarPercent($phasen, $effektiv, $pv2car_percent);
+            $this->LogWB("PV2Car aktiv: $pv2car_percent% des Überschusses ins Auto.");
+            return;
+        }
+
+        // 3. Zielladung
+        if ($zielladung) {
+            $this->LadenMitZielzeit($phasen, $soc_auto, $soc_ziel, $zielzeit);
+            $this->LogWB("Zielladung aktiv: bis $zielzeit Ziel-SOC $soc_ziel%.");
+            return;
+        }
+
+        // 4. Standardfall: Nur PV-Überschuss laden
+        $this->LadenMitPVUeberschuss($phasen, $effektiv);
+        $this->LogWB("Standardmodus: Nur PV-Überschuss laden.");
     }
-
-    // 2. PV2Car-Modus
-    if ($pv2car) {
-        $this->LadenPV2CarPercent($phasen, $effektiv, $pv2car_percent);
-        $this->LogWB("PV2Car aktiv: $pv2car_percent% des Überschusses ins Auto.");
-        return;
-    }
-
-    // 3. Zielladung
-    if ($zielladung) {
-        $this->LadenMitZielzeit($phasen, $soc_auto, $soc_ziel, $zielzeit);
-        $this->LogWB("Zielladung aktiv: bis $zielzeit Ziel-SOC $soc_ziel%.");
-        return;
-    }
-
-    // 4. Standardfall: Nur PV-Überschuss laden
-    $this->LadenMitPVUeberschuss($phasen, $effektiv);
-    $this->LogWB("Standardmodus: Nur PV-Überschuss laden.");
-}
 
   // Hilfsmethode: Pufffaktor dynamisch bestimmen
     protected function BerechnePufferFaktor($effektiv)
@@ -243,96 +243,96 @@ protected function MainLogic()
 
     // Manueller Modus: Sofort maximale Leistung
     protected function LadenSofortMaximal($phasen = 3)
-{
-    $volt    = $this->ReadPropertyInteger('Volt');
-    $max_amp = $this->ReadPropertyInteger('MaxAmp');
-    $ladeleistung = $phasen * $volt * $max_amp;
+    {
+        $volt    = $this->ReadPropertyInteger('Volt');
+        $max_amp = $this->ReadPropertyInteger('MaxAmp');
+        $ladeleistung = $phasen * $volt * $max_amp;
 
-    // Wallbox aktivieren & volle Leistung einstellen
-    GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $this->ReadPropertyInteger('MinAmp'));
-    RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
-    SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
-
-    $this->LogWB("Manueller Modus: Sofort maximale Ladeleistung $ladeleistung W ($phasen-phasig)");
-}
-
-    // PV2Car-Modus: Prozentualer Überschuss ins Auto
-    protected function LadenPV2CarPercent($phasen, $effektiv, $prozent, $soc_hausspeicher)
-{
-    $volt    = $this->ReadPropertyInteger('Volt');
-    $max_amp = $this->ReadPropertyInteger('MaxAmp');
-
-    // Hausspeicher-Logik: Ist er voll, alles ins Auto!
-    if ($soc_hausspeicher !== null && $soc_hausspeicher >= 98) {
-        $prozent = 100;
-    }
-
-    $ladeleistung = round($effektiv * max(0, min(100, $prozent)) / 100);
-
-    if ($ladeleistung > 0) {
+        // Wallbox aktivieren & volle Leistung einstellen
         GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $this->ReadPropertyInteger('MinAmp'));
         RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
         SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
-        $this->LogWB("PV2Car: $prozent% von $effektiv W = $ladeleistung W (Hausspeicher-SOC: $soc_hausspeicher%)");
-    } else {
-        GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), 0, $this->ReadPropertyInteger('MinAmp'));
-        RequestAction($this->ReadPropertyInteger('WallboxModusID'), 0);
-        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), 0);
-        $this->LogWB("PV2Car: Zu wenig PV-Überschuss, Wallbox aus.");
+
+        $this->LogWB("Manueller Modus: Sofort maximale Ladeleistung $ladeleistung W ($phasen-phasig)");
     }
-}
+
+    // PV2Car-Modus: Prozentualer Überschuss ins Auto
+    protected function LadenPV2CarPercent($phasen, $effektiv, $prozent, $soc_hausspeicher)
+    {
+        $volt    = $this->ReadPropertyInteger('Volt');
+        $max_amp = $this->ReadPropertyInteger('MaxAmp');
+
+        // Hausspeicher-Logik: Ist er voll, alles ins Auto!
+        if ($soc_hausspeicher !== null && $soc_hausspeicher >= 98) {
+            $prozent = 100;
+        }
+
+        $ladeleistung = round($effektiv * max(0, min(100, $prozent)) / 100);
+
+        if ($ladeleistung > 0) {
+            GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $this->ReadPropertyInteger('MinAmp'));
+            RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
+            SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
+            $this->LogWB("PV2Car: $prozent% von $effektiv W = $ladeleistung W (Hausspeicher-SOC: $soc_hausspeicher%)");
+        } else {
+            GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), 0, $this->ReadPropertyInteger('MinAmp'));
+            RequestAction($this->ReadPropertyInteger('WallboxModusID'), 0);
+            SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), 0);
+            $this->LogWB("PV2Car: Zu wenig PV-Überschuss, Wallbox aus.");
+        }
+    }
 
     // Zielzeit-Ladung: Ladeleistung so wählen, dass um Zielzeit der Ziel-SOC erreicht ist
     protected function LadenMitZielzeit($phasen, $soc_ist, $soc_soll, $ziel_timestamp)
-{
-    $akku_kapazitaet = 52; // kWh, anpassbar für deinen ID.3
-    $volt    = $this->ReadPropertyInteger('Volt');
-    $max_amp = $this->ReadPropertyInteger('MaxAmp');
-    $min_amp = $this->ReadPropertyInteger('MinAmp');
+    {
+        $akku_kapazitaet = 52; // kWh, anpassbar für deinen ID.3
+        $volt    = $this->ReadPropertyInteger('Volt');
+        $max_amp = $this->ReadPropertyInteger('MaxAmp');
+        $min_amp = $this->ReadPropertyInteger('MinAmp');
 
-    $bedarf_kwh = max(0, ($soc_soll - $soc_ist) * $akku_kapazitaet / 100);
+        $bedarf_kwh = max(0, ($soc_soll - $soc_ist) * $akku_kapazitaet / 100);
 
-    $jetzt = time();
-    if ($ziel_timestamp <= $jetzt) $ziel_timestamp += 86400;
-    $restzeit_stunden = ($ziel_timestamp - $jetzt) / 3600;
-    $leistung_watt = ($bedarf_kwh * 1000) / max($restzeit_stunden, 0.5);
+        $jetzt = time();
+        if ($ziel_timestamp <= $jetzt) $ziel_timestamp += 86400;
+        $restzeit_stunden = ($ziel_timestamp - $jetzt) / 3600;
+        $leistung_watt = ($bedarf_kwh * 1000) / max($restzeit_stunden, 0.5);
 
-    $ladeleistung = min($leistung_watt, $phasen * $volt * $max_amp);
-    if ($ladeleistung > 0) {
-        GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $min_amp);
-        RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
-        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
-        $uhrzeit = date("H:i", $ziel_timestamp);
-        $this->LogWB("Zielladung: $ladeleistung W bis $uhrzeit Uhr (Ziel $soc_soll%, Bedarf $bedarf_kwh kWh)");
-    } else {
-        GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), 0, $min_amp);
-        RequestAction($this->ReadPropertyInteger('WallboxModusID'), 0);
-        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), 0);
-        $this->LogWB("Zielladung: Ziel bereits erreicht oder keine Restladung nötig");
+        $ladeleistung = min($leistung_watt, $phasen * $volt * $max_amp);
+        if ($ladeleistung > 0) {
+            GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $min_amp);
+            RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
+            SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
+            $uhrzeit = date("H:i", $ziel_timestamp);
+            $this->LogWB("Zielladung: $ladeleistung W bis $uhrzeit Uhr (Ziel $soc_soll%, Bedarf $bedarf_kwh kWh)");
+        } else {
+            GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), 0, $min_amp);
+            RequestAction($this->ReadPropertyInteger('WallboxModusID'), 0);
+            SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), 0);
+            $this->LogWB("Zielladung: Ziel bereits erreicht oder keine Restladung nötig");
+        }
     }
-}
 
     // Nur PV-Überschuss laden
     protected function LadenMitPVUeberschuss($phasen, $effektiv)
-{
-    $volt    = $this->ReadPropertyInteger('Volt');
-    $max_amp = $this->ReadPropertyInteger('MaxAmp');
-    $min_amp = $this->ReadPropertyInteger('MinAmp');
-    $min_start_watt = $this->ReadPropertyFloat('MinStartWatt');
+    {
+        $volt    = $this->ReadPropertyInteger('Volt');
+        $max_amp = $this->ReadPropertyInteger('MaxAmp');
+        $min_amp = $this->ReadPropertyInteger('MinAmp');
+        $min_start_watt = $this->ReadPropertyFloat('MinStartWatt');
 
-    if ($effektiv < $min_start_watt) {
-        GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), 0, $min_amp);
-        RequestAction($this->ReadPropertyInteger('WallboxModusID'), 0);
-        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), 0);
-        $this->LogWB("PV-Überschuss < $min_start_watt W: Wallbox gestoppt");
-        return;
+        if ($effektiv < $min_start_watt) {
+            GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), 0, $min_amp);
+            RequestAction($this->ReadPropertyInteger('WallboxModusID'), 0);
+            SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), 0);
+            $this->LogWB("PV-Überschuss < $min_start_watt W: Wallbox gestoppt");
+            return;
+        }
+        $ladeleistung = min($effektiv, $phasen * $volt * $max_amp);
+        GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $min_amp);
+        RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
+        SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
+        $this->LogWB("PV-Überschuss-Ladung: $ladeleistung W");
     }
-    $ladeleistung = min($effektiv, $phasen * $volt * $max_amp);
-    GOeCharger_SetCurrentChargingWatt($this->ReadPropertyInteger('WallboxAktivID'), $ladeleistung, $min_amp);
-    RequestAction($this->ReadPropertyInteger('WallboxModusID'), 2);
-    SetValue($this->GetIDForIdent('Geplante_Ladeleistung'), $ladeleistung);
-    $this->LogWB("PV-Überschuss-Ladung: $ladeleistung W");
-}
 
 
     // Hysterese/Phasenumschaltung, Modbus & weitere Utilitys können hier ergänzt werden!
