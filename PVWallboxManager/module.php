@@ -33,6 +33,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('PV2CarPercentID', 0);
         $this->RegisterPropertyInteger('ZielzeitladungID', 0);
         $this->RegisterPropertyInteger('SOC_ZielwertID', 0);
+	$this->RegisterPropertyInteger('TimerInterval', 60); // Standard 60s
+
 
         // === Variablen ===
         $this->RegisterVariableInteger('Zielzeit_Uhr', 'Ziel-Zeit (bis wann geladen?)', '~UnixTimestampTime', 22);
@@ -114,7 +116,8 @@ class PVWallboxManager extends IPSModule
         }
 
         // Timer ggf. wieder aktivieren
-        $this->SetTimerInterval('ZyklischCheck', 60 * 1000); // alle 60 Sekunden
+	$interval = max(15, $this->ReadPropertyInteger('TimerInterval')); // min. 15s
+	$this->SetTimerInterval('ZyklischCheck', $interval * 1000);
     }
 
 	// Logging-Funktion: WebFront + Systemlog
