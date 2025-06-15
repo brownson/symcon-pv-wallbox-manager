@@ -1,14 +1,14 @@
 {
-    "id": "{35495161-0972-0CA7-B3FB-A1E4003D7021}",
+    "id": "{3DFBB04D-628A-AAFF-9F3F-71B5EE88EA02}",
     "name": "PVWallboxManager",
     "type": 3,
-    "vendor": "Pesendorfer",
+    "vendor": "",
     "aliases": [
         "PVWallboxManager"
     ],
     "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
     "parentRequirements": [],
     "childRequirements": [],
-    "implemented": ["{018EF6B5-AB94-40C6-AA53-46943E824ACF}"],
+    "implemented": [],
     "prefix": "PVWM"
 }
