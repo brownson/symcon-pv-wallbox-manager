@@ -17,6 +17,12 @@
       "description": "Variable mit aktuellem Hausverbrauch (inkl. EVU + Wallbox etc.)"
     },
     {
+    "type": "SelectVariable",
+    "name": "BatterieladungID",
+    "caption": "Batterieladung (W)",
+    "description": "Variable mit Lade-/Entladeleistung der Batterie (positiv = lädt, negativ = entlädt)"
+    },
+    {
       "type": "NumberSpinner",
       "name": "RefreshInterval",
       "caption": "Berechnungsintervall",
