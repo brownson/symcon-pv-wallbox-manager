@@ -82,14 +82,18 @@ class PVWallboxManager extends IPSModule
         $verbrauch  = GetValue($verbrauch_id);
         $batterie   = GetValue($batterie_id); // positiv = lädt, negativ = entlädt
 
-        $ueberschuss = $pv - $verbrauch - $batterie;
+        // === Float-Toleranzfilter (z. B. -1E-13 → 0.0)
+        if (abs($ueberschuss) < 0.01) {
+            $ueberschuss = 0.0;
+        }
 
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
 
         // === Frühzeitiger Abbruch bei zu geringem Überschuss ===
         $minLadeWatt = $this->ReadPropertyInteger('MinLadeWatt');
         if ($ueberschuss < $minLadeWatt) {
-            IPS_LogMessage("⚡ PVWallboxManager", "🔌 PV-Überschuss zu gering ($ueberschuss W < {$minLadeWatt} W) – Ladeleistung = 0 W");
+            IPS_LogMessage("⚡ PVWallboxManager", "🔌 PV-Überschuss zu gering (" . round($ueberschuss, 1) . " W < {$minLadeWatt} W) – Ladeleistung = 0 W");
+
             $this->SetLadeleistung(0);
             return;
         }
