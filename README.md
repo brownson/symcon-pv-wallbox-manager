@@ -10,6 +10,7 @@ Dieses Modul wird als Hobbyprojekt entwickelt und kostenlos zur Verfügung geste
 Wenn du die Weiterentwicklung unterstützen möchtest, kannst du das gerne tun:
 
 [![Spenden mit PayPal](https://www.paypalobjects.com/de_DE/AT/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?business=PR9P7V7RMFHFQ&no_recurring=0&item_name=Spende+als+Dankesch%C3%B6n+f%C3%BCr+die+Modulentwicklung+Symcon&currency_code=EUR)
+![QR-Code zur PayPal-Spende](assets/paypal_qr.png)
 
 
 > ☕ Vielen Dank für deine Unterstützung!  
