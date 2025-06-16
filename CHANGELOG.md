@@ -1,5 +1,23 @@
 # Changelog
 
+# Changelog
+
+## [0.2] – 2025-06-16
+
+### ✨ Hinzugefügt
+- Automatische Umschaltung zwischen 1-phasigem und 3-phasigem Laden basierend auf PV-Überschuss.
+- Konfigurierbare Hysterese mit Schwellenwerten (`Phasen1Schwelle`, `Phasen3Schwelle`) und Zählerlimits (`Phasen1Limit`, `Phasen3Limit`).
+- Vermeidung unnötiger Umschaltungen durch intelligente Zählerlogik mit Reset bei Zwischenwerten.
+- Ausführliches Logging für:
+  - PV-Überschuss und berechnete Ladeleistung
+  - Phasenumschalt-Zählerstände
+  - Ausgelöste Phasenumschaltungen
+  - Ladeleistungsänderungen und Moduswechsel des go-e Chargers
+
+### 🛠️ Geändert
+- Ladeleistung wird nur gesetzt, wenn sich der neue Wert um mehr als 50 W vom aktuellen unterscheidet.
+- Der go-e Modus (Laden/Nicht laden) wird nur umgeschaltet, wenn sich der Zustand wirklich ändert.
+
 ## v0.1 – 2025-06-16
 
 ### ✅ Grundfunktionen:
