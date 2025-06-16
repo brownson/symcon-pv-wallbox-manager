@@ -52,7 +52,7 @@ class PVWallboxManager extends IPSModule
 
         // Prüfe, ob beide Variablen existieren
         if (!@IPS_VariableExists($pv_id) || !@IPS_VariableExists($verbrauch_id)) {
-            IPS_LogMessage("PVWallboxManager", "Fehler: PVErzeugungID oder HausverbrauchID ist ungültig!");
+            IPS_LogMessage("⚠️ PVWallboxManager", "❌ Fehler: PVErzeugungID oder HausverbrauchID ist ungültig!");
             return;
         }
 
@@ -60,14 +60,20 @@ class PVWallboxManager extends IPSModule
         $pv         = GetValue($pv_id);
         $verbrauch  = GetValue($verbrauch_id);
 
-        // PV-Überschuss berechnen (positiv = Überschuss, negativ = Netzbezug)
+        // PV-Überschuss berechnen
         $ueberschuss = $pv - $verbrauch;
 
         // Ergebnis in Modul-Variable speichern
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
 
-        // Log-Ausgabe zur Kontrolle
-        IPS_LogMessage("PVWallboxManager", "Aktueller PV-Überschuss: $ueberschuss W");
-    }
+        // === Logging je nach Situation ===
+        if ($ueberschuss > 100) {
+            IPS_LogMessage("⚡ PVWallboxManager", "✅ PV-Überschuss erkannt: $ueberschuss W ☀️🔋");
+        } elseif ($ueberschuss < -100) {
+            IPS_LogMessage("⚡ PVWallboxManager", "🔌 Strom wird aus dem Netz bezogen! ($ueberschuss W) ❌");
+        } else {
+            IPS_LogMessage("⚡ PVWallboxManager", "🔍 Kein signifikanter Überschuss: $ueberschuss W");
+        }
+}
 }
 ?>
