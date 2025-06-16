@@ -1,80 +1,28 @@
 {
   "elements": [
     {
+      "type": "Label",
+      "caption": "Dieses Modul berechnet regelmäßig den PV-Überschuss (PV-Erzeugung minus Hausverbrauch)."
+    },
+    {
       "type": "SelectVariable",
       "name": "PVErzeugungID",
       "caption": "PV-Erzeugung (W)",
-      "description": "Aktuelle PV-Gesamtleistung (Erzeugung) in Watt"
+      "description": "Variable mit aktueller PV-Erzeugung (z. B. aus Wechselrichter oder Zähler)"
     },
     {
       "type": "SelectVariable",
       "name": "HausverbrauchID",
       "caption": "Hausverbrauch (W)",
-      "description": "Gesamter aktueller Verbrauch im Haus (Watt)"
-    },
-    {
-      "type": "SelectVariable",
-      "name": "BatterieladungID",
-      "caption": "Batterieladung (W)",
-      "description": "Aktuelle Lade-/Entladeleistung der Hausbatterie (Watt, positiv = laden, negativ = entladen)"
-    },
-    {
-      "type": "SelectVariable",
-      "name": "WallboxLadeleistungID",
-      "caption": "Wallbox Ladeleistung (W)",
-      "description": "Aktuelle Ladeleistung an der Wallbox zum Fahrzeug"
-    },
-    {
-      "type": "SelectVariable",
-      "name": "WallboxAktivID",
-      "caption": "Wallbox Aktiv (Bool)",
-      "description": "Status der Wallbox (aktiv: true, inaktiv: false)"
-    },
-    {
-      "type": "SelectVariable",
-      "name": "SOC_AutoID",
-      "caption": "SOC Auto (%)",
-      "description": "Aktueller State of Charge (SOC) des Fahrzeugs (in Prozent)"
-    },
-    {
-      "type": "SelectVariable",
-      "name": "SOC_HausspeicherID",
-      "caption": "SOC Hausbatterie (%)",
-      "description": "State of Charge (SOC) des Hausspeichers (in Prozent)"
-    },
-    {
-      "type": "SelectVariable",
-      "name": "ManuellerModusID",
-      "caption": "Manueller Ladebefehl (Bool)",
-      "description": "Button für sofortiges Laden mit maximaler Leistung (unabhängig vom PV-Überschuss)"
-    },
-    {
-      "type": "SelectVariable",
-      "name": "PV2CarModusID",
-      "caption": "PV2Car Modus (Bool)",
-      "description": "Button für das Laden eines prozentualen Anteils des PV-Überschusses ins Fahrzeug"
-    },
-    {
-      "type": "SelectVariable",
-      "name": "PV2CarPercentID",
-      "caption": "PV2Car Prozent (Integer)",
-      "description": "Einstellbarer Prozentsatz des PV-Überschusses, der ins Fahrzeug geladen werden soll (Rest geht in die Hausbatterie)"
-    },
-    {
-      "type": "SelectVariable",
-      "name": "SOC_ZielwertID",
-      "caption": "SOC Zielwert (%)",
-      "description": "Ziel-Ladezustand (SOC) für das Fahrzeug bei Zielladung (in Prozent)"
+      "description": "Variable mit aktuellem Hausverbrauch (inkl. EVU + Wallbox etc.)"
     },
     {
       "type": "NumberSpinner",
-      "name": "TimerInterval",
-      "caption": "Intervall (Sekunden)",
+      "name": "RefreshInterval",
+      "caption": "Berechnungsintervall",
+      "suffix": "Sekunden",
       "minimum": 15,
-      "maximum": 600,
-      "suffix": "s",
-      "description": "Wie oft die Logik pro Minute ausgeführt wird (Empfehlung: >= 15s)"
+      "maximum": 600
     }
-  ],
-  "actions": []
+  ]
 }
