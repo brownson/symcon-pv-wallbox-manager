@@ -5,6 +5,18 @@
       "caption": "Dieses Modul berechnet regelmäßig den PV-Überschuss (PV-Erzeugung minus Hausverbrauch)."
     },
     {
+      "type": "Select",
+      "name": "WallboxTyp",
+      "caption": "Wallbox-Typ",
+      "description": "Wähle den Hersteller/Typ deiner Wallbox",
+      "options": [
+        {
+          "caption": "go-e Charger (via IPSCoyote Modul)",
+          "value": "go-e"
+        }
+      ]
+    },
+    {
       "type": "SelectVariable",
       "name": "PVErzeugungID",
       "caption": "PV-Erzeugung (W)",
