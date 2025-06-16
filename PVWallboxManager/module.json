@@ -1,15 +1,39 @@
 {
-    "id": "{3DFBB04D-628A-AAFF-9F3F-71B5EE88EA02}",
-    "name": "PVWallboxManager",
-    "type": 3,
-    "vendor": "",
-    "aliases":
-    [
-        "PVWallboxManager"
-    ],
-    "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
-    "parentRequirements": [],
-    "childRequirements": [],
-    "implemented": [],
-    "prefix": "PVWM"
+  "id": "{3DFBB04D-628A-AAFF-9F3F-71B5EE88EA02}",
+  "name": "PVWallboxManager",
+  "type": 3,
+  "vendor": "",
+  "version": "0.1",
+  "aliases": [
+    "PVWallboxManager"
+  ],
+  "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
+  "prefix": "PVWM",
+  "parentRequirements": [],
+  "childRequirements": [],
+  "implemented": [],
+  "configuration": {
+    "properties": [
+      {
+        "name": "PVErzeugungID",
+        "type": "integer",
+        "default": 0
+      },
+      {
+        "name": "HausverbrauchID",
+        "type": "integer",
+        "default": 0
+      },
+      {
+        "name": "BatterieladungID",
+        "type": "integer",
+        "default": 0
+      },
+      {
+        "name": "RefreshInterval",
+        "type": "integer",
+        "default": 60
+      }
+    ]
+  }
 }
