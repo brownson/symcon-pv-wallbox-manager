@@ -11,29 +11,5 @@
   "prefix": "PVWM",
   "parentRequirements": [],
   "childRequirements": [],
-  "implemented": [],
-  "configuration": {
-    "properties": [
-      {
-        "name": "PVErzeugungID",
-        "type": "integer",
-        "default": 0
-      },
-      {
-        "name": "HausverbrauchID",
-        "type": "integer",
-        "default": 0
-      },
-      {
-        "name": "BatterieladungID",
-        "type": "integer",
-        "default": 0
-      },
-      {
-        "name": "RefreshInterval",
-        "type": "integer",
-        "default": 60
-      }
-    ]
-  }
+  "implemented": []
 }
