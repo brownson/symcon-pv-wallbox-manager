@@ -152,7 +152,7 @@ class PVWallboxManager extends IPSModule
                         GOeCharger_setMode($goeID, 1);
                         IPS_LogMessage("PVWallboxManager", "🛑 Modus auf 1 (Nicht laden) gesetzt – Ladeleistung: {$watt} W");
                     } else {
-                        IPS_LogMessage("PVWallboxManager", "ℹ️ Modus bereits auf 1 – keine Änderung nötig");
+                        IPS_LogMessage("PVWallboxManager", "ℹ️ Modus bereits 1 (Nicht laden) – keine Umschaltung nötig");
                     }
                     return;
                 }
