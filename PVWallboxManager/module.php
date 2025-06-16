@@ -30,7 +30,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], "BerechnePVUeberschuss", "");');
 
         $this->RegisterPropertyString('WallboxTyp', 'go-e'); // 'go-e' als Standardwert
-
+        $this->RegisterPropertyInteger('MinAmpere', 6);      // Untergrenze (z. B. 6 A)
+        $this->RegisterPropertyInteger('MaxAmpere', 16);     // Obergrenze (z. B. 16 A)
+        $this->RegisterPropertyInteger('Phasen', 3);         // Aktuelle Anzahl Phasen
     }
 
     // Wird aufgerufen, wenn sich Konfigurationseinstellungen ändern
@@ -50,6 +52,9 @@ class PVWallboxManager extends IPSModule
         // Damit das Feld übernommen wird:
         $this->ReadPropertyInteger('BatterieladungID');
         $this->ReadPropertyString('WallboxTyp');
+        $this->ReadPropertyInteger('MinAmpere');
+        $this->ReadPropertyInteger('MaxAmpere');
+        $this->ReadPropertyInteger('Phasen');
     }
 
     // === Hauptfunktion: Berechnung des PV-Überschusses ===
@@ -81,12 +86,48 @@ class PVWallboxManager extends IPSModule
         } else {
             IPS_LogMessage("⚡ PVWallboxManager", "🔍 Kein signifikanter Überschuss: $ueberschuss W");
         }
+        // === Dynamische Leistungsberechnung ===
+        $phasen = $this->ReadPropertyInteger('Phasen');
+        $minAmp = $this->ReadPropertyInteger('MinAmpere');
+        $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+
+        // Ladeleistung in Watt → benötigte Ampere
+        $ampere = ceil($ueberschuss / (230 * $phasen));
+        $ampere = max($minAmp, min($maxAmp, $ampere)); // auf gültigen Bereich begrenzen
+
+        // Ergebnis: Ladeleistung in Watt
+        $ladeleistung = $ampere * 230 * $phasen;
+
+        $this->SetLadeleistung($ladeleistung);
+        IPS_LogMessage("⚙️ PVWallboxManager", "Dynamische Ladeleistung: $ladeleistung W bei $ampere A / $phasen Phasen");
     }
 
     public function RequestAction($ident, $value)
     {
         if ($ident === "BerechnePVUeberschuss") {
             $this->BerechnePVUeberschuss();
+        }
+    }
+    private function SetLadeleistung(int $watt)
+    {
+        $typ = $this->ReadPropertyString('WallboxTyp');
+
+        switch ($typ) {
+            case 'go-e':
+                $goeID = $this->ReadPropertyInteger('GOEChargerID');
+                if (!@IPS_InstanceExists($goeID)) {
+                    IPS_LogMessage("PVWallboxManager", "⚠️ go-e Charger Instanz nicht vorhanden (ID: $goeID)");
+                    return;
+                }
+
+                // Ladeleistung setzen
+                GOeCharger_SetCurrentChargingWatt($goeID, $watt);
+                IPS_LogMessage("PVWallboxManager", "✅ Ladeleistung (go-e) gesetzt: {$watt} W");
+                break;
+
+            default:
+                IPS_LogMessage("PVWallboxManager", "❌ Wallbox-Typ '$typ' nicht unterstützt – keine Steuerung durchgeführt.");
+                break;
         }
     }
 }

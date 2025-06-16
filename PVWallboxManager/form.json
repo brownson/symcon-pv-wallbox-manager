@@ -41,6 +41,30 @@
       "suffix": "Sekunden",
       "minimum": 15,
       "maximum": 600
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "Phasen",
+      "caption": "Aktive Phasen",
+      "suffix": "Ph",
+      "minimum": 1,
+      "maximum": 3
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "MinAmpere",
+      "caption": "Min. Ladestrom",
+      "suffix": "A",
+      "minimum": 6,
+      "maximum": 16
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "MaxAmpere",
+      "caption": "Max. Ladestrom",
+      "suffix": "A",
+      "minimum": 6,
+      "maximum": 16
     }
   ]
 }
