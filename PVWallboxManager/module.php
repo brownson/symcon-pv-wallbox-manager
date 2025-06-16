@@ -17,6 +17,9 @@ class PVWallboxManager extends IPSModule
 
         // ID der Hausverbrauchs-Variable (Watt)
         $this->RegisterPropertyInteger('HausverbrauchID', 0);
+        
+        // ID der Batterieladungs-Variable (Watt)
+        $this->RegisterPropertyInteger('BatterieladungID', 0);
 
         // === Property für konfigurierbares Intervall (15–600 Sekunden) ===
         // Gibt an, wie oft die Überschuss-Berechnung durchgeführt werden soll
