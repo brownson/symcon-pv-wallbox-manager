@@ -5,42 +5,65 @@ class PVWallboxManager extends IPSModule
     {
         parent::Create();
 
-        // === Eigene Profile für Prozent/SOC ===
+        // === Eigene Profile anlegen ===
+        // Prozent (0-100%)
         if (!@IPS_VariableProfileExists('PVW.Percent')) {
             IPS_CreateVariableProfile('PVW.Percent', 1);
             IPS_SetVariableProfileDigits('PVW.Percent', 0);
             IPS_SetVariableProfileText('PVW.Percent', '', ' %');
             IPS_SetVariableProfileValues('PVW.Percent', 0, 100, 1);
         }
+        // State of Charge (SOC) (0-100%)
         if (!@IPS_VariableProfileExists('PVW.SOC')) {
             IPS_CreateVariableProfile('PVW.SOC', 1);
             IPS_SetVariableProfileDigits('PVW.SOC', 0);
             IPS_SetVariableProfileText('PVW.SOC', '', ' %');
             IPS_SetVariableProfileValues('PVW.SOC', 0, 100, 1);
         }
+        // Stunde (0-23)
+        if (!@IPS_VariableProfileExists('PVW.Hour')) {
+            IPS_CreateVariableProfile('PVW.Hour', 1);
+            IPS_SetVariableProfileDigits('PVW.Hour', 0);
+            IPS_SetVariableProfileValues('PVW.Hour', 0, 23, 1);
+            IPS_SetVariableProfileText('PVW.Hour', '', ' h');
+        }
+        // Minute (0-59)
+        if (!@IPS_VariableProfileExists('PVW.Minute')) {
+            IPS_CreateVariableProfile('PVW.Minute', 1);
+            IPS_SetVariableProfileDigits('PVW.Minute', 0);
+            IPS_SetVariableProfileValues('PVW.Minute', 0, 59, 1);
+            IPS_SetVariableProfileText('PVW.Minute', '', ' min');
+        }
 
-        // === Properties ===
-        $this->RegisterPropertyInteger('PVErzeugungID', 0);
-        $this->RegisterPropertyInteger('HausverbrauchID', 0);
-        $this->RegisterPropertyInteger('BatterieladungID', 0);
-        $this->RegisterPropertyInteger('WallboxLadeleistungID', 0);
-        $this->RegisterPropertyInteger('WallboxAktivID', 0);
-        $this->RegisterPropertyInteger('ModbusRegisterID', 0);
-        $this->RegisterPropertyInteger('SOC_HausspeicherID', 0);
-        $this->RegisterPropertyInteger('SOC_AutoID', 0);
-        $this->RegisterPropertyInteger('ManuellerModusID', 0);
-        $this->RegisterPropertyInteger('PV2CarModusID', 0);
-        $this->RegisterPropertyInteger('PV2CarPercentID', 0);
-        $this->RegisterPropertyInteger('ZielzeitladungID', 0);
-        $this->RegisterPropertyInteger('SOC_ZielwertID', 0);
-	    $this->RegisterPropertyInteger('TimerInterval', 60); // Standard 60s
+        // === Properties für IDs externer Variablen ===
+        $this->RegisterPropertyInteger('PVErzeugungID', 0);       // PV-Erzeugung (W)
+        $this->RegisterPropertyInteger('HausverbrauchID', 0);     // Hausverbrauch (W)
+        $this->RegisterPropertyInteger('BatterieladungID', 0);    // Batterieladung (W)
+        $this->RegisterPropertyInteger('WallboxLadeleistungID', 0); // Wallbox Ladeleistung (W)
+        $this->RegisterPropertyInteger('WallboxAktivID', 0);      // Wallbox aktiv (Bool)
+        $this->RegisterPropertyInteger('ModbusRegisterID', 0);    // Energy Storage Mode (Modbus)
+        $this->RegisterPropertyInteger('SOC_HausspeicherID', 0);  // SOC Hausbatterie (%)
+        $this->RegisterPropertyInteger('SOC_AutoID', 0);          // SOC Auto (%)
+        $this->RegisterPropertyInteger('ManuellerModusID', 0);    // Manueller Modus (Bool)
+        $this->RegisterPropertyInteger('PV2CarModusID', 0);       // PV2Car-Modus (Bool)
+        $this->RegisterPropertyInteger('PV2CarPercentID', 0);     // PV2Car-Prozent (Integer)
+        $this->RegisterPropertyInteger('SOC_ZielwertID', 0);      // SOC Zielwert (%)
 
+        // Timer-Intervall (in Sekunden, Minimum 15)
+        $this->RegisterPropertyInteger('TimerInterval', 60); // Standard 60s
 
-        // === Variablen ===
-        $this->RegisterVariableInteger('Zielzeit_Uhr', 'Ziel-Zeit (bis wann geladen?)', '~UnixTimestampTime', 22);
-        $vid = $this->GetIDForIdent('Zielzeit_Uhr');
-        if (GetValue($vid) == 0) {
-            SetValue($vid, strtotime("06:00"));
+        // === Eigene Variablen ===
+        $this->RegisterVariableInteger('Zielzeit_Stunde', 'Zielzeit Stunde', 'PVW.Hour', 20);
+        $this->RegisterVariableInteger('Zielzeit_Minute', 'Zielzeit Minute', 'PVW.Minute', 21);
+
+        // Setze Standard-Zielzeit: 06:00 Uhr morgens
+        $vid_h = $this->GetIDForIdent('Zielzeit_Stunde');
+        $vid_m = $this->GetIDForIdent('Zielzeit_Minute');
+        if (GetValue($vid_h) == 0) {
+            SetValue($vid_h, 6);
+        }
+        if (GetValue($vid_m) == 0) {
+            SetValue($vid_m, 0);
         }
 
         $this->RegisterVariableString('Wallbox_Log', 'Wallbox Log', '', 999);
@@ -51,10 +74,13 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('PV2CarPercent', 'PV2Car-Prozent', 'PVW.Percent', 31);
         $this->RegisterVariableInteger('PhasenHystUp', 'Hysterese 3-Phasen', '', 50);
         $this->RegisterVariableInteger('PhasenHystDn', 'Hysterese 1-Phasen', '', 51);
-        $this->RegisterVariableInteger('Zielzeit_Stunde', 'Zielzeit Stunde', '~Hour', 20);
-        $this->RegisterVariableInteger('Zielzeit_Minute', 'Zielzeit Minute', '~Minute', 21);
 
-        // === Ladeparameter als Properties ===
+        // Modus-Buttons (Boolean) – immer nur EINER darf aktiv sein!
+        $this->RegisterVariableBoolean('Button_Manuell', 'Manueller Modus (Maximal)', '~Switch', 101);
+        $this->RegisterVariableBoolean('Button_PV2Car', 'PV2Car-Regler', '~Switch', 102);
+        $this->RegisterVariableBoolean('Button_Zielladung', 'Zielladung', '~Switch', 103);
+
+        // Ladeparameter als Properties
         $this->RegisterPropertyFloat('MinStartWatt', 1400);
         $this->RegisterPropertyFloat('MinStopWatt', 300);
         $this->RegisterPropertyInteger('PhasenSwitchWatt3', 4200);
@@ -64,23 +90,14 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('MinAmp', 6);
         $this->RegisterPropertyInteger('MaxAmp', 16);
 
-        // Timer für zyklische Prüfung
-        $this->RegisterTimer('ZyklischCheck', 60 * 1000, 'PVWallboxManager_CheckWallboxLogic($_IPS[\'TARGET\']);');
+        // === Timer für zyklische Prüfung ===
+        $interval = max(15, $this->ReadPropertyInteger('TimerInterval')); // mind. 15 Sekunden
+        $this->RegisterTimer('ZyklischCheck', $interval * 1000, 'PVWallboxManager_CheckWallboxLogic($_IPS[\'TARGET\']);');
 	
         // Modus-Buttons (Boolean) – immer nur EINER darf aktiv sein
         $this->RegisterVariableBoolean('Button_Manuell', 'Manueller Modus (Maximal)', '', 101);
         $this->RegisterVariableBoolean('Button_PV2Car', 'PV2Car-Regler', '', 102);
         $this->RegisterVariableBoolean('Button_Zielladung', 'Zielladung', '', 103);
-
-        // Profil für Buttons anlegen (einfach Standard-Boolean-Profil)
-        if (!IPS_VariableProfileExists('Switch')) {
-	    IPS_CreateVariableProfile('Switch', 0);
-	    IPS_SetVariableProfileIcon('Switch', 'Power');
-	    IPS_SetVariableProfileText('Switch', '', '');
-        }
-        IPS_SetVariableCustomProfile($this->GetIDForIdent('Button_Manuell'), 'Switch');
-        IPS_SetVariableCustomProfile($this->GetIDForIdent('Button_PV2Car'), 'Switch');
-        IPS_SetVariableCustomProfile($this->GetIDForIdent('Button_Zielladung'), 'Switch');
     }
 
     public function ApplyChanges()
