@@ -195,43 +195,50 @@ class PVWallboxManager extends IPSModule
 
     protected function MainLogic()
     {
-        // IDs und Werte holen
-        $effektiv     = GetValue($this->GetIDForIdent('PV_Effektiv'));
-        $manuell      = GetValue($this->GetIDForIdent('Button_Manuell'));
-        $pv2car       = GetValue($this->GetIDForIdent('Button_PV2Car'));
-        $zielladung   = GetValue($this->GetIDForIdent('Button_Zielladung'));
+        // === IDs/Variablen sauber holen ===
+        $phasen = 3; // ggf. dynamisch machen
 
-        // Optional: Weitere benötigte Variablen für die Modi holen
-        $pv2car_percent = GetValue($this->GetIDForIdent('PV2CarPercent'));
-        //$soc_auto       = GetValue($this->GetIDForIdent('SOC_Auto'));
-        $soc_auto_id = $this->ReadPropertyInteger('SOC_AutoID');
-        $soc_auto = ($soc_auto_id > 0) ? GetValue($soc_auto_id) : null;
-        $soc_ziel       = GetValue($this->GetIDForIdent('SOC_Zielwert'));
-        $zielzeit       = GetValue($this->GetIDForIdent('Zielzeit_Uhr'));
-        $phasen         = 3; // Phasenlogik ggf. dynamisch!
+        // Eff. PV-Überschuss: interne Modul-Variable
+        $effektiv = GetValue($this->GetIDForIdent('PV_Effektiv'));
 
-        // 1. Manueller Modus
+        // Modus-Buttons: interne Modul-Variablen
+        $manuell    = GetValue($this->GetIDForIdent('Button_Manuell'));
+        $pv2car     = GetValue($this->GetIDForIdent('Button_PV2Car'));
+        $zielladung = GetValue($this->GetIDForIdent('Button_Zielladung'));
+
+        // --- Externe Variablen aus Properties holen ---
+        $pv2car_percent_id = $this->GetIDForIdent('PV2CarPercent'); // Eigene Modul-Variable
+        $pv2car_percent    = ($pv2car_percent_id > 0) ? GetValue($pv2car_percent_id) : 100;
+
+        $soc_auto_id  = $this->ReadPropertyInteger('SOC_AutoID');  // Externe Variable!
+        $soc_auto     = ($soc_auto_id > 0 && @IPS_VariableExists($soc_auto_id)) ? GetValue($soc_auto_id) : null;
+
+        $soc_ziel_id  = $this->GetIDForIdent('SOC_Zielwert'); // Eigene Modul-Variable
+        $soc_ziel     = ($soc_ziel_id > 0) ? GetValue($soc_ziel_id) : 80;
+
+        $zielzeit_id  = $this->GetIDForIdent('Zielzeit_Uhr'); // Eigene Modul-Variable
+        $zielzeit     = ($zielzeit_id > 0) ? GetValue($zielzeit_id) : strtotime("06:00");
+
+        // --- Hauptlogik ---
         if ($manuell) {
             $this->LadenSofortMaximal($phasen);
             $this->LogWB("Manueller Modus aktiv: Maximale Leistung.");
             return;
         }
 
-        // 2. PV2Car-Modus
         if ($pv2car) {
             $this->LadenPV2CarPercent($phasen, $effektiv, $pv2car_percent);
             $this->LogWB("PV2Car aktiv: $pv2car_percent% des Überschusses ins Auto.");
             return;
         }
 
-        // 3. Zielladung
         if ($zielladung) {
             $this->LadenMitZielzeit($phasen, $soc_auto, $soc_ziel, $zielzeit);
-            $this->LogWB("Zielladung aktiv: bis $zielzeit Ziel-SOC $soc_ziel%.");
+            $this->LogWB("Zielladung aktiv: bis ".date('H:i', $zielzeit)." Ziel-SOC $soc_ziel%.");
             return;
         }
 
-        // 4. Standardfall: Nur PV-Überschuss laden
+        // Standardmodus
         $this->LadenMitPVUeberschuss($phasen, $effektiv);
         $this->LogWB("Standardmodus: Nur PV-Überschuss laden.");
     }
