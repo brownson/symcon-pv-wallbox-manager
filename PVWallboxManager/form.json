@@ -1,44 +1,126 @@
 {
   "elements": [
     {
-      "type": "Panel",
-      "caption": "🔌 Wallbox-Einstellungen",
+      "type": "ExpansionPanel",
+      "caption": "🔌 Wallbox",
       "items": [
-        { "type": "ValidationTextBox", "name": "WallboxTyp", "caption": "Wallbox-Typ", "default": "go-e", "description": "Aktuell nur 'go-e' unterstützt" },
-        { "type": "SelectInstance", "name": "GOEChargerID", "caption": "go-e Charger Instanz" },
-        { "type": "NumberSpinner", "name": "MinAmpere", "caption": "Min. Ampere" },
-        { "type": "NumberSpinner", "name": "MaxAmpere", "caption": "Max. Ampere" },
-        { "type": "NumberSpinner", "name": "MinLadeWatt", "caption": "Start bei PV-Überschuss" },
-        { "type": "NumberSpinner", "name": "MinStopWatt", "caption": "Stop bei Defizit" }
-      ]
-    },
-    {
-      "type": "Panel",
-      "caption": "☀️ Energiequellen",
-      "items": [
-        { "type": "SelectVariable", "name": "PVErzeugungID", "caption": "PV-Erzeugung (W)" },
-        { "type": "SelectVariable", "name": "HausverbrauchID", "caption": "Hausverbrauch (W)" },
-        { "type": "SelectVariable", "name": "BatterieladungID", "caption": "Batterieladung (W)", "description": "Positiv = lädt, negativ = entlädt" },
-        { "type": "NumberSpinner", "name": "MinAktivierungsWatt", "caption": "Aktiv ab (W)", "description": "Gesamtmodul erst aktiv, wenn überschritten" },
-        { "type": "NumberSpinner", "name": "RefreshInterval", "caption": "Intervall", "suffix": "Sek.", "minimum": 15, "maximum": 600 }
+        {
+          "type": "ValidationTextBox",
+          "name": "WallboxTyp",
+          "caption": "Wallbox-Typ",
+          "default": "go-e"
+        },
+        {
+          "type": "SelectInstance",
+          "name": "GOEChargerID",
+          "caption": "go-e Charger Instanz",
+          "validClasses": ["GOeCharger"]
+        }
       ]
     },
     {
       "type": "ExpansionPanel",
-      "caption": "🔁 Phasenumschaltung",
+      "caption": "🔋 Energiequellen",
       "items": [
-        { "type": "SelectVariable", "name": "PhasenUmschaltID", "caption": "Umschaltvariable (Bool)" },
-        { "type": "NumberSpinner", "name": "Phasen1Schwelle", "caption": "Schwelle 1‑phasig (W)" },
-        { "type": "NumberSpinner", "name": "Phasen3Schwelle", "caption": "Schwelle 3‑phasig (W)" },
-        { "type": "NumberSpinner", "name": "Phasen1Limit", "caption": "1‑phasig nach X Durchgängen" },
-        { "type": "NumberSpinner", "name": "Phasen3Limit", "caption": "3‑phasig nach X Durchgängen" }
+        {
+          "type": "SelectVariable",
+          "name": "PVErzeugungID",
+          "caption": "PV-Erzeugung (W)",
+          "validVariableTypes": [2]
+        },
+        {
+          "type": "SelectVariable",
+          "name": "HausverbrauchID",
+          "caption": "Hausverbrauch (W)",
+          "validVariableTypes": [2]
+        },
+        {
+          "type": "SelectVariable",
+          "name": "BatterieladungID",
+          "caption": "Batterieladung (W)",
+          "validVariableTypes": [2]
+        }
       ]
     },
     {
       "type": "ExpansionPanel",
-      "caption": "🧠 Intelligente Logik",
+      "caption": "⚡ Phasenumschaltung",
       "items": [
-        { "type": "CheckBox", "name": "DynamischerPufferAktiv", "caption": "Dynamischer PV‑Puffer aktiv", "description": "Reduziert Ladeleistung bei schwachem Überschuss (7–20 %)" }
+        {
+          "type": "SelectVariable",
+          "name": "PhasenUmschaltID",
+          "caption": "Phasenumschaltung (Bool)",
+          "validVariableTypes": [0]
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "Phasen1Schwelle",
+          "caption": "Schwelle für 1-phasig (W)"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "Phasen3Schwelle",
+          "caption": "Schwelle für 3-phasig (W)"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "Phasen1Limit",
+          "caption": "Zählerlimit für 1-phasig"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "Phasen3Limit",
+          "caption": "Zählerlimit für 3-phasig"
+        }
+      ]
+    },
+    {
+      "type": "ExpansionPanel",
+      "caption": "🧠 Intelligente Ladelogik",
+      "items": [
+        {
+          "type": "NumberSpinner",
+          "name": "RefreshInterval",
+          "caption": "Intervall (Sekunden)",
+          "minimum": 15,
+          "maximum": 600
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "MinLadeWatt",
+          "caption": "Start-Ladeschwelle (W)"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "MinStopWatt",
+          "caption": "Stopp-Schwelle (W)"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "MinAmpere",
+          "caption": "Minimale Ladeleistung (A)"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "MaxAmpere",
+          "caption": "Maximale Ladeleistung (A)"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "Phasen",
+          "caption": "Aktive Phasen (1/3)"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "MinAktivierungsWatt",
+          "caption": "Aktivierung ab PV-Überschuss (W)",
+          "default": 300
+        },
+        {
+          "type": "CheckBox",
+          "name": "DynamischerPufferAktiv",
+          "caption": "Dynamischer Puffer aktiv"
+        }
       ]
     }
   ]
