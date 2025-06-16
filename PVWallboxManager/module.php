@@ -41,6 +41,9 @@ class PVWallboxManager extends IPSModule
 
         // Setze den Timer neu (in Millisekunden!)
         $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
+
+        // Damit das Feld übernommen wird:
+        $this->ReadPropertyInteger('BatterieladungID');
     }
 
     // === Hauptfunktion: Berechnung des PV-Überschusses ===
