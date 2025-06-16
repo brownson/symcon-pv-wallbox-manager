@@ -3,26 +3,31 @@
 ## v0.1 – 2025-06-16
 
 ### ✅ Grundfunktionen:
-- Berechnung des PV-Überschusses: `PV-Erzeugung - Hausverbrauch - Batterieladung`
-- Unterstützung eines Speichers (positive Werte = laden, negative = entladen)
-- Einstellbares Intervall (15–600 Sekunden)
-- Visualisierung des PV-Überschusses als Modul-Variable
-- Timer zur automatischen Ausführung aktiviert
+- Berechnung des PV-Überschusses: `PV-Erzeugung – Hausverbrauch – Batterieladung`
+- Unterstützung für Hausbatterien (positiv = Laden, negativ = Entladen)
+- Visualisierung des Überschusses als IP-Symcon Variable `PV_Ueberschuss`
+- Timer zur zyklischen Ausführung (konfigurierbar 15–600 s)
 
 ### ⚙️ Dynamische Ladeleistungsberechnung:
-- Ermittlung der Ladeleistung in Watt (basierend auf Ampere, Phasen, 230 V)
-- Berücksichtigung konfigurierbarer min./max. Ampere und Phasenanzahl
-- Schwellenwerte konfigurierbar: `MinLadeWatt`, `MinStopWatt`
-- Automatische Umschaltung zwischen Start/Stopp abhängig vom Überschuss
+- Ampere-Berechnung basierend auf konfigurierbarer Phasenanzahl und 230 V
+- Konfigurierbarer Bereich für min. und max. Ampere (z. B. 6–16 A)
+- Ladeleistung wird nur gesetzt, wenn sie sich um mehr als ±50 W ändert
 
-### 🔌 go-e Charger Integration (IPSCoyote Modul):
-- Wahl der go-e Instanz via `form.json`
-- Unterstützung für `GOeCharger_setMode` (1 = Nicht laden, 2 = Immer laden)
-- Unterstützung für `GOeCharger_SetCurrentChargingWatt`
-- Automatische Erkennung des aktuellen Modus über Variable `accessStateV2`
+### 🔌 go-e Charger Integration (via IPSCoyote):
+- Auswahl der go-e Instanz im Modul-Konfigurator
+- Verwendung von `GOeCharger_setMode` und `GOeCharger_SetCurrentChargingWatt`
+- Verwendeter Ident für Modus: `accessStateV2`
+- Moduswechsel nur bei tatsächlicher Änderung
+- **NEU:** Logausgabe bei unveränderter Moduslage („🟡 Modus bereits X – keine Umschaltung notwendig“)
+- **NEU:** Logausgabe bei unveränderter Ladeleistung („🟡 Ladeleistung unverändert – keine Änderung notwendig“)
 
-### 🧠 Optimierungen:
-- Modus wird **nur** gesetzt, wenn sich der Zustand wirklich ändert
-- Ladeleistung wird **nur aktualisiert**, wenn sie sich signifikant verändert (> 50 W)
-- Float-Toleranz (z. B. -1E-13 W wird als 0 behandelt)
-- Detaillierte Symcon-Logmeldungen mit Symbolen und Statusangaben
+### 🔍 Logging und Verhalten:
+- Umfangreiche Logmeldungen mit Symbolen zur Nachvollziehbarkeit
+- Float-Toleranzfilter (z. B. 2.273736754E-13 W → 0)
+- Negative PV-Überschüsse führen zur Deaktivierung der Wallbox
+- Schwellwerte für Start (`MinLadeWatt`) und Stopp (`MinStopWatt`) frei konfigurierbar
+
+### 🧱 Technisches:
+- Properties vollständig über `form.json` konfigurierbar
+- Automatische Erkennung der Ziel-Instanz und verwendeter Variablen
+- Optimierte `SetLadeleistung()`-Funktion mit robuster Ident-Erkennung
