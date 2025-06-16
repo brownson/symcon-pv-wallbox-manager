@@ -36,6 +36,14 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('Phasen', 3);         // Aktuelle Anzahl Phasen
         $this->RegisterPropertyInteger('MinLadeWatt', 1400); // Mindestüberschuss für Ladestart
         $this->RegisterPropertyInteger('MinStopWatt', -300); // Untergrenze für Stoppen der Ladung
+        $this->RegisterPropertyInteger('PhasenUmschaltID', 0);
+        $this->RegisterPropertyInteger('Phasen1Schwelle', 1000);
+        $this->RegisterPropertyInteger('Phasen3Schwelle', 4200);
+        $this->RegisterPropertyInteger('Phasen1Limit', 3);
+        $this->RegisterPropertyInteger('Phasen3Limit', 3);
+
+        $this->RegisterAttributeInteger('Phasen1Counter', 0);
+        $this->RegisterAttributeInteger('Phasen3Counter', 0);
 
     }
 
@@ -43,14 +51,7 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
-
-        // Lese das eingestellte Intervall aus (in Sekunden)
-        $interval = $this->ReadPropertyInteger('RefreshInterval');
-
-        // Sicherheitsgrenze: mindestens 15 Sekunden, maximal 600 Sekunden
-        $interval = max(15, min(600, $interval));
-
-        // Setze den Timer neu (in Millisekunden!)
+        $interval = max(15, min(600, $this->ReadPropertyInteger('RefreshInterval')));
         $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
 
         // Damit das Feld übernommen wird:
@@ -94,10 +95,11 @@ class PVWallboxManager extends IPSModule
         $minLadeWatt = $this->ReadPropertyInteger('MinLadeWatt');
         if ($ueberschuss < $minLadeWatt) {
             IPS_LogMessage("⚡ PVWallboxManager", "🔌 PV-Überschuss zu gering (" . round($ueberschuss, 1) . " W < {$minLadeWatt} W) – Ladeleistung = 0 W");
-
             $this->SetLadeleistung(0);
             return;
         }
+
+
 
         // Logging mit Symbolen
         if ($ueberschuss > 100) {
@@ -114,7 +116,7 @@ class PVWallboxManager extends IPSModule
 
         // Ladeleistung in Watt → benötigte Ampere
         $ampere = ceil($ueberschuss / (230 * $phasen));
-        $ampere = max($minAmp, min($maxAmp, $ampere)); // auf gültigen Bereich begrenzen
+        $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
 
         // Ergebnis: Ladeleistung in Watt
         $ladeleistung = $ampere * 230 * $phasen;
@@ -132,6 +134,32 @@ class PVWallboxManager extends IPSModule
     
     private function SetLadeleistung(int $watt)
     {
+        $phasenID = $this->ReadPropertyInteger('PhasenUmschaltID');
+        if ($phasenID > 0) {
+            $ist3Phasig = GetValue($phasenID);
+
+            if ($watt < $this->ReadPropertyInteger('Phasen1Schwelle') && $ist3Phasig) {
+                $counter = $this->ReadAttributeInteger('Phasen1Counter') + 1;
+                $this->WriteAttributeInteger('Phasen1Counter', $counter);
+                $this->WriteAttributeInteger('Phasen3Counter', 0);
+                if ($counter >= $this->ReadPropertyInteger('Phasen1Limit')) {
+                    RequestAction($phasenID, false);
+                    $this->WriteAttributeInteger('Phasen1Counter', 0);
+                }
+            } elseif ($watt > $this->ReadPropertyInteger('Phasen3Schwelle') && !$ist3Phasig) {
+                $counter = $this->ReadAttributeInteger('Phasen3Counter') + 1;
+                $this->WriteAttributeInteger('Phasen3Counter', $counter);
+                $this->WriteAttributeInteger('Phasen1Counter', 0);
+                if ($counter >= $this->ReadPropertyInteger('Phasen3Limit')) {
+                    RequestAction($phasenID, true);
+                    $this->WriteAttributeInteger('Phasen3Counter', 0);
+                }
+            } else {
+                $this->WriteAttributeInteger('Phasen1Counter', 0);
+                $this->WriteAttributeInteger('Phasen3Counter', 0);
+            }
+        }
+
         $typ = $this->ReadPropertyString('WallboxTyp');
 
         switch ($typ) {
