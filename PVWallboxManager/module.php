@@ -139,16 +139,38 @@ class PVWallboxManager extends IPSModule
 
                 $minStopWatt = $this->ReadPropertyInteger('MinStopWatt');
 
+                // === Aktuellen Modus & Leistung auslesen ===
+                $modusID = @IPS_GetObjectIDByIdent('Modus', $goeID);
+                $wattID  = @IPS_GetObjectIDByIdent('Watt', $goeID);
+
+                $aktuellerModus = ($modusID !== false) ? GetValueInteger($modusID) : -1;
+                $aktuelleLeistung = ($wattID !== false) ? GetValueFloat($wattID) : -1;
+
+                // === Laden stoppen ===
                 if ($watt <= 0 || $watt < $minStopWatt) {
-                    GOeCharger_setMode($goeID, 1); // Nicht laden
-                    IPS_LogMessage("PVWallboxManager", "🚫 Wallbox deaktiviert (Modus 1 – Nicht laden), Ladeleistung: {$watt} W");
+                    if ($aktuellerModus !== 1) {
+                        GOeCharger_setMode($goeID, 1);
+                        IPS_LogMessage("PVWallboxManager", "🛑 Modus auf 1 (Nicht laden) gesetzt – Ladeleistung: {$watt} W");
+                    } else {
+                        IPS_LogMessage("PVWallboxManager", "ℹ️ Modus bereits auf 1 – keine Änderung nötig");
+                    }
                     return;
                 }
 
-                // Aktiv laden
-                GOeCharger_setMode($goeID, 2); // Immer laden
-                GOeCharger_SetCurrentChargingWatt($goeID, $watt);
-                IPS_LogMessage("PVWallboxManager", "✅ Wallbox aktiviert (Modus 2 – Immer laden), Ladeleistung: {$watt} W");
+                // === Laden aktivieren ===
+                if ($aktuellerModus !== 2) {
+                    GOeCharger_setMode($goeID, 2);
+                    IPS_LogMessage("PVWallboxManager", "⚡ Modus auf 2 (Immer laden) gesetzt");
+                }
+
+                // === Ladeleistung nur setzen, wenn sich etwas ändert (±50 W Toleranz) ===
+                if (abs($aktuelleLeistung - $watt) > 50) {
+                    GOeCharger_SetCurrentChargingWatt($goeID, $watt);
+                    IPS_LogMessage("PVWallboxManager", "✅ Ladeleistung gesetzt: {$watt} W");
+                } else {
+                    IPS_LogMessage("PVWallboxManager", "ℹ️ Ladeleistung unverändert – keine Änderung nötig");
+                }
+
                 break;
 
             default:
