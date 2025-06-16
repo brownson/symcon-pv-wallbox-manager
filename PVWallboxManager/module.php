@@ -203,7 +203,9 @@ class PVWallboxManager extends IPSModule
 
         // Optional: Weitere benötigte Variablen für die Modi holen
         $pv2car_percent = GetValue($this->GetIDForIdent('PV2CarPercent'));
-        $soc_auto       = GetValue($this->GetIDForIdent('SOC_Auto'));
+        //$soc_auto       = GetValue($this->GetIDForIdent('SOC_Auto'));
+        $soc_auto_id = $this->ReadPropertyInteger('SOC_AutoID');
+        $soc_auto = ($soc_auto_id > 0) ? GetValue($soc_auto_id) : null;
         $soc_ziel       = GetValue($this->GetIDForIdent('SOC_Zielwert'));
         $zielzeit       = GetValue($this->GetIDForIdent('Zielzeit_Uhr'));
         $phasen         = 3; // Phasenlogik ggf. dynamisch!
