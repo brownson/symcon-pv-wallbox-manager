@@ -53,7 +53,8 @@ GO-eCharger Modul von IPSCoyote (für go-e Unterstützung)
 korrekte Zuweisung der Energie-Messwerte und Wallbox-Instanz
 
 ## 🕘 Changelog
-Alle Änderungen findest du in CHANGELOG.md
+Alle Änderungen findest du in der Datei:
+👉 CHANGELOG.md
 
 ## 🚀 Roadmap
 Unterstützung weiterer Wallbox-Marken (z. B. Heidelberg, openWB, SMA EV-Charger)
@@ -65,4 +66,5 @@ MQTT-Integration
 Debug- und Simulationsmodus
 
 ## 📄 Lizenz
-Dieses Projekt steht unter der MIT License.
+Dieses Projekt steht unter der MIT License:
+👉 LICENSE.md
