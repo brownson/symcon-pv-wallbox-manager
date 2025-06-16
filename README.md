@@ -96,14 +96,32 @@ Feature-Ideen, Fehlerberichte und Pull-Requests sind willkommen!
 Alle Änderungen findest du in der Datei:
 👉 [CHANGELOG.md](https://github.com/pesensie/symcon-pv-wallbox-manager/blob/main/CHANGELOG.md)
 
-## 🚀 Roadmap
-Unterstützung weiterer Wallbox-Marken (z. B. Heidelberg, openWB, SMA EV-Charger)
-Phasenumschaltung bei Bedarf (1 ↔ 3)
-Zeitgesteuerte Zielladung (z. B. „bis 06:00 Uhr 80 %“)
-PV2Car-Modus mit %-Regler
-Visualisierung im WebFront
-MQTT-Integration
-Debug- und Simulationsmodus
+## 🗺️ Roadmap
+Folgende Funktionen sind für zukünftige Versionen geplant:
+
+🕓 Zeitbasierte Zielladung
+Ladeplanung z. B. bis 06:00 Uhr auf einen gewünschten SoC-Wert
+
+🔋 Ziel-SoC aus Variable konfigurierbar
+Benutzer kann über das WebFront den gewünschten Ladezielwert (in %) festlegen
+
+🚗 Fahrzeugstatus-Erkennung
+Ladevorgang nur starten, wenn das Fahrzeug als „verbunden“ erkannt wird
+
+⏱️ Rückrechnung der Ladezeit
+Automatische Startzeitberechnung auf Basis von Ziel-SoC, aktuellem SoC und Ladeleistung
+
+🧮 Flexible Lademodi
+Umschaltung zwischen manueller Steuerung, PV2Car (%), Uhrzeit-Ziel oder reiner PV-Überschussladung
+
+🌐 Integration externer Fahrzeugdaten
+Anbindung über CarConnectivity-MQTT (z. B. für VW ID.3, Skoda, Cupra etc.)
+
+📊 Visualisierung im WebFront
+Anzeige des aktuellen Phasenstatus, Ladeleistung, SOC und Lademodus mit Icons
+
+🔧 Unterstützung weiterer Wallboxen
+Modulare Erweiterung geplant (z. B. für openWB, easee, …)
 
 ## 📄 Lizenz
 Dieses Projekt steht unter der MIT License:
