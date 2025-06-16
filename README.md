@@ -1,78 +1,43 @@
-# Symcon PV Wallbox Manager
+# PVWallboxManager
 
-Ein leistungsfähiges IP-Symcon-Modul zur intelligenten Steuerung einer go-e Charger Wallbox (ab Hardware V3/V4) auf Basis von PV-Überschuss, Batterie-Status, SOC-Zielladung und frei definierbaren Lade-Modi.
+**Version 0.1**
 
-## Funktionen
+Dieses Modul für IP‑Symcon berechnet automatisch den PV‑Überschuss und kann diesen z. B. für die Wallbox‑Steuerung verwenden.
 
-- ⚡ PV-Überschussladen mit automatischer Stromanpassung
-- 🔄 1-/3-phasige Umschaltung mit Hysterese
-- 🔘 Manueller Lademodus (volle Leistung sofort)
-- ☀️ PV2Car-Modus (prozentuale PV-Zuweisung)
-- ⏰ Zielladung bis Uhrzeit und SOC
-- 🔒 Nur-Netzladung via SofarSolar-Modbus
-- 📊 Visualisierung & Logging im WebFront
+### 🔧 Funktionen
 
-## Voraussetzungen
+- PV-Überschuss = PV-Erzeugung – Hausverbrauch – Batterieladung (positiv = lädt, negativ = entlädt)
+- Einstellbares Timerintervall: 15–600 Sekunden
+- Automatische, timergetriebene Berechnung
+- Logging mit Symbolen (☀️🔋❌) für verschiedene Überschuss-Zustände
 
-- IP-Symcon 6.3 oder neuer
-- go-e Charger V3 oder V4
-- PV-Erzeugung, Hausverbrauch, Batteriespeicher via Symcon (z. B. per Modbus oder MQTT)
-- Optional: SofarSolar Wechselrichter via Modbus TCP
+### ⚙️ Konfiguration (`form.json`)
 
-## Installation
+| Feldname           | Typ              | Beschreibung |
+|--------------------|------------------|--------------|
+| PVErzeugungID      | SelectVariable   | Variable mit aktueller PV-Leistung (W) |
+| HausverbrauchID    | SelectVariable   | Variable mit aktuellem Verbrauch (W) |
+| BatterieladungID   | SelectVariable   | Lade-/Entladeleistung des Speichers (W) |
+| RefreshInterval    | NumberSpinner    | Intervall (15–600 Sekunden) |
 
-1. Modul in IP-Symcon einbinden:
-    ```
-    https://github.com/pesensie/symcon-pv-wallbox-manager.git
-    ```
+### 🚀 Installation und Nutzung
 
-2. Instanz im Objektbaum erstellen
+1. Modul in IP‑Symcon importieren und Instanz anlegen  
+2. Quell-Variablen (PV, Verbrauch, Akku) und Intervall einstellen  
+3. Instanz speichern – die automatische Berechnung läuft im Hintergrund  
+4. In den IP‑Symcon-Meldungen siehst du, ob Überschuss vorhanden ist (Log-Meldungen mit Symbolen)
 
-3. Konfiguration: Variablen & Lade-Modi zuweisen
+### 📌 Hinweise
 
-## Struktur
+- Batterieentladung (negativ) erhöht den Überschuss  
+- Batterie-Ladung (positiv) reduziert den Überschuss  
+- Software-Version: **0.1**
 
-```text
-symcon-pv-wallbox-manager/
-├── README.md
-├── module.json
-└── PVWallboxManager/
-    ├── module.php
-    └── module.json
-```
+### 🛠️ Weiterentwicklung
 
+Geplante Erweiterungen für zukünftige Versionen, z. B.:
 
-| Property-Name         | Typ     | Zweck / Empfohlene Variable                        |
-| --------------------- | ------- | -------------------------------------------------- |
-| PVErzeugungID         | Integer | PV-Erzeugung (W) – z. B. Smartmeter, Zähler        |
-| HausverbrauchID       | Integer | Hausverbrauch (W) – Zähler/Smartmeter              |
-| BatterieladungID      | Integer | Batterie-Ladeleistung (W) – Wechselrichter         |
-| WallboxLadeleistungID | Integer | Aktuelle Wallbox-Leistung (W)                      |
-| WallboxAktivID        | Boolean | Wallbox aktiv (Bool)                               |
-| ModbusRegisterID      | Integer | Modbus: Sofar Energy Storage Mode                  |
-| SOC\_HausspeicherID   | Integer | SOC Hausspeicher (0–100 %)                         |
-| SOC\_AutoID           | Integer | SOC E-Auto (0–100 %)                               |
-| ManuellerModusID      | Boolean | Button: Manueller Modus                            |
-| PV2CarModusID         | Boolean | Button: PV2Car-Modus                               |
-| PV2CarPercentID       | Integer | Regler: Anteil PV-Überschuss fürs Auto (%)         |
-| ZielzeitladungID      | Boolean | Button: Zielzeit-Ladung                            |
-| SOC\_ZielwertID       | Integer | Ziel-SOC für das Auto (%)                          |
-| Zielzeit\_Uhr         | Integer | Zielzeit als Uhrzeit (Profil: \~UnixTimestampTime) |
-| MinStartWatt          | Float   | Ladebeginn ab diesem Überschuss (W)                |
-| MinStopWatt           | Float   | Laden aus bei weniger als (W)                      |
-| PhasenSwitchWatt3     | Integer | Umschalten auf 3-phasig ab (W)                     |
-| PhasenSwitchWatt1     | Integer | Umschalten auf 1-phasig unter (W)                  |
-| SOC\_Limit            | Float   | Untergrenze SOC Hausspeicher (%)                   |
-| Volt                  | Integer | Netzspannung pro Phase (z. B. 230 V)               |
-| MinAmp                | Integer | Minimaler Ladestrom (A)                            |
-| MaxAmp                | Integer | Maximaler Ladestrom (A)                            |
-
-
-## Lizenz
-
-MIT License – siehe `LICENSE.md`
-
-## Changelog
-
-Die vollständige Versionshistorie findest du in [CHANGELOG.md](CHANGELOG.md).
+- Steuerung einer go‑e Wallbox oder Ladeziele
+- Einbindung eines Batteriespeicher-Zielzustands
+- Logging in separater Variable
 

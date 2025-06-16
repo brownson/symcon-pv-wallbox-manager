@@ -1,11 +1,9 @@
 # Changelog
 
-Alle Änderungen am Modul werden hier dokumentiert.
-
-## [1.1.1] – 2025-06-15
-- NEU: Instanzkonfiguration (`form.json`) implementiert.
-- IDs und Variablen sind jetzt komfortabel per UI auswählbar.
-- Kleine Code-Bereinigungen.
-
-## [1.1.0] – 2025-06-14
-- Initiale Version mit automatischer Variablenanlage und Grundlogik für PV-Überschussladen.
+## v0.1 – `$(date +%Y-%m-%d)`  
+- Initialer Release  
+- PV-Überschuss-Berechnung mit PV-Erzeugung, Verbrauch und Batterie  
+- Einstellbare Intervallsteuerung (15–600 s)  
+- Automatische Timer-Ausführung  
+- Logging mit Symbolen (☀️🔋❌)  
+- Konfigurierbare Quellvariablen für PV, Hausverbrauch und Batterieladung
