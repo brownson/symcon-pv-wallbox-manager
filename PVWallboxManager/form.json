@@ -1,101 +1,108 @@
 {
-"elements": [
-  {
-    "type": "Select",
-    "name": "WallboxTyp",
-    "caption": "Wallbox-Typ",
-    "description": "Wähle den Hersteller/Typ deiner Wallbox",
-    "options": [
-      {
-        "caption": "go-e Charger (via IPSCoyote Modul)",
-        "value": "go-e"
-      }
-    ]
-  },
-  {
-    "type": "SelectInstance",
-    "name": "GOEChargerID",
-    "caption": "go-e Charger Instanz",
-    "description": "Wähle die GO-e Charger Instanz (vom IPSCoyote Modul)",
-    "visibleCondition": {
-      "type": "Equal",
-      "variable": "WallboxTyp",
-      "value": "go-e"
+  "elements": [
+    {
+      "type": "Label",
+      "caption": "🔌 Energiequellen"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "PVErzeugungID",
+      "caption": "PV-Erzeugung (W)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "HausverbrauchID",
+      "caption": "Hausverbrauch (W)"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "BatterieladungID",
+      "caption": "Batterieladung (W)",
+      "description": "Positive Werte = lädt, negative = entlädt"
+    },
+
+    {
+      "type": "Label",
+      "caption": "⚡ Wallbox-Einstellungen"
+    },
+    {
+      "type": "SelectInstance",
+      "name": "GOEChargerID",
+      "caption": "go-e Charger Instanz"
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "MinAmpere",
+      "caption": "Min. Ampere"
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "MaxAmpere",
+      "caption": "Max. Ampere"
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "MinLadeWatt",
+      "caption": "Laden ab PV-Überschuss (W)"
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "MinStopWatt",
+      "caption": "Laden stoppen bei Defizit (W)"
+    },
+
+    {
+      "type": "Label",
+      "caption": "🔁 Phasenumschaltung"
+    },
+    {
+      "type": "SelectVariable",
+      "name": "PhasenUmschaltID",
+      "caption": "Umschaltvariable (Bool)"
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "Phasen1Schwelle",
+      "caption": "Grenze 1-phasig (W)"
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "Phasen3Schwelle",
+      "caption": "Grenze 3-phasig (W)"
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "Phasen1Limit",
+      "caption": "1-phasig nach X Durchläufen"
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "Phasen3Limit",
+      "caption": "3-phasig nach X Durchläufen"
+    },
+
+    {
+      "type": "Label",
+      "caption": "🧠 Intelligente Logik"
+    },
+    {
+      "type": "CheckBox",
+      "name": "DynamischerPufferAktiv",
+      "caption": "Dynamischen PV-Puffer aktivieren",
+      "description": "Reduziert die Ladeleistung bei schwachem Überschuss automatisch leicht (7–20 %)"
+    },
+
+    {
+      "type": "Label",
+      "caption": "🔁 Aktualisierung"
+    },
+    {
+      "type": "NumberSpinner",
+      "name": "RefreshInterval",
+      "caption": "Intervall (Sekunden)",
+      "suffix": "Sek.",
+      "minimum": 15,
+      "maximum": 600
     }
-  },
-  {
-    "type": "SelectVariable",
-    "name": "PVErzeugungID",
-    "caption": "PV-Erzeugung (W)",
-    "description": "Variable mit aktueller PV-Leistung"
-  },
-  {
-    "type": "NumberSpinner",
-    "name": "MinLadeWatt",
-    "caption": "Ladung starten ab",
-    "suffix": "W",
-    "minimum": 500,
-    "maximum": 11000,
-    "description": "PV-Überschuss in Watt, ab dem die Wallbox aktiv geladen werden soll (mind. 1400 W empfohlen)"
-  },
-  {
-    "type": "NumberSpinner",
-    "name": "MinStopWatt",
-    "caption": "Ladung stoppen bei",
-    "suffix": "W",
-    "minimum": -5000,
-    "maximum": 1000,
-    "description": "Überschuss in Watt, unter dem die Wallbox ausgeschaltet wird (z. B. –300 W)"
-  },
-  {
-    "type": "CheckBox",
-    "name": "DynamischerPufferAktiv",
-    "caption": "Dynamischen PV-Puffer aktivieren",
-    "description": "Reduziert den berechneten PV-Überschuss je nach Höhe automatisch um bis zu 20 %, um kurze Schwankungen durch z. B. Wolken abzufedern. Empfohlen für stabile Ladeverläufe."
-  },
-  {
-    "type": "SelectVariable",
-    "name": "HausverbrauchID",
-    "caption": "Hausverbrauch (W)",
-    "description": "Variable mit aktuellem Gesamtverbrauch"
-  },
-  {
-    "type": "SelectVariable",
-    "name": "BatterieladungID",
-    "caption": "Batterieladung (W)",
-    "description": "Variable mit Lade-/Entladeleistung des Speichers (positiv = lädt)"
-  },
-  {
-    "type": "NumberSpinner",
-    "name": "RefreshInterval",
-    "caption": "Berechnungsintervall",
-    "suffix": "Sekunden",
-    "minimum": 15,
-    "maximum": 600
-  },
-  {
-    "type": "NumberSpinner",
-    "name": "Phasen",
-    "caption": "Aktive Phasen",
-    "suffix": "Phasen",
-    "minimum": 1,
-    "maximum": 3
-  },
-  {
-    "type": "NumberSpinner",
-    "name": "MinAmpere",
-    "caption": "Min. Ladestrom",
-    "suffix": "A",
-    "minimum": 6,
-    "maximum": 16
-  },
-  {
-    "type": "NumberSpinner",
-    "name": "MaxAmpere",
-    "caption": "Max. Ladestrom",
-    "suffix": "A",
-    "minimum": 6,
-    "maximum": 16
-  }
-]
+  ]
 }

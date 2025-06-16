@@ -92,9 +92,13 @@ Das Modul protokolliert automatisch relevante Entscheidungen:
 Feature-Ideen, Fehlerberichte und Pull-Requests sind willkommen!  
 👉 [GitHub Repository öffnen](https://github.com/pesensie/symcon-pv-wallbox-manager)
 
+---
+
 ## 🕘 Changelog
 Alle Änderungen findest du in der Datei:
 👉 [CHANGELOG.md](https://github.com/pesensie/symcon-pv-wallbox-manager/blob/main/CHANGELOG.md)
+
+---
 
 ## 🗺️ Roadmap
 Folgende Funktionen sind für zukünftige Versionen geplant:
@@ -122,6 +126,8 @@ Anzeige des aktuellen Phasenstatus, Ladeleistung, SOC und Lademodus mit Icons
 
 🔧 Unterstützung weiterer Wallboxen
 Modulare Erweiterung geplant (z. B. für openWB, easee, …)
+
+---
 
 ## 📄 Lizenz
 Dieses Projekt steht unter der MIT License:
