@@ -183,10 +183,9 @@ class PVWallboxManager extends IPSModule
                 }
                 break;
 
-            default:
-                IPS_LogMessage("PVWallboxManager", "❌ Unbekannter Wallbox-Typ '$typ' – keine Steuerung durchgeführt.");
-                break;
-        }
+        default:
+            IPS_LogMessage("PVWallboxManager", "❌ Unbekannter Wallbox-Typ '$typ' – keine Steuerung durchgeführt.");
+            break;
     }
 }
 ?>
