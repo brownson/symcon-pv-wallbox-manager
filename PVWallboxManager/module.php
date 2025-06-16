@@ -42,6 +42,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('Phasen1Limit', 3);
         $this->RegisterPropertyInteger('Phasen3Limit', 3);
         $this->RegisterPropertyBoolean('DynamischerPufferAktiv', true); // Schalter für Pufferlogik
+        $this->RegisterPropertyInteger('MinAktivierungsWatt', 300);
+
 
         $this->RegisterAttributeInteger('Phasen1Counter', 0);
         $this->RegisterAttributeInteger('Phasen3Counter', 0);
@@ -64,6 +66,7 @@ class PVWallboxManager extends IPSModule
         $this->ReadPropertyInteger('Phasen');
         $this->ReadPropertyInteger('MinLadeWatt');
         $this->ReadPropertyInteger('MinStopWatt');
+        $this->ReadPropertyInteger('MinAktivierungsWatt'); // Aktivierungsschwelle sicher übernehmen
 
     }
 
@@ -91,6 +94,11 @@ class PVWallboxManager extends IPSModule
             $ueberschuss = 0.0;
         }
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
+        $minAktiv = $this->ReadPropertyInteger('MinAktivierungsWatt');
+        if ($ueberschuss < $minAktiv) {
+            IPS_LogMessage("PVWallboxManager", "⏸️ PV-Überschuss zu gering ({$ueberschuss} W < {$minAktiv} W) – Modul bleibt inaktiv");
+            return;
+        }
 
         // 🆕 Dynamischer Pufferfaktor (optional)
         if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
