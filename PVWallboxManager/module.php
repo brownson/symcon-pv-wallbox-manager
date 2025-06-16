@@ -144,38 +144,40 @@ class PVWallboxManager extends IPSModule
 
                 $minStopWatt = $this->ReadPropertyInteger('MinStopWatt');
 
-                // === Aktuellen Modus & Leistung auslesen ===
+                // === Aktuellen Modus & aktuelle Ladeleistung sicher auslesen ===
                 $modusID = @IPS_GetObjectIDByIdent('Modus', $goeID);
                 $wattID  = @IPS_GetObjectIDByIdent('Watt', $goeID);
 
-                $aktuellerModus = ($modusID !== false) ? GetValueInteger($modusID) : -1;
-                $aktuelleLeistung = ($wattID !== false) ? GetValueFloat($wattID) : -1;
+                $aktuellerModus = -1;
+                if ($modusID !== false && @IPS_VariableExists($modusID)) {
+                    $aktuellerModus = GetValueInteger($modusID);
+                }
 
-                // === Laden stoppen ===
+                $aktuelleLeistung = -1;
+                if ($wattID !== false && @IPS_VariableExists($wattID)) {
+                    $aktuelleLeistung = GetValueFloat($wattID);
+                }
+
+                // === Ladefreigabe entziehen (z. B. bei PV-Defizit) ===
                 if ($watt <= 0 || $watt < $minStopWatt) {
                     if ($aktuellerModus !== 1) {
                         GOeCharger_setMode($goeID, 1);
-                        IPS_LogMessage("PVWallboxManager", "🛑 Modus auf 1 (Nicht laden) gesetzt – Ladeleistung: {$watt} W");
-                    } else {
-                        IPS_LogMessage("PVWallboxManager", "ℹ️ Modus bereits 1 (Nicht laden) – keine Umschaltung nötig");
+                        IPS_LogMessage("PVWallboxManager", "🛑 Wallbox auf 'Nicht laden' gesetzt (Modus 1), Ladeleistung: {$watt} W");
                     }
                     return;
                 }
 
-                // === Laden aktivieren ===
+                // === Ladefreigabe aktivieren ===
                 if ($aktuellerModus !== 2) {
                     GOeCharger_setMode($goeID, 2);
-                    IPS_LogMessage("PVWallboxManager", "⚡ Modus auf 2 (Immer laden) gesetzt");
+                    IPS_LogMessage("PVWallboxManager", "⚡ Wallbox auf 'Immer laden' gesetzt (Modus 2)");
                 }
 
-                // === Ladeleistung nur setzen, wenn sich etwas ändert (±50 W Toleranz) ===
-                if (abs($aktuelleLeistung - $watt) > 50) {
+                // === Ladeleistung nur setzen, wenn Änderung > 50 W ===
+                if ($aktuelleLeistung < 0 || abs($aktuelleLeistung - $watt) > 50) {
                     GOeCharger_SetCurrentChargingWatt($goeID, $watt);
                     IPS_LogMessage("PVWallboxManager", "✅ Ladeleistung gesetzt: {$watt} W");
-                } else {
-                    IPS_LogMessage("PVWallboxManager", "ℹ️ Ladeleistung unverändert – keine Änderung nötig");
                 }
-
                 break;
 
             default:
