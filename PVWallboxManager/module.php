@@ -28,7 +28,6 @@ class PVWallboxManager extends IPSModule
         // === Timer registrieren (wird später durch ApplyChanges konfiguriert) ===
         // Führt automatisch alle X Sekunden die Berechnung durch
         $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], "BerechnePVUeberschuss", "");');
-
     }
 
     // Wird aufgerufen, wenn sich Konfigurationseinstellungen ändern
@@ -77,6 +76,13 @@ class PVWallboxManager extends IPSModule
             IPS_LogMessage("⚡ PVWallboxManager", "❗ Netzbezug: $ueberschuss W 🔌❌");
         } else {
             IPS_LogMessage("⚡ PVWallboxManager", "🔍 Kein signifikanter Überschuss: $ueberschuss W");
+        }
+    }
+
+    public function RequestAction($ident, $value)
+    {
+        if ($ident === "BerechnePVUeberschuss") {
+            $this->BerechnePVUeberschuss();
         }
     }
 }
