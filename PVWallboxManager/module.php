@@ -137,26 +137,18 @@ class PVWallboxManager extends IPSModule
                     return;
                 }
 
-                // === Stoppschwelle prüfen ===
                 $minStopWatt = $this->ReadPropertyInteger('MinStopWatt');
+
                 if ($watt <= 0 || $watt < $minStopWatt) {
-                    // Wallbox deaktivieren (Modus = 0)
-                    $modusID = @IPS_GetObjectIDByIdent('Modus', $goeID);
-                    if ($modusID !== false) {
-                        RequestAction($modusID, 1); // Nicht laden
-                    }
-                    IPS_LogMessage("PVWallboxManager", "🚫 Wallbox deaktiviert (Modus 0) – Ladeleistung: {$watt} W");
+                    GOeCharger_setMode($goeID, 1); // Nicht laden
+                    IPS_LogMessage("PVWallboxManager", "🚫 Wallbox deaktiviert (Modus 1 – Nicht laden), Ladeleistung: {$watt} W");
                     return;
                 }
 
-                // === Laden aktivieren & Leistung setzen ===
-                $modusID = @IPS_GetObjectIDByIdent('Modus', $goeID);
-                if ($modusID !== false) {
-                    RequestAction($modusID, 2); // Immer laden
-                }
-
+                // Aktiv laden
+                GOeCharger_setMode($goeID, 2); // Immer laden
                 GOeCharger_SetCurrentChargingWatt($goeID, $watt);
-                IPS_LogMessage("PVWallboxManager", "🔌 Wallbox aktiviert (Modus 2) – Ladeleistung gesetzt: {$watt} W");
+                IPS_LogMessage("PVWallboxManager", "✅ Wallbox aktiviert (Modus 2 – Immer laden), Ladeleistung: {$watt} W");
                 break;
 
             default:
