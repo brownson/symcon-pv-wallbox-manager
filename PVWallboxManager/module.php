@@ -51,6 +51,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('PV2CarPercent', 'PV2Car-Prozent', 'PVW.Percent', 31);
         $this->RegisterVariableInteger('PhasenHystUp', 'Hysterese 3-Phasen', '', 50);
         $this->RegisterVariableInteger('PhasenHystDn', 'Hysterese 1-Phasen', '', 51);
+        $this->RegisterVariableInteger('Zielzeit_Stunde', 'Zielzeit Stunde', '~Hour', 20);
+        $this->RegisterVariableInteger('Zielzeit_Minute', 'Zielzeit Minute', '~Minute', 21);
 
         // === Ladeparameter als Properties ===
         $this->RegisterPropertyFloat('MinStartWatt', 1400);
@@ -108,18 +110,6 @@ class PVWallboxManager extends IPSModule
             return;
         }
         $this->SetTimerInterval('ZyklischCheck', 60 * 1000);
-
-        // Zielzeit-Variablen (Profile anlegen, falls nicht vorhanden)
-        if (!IPS_VariableProfileExists('~Hour')) {
-            IPS_CreateVariableProfile('~Hour', 1);
-            IPS_SetVariableProfileDigits('~Hour', 0);
-            IPS_SetVariableProfileValues('~Hour', 0, 23, 1);
-        }
-        if (!IPS_VariableProfileExists('~Minute')) {
-            IPS_CreateVariableProfile('~Minute', 1);
-            IPS_SetVariableProfileDigits('~Minute', 0);
-            IPS_SetVariableProfileValues('~Minute', 0, 59, 1);
-        }
 
         // Logging-Variable: Mehrzeilig im WebFront
         $logID = $this->GetIDForIdent('Wallbox_Log');
