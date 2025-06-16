@@ -1,8 +1,17 @@
 # Changelog
 
-# Changelog
+## [v0.3] – 2025-06-17
 
-## [0.2] – 2025-06-16
+### ✨ Hinzugefügt
+- Dynamische Sicherheits-Pufferlogik für PV-Überschuss: Je nach verfügbarem Überschuss werden 7–20 % abgezogen, um kurzfristige Einbrüche abzufedern.
+- Neuer Konfigurationsschalter `DynamischerPufferAktiv` (Standard: aktiv), um diese Funktion zu aktivieren/deaktivieren.
+- Konfigurierbare Checkbox in der `form.json`, mit Beschreibung zur Wirkung des Puffers im Instanzformular.
+
+### 🔁 Geändert
+- Ladeleistungsberechnung berücksichtigt nun optional den Puffer – wirkt sich direkt auf Phasenumschaltung und Ladeentscheidungen aus.
+
+
+## [v0.2] – 2025-06-16
 
 ### ✨ Hinzugefügt
 - Automatische Umschaltung zwischen 1-phasigem und 3-phasigem Laden basierend auf PV-Überschuss.
@@ -18,7 +27,8 @@
 - Ladeleistung wird nur gesetzt, wenn sich der neue Wert um mehr als 50 W vom aktuellen unterscheidet.
 - Der go-e Modus (Laden/Nicht laden) wird nur umgeschaltet, wenn sich der Zustand wirklich ändert.
 
-## v0.1 – 2025-06-16
+
+## [v0.1] – 2025-06-16
 
 ### ✅ Grundfunktionen:
 - Berechnung des PV-Überschusses: `PV-Erzeugung – Hausverbrauch – Batterieladung`

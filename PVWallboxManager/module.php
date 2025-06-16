@@ -41,10 +41,11 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('Phasen3Schwelle', 4200);
         $this->RegisterPropertyInteger('Phasen1Limit', 3);
         $this->RegisterPropertyInteger('Phasen3Limit', 3);
+        $this->RegisterPropertyBoolean('DynamischerPufferAktiv', true); // Schalter für Pufferlogik
 
         $this->RegisterAttributeInteger('Phasen1Counter', 0);
         $this->RegisterAttributeInteger('Phasen3Counter', 0);
-
+        
     }
 
     // Wird aufgerufen, wenn sich Konfigurationseinstellungen ändern
@@ -90,6 +91,21 @@ class PVWallboxManager extends IPSModule
             $ueberschuss = 0.0;
         }
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
+
+        // 🆕 Dynamischer Pufferfaktor (optional)
+        if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
+            $puffer_faktor = 0.93;
+            if ($ueberschuss < 2000) {
+                $puffer_faktor = 0.80;
+            } elseif ($ueberschuss < 4000) {
+                $puffer_faktor = 0.85;
+            } elseif ($ueberschuss < 6000) {
+                $puffer_faktor = 0.90;
+            }
+            $puffer = round($ueberschuss * (1 - $puffer_faktor));
+            $ueberschuss -= $puffer;
+            IPS_LogMessage("PVWallboxManager", "🔧 Dynamischer Puffer aktiviert: -{$puffer} W → verbleibend: {$ueberschuss} W");
+        }
 
         // === Frühzeitiger Abbruch bei zu geringem Überschuss ===
         $minLadeWatt = $this->ReadPropertyInteger('MinLadeWatt');

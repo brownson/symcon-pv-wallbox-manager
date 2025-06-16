@@ -48,6 +48,12 @@
     "description": "Überschuss in Watt, unter dem die Wallbox ausgeschaltet wird (z. B. –300 W)"
   },
   {
+    "type": "CheckBox",
+    "name": "DynamischerPufferAktiv",
+    "caption": "Dynamischen PV-Puffer aktivieren",
+    "description": "Reduziert den berechneten PV-Überschuss je nach Höhe automatisch um bis zu 20 %, um kurze Schwankungen durch z. B. Wolken abzufedern. Empfohlen für stabile Ladeverläufe."
+  },
+  {
     "type": "SelectVariable",
     "name": "HausverbrauchID",
     "caption": "Hausverbrauch (W)",
