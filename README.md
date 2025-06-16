@@ -68,3 +68,5 @@ Debug- und Simulationsmodus
 ## 📄 Lizenz
 Dieses Projekt steht unter der MIT License:
 👉 LICENSE.md
+
+=======
