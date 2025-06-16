@@ -24,7 +24,6 @@ class PVWallboxManager extends IPSModule
 
         // === Timer registrieren (wird später durch ApplyChanges konfiguriert) ===
         // Führt automatisch alle X Sekunden die Berechnung durch
-        //$this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'PVWallboxManager_BerechnePVUeberschuss($_IPS[\'TARGET\']);');
         $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], "BerechnePVUeberschuss", "");');
 
     }
@@ -48,40 +47,30 @@ class PVWallboxManager extends IPSModule
     // Diese Methode wird durch Timer oder manuell ausgelöst
     public function BerechnePVUeberschuss()
     {
-        // Lese konfigurierte Variablen-IDs
-        $pv_id        = $this->ReadPropertyInteger('PVErzeugungID');
-        $verbrauch_id = $this->ReadPropertyInteger('HausverbrauchID');
+        $pv_id         = $this->ReadPropertyInteger('PVErzeugungID');
+        $verbrauch_id  = $this->ReadPropertyInteger('HausverbrauchID');
+        $batterie_id   = $this->ReadPropertyInteger('BatterieladungID');
 
-        // Prüfe, ob beide Variablen existieren
-        if (!@IPS_VariableExists($pv_id) || !@IPS_VariableExists($verbrauch_id)) {
-            IPS_LogMessage("⚠️ PVWallboxManager", "❌ Fehler: PVErzeugungID oder HausverbrauchID ist ungültig!");
+        if (!@IPS_VariableExists($pv_id) || !@IPS_VariableExists($verbrauch_id) || !@IPS_VariableExists($batterie_id)) {
+            IPS_LogMessage("⚠️ PVWallboxManager", "❌ Fehler: PV-, Verbrauchs- oder Batterie-ID ist ungültig!");
             return;
         }
 
-        // Werte abrufen
         $pv         = GetValue($pv_id);
         $verbrauch  = GetValue($verbrauch_id);
+        $batterie   = GetValue($batterie_id); // positiv = lädt, negativ = entlädt
 
-        // PV-Überschuss berechnen
-        $ueberschuss = $pv - $verbrauch;
+        $ueberschuss = $pv - $verbrauch - $batterie;
 
-        // Ergebnis in Modul-Variable speichern
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
 
-        // === Logging je nach Situation ===
+        // Logging mit Symbolen
         if ($ueberschuss > 100) {
-            IPS_LogMessage("⚡ PVWallboxManager", "✅ PV-Überschuss erkannt: $ueberschuss W ☀️🔋");
+            IPS_LogMessage("⚡ PVWallboxManager", "✅ PV-Überschuss: $ueberschuss W ☀️🔋");
         } elseif ($ueberschuss < -100) {
-            IPS_LogMessage("⚡ PVWallboxManager", "🔌 Strom wird aus dem Netz bezogen! ($ueberschuss W) ❌");
+            IPS_LogMessage("⚡ PVWallboxManager", "❗ Netzbezug: $ueberschuss W 🔌❌");
         } else {
             IPS_LogMessage("⚡ PVWallboxManager", "🔍 Kein signifikanter Überschuss: $ueberschuss W");
-        }
-    }
-    public function RequestAction($ident, $value)
-    {
-        if ($ident === "BerechnePVUeberschuss") {
-            $this->BerechnePVUeberschuss();
-            return;
         }
     }
 }
