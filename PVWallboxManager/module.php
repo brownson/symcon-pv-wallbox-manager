@@ -83,13 +83,11 @@ class PVWallboxManager extends IPSModule
         $batterie   = GetValue($batterie_id); // positiv = lädt, negativ = entlädt
 
         // === PV-Überschuss berechnen ===
-        $ueberschuss = $pv - $verbrauch - $batterie;
-        
         // === Float-Toleranzfilter (z. B. -1E-13 → 0.0)
+        $ueberschuss = $pv - $verbrauch - $batterie;
         if (abs($ueberschuss) < 0.01) {
             $ueberschuss = 0.0;
         }
-
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
 
         // === Frühzeitiger Abbruch bei zu geringem Überschuss ===
