@@ -30,6 +30,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], "BerechnePVUeberschuss", "");');
 
         $this->RegisterPropertyString('WallboxTyp', 'go-e'); // 'go-e' als Standardwert
+        $this->RegisterPropertyInteger('GOEChargerID', 0);
         $this->RegisterPropertyInteger('MinAmpere', 6);      // Untergrenze (z. B. 6 A)
         $this->RegisterPropertyInteger('MaxAmpere', 16);     // Obergrenze (z. B. 16 A)
         $this->RegisterPropertyInteger('Phasen', 3);         // Aktuelle Anzahl Phasen
@@ -50,8 +51,9 @@ class PVWallboxManager extends IPSModule
         $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
 
         // Damit das Feld übernommen wird:
-        $this->ReadPropertyInteger('BatterieladungID');
+        $this->ReadPropertyInteger('GOEChargerID');
         $this->ReadPropertyString('WallboxTyp');
+        $this->ReadPropertyInteger('BatterieladungID');
         $this->ReadPropertyInteger('MinAmpere');
         $this->ReadPropertyInteger('MaxAmpere');
         $this->ReadPropertyInteger('Phasen');
