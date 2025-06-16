@@ -185,5 +185,6 @@ class PVWallboxManager extends IPSModule
                 break;
         }
     }
+
 }
 ?>
