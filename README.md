@@ -9,17 +9,20 @@ Dieses Modul für IP-Symcon ermöglicht die intelligente Steuerung einer go-e Ch
 Dieses Modul wird als Hobbyprojekt entwickelt und kostenlos zur Verfügung gestellt.  
 Wenn du die Weiterentwicklung unterstützen möchtest, kannst du das gerne tun:
 
-<p>
-  <a href="https://www.paypal.com/donate/?business=PR9P7V7RMFHFQ&no_recurring=0&item_name=Spende+als+Dankesch%C3%B6n+f%C3%BCr+die+Modulentwicklung+Symcon&currency_code=EUR" target="_blank" rel="noopener noreferrer">
-    <img src="assets/paypal_logo.png" alt="Spenden mit PayPal" style="height: auto; max-width: 150px;">
-  </a>
-</p>
-
-<p>
-  <a href="https://www.paypal.com/donate/?business=PR9P7V7RMFHFQ&no_recurring=0&item_name=Spende+als+Dankesch%C3%B6n+f%C3%BCr+die+Modulentwicklung+Symcon&currency_code=EUR" target="_blank" rel="noopener noreferrer">
-    <img src="assets/paypal_qr.png" alt="QR-Code zur PayPal-Spende" style="height: auto; max-width: 200px;">
-  </a>
-</p>
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://www.paypal.com/donate/?business=PR9P7V7RMFHFQ&no_recurring=0&item_name=Spende+als+Dankesch%C3%B6n+f%C3%BCr+die+Modulentwicklung+Symcon&currency_code=EUR" target="_blank" rel="noopener noreferrer">
+        <img src="assets/paypal_logo.png" alt="Spenden mit PayPal" style="max-width: 300px;">
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://www.paypal.com/donate/?business=PR9P7V7RMFHFQ&no_recurring=0&item_name=Spende+als+Dankesch%C3%B6n+f%C3%BCr+die+Modulentwicklung+Symcon&currency_code=EUR" target="_blank" rel="noopener noreferrer">
+        <img src="assets/paypal_qr.png" alt="QR-Code zur PayPal-Spende" style="max-width: 200px;">
+      </a>
+    </td>
+  </tr>
+</table>
 
 > ☕ Vielen Dank für deine Unterstützung!  
 > 📜 Dieses Modul bleibt selbstverständlich frei verfügbar und quelloffen.
