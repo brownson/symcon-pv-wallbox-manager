@@ -30,6 +30,24 @@
     "description": "Variable mit aktueller PV-Leistung"
   },
   {
+    "type": "NumberSpinner",
+    "name": "MinLadeWatt",
+    "caption": "Ladung starten ab",
+    "suffix": "W",
+    "minimum": 500,
+    "maximum": 11000,
+    "description": "PV-Überschuss in Watt, ab dem die Wallbox aktiv geladen werden soll (mind. 1400 W empfohlen)"
+  },
+  {
+    "type": "NumberSpinner",
+    "name": "MinStopWatt",
+    "caption": "Ladung stoppen bei",
+    "suffix": "W",
+    "minimum": -5000,
+    "maximum": 1000,
+    "description": "Überschuss in Watt, unter dem die Wallbox ausgeschaltet wird (z. B. –300 W)"
+  },
+  {
     "type": "SelectVariable",
     "name": "HausverbrauchID",
     "caption": "Hausverbrauch (W)",

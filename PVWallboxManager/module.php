@@ -34,6 +34,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('MinAmpere', 6);      // Untergrenze (z. B. 6 A)
         $this->RegisterPropertyInteger('MaxAmpere', 16);     // Obergrenze (z. B. 16 A)
         $this->RegisterPropertyInteger('Phasen', 3);         // Aktuelle Anzahl Phasen
+        $this->RegisterPropertyInteger('MinLadeWatt', 1400); // Mindestüberschuss für Ladestart
+        $this->RegisterPropertyInteger('MinStopWatt', -300); // Untergrenze für Stoppen der Ladung
+
     }
 
     // Wird aufgerufen, wenn sich Konfigurationseinstellungen ändern
@@ -57,6 +60,9 @@ class PVWallboxManager extends IPSModule
         $this->ReadPropertyInteger('MinAmpere');
         $this->ReadPropertyInteger('MaxAmpere');
         $this->ReadPropertyInteger('Phasen');
+        $this->ReadPropertyInteger('MinLadeWatt');
+        $this->ReadPropertyInteger('MinStopWatt');
+
     }
 
     // === Hauptfunktion: Berechnung des PV-Überschusses ===
@@ -79,6 +85,14 @@ class PVWallboxManager extends IPSModule
         $ueberschuss = $pv - $verbrauch - $batterie;
 
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
+
+        // === Frühzeitiger Abbruch bei zu geringem Überschuss ===
+        $minLadeWatt = $this->ReadPropertyInteger('MinLadeWatt');
+        if ($ueberschuss < $minLadeWatt) {
+            IPS_LogMessage("⚡ PVWallboxManager", "🔌 PV-Überschuss zu gering ($ueberschuss W < {$minLadeWatt} W) – Ladeleistung = 0 W");
+            $this->SetLadeleistung(0);
+            return;
+        }
 
         // Logging mit Symbolen
         if ($ueberschuss > 100) {
@@ -110,6 +124,7 @@ class PVWallboxManager extends IPSModule
             $this->BerechnePVUeberschuss();
         }
     }
+    
     private function SetLadeleistung(int $watt)
     {
         $typ = $this->ReadPropertyString('WallboxTyp');
@@ -118,17 +133,26 @@ class PVWallboxManager extends IPSModule
             case 'go-e':
                 $goeID = $this->ReadPropertyInteger('GOEChargerID');
                 if (!@IPS_InstanceExists($goeID)) {
-                    IPS_LogMessage("PVWallboxManager", "⚠️ go-e Charger Instanz nicht vorhanden (ID: $goeID)");
+                    IPS_LogMessage("PVWallboxManager", "⚠️ go-e Charger Instanz nicht gefunden (ID: $goeID)");
                     return;
                 }
 
-                // Ladeleistung setzen
+                // === Stoppschwelle prüfen ===
+                $minStopWatt = $this->ReadPropertyInteger('MinStopWatt');
+                if ($watt <= 0 || $watt < $minStopWatt) {
+                    RequestAction($goeID, 'Modus', 0); // Wallbox ausschalten
+                    IPS_LogMessage("PVWallboxManager", "🚫 Wallbox deaktiviert (Modus 0) – Ladeleistung zu gering: {$watt} W");
+                    return;
+                }
+
+                // === Laden aktivieren und Ladeleistung setzen ===
+                RequestAction($goeID, 'Modus', 2); // Immer laden
                 GOeCharger_SetCurrentChargingWatt($goeID, $watt);
-                IPS_LogMessage("PVWallboxManager", "✅ Ladeleistung (go-e) gesetzt: {$watt} W");
+                IPS_LogMessage("PVWallboxManager", "🔌 Wallbox aktiviert (Modus 2) – Ladeleistung gesetzt: {$watt} W");
                 break;
 
             default:
-                IPS_LogMessage("PVWallboxManager", "❌ Wallbox-Typ '$typ' nicht unterstützt – keine Steuerung durchgeführt.");
+                IPS_LogMessage("PVWallboxManager", "❌ Unbekannter Wallbox-Typ '$typ' – keine Steuerung durchgeführt.");
                 break;
         }
     }
