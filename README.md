@@ -4,11 +4,19 @@ Dieses Modul für IP-Symcon ermöglicht die intelligente Steuerung einer go-e Ch
 
 ---
 
-## 💶 Unterstützung
+## 💖 Unterstützung
 
-Wenn dir dieses Modul gefällt oder du es nützlich findest, kannst du mir gerne einen Kaffee spendieren ☕😊:
+Dieses Modul wird als Hobbyprojekt entwickelt und kostenlos zur Verfügung gestellt.  
+Wenn du die Weiterentwicklung unterstützen möchtest, kannst du das gerne tun:
 
-👉 [Jetzt via PayPal unterstützen](https://paypal.me/pesensie?country.x=AT&locale.x=de_DE)
+[![Spenden mit PayPal](https://www.paypalobjects.com/de_DE/AT/i/btn/btn_donateCC_LG.gif)](https://paypal.me/pesensie)
+
+Oder via QR-Code:
+
+![PayPal QR](assets/paypal_qr.png)
+
+> ☕ Vielen Dank für deine Unterstützung!  
+> 📜 Dieses Modul bleibt selbstverständlich frei verfügbar und quelloffen.
 
 ---
 
