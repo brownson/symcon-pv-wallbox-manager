@@ -145,7 +145,7 @@ class PVWallboxManager extends IPSModule
                 $minStopWatt = $this->ReadPropertyInteger('MinStopWatt');
 
                 // === Aktuellen Modus & aktuelle Ladeleistung sicher auslesen ===
-                $modusID = @IPS_GetObjectIDByIdent('WallboxModus', $goeID);
+                $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID); // <-- DEIN IDENT
                 $wattID  = @IPS_GetObjectIDByIdent('Watt', $goeID);
 
                 $aktuellerModus = -1;
@@ -185,6 +185,5 @@ class PVWallboxManager extends IPSModule
                 break;
         }
     }
-
 }
 ?>
