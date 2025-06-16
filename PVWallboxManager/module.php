@@ -137,22 +137,27 @@ class PVWallboxManager extends IPSModule
         $phasenID = $this->ReadPropertyInteger('PhasenUmschaltID');
         if ($phasenID > 0) {
             $ist3Phasig = GetValue($phasenID);
+            IPS_LogMessage("PVWallboxManager", "🔄 Ladeleistung: {$watt} W | Phase: " . ($ist3Phasig ? "3-phasig" : "1-phasig"));
 
             if ($watt < $this->ReadPropertyInteger('Phasen1Schwelle') && $ist3Phasig) {
                 $counter = $this->ReadAttributeInteger('Phasen1Counter') + 1;
                 $this->WriteAttributeInteger('Phasen1Counter', $counter);
                 $this->WriteAttributeInteger('Phasen3Counter', 0);
+                IPS_LogMessage("PVWallboxManager", "⏬ Zähler 1-phasig: {$counter} / {$this->ReadPropertyInteger('Phasen1Limit')}");
                 if ($counter >= $this->ReadPropertyInteger('Phasen1Limit')) {
                     RequestAction($phasenID, false);
                     $this->WriteAttributeInteger('Phasen1Counter', 0);
+                    IPS_LogMessage("PVWallboxManager", "🔁 Umschaltung auf 1-phasig ausgelöst");
                 }
             } elseif ($watt > $this->ReadPropertyInteger('Phasen3Schwelle') && !$ist3Phasig) {
                 $counter = $this->ReadAttributeInteger('Phasen3Counter') + 1;
                 $this->WriteAttributeInteger('Phasen3Counter', $counter);
                 $this->WriteAttributeInteger('Phasen1Counter', 0);
+                IPS_LogMessage("PVWallboxManager", "⏫ Zähler 3-phasig: {$counter} / {$this->ReadPropertyInteger('Phasen3Limit')}");
                 if ($counter >= $this->ReadPropertyInteger('Phasen3Limit')) {
                     RequestAction($phasenID, true);
                     $this->WriteAttributeInteger('Phasen3Counter', 0);
+                    IPS_LogMessage("PVWallboxManager", "🔁 Umschaltung auf 3-phasig ausgelöst");
                 }
             } else {
                 $this->WriteAttributeInteger('Phasen1Counter', 0);
