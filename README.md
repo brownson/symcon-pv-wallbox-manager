@@ -4,6 +4,14 @@ Dieses Modul für IP-Symcon ermöglicht die intelligente Steuerung einer go-e Ch
 
 ---
 
+## 💶 Unterstützung
+
+Wenn dir dieses Modul gefällt oder du es nützlich findest, kannst du mir gerne einen Kaffee spendieren ☕😊:
+
+👉 [Jetzt via PayPal unterstützen](https://paypal.me/pesensie?country.x=AT&locale.x=de_DE)
+
+---
+
 ## 🔧 Voraussetzungen
 
 - IP-Symcon Version 8.x oder neuer
