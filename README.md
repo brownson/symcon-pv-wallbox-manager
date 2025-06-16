@@ -43,33 +43,26 @@ https://github.com/pesensie/symcon-pv-wallbox-manager
 3. Instanz „PVWallboxManager“ hinzufügen und konfigurieren
 
 Oder via Konsole:
-```bash
 git clone https://github.com/pesensie/symcon-pv-wallbox-manager.git
 
-✅ Voraussetzungen
+## ✅ Voraussetzungen
 IP-Symcon v8 oder höher
 
 GO-eCharger Modul von IPSCoyote (für go-e Unterstützung)
 
 korrekte Zuweisung der Energie-Messwerte und Wallbox-Instanz
 
-🕘 Changelog
+## 🕘 Changelog
 Alle Änderungen findest du in CHANGELOG.md
 
-🚀 Roadmap
+## 🚀 Roadmap
 Unterstützung weiterer Wallbox-Marken (z. B. Heidelberg, openWB, SMA EV-Charger)
-
 Phasenumschaltung bei Bedarf (1 ↔ 3)
-
 Zeitgesteuerte Zielladung (z. B. „bis 06:00 Uhr 80 %“)
-
 PV2Car-Modus mit %-Regler
-
 Visualisierung im WebFront
-
 MQTT-Integration
-
 Debug- und Simulationsmodus
 
-📄 Lizenz
+## 📄 Lizenz
 Dieses Projekt steht unter der MIT License.
