@@ -78,6 +78,9 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
+        // === PV-Überschuss berechnen ===
+        $ueberschuss = $pv - $verbrauch - $batterie;
+
         $pv         = GetValue($pv_id);
         $verbrauch  = GetValue($verbrauch_id);
         $batterie   = GetValue($batterie_id); // positiv = lädt, negativ = entlädt
