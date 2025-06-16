@@ -1,35 +1,55 @@
 {
   "elements": [
     {
-    "type": "ExpansionPanel",
-    "caption": "Wallbox-Konfiguration",
-    "items": [
+      "type": "ExpansionPanel",
+      "caption": "🔌 Wallbox-Konfiguration",
+      "items": [
         {
-            "type": "Select",
-            "name": "WallboxTyp",
-            "caption": "Wallbox-Typ",
-            "options": [
-                {
-                    "caption": "GO-eCharger (IPSCoyote)",
-                    "value": "go-e"
-                },
-                {
-                    "caption": "Coming Soon",
-                    "value": "coming-soon"
-                }
-            ]
+          "type": "Select",
+          "name": "WallboxTyp",
+          "caption": "Wallbox-Typ",
+          "options": [
+            {
+              "caption": "GO-eCharger (IPSCoyote)",
+              "value": "go-e"
+            },
+            {
+              "caption": "Coming Soon",
+              "value": "coming-soon"
+            }
+          ]
         },
         {
           "type": "SelectInstance",
           "name": "GOEChargerID",
-          "caption": "go-e Charger Instanz",
+          "caption": "GO-e Instanz",
           "validClasses": ["GOeCharger"]
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "MinAmpere",
+          "caption": "Minimaler Ladestrom (A)"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "MaxAmpere",
+          "caption": "Maximaler Ladestrom (A)"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "MinLadeWatt",
+          "caption": "Start bei PV-Überschuss (W)"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "MinStopWatt",
+          "caption": "Stoppen bei Defizit (W)"
         }
       ]
     },
     {
       "type": "ExpansionPanel",
-      "caption": "🔋 Energiequellen",
+      "caption": "🌞 Energiequellen",
       "items": [
         {
           "type": "SelectVariable",
@@ -48,81 +68,60 @@
           "name": "BatterieladungID",
           "caption": "Batterieladung (W)",
           "validVariableTypes": [2]
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "RefreshInterval",
+          "caption": "Aktualisierungsintervall (Sekunden)",
+          "minimum": 15,
+          "maximum": 600
         }
       ]
     },
     {
       "type": "ExpansionPanel",
-      "caption": "⚡ Phasenumschaltung",
+      "caption": "🔁 Phasenumschaltung",
       "items": [
         {
           "type": "NumberSpinner",
+          "name": "Phasen",
+          "caption": "Anzahl der Ladephasen (Initialwert)"
+        },
+        {
+          "type": "NumberSpinner",
           "name": "Phasen1Schwelle",
-          "caption": "Schwelle für 1-phasig (W)"
+          "caption": "Umschalt-Schwelle auf 1-phasig (W)"
         },
         {
           "type": "NumberSpinner",
           "name": "Phasen3Schwelle",
-          "caption": "Schwelle für 3-phasig (W)"
+          "caption": "Umschalt-Schwelle auf 3-phasig (W)"
         },
         {
           "type": "NumberSpinner",
           "name": "Phasen1Limit",
-          "caption": "Zählerlimit für 1-phasig"
+          "caption": "Anzahl Messzyklen unter Schwelle (1-phasig)"
         },
         {
           "type": "NumberSpinner",
           "name": "Phasen3Limit",
-          "caption": "Zählerlimit für 3-phasig"
+          "caption": "Anzahl Messzyklen über Schwelle (3-phasig)"
         }
       ]
     },
     {
       "type": "ExpansionPanel",
-      "caption": "🧠 Intelligente Ladelogik",
+      "caption": "🧠 Intelligente Logik",
       "items": [
         {
-          "type": "NumberSpinner",
-          "name": "RefreshInterval",
-          "caption": "Intervall (Sekunden)",
-          "minimum": 15,
-          "maximum": 600
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "MinLadeWatt",
-          "caption": "Start-Ladeschwelle (W)"
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "MinStopWatt",
-          "caption": "Stopp-Schwelle (W)"
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "MinAmpere",
-          "caption": "Minimale Ladeleistung (A)"
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "MaxAmpere",
-          "caption": "Maximale Ladeleistung (A)"
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "Phasen",
-          "caption": "Aktive Phasen (1/3)"
+          "type": "CheckBox",
+          "name": "DynamischerPufferAktiv",
+          "caption": "Dynamischen Pufferfaktor aktivieren"
         },
         {
           "type": "NumberSpinner",
           "name": "MinAktivierungsWatt",
-          "caption": "Aktivierung ab PV-Überschuss (W)",
-          "default": 300
-        },
-        {
-          "type": "CheckBox",
-          "name": "DynamischerPufferAktiv",
-          "caption": "Dynamischer Puffer aktiv"
+          "caption": "Minimale Aktivierungsleistung (W)"
         }
       ]
     }
