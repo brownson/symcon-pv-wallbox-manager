@@ -47,12 +47,6 @@
       "caption": "⚡ Phasenumschaltung",
       "items": [
         {
-          "type": "SelectVariable",
-          "name": "PhasenUmschaltID",
-          "caption": "Phasenumschaltung (Bool)",
-          "validVariableTypes": [0]
-        },
-        {
           "type": "NumberSpinner",
           "name": "Phasen1Schwelle",
           "caption": "Schwelle für 1-phasig (W)"

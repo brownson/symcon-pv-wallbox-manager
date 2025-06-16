@@ -36,7 +36,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('Phasen', 3);         // Aktuelle Anzahl Phasen
         $this->RegisterPropertyInteger('MinLadeWatt', 1400); // Mindestüberschuss für Ladestart
         $this->RegisterPropertyInteger('MinStopWatt', -300); // Untergrenze für Stoppen der Ladung
-        $this->RegisterPropertyInteger('PhasenUmschaltID', 0);
         $this->RegisterPropertyInteger('Phasen1Schwelle', 1000);
         $this->RegisterPropertyInteger('Phasen3Schwelle', 4200);
         $this->RegisterPropertyInteger('Phasen1Limit', 3);
@@ -157,29 +156,41 @@ class PVWallboxManager extends IPSModule
     }
     
     private function SetLadeleistung(int $watt)
-    {
-        $phasenID = $this->ReadPropertyInteger('PhasenUmschaltID');
-        if ($phasenID > 0) {
-            $ist3Phasig = GetValue($phasenID);
-            IPS_LogMessage("PVWallboxManager", "🔄 Ladeleistung: {$watt} W | Phase: " . ($ist3Phasig ? "3-phasig" : "1-phasig"));
+{
+    $typ = $this->ReadPropertyString('WallboxTyp');
 
-            if ($watt < $this->ReadPropertyInteger('Phasen1Schwelle') && $ist3Phasig) {
+    switch ($typ) {
+        case 'go-e':
+            $goeID = $this->ReadPropertyInteger('GOEChargerID');
+            if (!@IPS_InstanceExists($goeID)) {
+                IPS_LogMessage("PVWallboxManager", "⚠️ go-e Charger Instanz nicht gefunden (ID: $goeID)");
+                return;
+            }
+
+            // 🌐 NEU: Phasenumschaltung direkt via API
+            $aktuell1phasig = false;
+            $phaseVarID = @IPS_GetObjectIDByIdent('SinglePhaseCharging', $goeID);
+            if ($phaseVarID !== false && @IPS_VariableExists($phaseVarID)) {
+                $aktuell1phasig = GetValueBoolean($phaseVarID);
+            }
+
+            if ($watt < $this->ReadPropertyInteger('Phasen1Schwelle') && !$aktuell1phasig) {
                 $counter = $this->ReadAttributeInteger('Phasen1Counter') + 1;
                 $this->WriteAttributeInteger('Phasen1Counter', $counter);
                 $this->WriteAttributeInteger('Phasen3Counter', 0);
                 IPS_LogMessage("PVWallboxManager", "⏬ Zähler 1-phasig: {$counter} / {$this->ReadPropertyInteger('Phasen1Limit')}");
                 if ($counter >= $this->ReadPropertyInteger('Phasen1Limit')) {
-                    RequestAction($phasenID, false);
+                    GOeCharger_SetSinglePhaseCharging($goeID, true);
                     $this->WriteAttributeInteger('Phasen1Counter', 0);
                     IPS_LogMessage("PVWallboxManager", "🔁 Umschaltung auf 1-phasig ausgelöst");
                 }
-            } elseif ($watt > $this->ReadPropertyInteger('Phasen3Schwelle') && !$ist3Phasig) {
+            } elseif ($watt > $this->ReadPropertyInteger('Phasen3Schwelle') && $aktuell1phasig) {
                 $counter = $this->ReadAttributeInteger('Phasen3Counter') + 1;
                 $this->WriteAttributeInteger('Phasen3Counter', $counter);
                 $this->WriteAttributeInteger('Phasen1Counter', 0);
                 IPS_LogMessage("PVWallboxManager", "⏫ Zähler 3-phasig: {$counter} / {$this->ReadPropertyInteger('Phasen3Limit')}");
                 if ($counter >= $this->ReadPropertyInteger('Phasen3Limit')) {
-                    RequestAction($phasenID, true);
+                    GOeCharger_SetSinglePhaseCharging($goeID, false);
                     $this->WriteAttributeInteger('Phasen3Counter', 0);
                     IPS_LogMessage("PVWallboxManager", "🔁 Umschaltung auf 3-phasig ausgelöst");
                 }
@@ -187,67 +198,58 @@ class PVWallboxManager extends IPSModule
                 $this->WriteAttributeInteger('Phasen1Counter', 0);
                 $this->WriteAttributeInteger('Phasen3Counter', 0);
             }
-        }
 
-        $typ = $this->ReadPropertyString('WallboxTyp');
+            // 🧼 Entfernt: $phasenID, GetValue($phasenID), RequestAction → ersetzt durch go-e API
 
-        switch ($typ) {
-            case 'go-e':
-                $goeID = $this->ReadPropertyInteger('GOEChargerID');
-                if (!@IPS_InstanceExists($goeID)) {
-                    IPS_LogMessage("PVWallboxManager", "⚠️ go-e Charger Instanz nicht gefunden (ID: $goeID)");
-                    return;
-                }
+            $minStopWatt = $this->ReadPropertyInteger('MinStopWatt');
 
-                $minStopWatt = $this->ReadPropertyInteger('MinStopWatt');
+            // === Aktuellen Modus & Ladeleistung auslesen ===
+            $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
+            $wattID  = @IPS_GetObjectIDByIdent('Watt', $goeID);
 
-                // === Aktuellen Modus & Ladeleistung auslesen ===
-                $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);  // DEIN IDENT
-                $wattID  = @IPS_GetObjectIDByIdent('Watt', $goeID);
+            $aktuellerModus = -1;
+            if ($modusID !== false && @IPS_VariableExists($modusID)) {
+                $aktuellerModus = GetValueInteger($modusID);
+            }
 
-                $aktuellerModus = -1;
-                if ($modusID !== false && @IPS_VariableExists($modusID)) {
-                    $aktuellerModus = GetValueInteger($modusID);
-                }
+            $aktuelleLeistung = -1;
+            if ($wattID !== false && @IPS_VariableExists($wattID)) {
+                $aktuelleLeistung = GetValueFloat($wattID);
+            }
 
-                $aktuelleLeistung = -1;
-                if ($wattID !== false && @IPS_VariableExists($wattID)) {
-                    $aktuelleLeistung = GetValueFloat($wattID);
-                }
-
-                // === Laden deaktivieren ===
-                if ($watt <= 0 || $watt < $minStopWatt) {
-                    if ($aktuellerModus !== 1) {
-                        GOeCharger_setMode($goeID, 1);
-                        IPS_LogMessage("PVWallboxManager", "🛑 Modus auf 1 (Nicht laden) gesetzt – Ladeleistung: {$watt} W");
-                    } else {
-                        IPS_LogMessage("PVWallboxManager", "🟡 Modus bereits 1 (Nicht laden) – keine Umschaltung notwendig");
-                    }
-                    return;
-                }
-
-                // === Laden aktivieren ===
-                if ($aktuellerModus !== 2) {
-                    GOeCharger_setMode($goeID, 2);
-                    IPS_LogMessage("PVWallboxManager", "⚡ Modus auf 2 (Immer laden) gesetzt");
+            // === Laden deaktivieren ===
+            if ($watt <= 0 || $watt < $minStopWatt) {
+                if ($aktuellerModus !== 1) {
+                    GOeCharger_setMode($goeID, 1);
+                    IPS_LogMessage("PVWallboxManager", "🛑 Modus auf 1 (Nicht laden) gesetzt – Ladeleistung: {$watt} W");
                 } else {
-                    IPS_LogMessage("PVWallboxManager", "🟡 Modus bereits 2 (Immer laden) – keine Umschaltung notwendig");
+                    IPS_LogMessage("PVWallboxManager", "🟡 Modus bereits 1 (Nicht laden) – keine Umschaltung notwendig");
                 }
+                return;
+            }
 
-                // === Ladeleistung nur setzen, wenn Änderung > 50 W ===
-                if ($aktuelleLeistung < 0 || abs($aktuelleLeistung - $watt) > 50) {
-                    GOeCharger_SetCurrentChargingWatt($goeID, $watt);
-                    IPS_LogMessage("PVWallboxManager", "✅ Ladeleistung gesetzt: {$watt} W");
-                } else {
-                    IPS_LogMessage("PVWallboxManager", "🟡 Ladeleistung unverändert – keine Änderung notwendig");
-                }
-                break;
+            // === Laden aktivieren ===
+            if ($aktuellerModus !== 2) {
+                GOeCharger_setMode($goeID, 2);
+                IPS_LogMessage("PVWallboxManager", "⚡ Modus auf 2 (Immer laden) gesetzt");
+            } else {
+                IPS_LogMessage("PVWallboxManager", "🟡 Modus bereits 2 (Immer laden) – keine Umschaltung notwendig");
+            }
 
-            default:
-                IPS_LogMessage("PVWallboxManager", "❌ Unbekannter Wallbox-Typ '$typ' – keine Steuerung durchgeführt.");
-                break;
-        }
+            // === Ladeleistung nur setzen, wenn Änderung > 50 W ===
+            if ($aktuelleLeistung < 0 || abs($aktuelleLeistung - $watt) > 50) {
+                GOeCharger_SetCurrentChargingWatt($goeID, $watt);
+                IPS_LogMessage("PVWallboxManager", "✅ Ladeleistung gesetzt: {$watt} W");
+            } else {
+                IPS_LogMessage("PVWallboxManager", "🟡 Ladeleistung unverändert – keine Änderung notwendig");
+            }
+            break;
+
+        default:
+            IPS_LogMessage("PVWallboxManager", "❌ Unbekannter Wallbox-Typ '$typ' – keine Steuerung durchgeführt.");
+            break;
     }
+}
 
 }
 ?>
