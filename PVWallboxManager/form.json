@@ -1,70 +1,77 @@
 {
-  "elements": [
-    {
-      "type": "Label",
-      "caption": "Dieses Modul berechnet regelmäßig den PV-Überschuss (PV-Erzeugung minus Hausverbrauch)."
-    },
-    {
-      "type": "Select",
-      "name": "WallboxTyp",
-      "caption": "Wallbox-Typ",
-      "description": "Wähle den Hersteller/Typ deiner Wallbox",
-      "options": [
-        {
-          "caption": "go-e Charger (via IPSCoyote Modul)",
-          "value": "go-e"
-        }
-      ]
-    },
-    {
-      "type": "SelectVariable",
-      "name": "PVErzeugungID",
-      "caption": "PV-Erzeugung (W)",
-      "description": "Variable mit aktueller PV-Erzeugung (z. B. aus Wechselrichter oder Zähler)"
-    },
-    {
-      "type": "SelectVariable",
-      "name": "HausverbrauchID",
-      "caption": "Hausverbrauch (W)",
-      "description": "Variable mit aktuellem Hausverbrauch (inkl. EVU + Wallbox etc.)"
-    },
-    {
-      "type": "SelectVariable",
-      "name": "BatterieladungID",
-      "caption": "Batterieladung (W)",
-      "description": "Variable mit Lade-/Entladeleistung der Batterie (positiv = lädt, negativ = entlädt)"
-    },
-    {
-      "type": "NumberSpinner",
-      "name": "RefreshInterval",
-      "caption": "Berechnungsintervall",
-      "suffix": "Sekunden",
-      "minimum": 15,
-      "maximum": 600
-    },
-    {
-      "type": "NumberSpinner",
-      "name": "Phasen",
-      "caption": "Aktive Phasen",
-      "suffix": "Ph",
-      "minimum": 1,
-      "maximum": 3
-    },
-    {
-      "type": "NumberSpinner",
-      "name": "MinAmpere",
-      "caption": "Min. Ladestrom",
-      "suffix": "A",
-      "minimum": 6,
-      "maximum": 16
-    },
-    {
-      "type": "NumberSpinner",
-      "name": "MaxAmpere",
-      "caption": "Max. Ladestrom",
-      "suffix": "A",
-      "minimum": 6,
-      "maximum": 16
+"elements": [
+  {
+    "type": "Select",
+    "name": "WallboxTyp",
+    "caption": "Wallbox-Typ",
+    "description": "Wähle den Hersteller/Typ deiner Wallbox",
+    "options": [
+      {
+        "caption": "go-e Charger (via IPSCoyote Modul)",
+        "value": "go-e"
+      }
+    ]
+  },
+  {
+    "type": "SelectInstance",
+    "name": "GOEChargerID",
+    "caption": "go-e Charger Instanz",
+    "description": "Wähle die GO-e Charger Instanz (vom IPSCoyote Modul)",
+    "visibleCondition": {
+      "type": "Equal",
+      "variable": "WallboxTyp",
+      "value": "go-e"
     }
-  ]
+  },
+  {
+    "type": "SelectVariable",
+    "name": "PVErzeugungID",
+    "caption": "PV-Erzeugung (W)",
+    "description": "Variable mit aktueller PV-Leistung"
+  },
+  {
+    "type": "SelectVariable",
+    "name": "HausverbrauchID",
+    "caption": "Hausverbrauch (W)",
+    "description": "Variable mit aktuellem Gesamtverbrauch"
+  },
+  {
+    "type": "SelectVariable",
+    "name": "BatterieladungID",
+    "caption": "Batterieladung (W)",
+    "description": "Variable mit Lade-/Entladeleistung des Speichers (positiv = lädt)"
+  },
+  {
+    "type": "NumberSpinner",
+    "name": "RefreshInterval",
+    "caption": "Berechnungsintervall",
+    "suffix": "Sekunden",
+    "minimum": 15,
+    "maximum": 600
+  },
+  {
+    "type": "NumberSpinner",
+    "name": "Phasen",
+    "caption": "Aktive Phasen",
+    "suffix": "Phasen",
+    "minimum": 1,
+    "maximum": 3
+  },
+  {
+    "type": "NumberSpinner",
+    "name": "MinAmpere",
+    "caption": "Min. Ladestrom",
+    "suffix": "A",
+    "minimum": 6,
+    "maximum": 16
+  },
+  {
+    "type": "NumberSpinner",
+    "name": "MaxAmpere",
+    "caption": "Max. Ladestrom",
+    "suffix": "A",
+    "minimum": 6,
+    "maximum": 16
+  }
+]
 }
