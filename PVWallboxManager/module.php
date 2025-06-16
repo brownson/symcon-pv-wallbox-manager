@@ -143,7 +143,7 @@ class PVWallboxManager extends IPSModule
                     // Wallbox deaktivieren (Modus = 0)
                     $modusID = @IPS_GetObjectIDByIdent('Modus', $goeID);
                     if ($modusID !== false) {
-                        RequestAction($modusID, 0);
+                        RequestAction($modusID, 1); // Nicht laden
                     }
                     IPS_LogMessage("PVWallboxManager", "🚫 Wallbox deaktiviert (Modus 0) – Ladeleistung: {$watt} W");
                     return;
