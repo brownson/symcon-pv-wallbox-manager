@@ -94,7 +94,7 @@ Feature-Ideen, Fehlerberichte und Pull-Requests sind willkommen!
 
 ## 🕘 Changelog
 Alle Änderungen findest du in der Datei:
-👉 CHANGELOG.md
+👉 [CHANGELOG.md]https://github.com/pesensie/symcon-pv-wallbox-manager/blob/main/CHANGELOG.md
 
 ## 🚀 Roadmap
 Unterstützung weiterer Wallbox-Marken (z. B. Heidelberg, openWB, SMA EV-Charger)
@@ -107,4 +107,5 @@ Debug- und Simulationsmodus
 
 ## 📄 Lizenz
 Dieses Projekt steht unter der MIT License:
-👉 LICENSE.md
+👉 [GLICENSE.md](https://github.com/pesensie/symcon-pv-wallbox-manager/blob/main/LICENSE.md)
+
