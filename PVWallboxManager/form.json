@@ -1,14 +1,23 @@
 {
   "elements": [
     {
-      "type": "ExpansionPanel",
-      "caption": "🔌 Wallbox",
-      "items": [
+    "type": "ExpansionPanel",
+    "caption": "Wallbox-Konfiguration",
+    "items": [
         {
-          "type": "ValidationTextBox",
-          "name": "WallboxTyp",
-          "caption": "Wallbox-Typ",
-          "default": "go-e"
+            "type": "Select",
+            "name": "WallboxTyp",
+            "caption": "Wallbox-Typ",
+            "options": [
+                {
+                    "caption": "GO-eCharger (IPSCoyote)",
+                    "value": "go-e"
+                },
+                {
+                    "caption": "Coming Soon",
+                    "value": "coming-soon"
+                }
+            ]
         },
         {
           "type": "SelectInstance",
