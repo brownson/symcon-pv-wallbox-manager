@@ -219,7 +219,7 @@
         },
         {
           "type": "Label",
-          "caption": "Wenn aktiv, werden SOC-Werte für geplante Ladung berücksichtigt. Sonst erfolgt reine PV-Überschussladung."
+          "caption": "Wenn aktiv, werden die Fahrzeugdaten für geplante Ladung berücksichtigt.\n\nDer SoC (State of Charge) beschreibt den Ladezustand der Fahrzeugbatterie in Prozent.\n\nBeispiel: Wenn der aktuelle SoC bei 45 % liegt und das Ziel 80 % beträgt, wird das Modul die Ladezeit und -leistung entsprechend berechnen, um diesen Zielwert rechtzeitig zu erreichen (z. B. bis 06:00 Uhr)."
         },
         {
           "type": "RowLayout",
@@ -229,9 +229,10 @@
               "type": "SelectVariable",
               "caption": "Aktueller SoC des Fahrzeugs",
               "variableTypes": ["Integer", "Float"],
+              "enabled": false,
               "enabled": {
                 "name": "UseCarSOC",
-                "value": true
+                "equals": true
               }
             }
           ]
@@ -244,9 +245,10 @@
               "type": "SelectVariable",
               "caption": "Ziel-SoC (Variable, optional)",
               "variableTypes": ["Integer", "Float"],
+              "enabled": false,
               "enabled": {
                 "name": "UseCarSOC",
-                "value": true
+                "equals": true
               }
             },
             {
@@ -257,9 +259,10 @@
               "minimum": 0,
               "maximum": 100,
               "default": 80,
+              "enabled": false,
               "enabled": {
                 "name": "UseCarSOC",
-                "value": true
+                "equals": true
               }
             }
           ]
