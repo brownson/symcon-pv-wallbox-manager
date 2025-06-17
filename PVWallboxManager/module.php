@@ -43,10 +43,10 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('DynamischerPufferAktiv', true); // Schalter für Pufferlogik
         $this->RegisterPropertyInteger('MinAktivierungsWatt', 300);
         $this->RegisterPropertyBoolean('NurMitFahrzeug', true); // Nur laden, wenn Fahrzeug verbunden
-
-
-
-
+        $this->RegisterPropertyInteger('CarSOCID', 0);
+        $this->RegisterPropertyFloat('CarSOCFallback', 20);
+        $this->RegisterPropertyInteger('CarTargetSOCID', 0);
+        $this->RegisterPropertyFloat('CarTargetSOCFallback', 80);
         $this->RegisterAttributeInteger('Phasen1Counter', 0);
         $this->RegisterAttributeInteger('Phasen3Counter', 0);
         
@@ -176,6 +176,38 @@ class PVWallboxManager extends IPSModule
         }
     }
     
+    public function BerechneLadung()
+    {
+        // Aktuellen Fahrzeug-SOC holen (Variable oder Fallback)
+        $carSOCID = $this->ReadPropertyInteger('CarSOCID');
+        if (IPS_VariableExists($carSOCID) && $carSOCID > 0) {
+            $carSOC = GetValue($carSOCID);
+        } else {
+            $carSOC = $this->ReadPropertyFloat('CarSOCFallback');
+        }
+
+        // Ziel-SOC holen (Variable oder Fallback)
+        $carTargetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
+        if (IPS_VariableExists($carTargetSOCID) && $carTargetSOCID > 0) {
+            $targetSOC = GetValue($carTargetSOCID);
+        } else {
+            $targetSOC = $this->ReadPropertyFloat('CarTargetSOCFallback');
+        }
+
+        // Debug-Ausgabe (optional)
+        $this->SendDebug('Fahrzeug-SOC', $carSOC, 1);
+        $this->SendDebug('Ziel-SOC', $targetSOC, 1);
+
+        // Vergleich: Ist Ziel erreicht?
+        if ($carSOC >= $targetSOC) {
+            $this->SendDebug('Ladeentscheidung', 'Ziel-SOC erreicht – kein Laden erforderlich', 0);
+            return;
+        }
+
+        // (Hier kann später die Ladeplanung erfolgen)
+        $this->SendDebug('Ladeentscheidung', 'Laden erforderlich – nächster Schritt folgt', 0);
+    }
+
     private function SetLadeleistung(int $watt)
     {
     $typ = 'go-e'; // fest auf go-e gesetzt, da aktuell nur diese Wallbox unterstützt wird

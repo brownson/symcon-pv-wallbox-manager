@@ -206,6 +206,52 @@
           "caption": "Nur laden, wenn Fahrzeug verbunden ist"
         }
       ]
-    }
+    },
+      {
+        "type": "ExpansionPanel",
+        "caption": "Fahrzeugdaten",
+        "items": [
+        {
+          "type": "RowLayout",
+          "items": [
+            {
+              "name": "CarSOCID",
+              "type": "SelectVariable",
+              "caption": "Fahrzeug-SOC (aktuell)",
+              "variableTypes": ["Integer", "Float"]
+            },
+            {
+              "name": "CarSOCFallback",
+              "type": "NumberSpinner",
+              "caption": "Fallback-SOC (%)",
+              "suffix": "%",
+              "minimum": 0,
+              "maximum": 100,
+              "default": 20
+            }
+          ]
+        },
+        {
+          "type": "RowLayout",
+          "items": [
+            {
+              "name": "CarTargetSOCID",
+              "type": "SelectVariable",
+              "caption": "Ziel-SOC für Ladung",
+              "variableTypes": ["Integer", "Float"]
+            },
+            {
+              "name": "CarTargetSOCFallback",
+              "type": "NumberSpinner",
+              "caption": "Fallback-Ziel-SOC (%)",
+              "suffix": "%",
+              "minimum": 0,
+              "maximum": 100,
+              "default": 80
+            }
+          ]
+        }
+      ]
+    } 
   ]
 }
