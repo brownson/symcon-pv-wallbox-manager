@@ -1,118 +1,134 @@
 {
   "elements": [
     {
-      "type": "ExpansionPanel",
-      "caption": "🔌 Wallbox-Konfiguration",
-      "items": [
+      "type": "RowLayout",
+      "columns": [
         {
-          "type": "SelectInstance",
-          "name": "GOEChargerID",
-          "caption": "GO-e Instanz",
-          "validClasses": ["GOeCharger"]
+          "items": [
+            {
+              "type": "ExpansionPanel",
+              "caption": "🔌 Wallbox-Konfiguration",
+              "items": [
+                {
+                  "type": "SelectInstance",
+                  "name": "GOEChargerID",
+                  "caption": "GO-e Instanz",
+                  "validClasses": ["GOeCharger"]
+                },
+                {
+                  "type": "NumberSpinner",
+                  "name": "MinAmpere",
+                  "caption": "Minimaler Ladestrom (A)"
+                },
+                {
+                  "type": "NumberSpinner",
+                  "name": "MaxAmpere",
+                  "caption": "Maximaler Ladestrom (A)"
+                },
+                {
+                  "type": "NumberSpinner",
+                  "name": "MinLadeWatt",
+                  "caption": "Start bei PV-Überschuss (W)"
+                },
+                {
+                  "type": "NumberSpinner",
+                  "name": "MinStopWatt",
+                  "caption": "Stoppen bei Defizit (W)"
+                }
+              ]
+            },
+            {
+              "type": "ExpansionPanel",
+              "caption": "🌞 Energiequellen",
+              "items": [
+                {
+                  "type": "SelectVariable",
+                  "name": "PVErzeugungID",
+                  "caption": "PV-Erzeugung (W)",
+                  "validVariableTypes": [2]
+                },
+                {
+                  "type": "SelectVariable",
+                  "name": "HausverbrauchID",
+                  "caption": "Hausverbrauch (W)",
+                  "validVariableTypes": [2]
+                },
+                {
+                  "type": "SelectVariable",
+                  "name": "BatterieladungID",
+                  "caption": "Batterieladung (W)",
+                  "validVariableTypes": [2]
+                },
+                {
+                  "type": "NumberSpinner",
+                  "name": "RefreshInterval",
+                  "caption": "Aktualisierungsintervall (Sekunden)",
+                  "minimum": 15,
+                  "maximum": 600
+                }
+              ]
+            }
+          ]
         },
         {
-          "type": "NumberSpinner",
-          "name": "MinAmpere",
-          "caption": "Minimaler Ladestrom (A)"
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "MaxAmpere",
-          "caption": "Maximaler Ladestrom (A)"
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "MinLadeWatt",
-          "caption": "Start bei PV-Überschuss (W)"
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "MinStopWatt",
-          "caption": "Stoppen bei Defizit (W)"
-        }
-      ]
-    },
-    {
-      "type": "ExpansionPanel",
-      "caption": "🌞 Energiequellen",
-      "items": [
-        {
-          "type": "SelectVariable",
-          "name": "PVErzeugungID",
-          "caption": "PV-Erzeugung (W)",
-          "validVariableTypes": [2]
-        },
-        {
-          "type": "SelectVariable",
-          "name": "HausverbrauchID",
-          "caption": "Hausverbrauch (W)",
-          "validVariableTypes": [2]
-        },
-        {
-          "type": "SelectVariable",
-          "name": "BatterieladungID",
-          "caption": "Batterieladung (W)",
-          "validVariableTypes": [2]
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "RefreshInterval",
-          "caption": "Aktualisierungsintervall (Sekunden)",
-          "minimum": 15,
-          "maximum": 600
-        }
-      ]
-    },
-    {
-      "type": "ExpansionPanel",
-      "caption": "🔁 Phasenumschaltung",
-      "items": [
-        {
-          "type": "NumberSpinner",
-          "name": "Phasen",
-          "caption": "Anzahl der Ladephasen (Initialwert)"
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "Phasen1Schwelle",
-          "caption": "Umschalt-Schwelle auf 1-phasig (W)"
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "Phasen3Schwelle",
-          "caption": "Umschalt-Schwelle auf 3-phasig (W)"
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "Phasen1Limit",
-          "caption": "Anzahl Messzyklen unter Schwelle (1-phasig)"
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "Phasen3Limit",
-          "caption": "Anzahl Messzyklen über Schwelle (3-phasig)"
-        }
-      ]
-    },
-    {
-      "type": "ExpansionPanel",
-      "caption": "🧠 Intelligente Logik",
-      "items": [
-        {
-          "type": "CheckBox",
-          "name": "DynamischerPufferAktiv",
-          "caption": "Dynamischen Pufferfaktor aktivieren"
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "MinAktivierungsWatt",
-          "caption": "Minimale Aktivierungsleistung (W)"
-        },
-        {
-          "type": "CheckBox",
-          "name": "NurMitFahrzeug",
-          "caption": "Nur laden, wenn Fahrzeug verbunden ist",
-          "description": "Die Wallbox wird nur aktiviert, wenn laut Statusmeldung ein Fahrzeug angeschlossen ist (Status 2 oder 4)."
+          "items": [
+            {
+              "type": "ExpansionPanel",
+              "caption": "🔁 Phasenumschaltung",
+              "items": [
+                {
+                  "type": "NumberSpinner",
+                  "name": "Phasen",
+                  "caption": "Anzahl der Ladephasen (Initialwert)"
+                },
+                {
+                  "type": "NumberSpinner",
+                  "name": "Phasen1Schwelle",
+                  "caption": "Umschalt-Schwelle auf 1-phasig (W)"
+                },
+                {
+                  "type": "NumberSpinner",
+                  "name": "Phasen3Schwelle",
+                  "caption": "Umschalt-Schwelle auf 3-phasig (W)"
+                },
+                {
+                  "type": "NumberSpinner",
+                  "name": "Phasen1Limit",
+                  "caption": "Anzahl Messzyklen unter Schwelle (1-phasig)"
+                },
+                {
+                  "type": "NumberSpinner",
+                  "name": "Phasen3Limit",
+                  "caption": "Anzahl Messzyklen über Schwelle (3-phasig)"
+                }
+              ]
+            },
+            {
+              "type": "ExpansionPanel",
+              "caption": "🧠 Intelligente Logik",
+              "items": [
+                {
+                  "type": "Label",
+                  "label": "💡 Die Wallbox wird nur aktiviert, wenn laut Statusmeldung ein Fahrzeug angeschlossen ist (Status 2 oder 4)."
+                },
+                {
+                  "type": "CheckBox",
+                  "name": "NurMitFahrzeug",
+                  "caption": "Nur laden, wenn Fahrzeug verbunden ist"
+                },
+                {
+                  "type": "CheckBox",
+                  "name": "DynamischerPufferAktiv",
+                  "caption": "Dynamischen Pufferfaktor aktivieren"
+                },
+                {
+                  "type": "NumberSpinner",
+                  "name": "MinAktivierungsWatt",
+                  "caption": "Minimale Aktivierungsleistung (W)"
+                }
+              ]
+            }
+          ]
         }
       ]
     }
