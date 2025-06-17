@@ -14,8 +14,9 @@
               "value": "go-e"
             },
             {
-              "caption": "Coming Soon",
-              "value": "coming-soon"
+              "caption": "openWB (in Vorbereitung)",
+              "value": "openwb",
+              "disabled": true
             }
           ]
         },
@@ -23,27 +24,37 @@
           "type": "SelectInstance",
           "name": "GOEChargerID",
           "caption": "GO-e Instanz",
-          "validClasses": ["GOeCharger"]
+          "validClasses": ["GOeCharger"],
+          "visible": true,
+          "condition": "WallboxTyp == 'go-e'"
         },
         {
           "type": "NumberSpinner",
           "name": "MinAmpere",
-          "caption": "Minimaler Ladestrom (A)"
+          "caption": "Minimaler Ladestrom (A)",
+          "visible": true,
+          "condition": "WallboxTyp == 'go-e'"
         },
         {
           "type": "NumberSpinner",
           "name": "MaxAmpere",
-          "caption": "Maximaler Ladestrom (A)"
+          "caption": "Maximaler Ladestrom (A)",
+          "visible": true,
+          "condition": "WallboxTyp == 'go-e'"
         },
         {
           "type": "NumberSpinner",
           "name": "MinLadeWatt",
-          "caption": "Start bei PV-Überschuss (W)"
+          "caption": "Start bei PV-Überschuss (W)",
+          "visible": true,
+          "condition": "WallboxTyp == 'go-e'"
         },
         {
           "type": "NumberSpinner",
           "name": "MinStopWatt",
-          "caption": "Stoppen bei Defizit (W)"
+          "caption": "Stoppen bei Defizit (W)",
+          "visible": true,
+          "condition": "WallboxTyp == 'go-e'"
         }
       ]
     },

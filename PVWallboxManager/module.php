@@ -134,8 +134,11 @@ class PVWallboxManager extends IPSModule
         }
         // === Dynamische Leistungsberechnung ===
         $phasen = $this->ReadPropertyInteger('Phasen');
-        $minAmp = $this->ReadPropertyInteger('MinAmpere');
-        $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+        //$minAmp = $this->ReadPropertyInteger('MinAmpere');
+        //$maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+        $minAmp = $this->GetMinAmpere();
+        $maxAmp = $this->GetMaxAmpere();
+
 
         // Ladeleistung in Watt → benötigte Ampere
         $ampere = ceil($ueberschuss / (230 * $phasen));
@@ -156,7 +159,7 @@ class PVWallboxManager extends IPSModule
     }
     
     private function SetLadeleistung(int $watt)
-{
+    {
     $typ = $this->ReadPropertyString('WallboxTyp');
 
     switch ($typ) {
@@ -248,8 +251,54 @@ class PVWallboxManager extends IPSModule
         default:
             IPS_LogMessage("PVWallboxManager", "❌ Unbekannter Wallbox-Typ '$typ' – keine Steuerung durchgeführt.");
             break;
+        }
     }
-}
+
+    private function GetWallboxCapabilities(): array
+    {
+        $typ = $this->ReadPropertyString('WallboxTyp');
+
+        switch ($typ) {
+            case 'go-e':
+                return [
+                    'supportsPhaseswitch' => true,
+                    'minAmp' => 6,
+                    'maxAmp' => 16,
+                    'setPowerWatt' => true,
+                    'setChargingMode' => true
+                ];
+
+            case 'openwb':
+                return [
+                    'supportsPhaseswitch' => true,
+                    'minAmp' => 6,
+                    'maxAmp' => 32,
+                    'setPowerWatt' => false,
+                    'setChargingMode' => false
+                ];
+
+            default:
+                return [
+                    'supportsPhaseswitch' => false,
+                    'minAmp' => 6,
+                    'maxAmp' => 16,
+                    'setPowerWatt' => false,
+                    'setChargingMode' => false
+                ];
+        }
+    }
+
+    private function GetMinAmpere(): int
+    {
+        $val = $this->ReadPropertyInteger('MinAmpere');
+        return ($val > 0) ? $val : $this->GetWallboxCapabilities()['minAmp'];
+    }
+
+    private function GetMaxAmpere(): int
+    {
+        $val = $this->ReadPropertyInteger('MaxAmpere');
+        return ($val > 0) ? $val : $this->GetWallboxCapabilities()['maxAmp'];
+    }
 
 }
 ?>
