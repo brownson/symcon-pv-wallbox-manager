@@ -43,6 +43,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('DynamischerPufferAktiv', true); // Schalter für Pufferlogik
         $this->RegisterPropertyInteger('MinAktivierungsWatt', 300);
         $this->RegisterPropertyBoolean('NurMitFahrzeug', true); // Nur laden, wenn Fahrzeug verbunden
+        $this->RegisterPropertyBoolean('UseCarSOC', false);
         $this->RegisterPropertyInteger('CarSOCID', 0);
         $this->RegisterPropertyFloat('CarSOCFallback', 20);
         $this->RegisterPropertyInteger('CarTargetSOCID', 0);
@@ -169,34 +170,33 @@ class PVWallboxManager extends IPSModule
         IPS_LogMessage("⚙️ PVWallboxManager", "Dynamische Ladeleistung: $ladeleistung W bei $ampere A / $phasen Phasen");
     }
 
-    public function RequestAction($ident, $value)
-    {
-        if ($ident === "BerechnePVUeberschuss") {
-            $this->BerechnePVUeberschuss();
-        }
-    }
-    
     public function BerechneLadung()
     {
-        // Aktuellen Fahrzeug-SOC holen (Variable oder Fallback)
-        $carSOCID = $this->ReadPropertyInteger('CarSOCID');
-        if (IPS_VariableExists($carSOCID) && $carSOCID > 0) {
-            $carSOC = GetValue($carSOCID);
-        } else {
-            $carSOC = $this->ReadPropertyFloat('CarSOCFallback');
-        }
+        // Beispiel: PV-Überschuss holen (optional)
+        // $pvUeberschuss = $this->GetUeberschuss();
 
-        // Ziel-SOC holen (Variable oder Fallback)
-        $carTargetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
-        if (IPS_VariableExists($carTargetSOCID) && $carTargetSOCID > 0) {
-            $targetSOC = GetValue($carTargetSOCID);
-        } else {
-            $targetSOC = $this->ReadPropertyFloat('CarTargetSOCFallback');
-        }
+        if ($this->ReadPropertyBoolean('UseCarSOC')) {
 
-        // Debug-Ausgabe (optional)
-        $this->SendDebug('Fahrzeug-SOC', $carSOC, 1);
-        $this->SendDebug('Ziel-SOC', $targetSOC, 1);
+            // Aktuellen Fahrzeug-SOC holen (Variable oder Fallback)
+            $carSOCID = $this->ReadPropertyInteger('CarSOCID');
+            if (IPS_VariableExists($carSOCID) && $carSOCID > 0) {
+                $carSOC = GetValue($carSOCID);
+            } else {
+                $this->SendDebug('Info', 'UseCarSOC aktiv, aber kein gültiger Fahrzeug-SOC verfügbar. Abbruch.', 0);
+                return;
+            }
+
+            // Ziel-SOC holen (Variable oder Fallback)
+            $carTargetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
+            if (IPS_VariableExists($carTargetSOCID) && $carTargetSOCID > 0) {
+                $targetSOC = GetValue($carTargetSOCID);
+            } else {
+                $targetSOC = $this->ReadPropertyFloat('CarTargetSOCFallback');
+            }
+
+            // Debug-Ausgabe
+            $this->SendDebug('Fahrzeug-SOC', $carSOC, 1);
+            $this->SendDebug('Ziel-SOC', $targetSOC, 1);
 
         // Vergleich: Ist Ziel erreicht?
         if ($carSOC >= $targetSOC) {
@@ -204,8 +204,15 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        // (Hier kann später die Ladeplanung erfolgen)
-        $this->SendDebug('Ladeentscheidung', 'Laden erforderlich – nächster Schritt folgt', 0);
+        // Hier später: Ladeplanung basierend auf SOC
+        $this->SendDebug('Ladeentscheidung', 'Laden erforderlich – SOC unter Zielwert', 0);
+
+    } else {
+        $this->SendDebug('Info', 'Fahrzeugdaten werden ignoriert – reine PV-Überschussladung aktiv.', 0);
+
+        // Hier später: normale PV-Überschussregelung
+        }
+        // Hier kann nun die Ladeleistungsberechnung / Wallbox-Steuerung folgen
     }
 
     private function SetLadeleistung(int $watt)

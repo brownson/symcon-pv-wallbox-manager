@@ -213,8 +213,13 @@
       "icon": "Car",
       "items": [
         {
+          "type": "CheckBox",
+          "name": "UseCarSOC",
+          "caption": "Fahrzeugdaten berücksichtigen (SoC/Zielwert manuell setzen)"
+        },
+        {
           "type": "Label",
-          "caption": "Diese Werte werden für die Ziel-Ladung benötigt.\nFalls keine Variable ausgewählt ist, wird der Fallback-Zielwert verwendet."
+          "caption": "Wenn aktiv, werden SOC-Werte für geplante Ladung berücksichtigt. Sonst erfolgt reine PV-Überschussladung."
         },
         {
           "type": "RowLayout",
@@ -223,7 +228,11 @@
               "name": "CarSOCID",
               "type": "SelectVariable",
               "caption": "Aktueller SoC des Fahrzeugs",
-              "variableTypes": ["Integer", "Float"]
+              "variableTypes": ["Integer", "Float"],
+              "enabled": {
+                "name": "UseCarSOC",
+                "value": true
+              }
             }
           ]
         },
@@ -234,7 +243,11 @@
               "name": "CarTargetSOCID",
               "type": "SelectVariable",
               "caption": "Ziel-SoC (Variable, optional)",
-              "variableTypes": ["Integer", "Float"]
+              "variableTypes": ["Integer", "Float"],
+              "enabled": {
+                "name": "UseCarSOC",
+                "value": true
+              }
             },
             {
               "name": "CarTargetSOCFallback",
@@ -243,7 +256,11 @@
               "suffix": "%",
               "minimum": 0,
               "maximum": 100,
-              "default": 80
+              "default": 80,
+              "enabled": {
+                "name": "UseCarSOC",
+                "value": true
+              }
             }
           ]
         }
