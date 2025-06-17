@@ -207,27 +207,23 @@
         }
       ]
     },
-      {
-        "type": "ExpansionPanel",
-        "caption": "Fahrzeugdaten",
-        "items": [
+    {
+      "type": "ExpansionPanel",
+      "caption": "Fahrzeugdaten",
+      "icon": "Car",
+      "items": [
+        {
+          "type": "Label",
+          "caption": "Diese Werte werden für die Ziel-Ladung benötigt.\nFalls keine Variable ausgewählt ist, wird der Fallback-Zielwert verwendet."
+        },
         {
           "type": "RowLayout",
           "items": [
             {
               "name": "CarSOCID",
               "type": "SelectVariable",
-              "caption": "Fahrzeug-SOC (aktuell)",
+              "caption": "Aktueller SoC des Fahrzeugs",
               "variableTypes": ["Integer", "Float"]
-            },
-            {
-              "name": "CarSOCFallback",
-              "type": "NumberSpinner",
-              "caption": "Fallback-SOC (%)",
-              "suffix": "%",
-              "minimum": 0,
-              "maximum": 100,
-              "default": 20
             }
           ]
         },
@@ -237,13 +233,13 @@
             {
               "name": "CarTargetSOCID",
               "type": "SelectVariable",
-              "caption": "Ziel-SOC für Ladung",
+              "caption": "Ziel-SoC (Variable, optional)",
               "variableTypes": ["Integer", "Float"]
             },
             {
               "name": "CarTargetSOCFallback",
               "type": "NumberSpinner",
-              "caption": "Fallback-Ziel-SOC (%)",
+              "caption": "Ziel-SoC (Fallback)",
               "suffix": "%",
               "minimum": 0,
               "maximum": 100,
@@ -252,6 +248,6 @@
           ]
         }
       ]
-    } 
+    }
   ]
 }
