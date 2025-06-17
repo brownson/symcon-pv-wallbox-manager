@@ -178,7 +178,8 @@ class PVWallboxManager extends IPSModule
     
     private function SetLadeleistung(int $watt)
     {
-    $typ = $this->ReadPropertyString('WallboxTyp');
+    $typ = 'go-e'; // fest auf go-e gesetzt, da aktuell nur diese Wallbox unterstützt wird
+
 
     switch ($typ) {
         case 'go-e':
