@@ -106,18 +106,18 @@ class PVWallboxManager extends IPSModule
             $goeID = $this->ReadPropertyInteger('GOEChargerID');
             $status = @GOeCharger_GetStatus($goeID);
 
-            if ($status === false) {
-                IPS_LogMessage("PVWallboxManager", "⚠️ Statusabfrage fehlgeschlagen – GO-e Instanz nicht erreichbar?");
-                return;
-            }
+        if ($status === false) {
+            IPS_LogMessage("PVWallboxManager", "⚠️ Statusabfrage fehlgeschlagen – GO-e Instanz nicht erreichbar?");
+            return;
+        }
 
-            if ($status === 1 || $status === 3) {
-                IPS_LogMessage("PVWallboxManager", "🚫 Kein Fahrzeug verbunden (Status $status) – Ladevorgang wird übersprungen");
-                $this->SetLadeleistung(0);
-                return;
-            }
-
+        if (in_array($status, [2, 4])) {
             IPS_LogMessage("PVWallboxManager", "✅ Fahrzeugstatus OK (Status $status) – Ladevorgang wird fortgesetzt");
+        } else {
+            IPS_LogMessage("PVWallboxManager", "🚫 Kein Fahrzeug verbunden (Status $status) – Ladevorgang wird übersprungen");
+            $this->SetLadeleistung(0);
+            return;
+        }
         }
 
         // 🆕 Dynamischer Pufferfaktor (optional)
