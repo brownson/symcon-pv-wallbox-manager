@@ -5,56 +5,30 @@
       "caption": "🔌 Wallbox-Konfiguration",
       "items": [
         {
-          "type": "Select",
-          "name": "WallboxTyp",
-          "caption": "Wallbox-Typ",
-          "options": [
-            {
-              "caption": "GO-eCharger (IPSCoyote)",
-              "value": "go-e"
-            },
-            {
-              "caption": "openWB (in Vorbereitung)",
-              "value": "openwb",
-              "disabled": true
-            }
-          ]
-        },
-        {
           "type": "SelectInstance",
           "name": "GOEChargerID",
           "caption": "GO-e Instanz",
-          "validClasses": ["GOeCharger"],
-          "visible": true,
-          "condition": "WallboxTyp == 'go-e'"
+          "validClasses": ["GOeCharger"]
         },
         {
           "type": "NumberSpinner",
           "name": "MinAmpere",
-          "caption": "Minimaler Ladestrom (A)",
-          "visible": true,
-          "condition": "WallboxTyp == 'go-e'"
+          "caption": "Minimaler Ladestrom (A)"
         },
         {
           "type": "NumberSpinner",
           "name": "MaxAmpere",
-          "caption": "Maximaler Ladestrom (A)",
-          "visible": true,
-          "condition": "WallboxTyp == 'go-e'"
+          "caption": "Maximaler Ladestrom (A)"
         },
         {
           "type": "NumberSpinner",
           "name": "MinLadeWatt",
-          "caption": "Start bei PV-Überschuss (W)",
-          "visible": true,
-          "condition": "WallboxTyp == 'go-e'"
+          "caption": "Start bei PV-Überschuss (W)"
         },
         {
           "type": "NumberSpinner",
           "name": "MinStopWatt",
-          "caption": "Stoppen bei Defizit (W)",
-          "visible": true,
-          "condition": "WallboxTyp == 'go-e'"
+          "caption": "Stoppen bei Defizit (W)"
         }
       ]
     },

@@ -29,7 +29,7 @@ class PVWallboxManager extends IPSModule
         // Führt automatisch alle X Sekunden die Berechnung durch
         $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], "BerechnePVUeberschuss", "");');
 
-        $this->RegisterPropertyString('WallboxTyp', 'go-e'); // 'go-e' als Standardwert
+        //$this->RegisterPropertyString('WallboxTyp', 'go-e'); // 'go-e' als Standardwert
         $this->RegisterPropertyInteger('GOEChargerID', 0);
         $this->RegisterPropertyInteger('MinAmpere', 6);      // Untergrenze (z. B. 6 A)
         $this->RegisterPropertyInteger('MaxAmpere', 16);     // Obergrenze (z. B. 16 A)
@@ -134,11 +134,8 @@ class PVWallboxManager extends IPSModule
         }
         // === Dynamische Leistungsberechnung ===
         $phasen = $this->ReadPropertyInteger('Phasen');
-        //$minAmp = $this->ReadPropertyInteger('MinAmpere');
-        //$maxAmp = $this->ReadPropertyInteger('MaxAmpere');
-        $minAmp = $this->GetMinAmpere();
-        $maxAmp = $this->GetMaxAmpere();
-
+        $minAmp = $this->ReadPropertyInteger('MinAmpere');
+        $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
 
         // Ladeleistung in Watt → benötigte Ampere
         $ampere = ceil($ueberschuss / (230 * $phasen));
