@@ -170,6 +170,20 @@ class PVWallboxManager extends IPSModule
         IPS_LogMessage("⚙️ PVWallboxManager", "Dynamische Ladeleistung: $ladeleistung W bei $ampere A / $phasen Phasen");
     }
 
+    public function RequestAction($Ident, $Value)
+    {
+        switch ($Ident) {
+            case 'BerechnePVUeberschuss':
+                $this->BerechnePVUeberschuss();
+                break;
+            case 'Update':
+                $this->BerechneLadung(); // optional, wenn später verwendet
+                break;
+            default:
+                trigger_error("Invalid Ident: $Ident", E_USER_WARNING);
+        }
+    }
+
     public function BerechneLadung()
     {
         // Beispiel: PV-Überschuss holen (optional)
