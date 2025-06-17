@@ -11,6 +11,14 @@
               "caption": "\ud83d\udd0c Wallbox-Konfiguration",
               "items": [
                 {
+                  "type": "Label",
+                  "label": "\u2699\ufe0f Konfiguriere hier deine GO-e Wallbox und Ladeparameter."
+                },
+                {
+                  "type": "Label",
+                  "label": "\ud83d\udcdf GO-e Instanz: W\u00e4hle deine bestehende GO-e Instanz aus."
+                },
+                {
                   "type": "SelectInstance",
                   "name": "GOEChargerID",
                   "caption": "GO-e Instanz",
@@ -19,9 +27,17 @@
                   ]
                 },
                 {
+                  "type": "Label",
+                  "label": "\u2198\ufe0f Minimale Stromst\u00e4rke (Ampere) f\u00fcr das Laden."
+                },
+                {
                   "type": "NumberSpinner",
                   "name": "MinAmpere",
                   "caption": "Minimaler Ladestrom (A)"
+                },
+                {
+                  "type": "Label",
+                  "label": "\u2197\ufe0f Maximale Stromst\u00e4rke (Ampere) f\u00fcr das Laden."
                 },
                 {
                   "type": "NumberSpinner",
@@ -29,9 +45,17 @@
                   "caption": "Maximaler Ladestrom (A)"
                 },
                 {
+                  "type": "Label",
+                  "label": "\u26a1 Schwelle, ab der das Laden starten darf."
+                },
+                {
                   "type": "NumberSpinner",
                   "name": "MinLadeWatt",
                   "caption": "Start bei PV-\u00dcberschuss (W)"
+                },
+                {
+                  "type": "Label",
+                  "label": "\ud83d\uded1 Schwelle, bei der das Laden gestoppt wird."
                 },
                 {
                   "type": "NumberSpinner",
@@ -45,12 +69,24 @@
               "caption": "\ud83c\udf1e Energiequellen",
               "items": [
                 {
+                  "type": "Label",
+                  "label": "\ud83d\udd27 W\u00e4hle hier deine Energiequellen zur Berechnung des \u00dcberschusses."
+                },
+                {
+                  "type": "Label",
+                  "label": "\u2600\ufe0f Aktuelle Erzeugung deiner PV-Anlage (Watt)."
+                },
+                {
                   "type": "SelectVariable",
                   "name": "PVErzeugungID",
                   "caption": "PV-Erzeugung (W)",
                   "validVariableTypes": [
                     2
                   ]
+                },
+                {
+                  "type": "Label",
+                  "label": "\ud83c\udfe0 Aktueller Verbrauch aller Verbraucher im Haus (Watt)."
                 },
                 {
                   "type": "SelectVariable",
@@ -61,12 +97,20 @@
                   ]
                 },
                 {
+                  "type": "Label",
+                  "label": "\ud83d\udd0b Aktuelle Lade-/Entladeleistung der Hausbatterie (Watt)."
+                },
+                {
                   "type": "SelectVariable",
                   "name": "BatterieladungID",
                   "caption": "Batterieladung (W)",
                   "validVariableTypes": [
                     2
                   ]
+                },
+                {
+                  "type": "Label",
+                  "label": "\ud83d\udd01 Wie oft soll die Leistung neu berechnet werden (in Sekunden)."
                 },
                 {
                   "type": "NumberSpinner",
@@ -87,9 +131,21 @@
               "caption": "\ud83d\udd01 Phasenumschaltung",
               "items": [
                 {
+                  "type": "Label",
+                  "label": "\u26a1 Umschaltung zwischen 1- und 3-phasigem Laden basierend auf PV-Leistung."
+                },
+                {
+                  "type": "Label",
+                  "label": "\u2699\ufe0f Aktuell eingestellte Phasenanzahl zu Beginn."
+                },
+                {
                   "type": "NumberSpinner",
                   "name": "Phasen",
                   "caption": "Anzahl der Ladephasen (Initialwert)"
+                },
+                {
+                  "type": "Label",
+                  "label": "\u2b07\ufe0f Schwelle f\u00fcr Umschaltung auf 1-phasig (Watt)."
                 },
                 {
                   "type": "NumberSpinner",
@@ -97,14 +153,26 @@
                   "caption": "Umschalt-Schwelle auf 1-phasig (W)"
                 },
                 {
+                  "type": "Label",
+                  "label": "\u2b06\ufe0f Schwelle f\u00fcr Umschaltung auf 3-phasig (Watt)."
+                },
+                {
                   "type": "NumberSpinner",
                   "name": "Phasen3Schwelle",
                   "caption": "Umschalt-Schwelle auf 3-phasig (W)"
                 },
                 {
+                  "type": "Label",
+                  "label": "\ud83d\udcc9 Anzahl Messzyklen unterhalb der 1-phasig-Schwelle."
+                },
+                {
                   "type": "NumberSpinner",
                   "name": "Phasen1Limit",
                   "caption": "Anzahl Messzyklen unter Schwelle (1-phasig)"
+                },
+                {
+                  "type": "Label",
+                  "label": "\ud83d\udcc8 Anzahl Messzyklen oberhalb der 3-phasig-Schwelle."
                 },
                 {
                   "type": "NumberSpinner",
@@ -119,12 +187,11 @@
               "items": [
                 {
                   "type": "Label",
-                  "label": "\ud83d\udca1 Die Wallbox wird nur aktiviert, wenn laut Statusmeldung ein Fahrzeug angeschlossen ist (Status 2 oder 4)."
+                  "label": "\ud83e\udde0 Erweiterte Logik zur Pufferung und Fahrzeugpr\u00fcfung."
                 },
                 {
-                  "type": "CheckBox",
-                  "name": "NurMitFahrzeug",
-                  "caption": "Nur laden, wenn Fahrzeug verbunden ist"
+                  "type": "Label",
+                  "label": "\ud83e\uddea Dynamischer Sicherheitsabzug bei hoher PV-Leistung."
                 },
                 {
                   "type": "CheckBox",
@@ -132,9 +199,22 @@
                   "caption": "Dynamischen Pufferfaktor aktivieren"
                 },
                 {
+                  "type": "Label",
+                  "label": "\ud83d\udd0b Mindestwert des effektiven PV-\u00dcberschusses zur Aktivierung."
+                },
+                {
                   "type": "NumberSpinner",
                   "name": "MinAktivierungsWatt",
                   "caption": "Minimale Aktivierungsleistung (W)"
+                },
+                {
+                  "type": "Label",
+                  "label": "\ud83d\ude97 Ladefreigabe nur bei erkanntem Fahrzeug (Status 2 oder 4)."
+                },
+                {
+                  "type": "CheckBox",
+                  "name": "NurMitFahrzeug",
+                  "caption": "Nur laden, wenn Fahrzeug verbunden ist"
                 }
               ]
             }
