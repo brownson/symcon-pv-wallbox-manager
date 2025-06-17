@@ -229,7 +229,6 @@
               "type": "SelectVariable",
               "caption": "Aktueller SoC des Fahrzeugs",
               "variableTypes": ["Integer", "Float"],
-              "enabled": false,
               "enabled": {
                 "name": "UseCarSOC",
                 "equals": true
@@ -245,7 +244,6 @@
               "type": "SelectVariable",
               "caption": "Ziel-SoC (Variable, optional)",
               "variableTypes": ["Integer", "Float"],
-              "enabled": false,
               "enabled": {
                 "name": "UseCarSOC",
                 "equals": true
@@ -259,8 +257,7 @@
               "minimum": 0,
               "maximum": 100,
               "default": 80,
-              "enabled": false,
-              "enabled": {
+              "visible": {
                 "name": "UseCarSOC",
                 "equals": true
               }
