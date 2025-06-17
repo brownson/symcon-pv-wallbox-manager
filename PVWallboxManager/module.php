@@ -58,7 +58,7 @@ class PVWallboxManager extends IPSModule
 
         // Damit das Feld übernommen wird:
         $this->ReadPropertyInteger('GOEChargerID');
-        $this->ReadPropertyString('WallboxTyp');
+        //$this->ReadPropertyString('WallboxTyp');
         $this->ReadPropertyInteger('BatterieladungID');
         $this->ReadPropertyInteger('MinAmpere');
         $this->ReadPropertyInteger('MaxAmpere');
