@@ -13,12 +13,12 @@ Wenn du die Weiterentwicklung unterstützen möchtest, kannst du das gerne tun:
   <tr>
     <td align="center">
       <a href="https://www.paypal.com/donate/?business=PR9P7V7RMFHFQ&no_recurring=0&item_name=Spende+als+Dankesch%C3%B6n+f%C3%BCr+die+Modulentwicklung+Symcon&currency_code=EUR" target="_blank" rel="noopener noreferrer">
-        <img src="assets/paypal_logo.png" alt="Spenden mit PayPal" style="max-width: 300px;">
+        <img src="imgs/paypal_logo.png" alt="Spenden mit PayPal" style="max-width: 300px;">
       </a>
     </td>
     <td align="center">
       <a href="https://www.paypal.com/donate/?business=PR9P7V7RMFHFQ&no_recurring=0&item_name=Spende+als+Dankesch%C3%B6n+f%C3%BCr+die+Modulentwicklung+Symcon&currency_code=EUR" target="_blank" rel="noopener noreferrer">
-        <img src="assets/paypal_qr.png" alt="QR-Code zur PayPal-Spende" style="max-width: 200px;">
+        <img src="imgs/paypal_qr.png" alt="QR-Code zur PayPal-Spende" style="max-width: 200px;">
       </a>
     </td>
   </tr>
