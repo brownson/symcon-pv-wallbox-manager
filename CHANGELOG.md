@@ -1,5 +1,13 @@
 # Changelog
 
+## 🚗 Version 0.5 – Integration Fahrzeugdaten
+
+- NEU: Unterstützung für Fahrzeugdaten wie aktueller SoC und Ziel-SoC
+- Konfigurierbarer Schalter „Fahrzeugdaten berücksichtigen (UseCarSOC)“
+- Fallback-Ziel-SoC nutzbar, falls keine Variable angegeben ist
+- Dynamisches Verhalten: Nur wenn UseCarSOC aktiv, wird SOC-Logik berücksichtigt
+- Optimierter Code für saubere Ladeentscheidung basierend auf Zielwert
+
 ## [0.4] – 2025-06-17
 🚀 Hinzugefügt
 - Fahrzeugstatusprüfung: Ladung wird nur gestartet, wenn ein Fahrzeug angeschlossen ist (Status 2 oder 4)

@@ -24,6 +24,11 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 - 🧪 Optional: Fahrzeug-SoC, Uhrzeit-Zielmodus, PV2Car (%), MQTT-Integration
 - 🚗 Fahrzeugstatusprüfung: Laden nur wenn Fahrzeug verbunden (optional)
 
+### 🧠 Fahrzeugdatenbasierte Ladung (ab Version 0.5)
+- Das Modul kann den Ladezustand des Fahrzeugs (State of Charge, SoC) berücksichtigen
+- Ziel-SoC kann per Variable oder manuell definiert werden
+- Die SoC-Werte werden nur dann berücksichtigt, wenn die Option „Fahrzeugdaten berücksichtigen“ aktiviert ist
+- Wenn der aktuelle SoC bereits größer oder gleich Ziel-SoC ist, startet keine Ladung
 
 ---
 
