@@ -1,13 +1,88 @@
-# PVWallboxManager (Symcon-Modul)
+# ⚡ PVWallboxManager – Intelligente PV-Überschussladung für den GO-eCharger
 
-Dieses Modul für IP-Symcon ermöglicht die intelligente Steuerung einer go-e Charger Wallbox (getestet mit **Hardware V4**, vermutlich auch kompatibel mit **V3**) auf Basis des aktuellen PV-Überschusses. Ziel ist ein möglichst netzautarkes Laden mit optionaler Phasenumschaltung.
+Ein leistungsfähiges IP-Symcon Modul zur dynamischen Steuerung deiner GO-eCharger Wallbox auf Basis von PV-Überschuss – mit automatischer Phasenumschaltung, flexibler Ladelogik und voller Steuerung der Ladeleistung.
+
+---
+
+## 🔧 Unterstützte Wallboxen
+
+Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V4)** in Kombination mit dem offiziellen IPSymcon-Modul [`IPSCoyote/GO-eCharger`](https://github.com/IPSCoyote/GO-eCharger).
+
+> 🎯 Ziel dieses Moduls ist es, den GO-eCharger **zu 100 % vollständig zu unterstützen** – inklusive dynamischer Ladeleistung, Phasenumschaltung, Modusumschaltung und PV-Optimierung.
+>
+> 🔄 Weitere Wallboxen (z. B. openWB, easee, Pulsar) sind möglich – **abhängig vom Interesse und Support aus der Community**.
+
+---
+
+## 🚀 Funktionen
+
+- 🔋 **PV-Überschussgesteuertes Laden** (PV – Verbrauch – Batterie)
+- ⚙️ **Dynamische Ladeleistungsanpassung** mit einstellbarem Ampere-Bereich
+- 🔁 **Automatische Phasenumschaltung (1-/3-phasig)** mit Hysterese
+- 🧠 **Dynamischer Pufferfaktor** für sichere Leistungsregelung
+- 📉 **Live-Berechnung des PV-Überschusses**
+- 🧪 Optional: Fahrzeug-SoC, Uhrzeit-Zielmodus, PV2Car (%), MQTT-Integration
+
+---
+
+## 🧰 Voraussetzungen
+
+- IP-Symcon Version 8.x (getestet)
+- GO-eCharger V4 mit lokal erreichbarer Instanz
+- Installiertes Modul `GO-eCharger` (von IPSCoyote)
+- PV-Erzeugung, Hausverbrauch und Batterieladung als Variablen verfügbar (in Watt)
+
+---
+
+## 🛠️ Installation
+
+1. Modul-URL im IP-Symcon hinzufügen:
+   ```
+   https://github.com/pesensie/symcon-pv-wallbox-manager
+   ```
+
+2. Instanz „PVWallboxManager“ anlegen
+
+3. Konfigurationsfelder im WebFront ausfüllen:
+   - GO-e Instanz auswählen
+   - Energiequellen (PV, Hausverbrauch, Batterie)
+   - Ladegrenzen definieren (z. B. 1400 W Start / -300 W Stop)
+   - Min/Max Ampere, Phasenanzahl, Pufferlogik
+
+---
+
+## 📋 Beispielkonfiguration
+
+| Einstellung               | Beispielwert    |
+|--------------------------|-----------------|
+| GOEChargerID             | 58186           |
+| MinAmpere                | 6               |
+| MaxAmpere                | 16              |
+| MinLadeWatt              | 1400            |
+| MinStopWatt              | -300            |
+| Phasen                   | 3               |
+| Phasen1Schwelle          | 1000            |
+| Phasen3Schwelle          | 4200            |
+| Dynamischer Puffer       | Aktiviert       |
+
+---
+
+## 📦 Roadmap
+
+- 🕓 Zeitbasierte Zielladung (bis Uhrzeit auf Ziel-SoC)
+- 🔋 Ziel-SoC konfigurierbar
+- 🚗 Fahrzeugstatus prüfen (nur laden wenn verbunden)
+- ⏱️ Ladebeginn dynamisch rückrechnen
+- 🧮 Lademodi: Manuell / PV2Car % / Uhrzeit / Nur PV
+- 🌐 Integration externer Fahrzeugdaten via MQTT
+- 📊 Visualisierung & WebFront Widgets
+- 🔧 Erweiterbarkeit für andere Hersteller (openWB, easee …)
 
 ---
 
 ## 💖 Unterstützung
 
-Dieses Modul wird als Hobbyprojekt entwickelt und kostenlos zur Verfügung gestellt.  
-Wenn du die Weiterentwicklung unterstützen möchtest, kannst du das gerne tun:
+Wenn dir das Modul hilft und du die Entwicklung unterstützen möchtest, freuen wir uns über eine kleine Spende:
 
 <table>
   <tr>
@@ -26,64 +101,6 @@ Wenn du die Weiterentwicklung unterstützen möchtest, kannst du das gerne tun:
 
 > ☕ Vielen Dank für deine Unterstützung!  
 > 📜 Dieses Modul bleibt selbstverständlich frei verfügbar und quelloffen.
-
----
-
-## 🔧 Voraussetzungen
-
-- IP-Symcon Version 8.x oder neuer
-- go-e Charger (Modell V4, getestet) mit aktivem Netzwerkzugriff
-- PV-Leistungsdaten als IP-Symcon-Variablen verfügbar
-- Optional: Phasenumschaltung über ein externes Relais (Boolean-Variable steuerbar)
-
----
-
-## 📦 Funktionen
-
-### Version 0.1
-- Berechnung des aktuellen PV-Überschusses:  
-  `PV-Erzeugung – Hausverbrauch – Batterie`
-- Steuerung der Ladeleistung je nach Überschuss
-- Aktivierung/Deaktivierung des go-e Lade-Modus (immer laden / nicht laden)
-- Nur bei signifikanter Änderung (> 50 W) wird die Ladeleistung neu gesetzt
-- Konfigurierbarer Timer (15–600 Sekunden)
-
-### Version 0.2
-- Automatische Umschaltung zwischen 1-phasigem und 3-phasigem Laden
-- Konfigurierbare Schwellenwerte (`Phasen1Schwelle`, `Phasen3Schwelle`)
-- Zählerbasierte Hysterese: Umschaltung erst nach mehrfacher Bestätigung (z. B. 3x unter 1000 W)
-- Logging für:
-  - PV-Überschuss
-  - Phasenumschalt-Zähler
-  - Umschaltaktionen
-  - Ladeleistung und Wallbox-Modus
-
-### Version 0.3
-- Dynamische Sicherheits-Pufferlogik:  
-  Reduktion des berechneten PV-Überschusses um 7–20 % (je nach Gesamtleistung), um kurzfristige Schwankungen abzufangen
-- Neuer Konfigurationsschalter `DynamischerPufferAktiv` (default: aktiviert)
-- Konfigurierbar direkt im Instanzformular (form.json mit Beschreibung)
-
----
-
-## ⚙️ Konfiguration
-
-Die Instanzkonfiguration erfolgt über folgende Parameter:
-
-| Name | Beschreibung |
-|------|--------------|
-| PVErzeugungID | Variable mit aktueller PV-Leistung |
-| HausverbrauchID | Variable mit aktuellem Hausverbrauch |
-| BatterieladungID | Variable mit aktuellem Lade-/Entladewert der Batterie |
-| GOEChargerID | Instanz-ID des go-e Chargers |
-| MinAmpere / MaxAmpere | Ladebereich in Ampere |
-| MinLadeWatt | Mindestüberschuss, ab dem Laden erlaubt ist |
-| MinStopWatt | Grenze, bei der das Laden gestoppt wird |
-| Phasen | Aktuell verwendete Phasenanzahl (1 oder 3) |
-| PhasenUmschaltID | Boolean-Variable zur Umschaltung der Ladephasen |
-| Phasen1/3Schwelle | Leistungsgrenzen für Umschaltung |
-| Phasen1/3Limit | Anzahl aufeinanderfolgender Schwellen-Unterschreitungen/Überschreitungen vor Umschaltung |
-| DynamischerPufferAktiv | Aktiviert/Deaktiviert Sicherheitsabschlag bei schwankender PV-Leistung |
 
 ---
 
@@ -112,10 +129,13 @@ Das Modul protokolliert automatisch relevante Entscheidungen:
 
 ---
 
-## 🛠️ Mitwirken
+## 👥 Mithelfen
 
-Feature-Ideen, Fehlerberichte und Pull-Requests sind willkommen!  
-👉 [GitHub Repository öffnen](https://github.com/pesensie/symcon-pv-wallbox-manager)
+- Feature-Idee? 👉 [Issue öffnen](https://github.com/pesensie/symcon-pv-wallbox-manager/issues)
+- Verbesserungsvorschlag?  
+- Unterstützung weiterer Wallboxen?
+
+➡️ Du bist willkommen!
 
 ---
 
@@ -125,36 +145,10 @@ Alle Änderungen findest du in der Datei:
 
 ---
 
-## 🗺️ Roadmap
-Folgende Funktionen sind für zukünftige Versionen geplant:
-
-🕓 Zeitbasierte Zielladung
-Ladeplanung z. B. bis 06:00 Uhr auf einen gewünschten SoC-Wert
-
-🔋 Ziel-SoC aus Variable konfigurierbar
-Benutzer kann über das WebFront den gewünschten Ladezielwert (in %) festlegen
-
-🚗 Fahrzeugstatus-Erkennung
-Ladevorgang nur starten, wenn das Fahrzeug als „verbunden“ erkannt wird
-
-⏱️ Rückrechnung der Ladezeit
-Automatische Startzeitberechnung auf Basis von Ziel-SoC, aktuellem SoC und Ladeleistung
-
-🧮 Flexible Lademodi
-Umschaltung zwischen manueller Steuerung, PV2Car (%), Uhrzeit-Ziel oder reiner PV-Überschussladung
-
-🌐 Integration externer Fahrzeugdaten
-Anbindung über CarConnectivity-MQTT (z. B. für VW ID.3, Skoda, Cupra etc.)
-
-📊 Visualisierung im WebFront
-Anzeige des aktuellen Phasenstatus, Ladeleistung, SOC und Lademodus mit Icons
-
-🔧 Unterstützung weiterer Wallboxen
-Modulare Erweiterung geplant (z. B. für openWB, easee, …)
-
----
-
 ## 📄 Lizenz
 Dieses Projekt steht unter der MIT License:
 👉 [GLICENSE.md](https://github.com/pesensie/symcon-pv-wallbox-manager/blob/main/LICENSE.md)
 
+---
+
+© 2025 [Siegfried Pesendorfer](https://github.com/pesensie) – Open Source für die Symcon-Community
