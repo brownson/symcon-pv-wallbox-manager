@@ -127,8 +127,8 @@ Das Modul protokolliert automatisch relevante Entscheidungen:
 
 ## 🧪 Getestete Hardware
 
-- GO-e Charger Homefix V4 (lokale API)
-- GO-e Charger Homefix V3 (theoretisch kompatibel, derzeit nicht offiziell getestet)
+- GO-e Charger V4 (lokale API)
+- GO-e Charger V3 (theoretisch kompatibel, derzeit nicht offiziell getestet)
 
 ---
 
