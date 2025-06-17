@@ -6,7 +6,7 @@ Ein leistungsfähiges IP-Symcon Modul zur dynamischen Steuerung deiner GO-eCharg
 
 ## 🔧 Unterstützte Wallboxen
 
-Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V4)** in Kombination mit dem offiziellen IPSymcon-Modul [`IPSCoyote/GO-eCharger`](https://github.com/IPSCoyote/GO-eCharger).
+Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)** in Kombination mit dem offiziellen IP-Symcon-Modul [`IPSCoyote/GO-eCharger`](https://github.com/IPSCoyote/GO-eCharger).
 
 > 🎯 Ziel dieses Moduls ist es, den GO-eCharger **zu 100 % vollständig zu unterstützen** – inklusive dynamischer Ladeleistung, Phasenumschaltung, Modusumschaltung und PV-Optimierung.
 >
@@ -28,9 +28,12 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V4)** in Ko
 ## 🧰 Voraussetzungen
 
 - IP-Symcon Version 8.x (getestet)
-- GO-eCharger V4 mit lokal erreichbarer Instanz
+- GO-eCharger V3 oder V4 mit lokal erreichbarer Instanz
 - Installiertes Modul `GO-eCharger` (von IPSCoyote)
 - PV-Erzeugung, Hausverbrauch und Batterieladung als Variablen verfügbar (in Watt)
+
+> ⚠️ **Wichtig:**  
+> Im GO-eCharger müssen **API 1 und API 2 aktiviert** sein (unter Einstellungen > API-Zugriff), damit die Steuerung über das Modul funktioniert.
 
 ---
 
@@ -82,7 +85,7 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V4)** in Ko
 
 ## 💖 Unterstützung
 
-Wenn dir das Modul hilft und du die Entwicklung unterstützen möchtest, freuen wir uns über eine kleine Spende:
+Du möchtest die Weiterentwicklung unterstützen? Wir freuen uns über eine kleine Spende:
 
 <table>
   <tr>
@@ -117,15 +120,15 @@ Das Modul protokolliert automatisch relevante Entscheidungen:
 ## 🚧 Hinweise
 
 - Dieses Modul wird aktiv weiterentwickelt
-- Derzeit nur mit go-e Charger getestet, theoretisch aber modular erweiterbar (z. B. openWB etc.)
+- Derzeit nur mit GO-e Charger getestet, theoretisch aber modular erweiterbar (z. B. openWB etc.)
 - Bei Phasenumschaltung ist zusätzliche Hardware (z. B. Umschaltrelais + Steuerung über Symcon-Variable) erforderlich
 
 ---
 
 ## 🧪 Getestete Hardware
 
-- go-e Charger Homefix V4 (per lokaler API)
-- go-e Charger V3: möglicherweise kompatibel, aber nicht verifiziert
+- GO-e Charger Homefix V4 (lokale API)
+- GO-e Charger Homefix V3 (theoretisch kompatibel, derzeit nicht offiziell getestet)
 
 ---
 
@@ -140,14 +143,16 @@ Das Modul protokolliert automatisch relevante Entscheidungen:
 ---
 
 ## 🕘 Changelog
-Alle Änderungen findest du in der Datei:
+
+Alle Änderungen findest du in der Datei:  
 👉 [CHANGELOG.md](https://github.com/pesensie/symcon-pv-wallbox-manager/blob/main/CHANGELOG.md)
 
 ---
 
 ## 📄 Lizenz
-Dieses Projekt steht unter der MIT License:
-👉 [GLICENSE.md](https://github.com/pesensie/symcon-pv-wallbox-manager/blob/main/LICENSE.md)
+
+Dieses Projekt steht unter der MIT License:  
+👉 [LICENSE.md](https://github.com/pesensie/symcon-pv-wallbox-manager/blob/main/LICENSE.md)
 
 ---
 
