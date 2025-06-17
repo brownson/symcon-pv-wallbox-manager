@@ -223,31 +223,31 @@
         },
         {
           "type": "RowLayout",
+          "visible": {
+            "name": "UseCarSOC",
+            "equals": true
+          },
           "items": [
             {
               "name": "CarSOCID",
               "type": "SelectVariable",
               "caption": "Aktueller SoC des Fahrzeugs",
-              "variableTypes": ["Integer", "Float"],
-              "enabled": {
-                "name": "UseCarSOC",
-                "equals": true
-              }
+              "variableTypes": ["Integer", "Float"]
             }
           ]
         },
         {
           "type": "RowLayout",
+          "visible": {
+            "name": "UseCarSOC",
+            "equals": true
+          },
           "items": [
             {
               "name": "CarTargetSOCID",
               "type": "SelectVariable",
               "caption": "Ziel-SoC (Variable, optional)",
-              "variableTypes": ["Integer", "Float"],
-              "enabled": {
-                "name": "UseCarSOC",
-                "equals": true
-              }
+              "variableTypes": ["Integer", "Float"]
             },
             {
               "name": "CarTargetSOCFallback",
@@ -256,11 +256,7 @@
               "suffix": "%",
               "minimum": 0,
               "maximum": 100,
-              "default": 80,
-              "visible": {
-                "name": "UseCarSOC",
-                "equals": true
-              }
+              "default": 80
             }
           ]
         }
