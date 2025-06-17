@@ -107,6 +107,12 @@
           "type": "NumberSpinner",
           "name": "MinAktivierungsWatt",
           "caption": "Minimale Aktivierungsleistung (W)"
+        },
+        {
+          "type": "CheckBox",
+          "name": "NurMitFahrzeug",
+          "caption": "Nur laden, wenn Fahrzeug verbunden ist",
+          "description": "Die Wallbox wird nur aktiviert, wenn laut Statusmeldung ein Fahrzeug angeschlossen ist (Status 2 oder 4)."
         }
       ]
     }

@@ -42,6 +42,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('Phasen3Limit', 3);
         $this->RegisterPropertyBoolean('DynamischerPufferAktiv', true); // Schalter für Pufferlogik
         $this->RegisterPropertyInteger('MinAktivierungsWatt', 300);
+        $this->RegisterPropertyBoolean('NurMitFahrzeug', true); // Nur laden, wenn Fahrzeug verbunden
+
+
 
 
         $this->RegisterAttributeInteger('Phasen1Counter', 0);
@@ -66,7 +69,7 @@ class PVWallboxManager extends IPSModule
         $this->ReadPropertyInteger('MinLadeWatt');
         $this->ReadPropertyInteger('MinStopWatt');
         $this->ReadPropertyInteger('MinAktivierungsWatt'); // Aktivierungsschwelle sicher übernehmen
-
+        $this->ReadPropertyBoolean('NurMitFahrzeug');
     }
 
     // === Hauptfunktion: Berechnung des PV-Überschusses ===
@@ -97,6 +100,24 @@ class PVWallboxManager extends IPSModule
         if ($ueberschuss < $minAktiv) {
             IPS_LogMessage("PVWallboxManager", "⏸️ PV-Überschuss zu gering ({$ueberschuss} W < {$minAktiv} W) – Modul bleibt inaktiv");
             return;
+        }
+
+        if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
+            $goeID = $this->ReadPropertyInteger('GOEChargerID');
+            $status = @GOeCharger_GetStatus($goeID);
+
+            if ($status === false) {
+                IPS_LogMessage("PVWallboxManager", "⚠️ Statusabfrage fehlgeschlagen – GO-e Instanz nicht erreichbar?");
+                return;
+            }
+
+            if ($status === 1 || $status === 3) {
+                IPS_LogMessage("PVWallboxManager", "🚫 Kein Fahrzeug verbunden (Status $status) – Ladevorgang wird übersprungen");
+                $this->SetLadeleistung(0);
+                return;
+            }
+
+            IPS_LogMessage("PVWallboxManager", "✅ Fahrzeugstatus OK (Status $status) – Ladevorgang wird fortgesetzt");
         }
 
         // 🆕 Dynamischer Pufferfaktor (optional)
