@@ -22,6 +22,8 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 - 🧠 **Dynamischer Pufferfaktor** für sichere Leistungsregelung
 - 📉 **Live-Berechnung des PV-Überschusses**
 - 🧪 Optional: Fahrzeug-SoC, Uhrzeit-Zielmodus, PV2Car (%), MQTT-Integration
+- 🚗 Fahrzeugstatusprüfung: Laden nur wenn Fahrzeug verbunden (optional)
+
 
 ---
 
@@ -31,6 +33,7 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 - GO-eCharger V3 oder V4 mit lokal erreichbarer Instanz
 - Installiertes Modul `GO-eCharger` (von IPSCoyote)
 - PV-Erzeugung, Hausverbrauch und Batterieladung als Variablen verfügbar (in Watt)
+- Aktivierter lokaler API-Zugriff im GO-eCharger (API1 + API2)
 
 > ⚠️ **Wichtig:**  
 > Im GO-eCharger müssen **API 1 und API 2 aktiviert** sein (unter Einstellungen > API-Zugriff), damit die Steuerung über das Modul funktioniert.

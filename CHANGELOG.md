@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4] – 2025-06-17
+🚀 Hinzugefügt
+- Fahrzeugstatusprüfung: Ladung wird nur gestartet, wenn ein Fahrzeug angeschlossen ist (Status 2 oder 4)
+- Neue Option „Nur laden, wenn Fahrzeug verbunden ist“ in der Konfiguration (deaktivierbar)
+- Umfangreiche Beschreibungen & Icons zu allen Eingabefeldern im `form.json`
+- Modulstruktur vereinfacht: Unterstützung aktuell ausschließlich für GO-e Charger
+- Fehlerbehandlung und Logging verbessert (z. B. Statusabfrage, Ladeleistung)
+
+🛠️ Geändert
+- Logik zur Statusauswertung (Status 1 und 3 führen jetzt zuverlässig zum Abbruch)
+- Entfernt: `ReadPropertyString('WallboxTyp')` (nur GO-e aktiv)
+
 ## [v0.3] – 2025-06-17
 
 ### ✨ Hinzugefügt
@@ -9,7 +21,6 @@
 
 ### 🔁 Geändert
 - Ladeleistungsberechnung berücksichtigt nun optional den Puffer – wirkt sich direkt auf Phasenumschaltung und Ladeentscheidungen aus.
-
 
 ## [v0.2] – 2025-06-16
 
