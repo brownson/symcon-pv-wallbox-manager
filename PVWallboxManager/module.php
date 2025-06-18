@@ -132,16 +132,25 @@ class PVWallboxManager extends IPSModule
             $ladeleistung = @GOeCharger_GetPowerToCar($goeID) * 1000; // kW → W
         }
 
-        // === Überschuss berechnen ohne Netzanteil, aber inkl. aktueller Wallbox-Leistung ===
-        $ueberschuss = $pv - $verbrauch - $batterie_ladung + $ladeleistung;
+        // === Überschuss berechnen ohne Netzanteil ===
+        $ueberschuss = $pv - $verbrauch - $batterie_ladung;
 
-        // Logging der Einzelwerte
-        if ($netz_id > 0 && @IPS_VariableExists($netz_id)) {
+        // === Nur eine Rückspeisung anrechnen (Wallbox oder Netz) ===
+        if ($ladeleistung > 0) {
+            $ueberschuss += $ladeleistung;
+            IPS_LogMessage("PVWallboxManager", "⚡ Wallbox zieht aktuell {$ladeleistung} W – wird zur Berechnung aufgeschlagen");
+        } elseif ($netz_id > 0 && @IPS_VariableExists($netz_id)) {
             $netz = GetValue($netz_id);
-            IPS_LogMessage("PVWallboxManager", "📊 PV={$pv} W, Haus={$verbrauch} W, Batterie-Ladung={$batterie_ladung} W, Wallbox={$ladeleistung} W, Netz={$netz} W → Effektiver Überschuss={$ueberschuss} W");
+            if ($netz > 0) {
+                $ueberschuss += $netz;
+                IPS_LogMessage("PVWallboxManager", "🔌 Einspeisung {$netz} W – wird als verfügbarer Überschuss berücksichtigt");
+            }
         } else {
-            IPS_LogMessage("PVWallboxManager", "📊 PV={$pv} W, Haus={$verbrauch} W, Batterie-Ladung={$batterie_ladung} W, Wallbox={$ladeleistung} W → Effektiver Überschuss={$ueberschuss} W (kein Netzsensor)");
+            IPS_LogMessage("PVWallboxManager", "ℹ️ Kein zusätzlicher Rückfluss – nur Direktverbrauch wird berechnet");
         }
+
+        // Logging
+        IPS_LogMessage("PVWallboxManager", "📊 PV={$pv} W, Haus={$verbrauch} W, Batterie-Ladung={$batterie_ladung} W, Wallbox={$ladeleistung} W, Netz={$netz} W → Effektiver Überschuss={$ueberschuss} W");
 
         // === Float-Filter gegen Miniabweichungen
         if (abs($ueberschuss) < 0.01) {
@@ -167,7 +176,6 @@ class PVWallboxManager extends IPSModule
         $this->SetLadeleistung($ladeleistung);
         IPS_LogMessage("⚙️ PVWallboxManager", "Dynamische Ladeleistung: $ladeleistung W bei $ampere A / $phasen Phasen");
     }
-
     public function RequestAction($Ident, $Value)
     {
         switch ($Ident) {
