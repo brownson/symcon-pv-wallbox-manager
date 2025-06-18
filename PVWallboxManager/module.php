@@ -128,16 +128,24 @@ class PVWallboxManager extends IPSModule
         // === Netz optional berücksichtigen ===
         if ($netz_id > 0 && @IPS_VariableExists($netz_id)) {
             $netz = GetValue($netz_id);
-            if ($netz > 0) {
-                $ueberschuss = $pv - $verbrauch - $batterie_ladung + $ladeleistung + $netz;
-                IPS_LogMessage("PVWallboxManager", "🔌 Einspeisung: {$netz} W, Wallbox: {$ladeleistung} W → verfügbarer Überschuss: {$ueberschuss} W");
+
+            // Grundberechnung: PV - Verbrauch - Batterie (nur positiv)
+            $ueberschuss = $pv - $verbrauch - $batterie_ladung;
+
+            // Addiere nur EINE Energiequelle (Wallbox oder Netz)
+            if ($ladeleistung > 0) {
+                $ueberschuss += $ladeleistung;
+                IPS_LogMessage("PVWallboxManager", "⚡ Wallbox zieht aktuell {$ladeleistung} W – wird zur Berechnung aufgeschlagen");
+            } elseif ($netz > 0) {
+                $ueberschuss += $netz;
+                IPS_LogMessage("PVWallboxManager", "🔌 Einspeisung {$netz} W – wird als verfügbarer Überschuss berücksichtigt");
             } else {
-                $ueberschuss = $pv - $verbrauch - $batterie_ladung + $ladeleistung;
-                IPS_LogMessage("PVWallboxManager", "⚡ Netzbezug: {$netz} W → Berechnung ohne Netzeinspeisung");
+                IPS_LogMessage("PVWallboxManager", "ℹ️ Kein zusätzlicher Rückfluss – nur Direktverbrauch wird berechnet");
             }
         } else {
+            // Fallback: keine Netz-Variable konfiguriert
             $ueberschuss = $pv - $verbrauch - $batterie_ladung + $ladeleistung;
-            IPS_LogMessage("PVWallboxManager", "ℹ️ Kein Netzsensor konfiguriert → klassische Berechnung");
+            IPS_LogMessage("PVWallboxManager", "⚠️ Kein Netzsensor – klassische Berechnung mit Wallboxleistung: +{$ladeleistung} W");
         }
 
         // === Logging aller Komponenten ===
@@ -149,6 +157,19 @@ class PVWallboxManager extends IPSModule
         }
 
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
+
+        // === Fahrzeugstatus prüfen, wenn aktiviert ===
+        if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
+            $goeID = $this->ReadPropertyInteger('GOEChargerID');
+            if (@IPS_InstanceExists($goeID)) {
+                $status = @GOeCharger_GetStatus($goeID);
+                if (!in_array($status, [2, 4])) {
+                    IPS_LogMessage("PVWallboxManager", "🚫 Kein Fahrzeug erkannt (Status $status) – Ladevorgang wird abgebrochen");
+                    $this->SetLadeleistung(0);
+                    return;
+                }
+            }
+        }
 
         // === Mindestwertprüfung
         $minAktiv = $this->ReadPropertyInteger('MinAktivierungsWatt');
