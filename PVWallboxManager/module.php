@@ -74,15 +74,16 @@ class PVWallboxManager extends IPSModule
         $batterie_id   = $this->ReadPropertyInteger('BatterieladungID');
         $netz_id       = $this->ReadPropertyInteger('NetzeinspeisungID');
         $goeID         = $this->ReadPropertyInteger('GOEChargerID');
+        $manuell       = GetValueBoolean($this->GetIDForIdent('ManuellVollladen'));
 
-        // === Fahrzeugstatus prüfen, wenn Option aktiviert ===
-        if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
+        // === Fahrzeugstatus prüfen, wenn nötig ===
+        if (!$manuell && $this->ReadPropertyBoolean('NurMitFahrzeug')) {
             $status = false;
             if (@IPS_InstanceExists($goeID)) {
                 $status = @GOeCharger_GetStatus($goeID);
             }
             if (!in_array($status, [2, 4])) {
-                IPS_LogMessage("PVWallboxManager", "🚫 Kein Fahrzeug erkannt (Status $status) – Berechnung wird übersprungen");
+                IPS_LogMessage("PVWallboxManager", "🚫 Kein Fahrzeug erkannt (Status $status) – Abbruch der Berechnung");
                 $this->SetLadeleistung(0);
                 return;
             }
@@ -143,31 +144,6 @@ class PVWallboxManager extends IPSModule
         // === Ladeleistung direkt übergeben – Phasenlogik entscheidet später ===
         $this->SetLadeleistung($ueberschuss);
         IPS_LogMessage("⚙️ PVWallboxManager", "Dynamische Ladeleistungsvorgabe: {$ueberschuss} W (Details folgen in SetLadeleistung)");
-    }
-
-    public function RequestAction($Ident, $Value)
-    {
-        switch ($Ident) {
-            case 'BerechnePVUeberschuss':
-                $this->BerechnePVUeberschuss();
-                break;
-
-            case 'Update':
-                $this->BerechneLadung();
-                break;
-
-            case 'TargetTime':
-                SetValue($this->GetIDForIdent('TargetTime'), $Value);
-                break;
-            
-            case 'ManuellVollladen':
-                SetValue($this->GetIDForIdent('ManuellVollladen'), $Value);
-                $this->BerechneLadung(); // Modul reagiert sofort
-            break;
-
-            default:
-                throw new Exception("Invalid Ident: $Ident");
-        }
     }
 
     public function BerechneLadung()
