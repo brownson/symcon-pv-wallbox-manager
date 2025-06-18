@@ -63,33 +63,6 @@ class PVWallboxManager extends IPSModule
     }
 
     // Wird aufgerufen, wenn sich Konfigurationseinstellungen ändern
-    public function ApplyChanges()
-    {
-        parent::ApplyChanges();
-        $interval = max(15, min(600, $this->ReadPropertyInteger('RefreshInterval')));
-        $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
-
-        // Damit das Feld übernommen wird:
-        $this->ReadPropertyInteger('GOEChargerID');
-        //$this->ReadPropertyString('WallboxTyp');
-        $this->ReadPropertyInteger('BatterieladungID');
-        $this->ReadPropertyInteger('MinAmpere');
-        $this->ReadPropertyInteger('MaxAmpere');
-        $this->ReadPropertyInteger('Phasen');
-        $this->ReadPropertyInteger('MinLadeWatt');
-        $this->ReadPropertyInteger('MinStopWatt');
-        $this->ReadPropertyInteger('MinAktivierungsWatt'); // Aktivierungsschwelle sicher übernehmen
-        $this->ReadPropertyBoolean('NurMitFahrzeug');
-        $this->ReadPropertyInteger('HausakkuSOCID');
-        $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
-        $this->ReadPropertyBoolean('PVVerteilenAktiv');
-        $this->ReadPropertyInteger('PVAnteilAuto');
-        $this->ReadPropertyInteger('NetzeinspeisungID');
-
-    }
-
-    // === Hauptfunktion: Berechnung des PV-Überschusses ===
-    // Diese Methode wird durch Timer oder manuell ausgelöst
     public function BerechnePVUeberschuss()
     {
         $ueberschuss = 0;
@@ -167,15 +140,11 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        // === Ladeleistung berechnen
-        $phasen = $this->ReadPropertyInteger('Phasen');
-        $ampere = ceil($ueberschuss / (230 * $phasen));
-        $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
-        $ladeleistung = $ampere * 230 * $phasen;
-
-        $this->SetLadeleistung($ladeleistung);
-        IPS_LogMessage("⚙️ PVWallboxManager", "Dynamische Ladeleistung: $ladeleistung W bei $ampere A / $phasen Phasen");
+        // === Ladeleistung direkt übergeben – Phasenlogik entscheidet später ===
+        $this->SetLadeleistung($ueberschuss);
+        IPS_LogMessage("⚙️ PVWallboxManager", "Dynamische Ladeleistungsvorgabe: {$ueberschuss} W (Details folgen in SetLadeleistung)");
     }
+
     public function RequestAction($Ident, $Value)
     {
         switch ($Ident) {
