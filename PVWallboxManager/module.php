@@ -94,25 +94,31 @@ class PVWallboxManager extends IPSModule
         $netz = 0;
 
         // === Netzeinspeisung bevorzugt verwenden ===
-        $goeID = $this->ReadPropertyInteger('GOEChargerID');
-            $ladeleistung = 0;
-            if (@IPS_InstanceExists($goeID)) {
-                $ladeleistung = @GOeCharger_GetPowerToCar($goeID) * 1000; // kW → W
+        // Hinweis: Die Netzeinspeisung ist der tatsächlich verfügbare PV-Überschuss, 
+        // der aktuell nicht im Haus oder der Wallbox verbraucht wird.
+        // Die Wallbox-Leistung darf NICHT addiert werden, da sie bereits verbraucht wird.
+
+        $netz_id = $this->ReadPropertyInteger('NetzeinspeisungID');
+        if ($netz_id > 0 && @IPS_VariableExists($netz_id)) {
+            $netz = GetValue($netz_id);
+
+            // Nur positive Einspeisung ist ein echter PV-Überschuss.
+            // Netzbezug (negativ) → es gibt keinen Überschuss.
+            $ueberschuss = max($netz, 0);
+
+            if ($ueberschuss > 0) {
+                IPS_LogMessage("PVWallboxManager", "🔌 Netzeinspeisung: {$netz} W → verfügbarer PV-Überschuss: {$ueberschuss} W");
+            } else {
+                IPS_LogMessage("PVWallboxManager", "⚡ Netzbezug erkannt: {$netz} W – kein PV-Überschuss verfügbar");
             }
 
-            $netz_id = $this->ReadPropertyInteger('NetzeinspeisungID');
-            if ($netz_id > 0 && @IPS_VariableExists($netz_id)) {
-                $netz = GetValue($netz_id);
-                if ($netz > 0) {
-                    // NEU: Netzeinspeisung + aktuelle Wallboxleistung = tatsächlicher Überschuss
-                    $ueberschuss = $netz + $ladeleistung;
-                    IPS_LogMessage("PVWallboxManager", "🔌 Einspeisung: {$netz} W, Wallbox: {$ladeleistung} W → verfügbarer Überschuss: {$ueberschuss} W");
-                } else {
-                    $ueberschuss = $ladeleistung; // Es wird bezogen, daher nur aktuelle Ladeleistung berücksichtigen
-                    IPS_LogMessage("PVWallboxManager", "⚡ Netzbezug: {$netz} W – kein zusätzlicher PV-Überschuss");
-                }
-            } else {
-            // === Fallback: klassische Berechnung ===
+            // ❗ Wichtig: KEINE Addierung von Wallbox-Leistung!
+            // Beispiel:
+            // PV = 8.4 kW, Haus = 6.0 kW, Wallbox = 2.4 kW → Netz = 0 W
+            // Alles wird verbraucht → kein Überschuss mehr da.
+            // Wenn Netz = 1.5 kW → genau das ist übrig und kann noch zur Wallbox.
+        } else {
+            // === Fallback: klassische Berechnung ohne Netzsensor ===
             $pv_id         = $this->ReadPropertyInteger('PVErzeugungID');
             $verbrauch_id  = $this->ReadPropertyInteger('HausverbrauchID');
             $batterie_id   = $this->ReadPropertyInteger('BatterieladungID');
@@ -133,7 +139,11 @@ class PVWallboxManager extends IPSModule
             }
 
             $ueberschuss = $pv - $verbrauch - $batterie + $ladeleistung;
-            IPS_LogMessage("PVWallboxManager", "📊 Klassisch berechnet: PV={$pv} W, Haus={$verbrauch} W, Batterie={$batterie} W, Wallbox={$ladeleistung} W → Überschuss={$ueberschuss} W");
+
+            IPS_LogMessage(
+                "PVWallboxManager",
+                "📊 Klassisch berechnet: PV={$pv} W, Haus={$verbrauch} W, Batterie={$batterie} W, Wallbox={$ladeleistung} W → Überschuss={$ueberschuss} W"
+            );
         }
 
         // === Float-Toleranzfilter
