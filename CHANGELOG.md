@@ -1,5 +1,19 @@
 # Changelog
 
+## 🚀 Version 0.6 – 18.06.2025
+
+### Neue Funktionen
+- `ManuellVollladen`: Neuer Button zum Laden mit voller Leistung – unabhängig von PV-Zustand oder Netzbezug
+- Automatische Deaktivierung des manuellen Modus, wenn das Fahrzeug abgesteckt wird
+- Schutz: PV-Berechnung (`BerechnePVUeberschuss`) wird bei aktiviertem Volllade-Modus unterdrückt
+
+### Verbesserungen
+- 🔌 Berechnung des PV-Überschusses berücksichtigt jetzt:
+  - Netzeinspeisung nur bei positiven Werten
+  - Batterieladung nur wenn positiv (nur Laden zählt)
+  - Aktuelle Ladeleistung zur Wallbox wird aufgerechnet
+  - Bei zu geringem Überschuss (unter Aktivierungsgrenze) wird die Wallbox zuverlässig deaktiviert (`SetLadeleistung(0)`)
+
 ## 🚗 Version 0.5 – Integration Fahrzeugdaten
 
 - NEU: Unterstützung für Fahrzeugdaten wie aktueller SoC und Ziel-SoC

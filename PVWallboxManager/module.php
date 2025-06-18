@@ -97,7 +97,7 @@ class PVWallboxManager extends IPSModule
             IPS_LogMessage("PVWallboxManager", "⏸️ PV-Berechnung übersprungen – manueller Lademodus aktiv");
             return;
         }
-        
+
         $ueberschuss = 0;
         $netz = 0;
 
@@ -153,11 +153,13 @@ class PVWallboxManager extends IPSModule
         // === Mindestwertprüfung
         $minAktiv = $this->ReadPropertyInteger('MinAktivierungsWatt');
         if ($ueberschuss < $minAktiv) {
-            $hinweis = "⏸️ PV-Überschuss zu gering ({$ueberschuss} W < {$minAktiv} W) – Modul bleibt inaktiv";
+            $hinweis = "⏹️ Kein ausreichender PV-Überschuss ({$ueberschuss} W < {$minAktiv} W) – Wallbox wird deaktiviert";
             if ($netz > 0) {
                 $hinweis .= " (obwohl {$netz} W eingespeist werden)";
             }
+
             IPS_LogMessage("PVWallboxManager", $hinweis);
+            $this->SetLadeleistung(0); // 🛑 Sofort Ladeleistung auf 0 setzen
             return;
         }
 
