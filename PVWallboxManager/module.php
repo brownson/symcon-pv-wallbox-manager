@@ -57,6 +57,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('HausakkuSOCID', 0); // Integer-Variable für Hausakku-SoC
         $this->RegisterPropertyInteger('HausakkuSOCVollSchwelle', 95);
         $this->RegisterPropertyInteger('NetzeinspeisungID', 0); // Watt, positiv = Einspeisung, negativ = Bezug
+        $this->RegisterVariableBoolean('ManuellVollladen', '🔌 Manuell: Vollladen aktiv', '', 95);
+        $this->EnableAction('ManuellVollladen');
         
     }
 
@@ -177,6 +179,11 @@ class PVWallboxManager extends IPSModule
             case 'TargetTime':
                 SetValue($this->GetIDForIdent('TargetTime'), $Value);
                 break;
+            
+            case 'ManuellVollladen':
+                SetValue($this->GetIDForIdent('ManuellVollladen'), $Value);
+                $this->BerechneLadung(); // Modul reagiert sofort
+            break;
 
             default:
                 throw new Exception("Invalid Ident: $Ident");
@@ -185,6 +192,18 @@ class PVWallboxManager extends IPSModule
 
     public function BerechneLadung()
     {
+        // Prüfen ob manueller Modus aktiv ist
+        if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
+            IPS_LogMessage("PVWallboxManager", "🚨 Manueller Lademodus aktiv – maximale Ladeleistung wird erzwungen");
+
+            $phasen = $this->ReadPropertyInteger('Phasen');
+            $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+            $maxWatt = $phasen * 230 * $maxAmp;
+
+            $this->SetLadeleistung($maxWatt);
+            return;
+        }
+
         // Beispiel: PV-Überschuss holen (optional)
         // $pvUeberschuss = $this->GetUeberschuss();
 
@@ -357,9 +376,17 @@ class PVWallboxManager extends IPSModule
                     'setChargingMode' => false
                 ];
         }
+    private function SetLademodusStatus(string $text)
+    {
+        $varID = $this->GetIDForIdent('LademodusStatus');
+        if ($varID !== false && @IPS_VariableExists($varID)) {
+            SetValue($varID, $text);
+        }
     }
 
-    private function GetMinAmpere(): int
+        }
+
+        private function GetMinAmpere(): int
     {
         $val = $this->ReadPropertyInteger('MinAmpere');
         return ($val > 0) ? $val : $this->GetWallboxCapabilities()['minAmp'];
