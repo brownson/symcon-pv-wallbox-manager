@@ -154,8 +154,6 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-
-
         // Logging mit Symbolen
         if ($ueberschuss > 100) {
             IPS_LogMessage("⚡ PVWallboxManager", "✅ PV-Überschuss: $ueberschuss W ☀️🔋");
@@ -186,23 +184,17 @@ class PVWallboxManager extends IPSModule
             case 'BerechnePVUeberschuss':
                 $this->BerechnePVUeberschuss();
                 break;
-            case 'Update':
-                $this->BerechneLadung(); // optional, wenn später verwendet
-                break;
-            default:
-                trigger_error("Invalid Ident: $Ident", E_USER_WARNING);
-        }
 
-        {
-        switch ($Ident) {
+            case 'Update':
+                $this->BerechneLadung();
+                break;
+
             case 'TargetTime':
                 SetValue($this->GetIDForIdent('TargetTime'), $Value);
                 break;
 
-            // ggf. weitere Fälle wie PV2CarModus, ZielSOC etc.
             default:
                 throw new Exception("Invalid Ident: $Ident");
-            }
         }
     }
 
