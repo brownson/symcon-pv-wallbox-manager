@@ -50,6 +50,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyFloat('CarTargetSOCFallback', 80);
         $this->RegisterAttributeInteger('Phasen1Counter', 0);
         $this->RegisterAttributeInteger('Phasen3Counter', 0);
+        $this->RegisterVariableInteger('TargetTime', 'Ziel-Zeit (Uhr)', '~UnixTimestampTime', 60);
+        $this->EnableAction('TargetTime');
+
         
     }
 
@@ -90,9 +93,16 @@ class PVWallboxManager extends IPSModule
         $verbrauch  = GetValue($verbrauch_id);
         $batterie   = GetValue($batterie_id); // positiv = lädt, negativ = entlädt
 
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $ladeleistung = 0;
+        if (@IPS_InstanceExists($goeID)) {
+            $ladeleistung = @GOeCharger_GetPowerToCar($goeID) * 1000; // kW → W
+        }
+
         // === PV-Überschuss berechnen ===
         // === Float-Toleranzfilter (z. B. -1E-13 → 0.0)
-        $ueberschuss = $pv - $verbrauch - $batterie;
+        $ueberschuss = $pv - $verbrauch - $batterie + $ladeleistung;
+        IPS_LogMessage("PVWallboxManager", "📊 PV={$pv} W, Haus={$verbrauch} W, Batterie={$batterie} W, Wallbox={$ladeleistung} W → Überschuss={$ueberschuss} W");
         if (abs($ueberschuss) < 0.01) {
             $ueberschuss = 0.0;
         }
@@ -181,6 +191,16 @@ class PVWallboxManager extends IPSModule
                 break;
             default:
                 trigger_error("Invalid Ident: $Ident", E_USER_WARNING);
+        }
+
+        {
+        switch ($Ident) {
+            case 'TargetTime':
+                SetValue($this->GetIDForIdent('TargetTime'), $Value);
+                break;
+
+            // ggf. weitere Fälle wie PV2CarModus, ZielSOC etc.
+            }
         }
     }
 
