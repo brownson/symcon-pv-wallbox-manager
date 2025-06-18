@@ -79,6 +79,12 @@
           ]
         },
         {
+          "type": "SelectVariable",
+          "name": "NetzeinspeisungID",
+          "caption": "Netzeinspeisung (W)",
+          "description": "Positiv = Einspeisung, Negativ = Netzbezug"
+        },
+        {
           "type": "Label",
           "label": "\ud83c\udfe0 Aktueller Verbrauch aller Verbraucher im Haus (Watt)."
         },

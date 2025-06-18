@@ -56,8 +56,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('PVAnteilAuto', 33); // z. B. 33 % fürs Auto
         $this->RegisterPropertyInteger('HausakkuSOCID', 0); // Integer-Variable für Hausakku-SoC
         $this->RegisterPropertyInteger('HausakkuSOCVollSchwelle', 95);
-
-
+        $this->RegisterPropertyInteger('NetzeinspeisungID', 0); // Watt, positiv = Einspeisung, negativ = Bezug
         
     }
 
@@ -83,6 +82,8 @@ class PVWallboxManager extends IPSModule
         $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
         $this->ReadPropertyBoolean('PVVerteilenAktiv');
         $this->ReadPropertyInteger('PVAnteilAuto');
+        $this->ReadPropertyInteger('NetzeinspeisungID');
+
     }
 
     // === Hauptfunktion: Berechnung des PV-Überschusses ===
@@ -111,14 +112,34 @@ class PVWallboxManager extends IPSModule
         // === PV-Überschuss berechnen ===
         // === Float-Toleranzfilter (z. B. -1E-13 → 0.0)
         $ueberschuss = $pv - $verbrauch - $batterie + $ladeleistung;
-        IPS_LogMessage("PVWallboxManager", "📊 PV={$pv} W, Haus={$verbrauch} W, Batterie={$batterie} W, Wallbox={$ladeleistung} W → Überschuss={$ueberschuss} W");
+
+        // === Netzeinspeisung abziehen, falls konfiguriert ===
+        $netz_id = $this->ReadPropertyInteger('NetzeinspeisungID');
+        $netz = 0;
+        if ($netz_id > 0 && @IPS_VariableExists($netz_id)) {
+            $netz = GetValue($netz_id); // positiv = Einspeisung, negativ = Netzbezug
+            if ($netz > 0) {
+                $ueberschuss -= $netz;
+                IPS_LogMessage("PVWallboxManager", "🔌 Netzeinspeisung erkannt: -{$netz} W vom Überschuss abgezogen");
+            }
+        }
+
+        IPS_LogMessage("PVWallboxManager", "📊 PV={$pv} W, Haus={$verbrauch} W, Batterie={$batterie} W, Wallbox={$ladeleistung} W, Netz={$netz} W → Effektiver Überschuss={$ueberschuss} W");
+
         if (abs($ueberschuss) < 0.01) {
             $ueberschuss = 0.0;
         }
-        SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
+        // === Frühzeitiger Abbruch bei zu geringem effektiven Überschuss ===
         $minAktiv = $this->ReadPropertyInteger('MinAktivierungsWatt');
         if ($ueberschuss < $minAktiv) {
-            IPS_LogMessage("PVWallboxManager", "⏸️ PV-Überschuss zu gering ({$ueberschuss} W < {$minAktiv} W) – Modul bleibt inaktiv");
+            $hinweis = "⏸️ PV-Überschuss zu gering ({$ueberschuss} W < {$minAktiv} W) – Modul bleibt inaktiv";
+
+            // Wenn Netz-Einspeisung aktiv ist und ins Netz eingespeist wird
+            if (isset($netz) && $netz > 0) {
+                $hinweis .= " (und {$netz} W werden ins Netz eingespeist)";
+            }
+
+            IPS_LogMessage("PVWallboxManager", $hinweis);
             return;
         }
 
