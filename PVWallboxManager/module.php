@@ -27,7 +27,9 @@ class PVWallboxManager extends IPSModule
 
         // === Timer registrieren (wird später durch ApplyChanges konfiguriert) ===
         // Führt automatisch alle X Sekunden die Berechnung durch
-        $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], "BerechnePVUeberschuss", "");');
+        //$this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], "BerechnePVUeberschuss", "");');
+        $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], "BerechnePVUeberschuss");');
+
 
         //$this->RegisterPropertyString('WallboxTyp', 'go-e'); // 'go-e' als Standardwert
         $this->RegisterPropertyInteger('GOEChargerID', 0);
