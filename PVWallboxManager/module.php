@@ -102,6 +102,19 @@ class PVWallboxManager extends IPSModule
         $netz_id       = $this->ReadPropertyInteger('NetzeinspeisungID');
         $goeID         = $this->ReadPropertyInteger('GOEChargerID');
 
+        // === Fahrzeugstatus prüfen, wenn Option aktiviert ===
+        if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
+            $status = false;
+            if (@IPS_InstanceExists($goeID)) {
+                $status = @GOeCharger_GetStatus($goeID);
+            }
+            if (!in_array($status, [2, 4])) {
+                IPS_LogMessage("PVWallboxManager", "🚫 Kein Fahrzeug erkannt (Status $status) – Berechnung wird übersprungen");
+                $this->SetLadeleistung(0);
+                return;
+            }
+        }
+
         // === Vorab prüfen, ob alle Variablen existieren ===
         if (!@IPS_VariableExists($pv_id) || !@IPS_VariableExists($verbrauch_id) || !@IPS_VariableExists($batterie_id)) {
             IPS_LogMessage("⚠️ PVWallboxManager", "❌ Fehler: PV-, Verbrauchs- oder Batterie-ID ist ungültig!");
@@ -137,19 +150,6 @@ class PVWallboxManager extends IPSModule
 
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
 
-        // === Fahrzeugstatus prüfen, wenn Option aktiviert ===
-        if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
-            $status = false;
-            if (@IPS_InstanceExists($goeID)) {
-                $status = @GOeCharger_GetStatus($goeID);
-            }
-            if (!in_array($status, [2, 4])) {
-                IPS_LogMessage("PVWallboxManager", "🚫 Kein Fahrzeug erkannt (Status $status) – Ladevorgang wird abgebrochen");
-                $this->SetLadeleistung(0);
-                return;
-            }
-        }
-
         // === Mindestwertprüfung
         $minAktiv = $this->ReadPropertyInteger('MinAktivierungsWatt');
         if ($ueberschuss < $minAktiv) {
@@ -167,7 +167,6 @@ class PVWallboxManager extends IPSModule
         $this->SetLadeleistung($ladeleistung);
         IPS_LogMessage("⚙️ PVWallboxManager", "Dynamische Ladeleistung: $ladeleistung W bei $ampere A / $phasen Phasen");
     }
-
 
     public function RequestAction($Ident, $Value)
     {
