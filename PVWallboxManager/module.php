@@ -200,6 +200,8 @@ class PVWallboxManager extends IPSModule
                 break;
 
             // ggf. weitere Fälle wie PV2CarModus, ZielSOC etc.
+            default:
+                throw new Exception("Invalid Ident: $Ident");
             }
         }
     }
