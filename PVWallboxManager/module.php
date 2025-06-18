@@ -376,6 +376,8 @@ class PVWallboxManager extends IPSModule
                     'setChargingMode' => false
                 ];
         }
+    }
+    
     private function SetLademodusStatus(string $text)
     {
         $varID = $this->GetIDForIdent('LademodusStatus');
@@ -383,8 +385,6 @@ class PVWallboxManager extends IPSModule
             SetValue($varID, $text);
         }
     }
-
-        }
 
         private function GetMinAmpere(): int
     {
