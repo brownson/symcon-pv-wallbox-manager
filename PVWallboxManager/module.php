@@ -92,6 +92,12 @@ class PVWallboxManager extends IPSModule
     // Diese Methode wird durch Timer oder manuell ausgelöst
     public function BerechnePVUeberschuss()
     {
+    // Wenn manueller Modus aktiv ist, PV-Berechnung abbrechen
+        if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
+            IPS_LogMessage("PVWallboxManager", "⏸️ PV-Berechnung übersprungen – manueller Lademodus aktiv");
+            return;
+        }
+        
         $ueberschuss = 0;
         $netz = 0;
 
