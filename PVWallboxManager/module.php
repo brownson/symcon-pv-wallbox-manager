@@ -63,6 +63,23 @@ class PVWallboxManager extends IPSModule
         $this->EnableAction('ManuellVollladen');
         
     }
+    
+    public function ApplyChanges()
+    {
+        parent::ApplyChanges();
+
+        $interval = max(15, min(600, $this->ReadPropertyInteger('RefreshInterval')));
+        $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
+    }
+
+    public function RequestAction($ident, $value)
+    {
+        switch ($ident) {
+            case 'ManuellVollladen':
+                SetValue($this->GetIDForIdent($ident), $value);
+                break;
+        }
+    }
 
     // Wird aufgerufen, wenn sich Konfigurationseinstellungen ändern
     public function BerechnePVUeberschuss()
