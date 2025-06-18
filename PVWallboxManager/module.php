@@ -106,10 +106,10 @@ class PVWallboxManager extends IPSModule
             $ladeleistung = @GOeCharger_GetPowerToCar($goeID) * 1000; // kW → W
         }
 
-        // === Überschuss berechnen ohne Netzanteil ===
+        // === Überschuss berechnen ===
         $ueberschuss = $pv - $verbrauch - $batterie_ladung;
 
-        // === Nur eine Rückspeisung anrechnen (Wallbox oder Netz) ===
+        // === Addiere nur EINE Rückspeisung (Wallbox oder Netz) ===
         if ($ladeleistung > 0) {
             $ueberschuss += $ladeleistung;
             IPS_LogMessage("PVWallboxManager", "⚡ Wallbox zieht aktuell {$ladeleistung} W – wird zur Berechnung aufgeschlagen");
