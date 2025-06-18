@@ -94,16 +94,24 @@ class PVWallboxManager extends IPSModule
         $netz = 0;
 
         // === Netzeinspeisung bevorzugt verwenden ===
-        $netz_id = $this->ReadPropertyInteger('NetzeinspeisungID');
-        if ($netz_id > 0 && @IPS_VariableExists($netz_id)) {
-            $netz = GetValue($netz_id);
-            if ($netz > 0) {
-                $ueberschuss = $netz;
-                IPS_LogMessage("PVWallboxManager", "🔌 Echtzeit-Einspeisung: {$netz} W – wird als verfügbarer Überschuss verwendet");
-            } else {
-                IPS_LogMessage("PVWallboxManager", "⚡ Kein Überschuss – Netzbezug: {$netz} W");
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+            $ladeleistung = 0;
+            if (@IPS_InstanceExists($goeID)) {
+                $ladeleistung = @GOeCharger_GetPowerToCar($goeID) * 1000; // kW → W
             }
-        } else {
+
+            $netz_id = $this->ReadPropertyInteger('NetzeinspeisungID');
+            if ($netz_id > 0 && @IPS_VariableExists($netz_id)) {
+                $netz = GetValue($netz_id);
+                if ($netz > 0) {
+                    // NEU: Netzeinspeisung + aktuelle Wallboxleistung = tatsächlicher Überschuss
+                    $ueberschuss = $netz + $ladeleistung;
+                    IPS_LogMessage("PVWallboxManager", "🔌 Einspeisung: {$netz} W, Wallbox: {$ladeleistung} W → verfügbarer Überschuss: {$ueberschuss} W");
+                } else {
+                    $ueberschuss = $ladeleistung; // Es wird bezogen, daher nur aktuelle Ladeleistung berücksichtigen
+                    IPS_LogMessage("PVWallboxManager", "⚡ Netzbezug: {$netz} W – kein zusätzlicher PV-Überschuss");
+                }
+            } else {
             // === Fallback: klassische Berechnung ===
             $pv_id         = $this->ReadPropertyInteger('PVErzeugungID');
             $verbrauch_id  = $this->ReadPropertyInteger('HausverbrauchID');
