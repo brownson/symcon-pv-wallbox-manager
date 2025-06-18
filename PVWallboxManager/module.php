@@ -192,6 +192,20 @@ class PVWallboxManager extends IPSModule
 
     public function BerechneLadung()
     {
+        // === Auto getrennt → manuellen Volllademodus zurücksetzen ===
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        if (@IPS_InstanceExists($goeID)) {
+            $statusVarID = @IPS_GetObjectIDByIdent('carStatus', $goeID);
+            if ($statusVarID !== false && @IPS_VariableExists($statusVarID)) {
+                $status = GetValueInteger($statusVarID);
+                if (!in_array($status, [2, 4])) {
+                    if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
+                        SetValue($this->GetIDForIdent('ManuellVollladen'), false);
+                        IPS_LogMessage("PVWallboxManager", "🔌 Fahrzeug getrennt – manueller Volllademodus deaktiviert");
+                    }
+                }
+            }
+        }
         // Prüfen ob manueller Modus aktiv ist
         if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
             IPS_LogMessage("PVWallboxManager", "🚨 Manueller Lademodus aktiv – maximale Ladeleistung wird erzwungen");
