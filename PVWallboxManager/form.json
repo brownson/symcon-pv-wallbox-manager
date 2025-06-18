@@ -215,7 +215,7 @@
           "caption": "PV-Anteil für Auto aktivieren"
         },
         {
-          "type": "Slider",
+          "type": "NumberSpinner",
           "name": "PVAnteilAuto",
           "caption": "Anteil der PV-Erzeugung für Auto",
           "suffix": "%",
