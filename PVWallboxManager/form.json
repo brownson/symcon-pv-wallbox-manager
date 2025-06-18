@@ -207,40 +207,52 @@
         },
         {
           "type": "Label",
-          "label": "\u2696\ufe0f Optionale Verteilung der PV-Erzeugung zwischen Haus und Auto."
+          "label": "\u2696\ufe0f PV-Leistung optional anteilig zwischen Haus und Auto aufteilen."
         },
         {
           "type": "CheckBox",
           "name": "PVVerteilenAktiv",
-          "caption": "PV-Erzeugung prozentual aufteilen (Haus / Auto)"
+          "caption": "PV-Anteil für Auto aktivieren"
         },
         {
-          "type": "RowLayout",
-          "caption": "PV-Aufteilung",
+          "type": "Slider",
+          "name": "PVAnteilAuto",
+          "caption": "Anteil der PV-Erzeugung für Auto",
+          "suffix": "%",
+          "minimum": 0,
+          "maximum": 100,
+          "step": 1,
           "visible": {
             "name": "PVVerteilenAktiv",
             "equals": true
-          },
-          "items": [
-            {
-              "type": "NumberSpinner",
-              "name": "PVAnteilHaus",
-              "caption": "Hausbatterie",
-              "suffix": "%",
-              "minimum": 0,
-              "maximum": 100,
-              "step": 1
-            },
-            {
-              "type": "NumberSpinner",
-              "name": "PVAnteilAuto",
-              "caption": "Auto (Wallbox)",
-              "suffix": "%",
-              "minimum": 0,
-              "maximum": 100,
-              "step": 1
-            }
-          ]
+          }
+        },
+        {
+          "type": "Label",
+          "label": "\ud83d\udd0b Optional: Wenn Hausakku voll, 100% PV-Leistung ins Auto umleiten."
+        },
+        {
+          "type": "SelectVariable",
+          "name": "HausakkuSOCID",
+          "caption": "Hausakku SoC (%)",
+          "description": "Integer-Variable mit Ladezustand der Hausbatterie (0–100\u202f%)",
+          "visible": {
+            "name": "PVVerteilenAktiv",
+            "equals": true
+          }
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "HausakkuSOCVollSchwelle",
+          "caption": "Voll-Schwelle Hausbatterie",
+          "suffix": "%",
+          "minimum": 50,
+          "maximum": 100,
+          "step": 1,
+          "visible": {
+            "name": "PVVerteilenAktiv",
+            "equals": true
+          }
         }
       ]
     },

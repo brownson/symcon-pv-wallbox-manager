@@ -52,6 +52,11 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeInteger('Phasen3Counter', 0);
         $this->RegisterVariableInteger('TargetTime', 'Ziel-Zeit (Uhr)', '~UnixTimestampTime', 60);
         $this->EnableAction('TargetTime');
+        $this->RegisterPropertyBoolean('PVVerteilenAktiv', false);
+        $this->RegisterPropertyInteger('PVAnteilAuto', 33); // z. B. 33 % fürs Auto
+        $this->RegisterPropertyInteger('HausakkuSOCID', 0); // Integer-Variable für Hausakku-SoC
+        $this->RegisterPropertyInteger('HausakkuSOCVollSchwelle', 95);
+
 
         
     }
@@ -74,6 +79,10 @@ class PVWallboxManager extends IPSModule
         $this->ReadPropertyInteger('MinStopWatt');
         $this->ReadPropertyInteger('MinAktivierungsWatt'); // Aktivierungsschwelle sicher übernehmen
         $this->ReadPropertyBoolean('NurMitFahrzeug');
+        $this->ReadPropertyInteger('HausakkuSOCID');
+        $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
+        $this->ReadPropertyBoolean('PVVerteilenAktiv');
+        $this->ReadPropertyInteger('PVAnteilAuto');
     }
 
     // === Hauptfunktion: Berechnung des PV-Überschusses ===
