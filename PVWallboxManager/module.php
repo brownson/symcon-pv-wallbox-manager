@@ -68,15 +68,16 @@ class PVWallboxManager extends IPSModule
     {
         parent::ApplyChanges();
 
-        $interval = max(15, min(600, $this->ReadPropertyInteger('RefreshInterval')));
+        // Intervall auslesen und Timer setzen
+        $interval = $this->ReadPropertyInteger('RefreshInterval');
         $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
     }
 
     public function RequestAction($ident, $value)
     {
         switch ($ident) {
-            case 'ManuellVollladen':
-                SetValue($this->GetIDForIdent($ident), $value);
+            case 'BerechnePVUeberschuss':
+                $this->BerechnePVUeberschuss();
                 break;
         }
     }
@@ -95,7 +96,7 @@ class PVWallboxManager extends IPSModule
         $goeID         = $this->ReadPropertyInteger('GOEChargerID');
         $manuell       = GetValueBoolean($this->GetIDForIdent('ManuellVollladen'));
 
-        // === Fahrzeugstatus prüfen, wenn nötig ===
+         // === Fahrzeugstatus prüfen, wenn nötig ===
         if (!$manuell && $this->ReadPropertyBoolean('NurMitFahrzeug')) {
             $status = false;
             if (@IPS_InstanceExists($goeID)) {
@@ -165,6 +166,7 @@ class PVWallboxManager extends IPSModule
         IPS_LogMessage("⚙️ PVWallboxManager", "Dynamische Ladeleistungsvorgabe: {$ueberschuss} W (Details folgen in SetLadeleistung)");
     }
 
+
     public function BerechneLadung()
     {
         // === Auto getrennt → manuellen Volllademodus zurücksetzen ===
@@ -194,8 +196,6 @@ class PVWallboxManager extends IPSModule
         }
 
         // Beispiel: PV-Überschuss holen (optional)
-        // $pvUeberschuss = $this->GetUeberschuss();
-
         if ($this->ReadPropertyBoolean('UseCarSOC')) {
 
             // Aktuellen Fahrzeug-SOC holen (Variable oder Fallback)
@@ -227,8 +227,7 @@ class PVWallboxManager extends IPSModule
 
         // Hier später: Ladeplanung basierend auf SOC
         $this->SendDebug('Ladeentscheidung', 'Laden erforderlich – SOC unter Zielwert', 0);
-
-    } else {
+        } else {
         $this->SendDebug('Info', 'Fahrzeugdaten werden ignoriert – reine PV-Überschussladung aktiv.', 0);
 
         // Hier später: normale PV-Überschussregelung
