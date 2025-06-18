@@ -204,9 +204,46 @@
           "type": "CheckBox",
           "name": "NurMitFahrzeug",
           "caption": "Nur laden, wenn Fahrzeug verbunden ist"
+        },
+        {
+          "type": "Label",
+          "label": "\u2696\ufe0f Optionale Verteilung der PV-Erzeugung zwischen Haus und Auto."
+        },
+        {
+          "type": "CheckBox",
+          "name": "PVVerteilenAktiv",
+          "caption": "PV-Erzeugung prozentual aufteilen (Haus / Auto)"
+        },
+        {
+          "type": "RowLayout",
+          "caption": "PV-Aufteilung",
+          "visible": {
+            "name": "PVVerteilenAktiv",
+            "equals": true
+          },
+          "items": [
+            {
+              "type": "NumberSpinner",
+              "name": "PVAnteilHaus",
+              "caption": "Hausbatterie",
+              "suffix": "%",
+              "minimum": 0,
+              "maximum": 100,
+              "step": 1
+            },
+            {
+              "type": "NumberSpinner",
+              "name": "PVAnteilAuto",
+              "caption": "Auto (Wallbox)",
+              "suffix": "%",
+              "minimum": 0,
+              "maximum": 100,
+              "step": 1
+            }
+          ]
         }
       ]
-    },
+    }
     {
       "type": "ExpansionPanel",
       "caption": "Fahrzeugdaten",
