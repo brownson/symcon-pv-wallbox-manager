@@ -284,21 +284,6 @@
           },
           "items": [
             {
-              "name": "CarSOCID",
-              "type": "SelectVariable",
-              "caption": "Aktueller SoC des Fahrzeugs",
-              "variableTypes": ["Integer", "Float"]
-            }
-          ]
-        },
-        {
-          "type": "RowLayout",
-          "visible": {
-            "name": "UseCarSOC",
-            "equals": true
-          },
-          "items": [
-            {
               "name": "CarTargetSOCID",
               "type": "SelectVariable",
               "caption": "Ziel-SoC (Variable, optional)",
@@ -314,8 +299,21 @@
               "default": 80
             }
           ]
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "CarBatteryCapacity",
+          "caption": "🔋 Batteriekapazität",
+          "suffix": "kWh",
+          "minimum": 5,
+          "maximum": 150,
+          "step": 1,
+          "visible": {
+            "name": "UseCarSOC",
+            "equals": true
+              }
+            }
+          ] 
         }
       ]
-    }
-  ]
 }

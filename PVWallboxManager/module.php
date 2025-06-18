@@ -61,6 +61,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('NetzeinspeisungID', 0); // Watt, positiv = Einspeisung, negativ = Bezug
         $this->RegisterVariableBoolean('ManuellVollladen', '🔌 Manuell: Vollladen aktiv', '', 95);
         $this->EnableAction('ManuellVollladen');
+        $this->RegisterPropertyFloat('CarBatteryCapacity', 52.0); // z. B. VW ID.3 = 52 kWh
         
     }
     
