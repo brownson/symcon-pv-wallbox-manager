@@ -93,123 +93,64 @@ class PVWallboxManager extends IPSModule
         $ueberschuss = 0;
         $netz = 0;
 
-        // === Netzeinspeisung bevorzugt verwenden ===
-        // Hinweis: Die Netzeinspeisung ist der tatsächlich verfügbare PV-Überschuss, 
-        // der aktuell nicht im Haus oder der Wallbox verbraucht wird.
-        // Die Wallbox-Leistung darf NICHT addiert werden, da sie bereits verbraucht wird.
+        // === IDs der Quell-Variablen aus Properties laden ===
+        $pv_id         = $this->ReadPropertyInteger('PVErzeugungID');
+        $verbrauch_id  = $this->ReadPropertyInteger('HausverbrauchID');
+        $batterie_id   = $this->ReadPropertyInteger('BatterieladungID');
+        $netz_id       = $this->ReadPropertyInteger('NetzeinspeisungID');
 
-        $netz_id = $this->ReadPropertyInteger('NetzeinspeisungID');
-        if ($netz_id > 0 && @IPS_VariableExists($netz_id)) {
-            $netz = GetValue($netz_id);
-
-            // Nur positive Einspeisung ist ein echter PV-Überschuss.
-            // Netzbezug (negativ) → es gibt keinen Überschuss.
-            $ueberschuss = max($netz, 0);
-
-            if ($ueberschuss > 0) {
-                IPS_LogMessage("PVWallboxManager", "🔌 Netzeinspeisung: {$netz} W → verfügbarer PV-Überschuss: {$ueberschuss} W");
-            } else {
-                IPS_LogMessage("PVWallboxManager", "⚡ Netzbezug erkannt: {$netz} W – kein PV-Überschuss verfügbar");
-            }
-
-            // ❗ Wichtig: KEINE Addierung von Wallbox-Leistung!
-            // Beispiel:
-            // PV = 8.4 kW, Haus = 6.0 kW, Wallbox = 2.4 kW → Netz = 0 W
-            // Alles wird verbraucht → kein Überschuss mehr da.
-            // Wenn Netz = 1.5 kW → genau das ist übrig und kann noch zur Wallbox.
-        } else {
-            // === Fallback: klassische Berechnung ohne Netzsensor ===
-            $pv_id         = $this->ReadPropertyInteger('PVErzeugungID');
-            $verbrauch_id  = $this->ReadPropertyInteger('HausverbrauchID');
-            $batterie_id   = $this->ReadPropertyInteger('BatterieladungID');
-
-            if (!@IPS_VariableExists($pv_id) || !@IPS_VariableExists($verbrauch_id) || !@IPS_VariableExists($batterie_id)) {
-                IPS_LogMessage("⚠️ PVWallboxManager", "❌ Fehler: PV-, Verbrauchs- oder Batterie-ID ist ungültig!");
-                return;
-            }
-
-            $pv         = GetValue($pv_id);
-            $verbrauch  = GetValue($verbrauch_id);
-            $batterie   = GetValue($batterie_id); // positiv = lädt, negativ = entlädt
-
-            $goeID = $this->ReadPropertyInteger('GOEChargerID');
-            $ladeleistung = 0;
-            if (@IPS_InstanceExists($goeID)) {
-                $ladeleistung = @GOeCharger_GetPowerToCar($goeID) * 1000; // kW → W
-            }
-
-            $ueberschuss = $pv - $verbrauch - $batterie + $ladeleistung;
-
-            IPS_LogMessage(
-                "PVWallboxManager",
-                "📊 Klassisch berechnet: PV={$pv} W, Haus={$verbrauch} W, Batterie={$batterie} W, Wallbox={$ladeleistung} W → Überschuss={$ueberschuss} W"
-            );
+        // === Vorab prüfen, ob alle Variablen existieren ===
+        if (!@IPS_VariableExists($pv_id) || !@IPS_VariableExists($verbrauch_id) || !@IPS_VariableExists($batterie_id)) {
+            IPS_LogMessage("⚠️ PVWallboxManager", "❌ Fehler: PV-, Verbrauchs- oder Batterie-ID ist ungültig!");
+            return;
         }
 
-        // === Float-Toleranzfilter
+        // === Werte holen ===
+        $pv         = GetValue($pv_id);
+        $verbrauch  = GetValue($verbrauch_id);
+        $batterie   = GetValue($batterie_id);
+        $batterie_ladung = max($batterie, 0); // nur wenn Batterie lädt
+
+        $ladeleistung = 0;
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        if (@IPS_InstanceExists($goeID)) {
+            $ladeleistung = @GOeCharger_GetPowerToCar($goeID) * 1000; // kW → W
+        }
+
+        // === Netz optional berücksichtigen ===
+        if ($netz_id > 0 && @IPS_VariableExists($netz_id)) {
+            $netz = GetValue($netz_id);
+            if ($netz > 0) {
+                $ueberschuss = $pv - $verbrauch - $batterie_ladung + $ladeleistung + $netz;
+                IPS_LogMessage("PVWallboxManager", "🔌 Einspeisung: {$netz} W, Wallbox: {$ladeleistung} W → verfügbarer Überschuss: {$ueberschuss} W");
+            } else {
+                $ueberschuss = $pv - $verbrauch - $batterie_ladung + $ladeleistung;
+                IPS_LogMessage("PVWallboxManager", "⚡ Netzbezug: {$netz} W → Berechnung ohne Netzeinspeisung");
+            }
+        } else {
+            $ueberschuss = $pv - $verbrauch - $batterie_ladung + $ladeleistung;
+            IPS_LogMessage("PVWallboxManager", "ℹ️ Kein Netzsensor konfiguriert → klassische Berechnung");
+        }
+
+        // === Logging aller Komponenten ===
+        IPS_LogMessage("PVWallboxManager", "📊 PV={$pv} W, Haus={$verbrauch} W, Batterie-Ladung={$batterie_ladung} W, Wallbox={$ladeleistung} W, Netz={$netz} W → Effektiver Überschuss={$ueberschuss} W");
+
+        // === Float-Filter gegen Miniabweichungen
         if (abs($ueberschuss) < 0.01) {
             $ueberschuss = 0.0;
         }
 
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
 
-        // === Mindestaktivierungsgrenze
+        // === Mindestwertprüfung
         $minAktiv = $this->ReadPropertyInteger('MinAktivierungsWatt');
         if ($ueberschuss < $minAktiv) {
-            $hinweis = "⏸️ PV-Überschuss zu gering ({$ueberschuss} W < {$minAktiv} W) – Modul bleibt inaktiv";
+            $hinweis = "⏸️ PV-Überschuss zu gering ({$ueberschuss} W < {$minAktiv} W) – Modul bleibt inaktiv";
             if ($netz > 0) {
-                $hinweis .= " (trotz {$netz} W Einspeisung)";
+                $hinweis .= " (obwohl {$netz} W eingespeist werden)";
             }
             IPS_LogMessage("PVWallboxManager", $hinweis);
             return;
-        }
-
-        // === Fahrzeugstatus prüfen
-        if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
-            $goeID = $this->ReadPropertyInteger('GOEChargerID');
-            $status = @GOeCharger_GetStatus($goeID);
-            if ($status === false) {
-                IPS_LogMessage("PVWallboxManager", "⚠️ Statusabfrage fehlgeschlagen – GO-e Instanz nicht erreichbar?");
-                return;
-            }
-            if (!in_array($status, [2, 4])) {
-                IPS_LogMessage("PVWallboxManager", "🚫 Kein Fahrzeug verbunden (Status $status) – Ladevorgang wird übersprungen");
-                $this->SetLadeleistung(0);
-                return;
-            }
-            IPS_LogMessage("PVWallboxManager", "✅ Fahrzeugstatus OK (Status $status) – Ladevorgang wird fortgesetzt");
-        }
-
-        // === Dynamischer Puffer
-        if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
-            $puffer_faktor = 0.93;
-            if ($ueberschuss < 2000) {
-                $puffer_faktor = 0.80;
-            } elseif ($ueberschuss < 4000) {
-                $puffer_faktor = 0.85;
-            } elseif ($ueberschuss < 6000) {
-                $puffer_faktor = 0.90;
-            }
-            $puffer = round($ueberschuss * (1 - $puffer_faktor));
-            $ueberschuss -= $puffer;
-            IPS_LogMessage("PVWallboxManager", "🔧 Dynamischer Puffer aktiviert: -{$puffer} W → verbleibend: {$ueberschuss} W");
-        }
-
-        // === Mindestladeleistung prüfen
-        $minLadeWatt = $this->ReadPropertyInteger('MinLadeWatt');
-        if ($ueberschuss < $minLadeWatt) {
-            IPS_LogMessage("⚡ PVWallboxManager", "🔌 PV-Überschuss zu gering ({$ueberschuss} W < {$minLadeWatt} W) – Ladeleistung = 0 W");
-            $this->SetLadeleistung(0);
-            return;
-        }
-
-        // === Logging
-        if ($ueberschuss > 100) {
-            IPS_LogMessage("⚡ PVWallboxManager", "✅ PV-Überschuss: $ueberschuss W ☀️🔋");
-        } elseif ($ueberschuss < -100) {
-            IPS_LogMessage("⚡ PVWallboxManager", "❗ Netzbezug: $ueberschuss W 🔌❌");
-        } else {
-            IPS_LogMessage("⚡ PVWallboxManager", "🔍 Kein signifikanter Überschuss: $ueberschuss W");
         }
 
         // === Ladeleistung berechnen
