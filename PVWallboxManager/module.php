@@ -80,7 +80,6 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    // Wird aufgerufen, wenn sich Konfigurationseinstellungen ändern
     public function BerechnePVUeberschuss()
     {
         $ueberschuss = 0;
@@ -93,19 +92,22 @@ class PVWallboxManager extends IPSModule
         $goeID         = $this->ReadPropertyInteger('GOEChargerID');
         $manuell       = GetValueBoolean($this->GetIDForIdent('ManuellVollladen'));
 
-        // === Fahrzeugstatus prüfen, wenn nötig ===
-        if (!$manuell && $this->ReadPropertyBoolean('NurMitFahrzeug')) {
-            $status = false;
+        if ($manuell) {
+            IPS_LogMessage("PVWallboxManager", "🚨 Manueller Volllademodus aktiv – Berechnung übersprungen, maximale Ladeleistung bleibt gesetzt");
+            return;
+        }
+
+        if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
+            $status = -1;
             if (@IPS_InstanceExists($goeID)) {
                 $status = @GOeCharger_GetStatus($goeID);
-                if (!in_array($status, [2, 3, 4])) {
-                    IPS_LogMessage("PVWallboxManager", "🚫 Kein Fahrzeug erkannt (Status $status) – Abbruch der Berechnung");
-                    $this->SetLadeleistung(0);
-                    return;
-                } else {
-                    IPS_LogMessage("PVWallboxManager", "✅ Fahrzeug erkannt (Status $status) – Berechnung wird fortgesetzt");
-                }
             }
+            if (!in_array($status, [2, 3, 4])) {
+                IPS_LogMessage("PVWallboxManager", "🚫 Fahrzeug nicht verbunden oder Status unbekannt ({$status}) – Abbruch der Berechnung");
+                $this->SetLadeleistung(0);
+                return;
+            }
+            IPS_LogMessage("PVWallboxManager", "✅ Fahrzeug erkannt (Status {$status}) – Berechnung wird fortgesetzt");
         }
 
         if (!@IPS_VariableExists($pv_id) || !@IPS_VariableExists($verbrauch_id) || !@IPS_VariableExists($batterie_id)) {
@@ -138,7 +140,6 @@ class PVWallboxManager extends IPSModule
             IPS_LogMessage("PVWallboxManager", "ℹ️ Kein zusätzlicher Rückfluss – nur Direktverbrauch wird berechnet");
         }
 
-        // === Pufferlogik aktivieren (falls konfiguriert) ===
         if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
             $pufferWatt = 300;
             $ueberschuss += $pufferWatt;
