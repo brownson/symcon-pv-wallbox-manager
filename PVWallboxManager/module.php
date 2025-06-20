@@ -80,6 +80,9 @@ class PVWallboxManager extends IPSModule
             case 'BerechnePVUeberschuss':
                 $this->BerechnePVUeberschuss();
                 break;
+            case 'ManuellVollladen':
+                SetValue($this->GetIDForIdent($ident), $value);
+                break;
         }
     }
 
