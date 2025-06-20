@@ -8,31 +8,17 @@ class PVWallboxManager extends IPSModule
         parent::Create();
 
         // === Modul-Variable für berechneten PV-Überschuss ===
-        // Diese Variable speichert das Ergebnis: PV-Erzeugung - Hausverbrauch
-        $this->RegisterVariableFloat('PV_Ueberschuss', 'PV-Überschuss (W)', '~Watt', 10);
+        $this->RegisterVariableFloat('PV_Ueberschuss', 'PV-Überschuss (W)', '~Watt', 10);   // Diese Variable speichert das Ergebnis: PV-Erzeugung - Hausverbrauch
 
         // === Properties zum Speichern der Quell-Variablen-IDs ===
-        // ID der PV-Erzeugungs-Variable (Watt)
-        $this->RegisterPropertyInteger('PVErzeugungID', 0);
+        $this->RegisterPropertyInteger('PVErzeugungID', 0); // ID der PV-Erzeugungs-Variable (Watt)
+        $this->RegisterPropertyInteger('HausverbrauchID', 0); // ID der Hausverbrauchs-Variable (Watt)
+        $this->RegisterPropertyInteger('BatterieladungID', 0);  // ID der Batterieladungs-Variable (Watt)
+        $this->RegisterPropertyInteger('RefreshInterval', 60); // Gibt an, wie oft die Überschuss-Berechnung durchgeführt werden soll
 
-        // ID der Hausverbrauchs-Variable (Watt)
-        $this->RegisterPropertyInteger('HausverbrauchID', 0);
-        
-        // ID der Batterieladungs-Variable (Watt)
-        $this->RegisterPropertyInteger('BatterieladungID', 0);
+        $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "BerechnePVUeberschuss", "");');   // Führt automatisch alle X Sekunden die Berechnung durch
 
-        // === Property für konfigurierbares Intervall (15–600 Sekunden) ===
-        // Gibt an, wie oft die Überschuss-Berechnung durchgeführt werden soll
-        $this->RegisterPropertyInteger('RefreshInterval', 60); // Standard: 60 Sekunden
-
-        // === Timer registrieren (wird später durch ApplyChanges konfiguriert) ===
-        // Führt automatisch alle X Sekunden die Berechnung durch
-        $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "BerechnePVUeberschuss", "");');
-
-
-
-        //$this->RegisterPropertyString('WallboxTyp', 'go-e'); // 'go-e' als Standardwert
-        $this->RegisterPropertyInteger('GOEChargerID', 0);
+        $this->RegisterPropertyInteger('GOEChargerID', 0);  //$this->RegisterPropertyString('WallboxTyp', 'go-e'); // 'go-e' als Standardwert
         $this->RegisterPropertyInteger('MinAmpere', 6);      // Untergrenze (z. B. 6 A)
         $this->RegisterPropertyInteger('MaxAmpere', 16);     // Obergrenze (z. B. 16 A)
         $this->RegisterPropertyInteger('Phasen', 3);         // Aktuelle Anzahl Phasen
@@ -61,16 +47,13 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('NetzeinspeisungID', 0); // Watt, positiv = Einspeisung, negativ = Bezug
         $this->RegisterVariableBoolean('ManuellVollladen', '🔌 Manuell: Vollladen aktiv', '', 95);
         $this->EnableAction('ManuellVollladen');
-        $this->RegisterPropertyFloat('CarBatteryCapacity', 52.0); // z. B. VW ID.3 = 52 kWh
-        
+        $this->RegisterPropertyFloat('CarBatteryCapacity', 52.0); // z. B. VW ID.3 = 52 kWh 
     }
     
     public function ApplyChanges()
     {
-        parent::ApplyChanges();
-
-        // Intervall auslesen und Timer setzen
-        $interval = $this->ReadPropertyInteger('RefreshInterval');
+        parent::ApplyChanges();     
+        $interval = $this->ReadPropertyInteger('RefreshInterval'); // Intervall auslesen und Timer setzen
         $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
     }
 
@@ -103,7 +86,6 @@ class PVWallboxManager extends IPSModule
         $ueberschuss = 0;
         $netz = 0;
 
-        // === IDs der Quell-Variablen aus Properties laden ===
         $pv_id         = $this->ReadPropertyInteger('PVErzeugungID');
         $verbrauch_id  = $this->ReadPropertyInteger('HausverbrauchID');
         $batterie_id   = $this->ReadPropertyInteger('BatterieladungID');
@@ -126,7 +108,6 @@ class PVWallboxManager extends IPSModule
             }
         }
 
-        
         if (!@IPS_VariableExists($pv_id) || !@IPS_VariableExists($verbrauch_id) || !@IPS_VariableExists($batterie_id)) {
             IPS_LogMessage("⚠️ PVWallboxManager", "❌ Fehler: PV-, Verbrauchs- oder Batterie-ID ist ungültig!");
             return;
@@ -155,6 +136,13 @@ class PVWallboxManager extends IPSModule
             }
         } else {
             IPS_LogMessage("PVWallboxManager", "ℹ️ Kein zusätzlicher Rückfluss – nur Direktverbrauch wird berechnet");
+        }
+
+        // === Pufferlogik aktivieren (falls konfiguriert) ===
+        if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
+            $pufferWatt = 300;
+            $ueberschuss += $pufferWatt;
+            IPS_LogMessage("PVWallboxManager", "🧮 Dynamischer Puffer aktiv: {$pufferWatt} W hinzugerechnet – neuer Wert: {$ueberschuss} W");
         }
 
         IPS_LogMessage("PVWallboxManager", "📊 PV={$pv} W, Haus={$verbrauch} W, Batterie-Ladung={$batterie_ladung} W, Wallbox={$ladeleistung} W, Netz={$netz} W → Effektiver Überschuss={$ueberschuss} W");
