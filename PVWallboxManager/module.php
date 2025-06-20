@@ -80,8 +80,19 @@ class PVWallboxManager extends IPSModule
             case 'BerechnePVUeberschuss':
                 $this->BerechnePVUeberschuss();
                 break;
+
             case 'ManuellVollladen':
                 SetValue($this->GetIDForIdent($ident), $value);
+                if ($value) {
+                    IPS_LogMessage("PVWallboxManager", "🚨 Manueller Lademodus über WebFront aktiviert – maximale Ladeleistung wird gesetzt");
+                    $phasen = $this->ReadPropertyInteger('Phasen');
+                    $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+                    $maxWatt = $phasen * 230 * $maxAmp;
+                    $this->SetLadeleistung($maxWatt);
+                } else {
+                    IPS_LogMessage("PVWallboxManager", "🔌 Manueller Lademodus über WebFront deaktiviert");
+                    $this->BerechnePVUeberschuss();
+                }
                 break;
         }
     }
@@ -100,40 +111,38 @@ class PVWallboxManager extends IPSModule
         $goeID         = $this->ReadPropertyInteger('GOEChargerID');
         $manuell       = GetValueBoolean($this->GetIDForIdent('ManuellVollladen'));
 
-         // === Fahrzeugstatus prüfen, wenn nötig ===
+        // === Fahrzeugstatus prüfen, wenn nötig ===
         if (!$manuell && $this->ReadPropertyBoolean('NurMitFahrzeug')) {
             $status = false;
             if (@IPS_InstanceExists($goeID)) {
                 $status = @GOeCharger_GetStatus($goeID);
-            }
-            if (!in_array($status, [2, 4])) {
-                IPS_LogMessage("PVWallboxManager", "🚫 Kein Fahrzeug erkannt (Status $status) – Abbruch der Berechnung");
-                $this->SetLadeleistung(0);
-                return;
+                if (!in_array($status, [2, 3, 4])) {
+                    IPS_LogMessage("PVWallboxManager", "🚫 Kein Fahrzeug erkannt (Status $status) – Abbruch der Berechnung");
+                    $this->SetLadeleistung(0);
+                    return;
+                } else {
+                    IPS_LogMessage("PVWallboxManager", "✅ Fahrzeug erkannt (Status $status) – Berechnung wird fortgesetzt");
+                }
             }
         }
 
-        // === Vorab prüfen, ob alle Variablen existieren ===
         if (!@IPS_VariableExists($pv_id) || !@IPS_VariableExists($verbrauch_id) || !@IPS_VariableExists($batterie_id)) {
             IPS_LogMessage("⚠️ PVWallboxManager", "❌ Fehler: PV-, Verbrauchs- oder Batterie-ID ist ungültig!");
             return;
         }
 
-        // === Werte holen ===
         $pv         = GetValue($pv_id);
         $verbrauch  = GetValue($verbrauch_id);
         $batterie   = GetValue($batterie_id);
-        $batterie_ladung = max($batterie, 0); // nur wenn Batterie lädt
+        $batterie_ladung = max($batterie, 0);
 
         $ladeleistung = 0;
         if (@IPS_InstanceExists($goeID)) {
-            $ladeleistung = @GOeCharger_GetPowerToCar($goeID) * 1000; // kW → W
+            $ladeleistung = @GOeCharger_GetPowerToCar($goeID) * 1000;
         }
 
-        // === Überschuss berechnen ===
         $ueberschuss = $pv - $verbrauch - $batterie_ladung;
 
-        // === Addiere nur EINE Rückspeisung (Wallbox oder Netz) ===
         if ($ladeleistung > 0) {
             $ueberschuss += $ladeleistung;
             IPS_LogMessage("PVWallboxManager", "⚡ Wallbox zieht aktuell {$ladeleistung} W – wird zur Berechnung aufgeschlagen");
@@ -147,17 +156,14 @@ class PVWallboxManager extends IPSModule
             IPS_LogMessage("PVWallboxManager", "ℹ️ Kein zusätzlicher Rückfluss – nur Direktverbrauch wird berechnet");
         }
 
-        // Logging
         IPS_LogMessage("PVWallboxManager", "📊 PV={$pv} W, Haus={$verbrauch} W, Batterie-Ladung={$batterie_ladung} W, Wallbox={$ladeleistung} W, Netz={$netz} W → Effektiver Überschuss={$ueberschuss} W");
 
-        // === Float-Filter gegen Miniabweichungen
         if (abs($ueberschuss) < 0.01) {
             $ueberschuss = 0.0;
         }
 
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
 
-        // === Mindestwertprüfung
         $minAktiv = $this->ReadPropertyInteger('MinAktivierungsWatt');
         if ($ueberschuss < $minAktiv) {
             IPS_LogMessage("PVWallboxManager", "⏹️ Kein ausreichender PV-Überschuss ({$ueberschuss} W < {$minAktiv} W) – Wallbox wird deaktiviert");
@@ -165,7 +171,6 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        // === Ladeleistung direkt übergeben – Phasenlogik entscheidet später ===
         $this->SetLadeleistung($ueberschuss);
         IPS_LogMessage("⚙️ PVWallboxManager", "Dynamische Ladeleistungsvorgabe: {$ueberschuss} W (Details folgen in SetLadeleistung)");
     }
