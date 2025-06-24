@@ -295,19 +295,18 @@ class PVWallboxManager extends IPSModule
             IPS_LogMessage("PVWallboxManager", "⚠️ Kein PV-Überschuss – Wert auf 0 gesetzt.");
         }
 
+        // Immer nach der Negativbehandlung: echten Überschuss schreiben!
+        SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
+        
         // --- PV2CarModus: Anteil des Überschusses für das Auto verwenden ---
         if (GetValue($this->GetIDForIdent('PV2CarModus'))) {
             $anteil = $this->ReadPropertyInteger('PVAnteilAuto');
             $ladeleistung = round($ueberschuss * ($anteil / 100.0));
             IPS_LogMessage("PVWallboxManager", "☀️ PV2Car aktiv – Anteil fürs Auto: {$anteil}%, Ladeleistung: {$ladeleistung} W");
             $this->SetLadeleistung($ladeleistung);
-            SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ladeleistung);
             $this->SetLademodusStatus("PV2Car: {$ladeleistung} W");
             return;
         }
-
-        // HIER jetzt immer nach der Negativbehandlung schreiben!
-        SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
 
         IPS_LogMessage(
             "PVWallboxManager",
