@@ -411,7 +411,7 @@ class PVWallboxManager extends IPSModule
 
     private function SetLadeleistung(int $watt)
     {
-        $typ = 'go-e'; // fest auf go-e gesetzt
+        $typ = 'go-e';
 
         switch ($typ) {
             case 'go-e':
@@ -419,6 +419,16 @@ class PVWallboxManager extends IPSModule
                 if (!@IPS_InstanceExists($goeID)) {
                     IPS_LogMessage("PVWallboxManager", "⚠️ go-e Charger Instanz nicht gefunden (ID: $goeID)");
                     return;
+                }
+                
+                // *** Korrektur: Counterlogik nur bei > 0 W ***
+                if ($watt > 0) {
+                    // ...Counter für Phasenumschaltung wie gehabt...
+                    // Umschalten bei Bedarf, Counter hochzählen
+                } else {
+                    // *** Counter zurücksetzen, keine Umschaltung ausführen ***
+                    $this->WriteAttributeInteger('Phasen1Counter', 0);
+                    $this->WriteAttributeInteger('Phasen3Counter', 0);
                 }
 
                 // Phasenumschaltung prüfen
