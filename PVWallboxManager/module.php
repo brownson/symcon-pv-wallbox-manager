@@ -164,7 +164,10 @@ class PVWallboxManager extends IPSModule
             !GetValue($this->GetIDForIdent('PV2CarModus')) &&
             !GetValue($this->GetIDForIdent('ZielzeitladungPVonly'))
         ) {
-            $this->SetLademodusStatus('Normalbetrieb PV-Überschussladung');
+            // Nichts aktiv, Wallbox ganz sicher deaktivieren
+            $this->SetLadeleistung(0);
+            $this->SetLademodusStatus("Wallbox deaktiviert (kein Modus aktiv, kein PV-Überschuss)");
+            return;
         }
     }
 
@@ -256,9 +259,45 @@ class PVWallboxManager extends IPSModule
             IPS_LogMessage("PVWallboxManager", "🧮 Dynamischer Pufferfaktor {$puffer_faktor} angewendet – neuer Überschuss: {$ueberschuss} W");
         }
 
+        // --- Start: Mindestüberschuss abwarten ---
+        $minLadeWatt = $this->ReadPropertyInteger('MinLadeWatt');
+        $minStopWatt = $this->ReadPropertyInteger('MinStopWatt');
+
+        if ($ueberschuss < $minLadeWatt) {
+            IPS_LogMessage("PVWallboxManager", "⏹️ PV-Überschuss zu gering ({$ueberschuss} W < {$minLadeWatt} W) – Wallbox bleibt aus");
+            $this->SetLadeleistung(0);
+            // Zusätzlicher Kontrollblock:
+            if (
+                !GetValue($this->GetIDForIdent('ManuellVollladen')) &&
+                !GetValue($this->GetIDForIdent('PV2CarModus')) &&
+                !GetValue($this->GetIDForIdent('ZielzeitladungPVonly'))
+            ) {
+                $this->SetLademodusStatus("Wallbox deaktiviert (kein Modus aktiv, kein PV-Überschuss)");
+            }
+            return;
+        }
+
+        // --- Stop: Defizitschwelle beachten (in SetLadeleistung nochmals geprüft!) ---
+        if ($ueberschuss < $minStopWatt) {
+            IPS_LogMessage("PVWallboxManager", "🛑 PV-Überschuss unter Defizitschwelle ({$ueberschuss} W < {$minStopWatt} W) – Wallbox wird deaktiviert");
+            $this->SetLadeleistung(0);
+            return;
+        }
+
         // Kleine Schwankungen ignorieren
         if (abs($ueberschuss) < 0.01) {
             $ueberschuss = 0.0;
+        }
+
+        // --- PV2CarModus: Anteil des Überschusses für das Auto verwenden ---
+        if (GetValue($this->GetIDForIdent('PV2CarModus'))) {
+            $anteil = $this->ReadPropertyInteger('PVAnteilAuto');
+            $ladeleistung = round($ueberschuss * ($anteil / 100.0));
+            IPS_LogMessage("PVWallboxManager", "☀️ PV2Car aktiv – Anteil fürs Auto: {$anteil}%, Ladeleistung: {$ladeleistung} W");
+            $this->SetLadeleistung($ladeleistung);
+            SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ladeleistung);
+            $this->SetLademodusStatus("PV2Car: {$ladeleistung} W");
+            return;
         }
 
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
@@ -267,6 +306,9 @@ class PVWallboxManager extends IPSModule
             "PVWallboxManager",
             "📊 Bilanz: PV={$pv} W, Haus={$verbrauch} W, Batterie={$batterie} W, " .
             "Wallbox={$ladeleistung} W => Überschuss={$ueberschuss} W");
+
+        // <--- HIER hinzufügen:
+        $this->SetLadeleistung($ueberschuss);
     }
 
     public function BerechneLadung()
