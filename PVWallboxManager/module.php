@@ -306,6 +306,7 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
+        // HIER jetzt immer nach der Negativbehandlung schreiben!
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
 
         IPS_LogMessage(
