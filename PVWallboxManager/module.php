@@ -174,7 +174,19 @@ class PVWallboxManager extends IPSModule
 
     public function BerechnePVUeberschuss()
     {
-        // --- Zielzeitladung PV-optimiert: Umschalten auf Soll-Ladeleistung ab x Stunden vor Zielzeit ---
+        // --- Kontrollblock: Kein Modus aktiv? Sofort abbrechen ---
+        if (
+            !GetValue($this->GetIDForIdent('ManuellVollladen')) &&
+            !GetValue($this->GetIDForIdent('PV2CarModus')) &&
+            !GetValue($this->GetIDForIdent('ZielzeitladungPVonly'))
+        ) {
+            IPS_LogMessage("PVWallboxManager", "❌ Kein Lademodus aktiv – Skript wird beendet.");
+            $this->SetLademodusStatus("Kein Modus aktiv (PV-Überschussladung deaktiviert)");
+            $this->SetLadeleistung(0);
+            SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
+            return;
+        }
+
         // --- Zielzeitladung PV-optimiert: Umschalten auf Soll-Ladeleistung ab x Stunden vor Zielzeit ---
         if (GetValue($this->GetIDForIdent('ZielzeitladungPVonly'))) {
             $now = time();
