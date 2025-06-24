@@ -82,13 +82,15 @@ class PVWallboxManager extends IPSModule
         // Zykluszeiten & Ladeplanung
         $this->RegisterPropertyInteger('RefreshInterval', 60); // Intervall für die Überschuss-Berechnung (Sekunden)
         $this->RegisterPropertyInteger('TargetChargePreTime', 4); // Stunden vor Zielzeit aktiv laden
+
+        $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "BerechnePVUeberschuss", 0);');
     }
     
     public function ApplyChanges()
     {
         parent::ApplyChanges();
         $interval = $this->ReadPropertyInteger('RefreshInterval');
-        $this->RegisterTimer('PVUeberschuss_Berechnen', $interval * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "BerechnePVUeberschuss", 0);');
+        $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
     }
 
     public function GetMinAmpere(): int
