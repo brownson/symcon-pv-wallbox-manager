@@ -83,9 +83,9 @@ class PVWallboxManager extends IPSModule
     
     public function ApplyChanges()
     {
-        parent::ApplyChanges();     
-        $interval = $this->ReadPropertyInteger('RefreshInterval'); // Intervall auslesen und Timer setzen
-        $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
+        parent::ApplyChanges();
+        $interval = $this->ReadPropertyInteger('RefreshInterval');
+        $this->RegisterTimer('PVUeberschuss_Berechnen', $interval * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "BerechnePVUeberschuss", 0);');
     }
 
     public function GetMinAmpere(): int
@@ -106,37 +106,42 @@ class PVWallboxManager extends IPSModule
             case 'ManuellVollladen':
                 SetValue($this->GetIDForIdent($ident), $value);
                 if ($value) {
-                    IPS_LogMessage("PVWallboxManager", "🚨 Manueller Lademodus über WebFront aktiviert – maximale Ladeleistung wird gesetzt");
                     SetValue($this->GetIDForIdent('PV2CarModus'), false);
                     SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
-                    $phasen = $this->ReadPropertyInteger('Phasen');
-                    $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
-                    $maxWatt = $phasen * 230 * $maxAmp;
-                    $this->SetLadeleistung($maxWatt);
+                    $this->SetLademodusStatus('Manueller Volllademodus aktiv');
                 } else {
-                    IPS_LogMessage("PVWallboxManager", "🔌 Manueller Lademodus über WebFront deaktiviert");
-                    $this->BerechnePVUeberschuss();
+                    $this->SetLademodusStatus('');
                 }
                 break;
 
             case 'PV2CarModus':
-                SetValue($this->GetIDForIdent('PV2CarModus'), $value);
+                SetValue($this->GetIDForIdent($ident), $value);
                 if ($value) {
                     SetValue($this->GetIDForIdent('ManuellVollladen'), false);
                     SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
+                    $this->SetLademodusStatus('PV2Car Modus aktiv');
+                } else {
+                    $this->SetLademodusStatus('');
                 }
                 break;
 
             case 'ZielzeitladungPVonly':
-                SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), $value);
+                SetValue($this->GetIDForIdent($ident), $value);
                 if ($value) {
                     SetValue($this->GetIDForIdent('ManuellVollladen'), false);
                     SetValue($this->GetIDForIdent('PV2CarModus'), false);
+                    $this->SetLademodusStatus('Zielzeitladung PV-optimiert aktiv');
+                } else {
+                    $this->SetLademodusStatus('');
                 }
                 break;
 
             case 'TargetTime':
-                SetValue($this->GetIDForIdent('TargetTime'), $value);
+                SetValue($this->GetIDForIdent($ident), $value);
+                break;
+
+            case 'BerechnePVUeberschuss':
+                $this->BerechnePVUeberschuss();
                 break;
         }
     }
@@ -359,7 +364,7 @@ class PVWallboxManager extends IPSModule
                 }
 
                 // === Laden deaktivieren ===
-                if ($watt <= 0 || $watt < $minStopWatt) {
+                if ($watt < $minStopWatt) {
                     if ($aktuellerModus !== 1) {
                         GOeCharger_setMode($goeID, 1);
                         IPS_LogMessage("PVWallboxManager", "🛑 Modus auf 1 (Nicht laden) gesetzt – Ladeleistung: {$watt} W");
@@ -394,4 +399,3 @@ class PVWallboxManager extends IPSModule
         }
     }
 }
-?>
