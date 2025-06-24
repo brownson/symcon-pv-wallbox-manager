@@ -55,8 +55,6 @@
       "items": [
         { "type": "Label", "label": "🧮 Aktiviert dynamischen Sicherheitsabzug bei der Leistungsberechnung." },
         { "type": "CheckBox", "name": "DynamischerPufferAktiv", "caption": "Dynamischen Puffer aktivieren" },
-        { "type": "Label", "label": "🚀 Mindestüberschuss zur Aktivierung der Ladung." },
-        { "type": "NumberSpinner", "name": "MinAktivierungsWatt", "caption": "Minimale Aktivierungsleistung (W)" },
         { "type": "Label", "label": "🚗 Nur laden wenn Fahrzeug erkannt ist (Status 2 oder 4)." },
         { "type": "CheckBox", "name": "NurMitFahrzeug", "caption": "Nur laden, wenn Fahrzeug verbunden" },
         { "type": "Label", "label": "⚖️ PV-Leistung anteilig zwischen Haus und Auto aufteilen." },

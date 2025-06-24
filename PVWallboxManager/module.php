@@ -41,7 +41,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('Phasen3Schwelle', 4200); // Schwelle zum Umschalten auf 3-phasig (Watt)
         $this->RegisterPropertyInteger('Phasen1Limit', 3); // Messzyklen unterhalb Schwelle vor Umschalten auf 1-phasig
         $this->RegisterPropertyInteger('Phasen3Limit', 3); // Messzyklen oberhalb Schwelle vor Umschalten auf 3-phasig
-        $this->RegisterPropertyInteger('MinAktivierungsWatt', 300); // Mindestüberschuss zur Aktivierung (Watt)
         $this->RegisterPropertyBoolean('DynamischerPufferAktiv', true); // Dynamischer Sicherheitsabzug aktiv
 
         // Fahrzeug-Erkennung & Steuerung
