@@ -1,6 +1,28 @@
 # Changelog
 
-## 🚀 Version 0.6 – 18.06.2025
+## 🧪 [0.7] – 24.06.2025 (Beta-Phase)
+
+### Neue Funktionen
+
+- Zielzeitladung PV-optimiert:
+  - Neuer Button im WebFront aktiviert eine intelligente Zielzeitladung.
+  - Während dieser aktiv ist, wird nur PV-Überschuss verwendet.
+  - Automatisches Umschalten auf gezielte Ladung (volle Leistung oder dynamisch berechnet) ab konfigurierbarer Vorlaufzeit (Standard: 4 Stunden) vor Zielzeit.
+- PV2Car-Modus:
+  - Getrennte Aktivierung für PV2Car-Laden mit festem prozentualen Anteil des Überschusses.
+- Gegenseitiger Ausschluss der Modi:
+  - Nur ein Modus (Manuell, PV2Car, Zielzeitladung) kann gleichzeitig aktiv sein.
+  - Aktivierung eines Modus deaktiviert automatisch die anderen.
+- Automatische Deaktivierung der Modi:
+  - Alle Modi (Manuell, PV2Car, Zielzeitladung) deaktivieren sich automatisch, wenn das Fahrzeug abgesteckt wird.
+- Formular-Erweiterung:
+  - Vorlaufzeit für die Zielzeitladung ist jetzt konfigurierbar.
+
+### Verbesserungen
+- Verbesserte Status-Logik beim Trennen des Fahrzeugs.
+- Logging ergänzt für Modus-Umschaltungen und Fahrzeugtrennung.
+
+## 🚀 [0.6] – 18.06.2025
 
 ### Neue Funktionen
 - `ManuellVollladen`: Neuer Button zum Laden mit voller Leistung – unabhängig von PV-Zustand oder Netzbezug
@@ -8,13 +30,13 @@
 - Schutz: PV-Berechnung (`BerechnePVUeberschuss`) wird bei aktiviertem Volllade-Modus unterdrückt
 
 ### Verbesserungen
-- 🔌 Berechnung des PV-Überschusses berücksichtigt jetzt:
+  - 🔌 Berechnung des PV-Überschusses berücksichtigt jetzt:
   - Netzeinspeisung nur bei positiven Werten
   - Batterieladung nur wenn positiv (nur Laden zählt)
   - Aktuelle Ladeleistung zur Wallbox wird aufgerechnet
   - Bei zu geringem Überschuss (unter Aktivierungsgrenze) wird die Wallbox zuverlässig deaktiviert (`SetLadeleistung(0)`)
 
-## 🚗 Version 0.5 – Integration Fahrzeugdaten
+## 🚗 [0.5] – Integration Fahrzeugdaten
 
 - NEU: Unterstützung für Fahrzeugdaten wie aktueller SoC und Ziel-SoC
 - Konfigurierbarer Schalter „Fahrzeugdaten berücksichtigen (UseCarSOC)“

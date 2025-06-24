@@ -7,47 +7,50 @@ class PVWallboxManager extends IPSModule
     {
         parent::Create();
 
-        // === Modul-Variable für berechneten PV-Überschuss ===
-        $this->RegisterVariableFloat('PV_Ueberschuss', 'PV-Überschuss (W)', '~Watt', 10);   // Diese Variable speichert das Ergebnis: PV-Erzeugung - Hausverbrauch
+        $this->RegisterVariableFloat('PV_Ueberschuss', 'PV-Überschuss (W)', '~Watt', 10); // Berechneter PV-Überschuss in Watt
 
-        // === Properties zum Speichern der Quell-Variablen-IDs ===
-        $this->RegisterPropertyInteger('PVErzeugungID', 0); // ID der PV-Erzeugungs-Variable (Watt)
-        $this->RegisterPropertyInteger('HausverbrauchID', 0); // ID der Hausverbrauchs-Variable (Watt)
-        $this->RegisterPropertyInteger('BatterieladungID', 0);  // ID der Batterieladungs-Variable (Watt)
-        $this->RegisterPropertyInteger('RefreshInterval', 60); // Gibt an, wie oft die Überschuss-Berechnung durchgeführt werden soll
-
-        $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "BerechnePVUeberschuss", "");');   // Führt automatisch alle X Sekunden die Berechnung durch
-
-        $this->RegisterPropertyInteger('GOEChargerID', 0);  //$this->RegisterPropertyString('WallboxTyp', 'go-e'); // 'go-e' als Standardwert
-        $this->RegisterPropertyInteger('MinAmpere', 6);      // Untergrenze (z. B. 6 A)
-        $this->RegisterPropertyInteger('MaxAmpere', 16);     // Obergrenze (z. B. 16 A)
-        $this->RegisterPropertyInteger('Phasen', 3);         // Aktuelle Anzahl Phasen
-        $this->RegisterPropertyInteger('MinLadeWatt', 1400); // Mindestüberschuss für Ladestart
-        $this->RegisterPropertyInteger('MinStopWatt', -300); // Untergrenze für Stoppen der Ladung
-        $this->RegisterPropertyInteger('Phasen1Schwelle', 1000);
-        $this->RegisterPropertyInteger('Phasen3Schwelle', 4200);
-        $this->RegisterPropertyInteger('Phasen1Limit', 3);
-        $this->RegisterPropertyInteger('Phasen3Limit', 3);
-        $this->RegisterPropertyBoolean('DynamischerPufferAktiv', true); // Schalter für Pufferlogik
-        $this->RegisterPropertyInteger('MinAktivierungsWatt', 300);
-        $this->RegisterPropertyBoolean('NurMitFahrzeug', true); // Nur laden, wenn Fahrzeug verbunden
-        $this->RegisterPropertyBoolean('UseCarSOC', false);
-        $this->RegisterPropertyInteger('CarSOCID', 0);
-        $this->RegisterPropertyFloat('CarSOCFallback', 20);
-        $this->RegisterPropertyInteger('CarTargetSOCID', 0);
-        $this->RegisterPropertyFloat('CarTargetSOCFallback', 80);
-        $this->RegisterAttributeInteger('Phasen1Counter', 0);
-        $this->RegisterAttributeInteger('Phasen3Counter', 0);
-        $this->RegisterVariableInteger('TargetTime', 'Ziel-Zeit (Uhr)', '~UnixTimestampTime', 60);
+        $this->RegisterPropertyInteger('PVErzeugungID', 0); // ID der PV-Erzeugungs-Variable
+        $this->RegisterPropertyInteger('HausverbrauchID', 0); // ID der Hausverbrauchs-Variable
+        $this->RegisterPropertyInteger('BatterieladungID', 0); // ID der Batterie-Ladungs-Variable
+        $this->RegisterPropertyInteger('RefreshInterval', 60); // Intervall für Überschuss-Berechnung in Sekunden
+        $this->RegisterPropertyInteger('GOEChargerID', 0); // ID der go-e Charger Instanz
+        $this->RegisterPropertyInteger('MinAmpere', 6); // Minimale Stromstärke in Ampere
+        $this->RegisterPropertyInteger('MaxAmpere', 16); // Maximale Stromstärke in Ampere
+        $this->RegisterPropertyInteger('Phasen', 3); // Anzahl der aktiven Phasen
+        $this->RegisterPropertyInteger('MinLadeWatt', 1400); // Mindestleistung zum Starten des Ladevorgangs
+        $this->RegisterPropertyInteger('MinStopWatt', -300); // Schwelle zum Stoppen der Ladung
+        $this->RegisterPropertyInteger('Phasen1Schwelle', 1000); // Schwellwert für Umschaltung auf 1-phasig
+        $this->RegisterPropertyInteger('Phasen3Schwelle', 4200); // Schwellwert für Umschaltung auf 3-phasig
+        $this->RegisterPropertyInteger('Phasen1Limit', 3); // Zählerlimit für Umschaltung auf 1-phasig
+        $this->RegisterPropertyInteger('Phasen3Limit', 3); // Zählerlimit für Umschaltung auf 3-phasig
+        $this->RegisterPropertyBoolean('DynamischerPufferAktiv', true); // Aktiviert dynamischen Leistungspuffer
+        $this->RegisterPropertyInteger('MinAktivierungsWatt', 300); // Mindestüberschuss zur Aktivierung der Wallbox
+        $this->RegisterPropertyBoolean('NurMitFahrzeug', true); // Nur laden wenn Fahrzeug verbunden ist
+        $this->RegisterPropertyBoolean('UseCarSOC', false); // Fahrzeug-SOC in Ladeentscheidungen einbeziehen
+        $this->RegisterPropertyInteger('CarSOCID', 0); // ID der Fahrzeug-SOC Variable
+        $this->RegisterPropertyFloat('CarSOCFallback', 20); // Fallback-Wert für Fahrzeug-SOC in Prozent
+        $this->RegisterPropertyInteger('CarTargetSOCID', 0); // ID der Ziel-SOC Variable
+        $this->RegisterPropertyFloat('CarTargetSOCFallback', 80); // Fallback-Zielwert für SOC in Prozent
+        $this->RegisterAttributeInteger('Phasen1Counter', 0); // interner Zähler für Umschaltung 1-phasig
+        $this->RegisterAttributeInteger('Phasen3Counter', 0); // interner Zähler für Umschaltung 3-phasig
+        $this->RegisterVariableInteger('TargetTime', 'Ziel-Zeit (Uhr)', '~UnixTimestampTime', 60); // Zielzeit für geplante Ladung
         $this->EnableAction('TargetTime');
-        $this->RegisterPropertyBoolean('PVVerteilenAktiv', false);
-        $this->RegisterPropertyInteger('PVAnteilAuto', 33); // z. B. 33 % fürs Auto
-        $this->RegisterPropertyInteger('HausakkuSOCID', 0); // Integer-Variable für Hausakku-SoC
-        $this->RegisterPropertyInteger('HausakkuSOCVollSchwelle', 95);
-        $this->RegisterPropertyInteger('NetzeinspeisungID', 0); // Watt, positiv = Einspeisung, negativ = Bezug
-        $this->RegisterVariableBoolean('ManuellVollladen', '🔌 Manuell: Vollladen aktiv', '', 95);
+        $this->RegisterPropertyBoolean('PVVerteilenAktiv', false); // PV-Verteilmodus aktivieren
+        $this->RegisterPropertyInteger('PVAnteilAuto', 33); // Anteil des PV-Überschusses für das Auto in Prozent
+        $this->RegisterPropertyInteger('HausakkuSOCID', 0); // ID für den SOC des Hausakkus
+        $this->RegisterPropertyInteger('HausakkuSOCVollSchwelle', 95); // Schwellwert ab wann Hausakku als voll gilt
+        $this->RegisterPropertyInteger('NetzeinspeisungID', 0); // ID der Netzeinspeisungs-Variable
+        $this->RegisterVariableBoolean('ManuellVollladen', '🔌 Manuell: Vollladen aktiv', '', 95); // Manueller Volllademodus
         $this->EnableAction('ManuellVollladen');
-        $this->RegisterPropertyFloat('CarBatteryCapacity', 52.0); // z. B. VW ID.3 = 52 kWh 
+        $this->RegisterPropertyFloat('CarBatteryCapacity', 52.0); // Batteriekapazität des Fahrzeugs in kWh
+
+        $this->RegisterVariableBoolean('PV2CarModus', '☀️ PV2Car aktiv', '', 96); // PV2Car Modus aktivieren
+        $this->EnableAction('PV2CarModus');
+
+        $this->RegisterVariableBoolean('ZielzeitladungPVonly', '⏱️ Zielzeitladung PV-optimiert', '', 97); // Zielzeitladung PV-optimiert aktivieren
+        $this->EnableAction('ZielzeitladungPVonly');
+
+        $this->RegisterPropertyInteger('TargetChargePreTime', 4); // Stunden vor Zielzeit aktiv laden
     }
     
     public function ApplyChanges()
@@ -60,14 +63,12 @@ class PVWallboxManager extends IPSModule
     public function RequestAction($ident, $value)
     {
         switch ($ident) {
-            case 'BerechnePVUeberschuss':
-                $this->BerechnePVUeberschuss();
-                break;
-
             case 'ManuellVollladen':
                 SetValue($this->GetIDForIdent($ident), $value);
                 if ($value) {
                     IPS_LogMessage("PVWallboxManager", "🚨 Manueller Lademodus über WebFront aktiviert – maximale Ladeleistung wird gesetzt");
+                    SetValue($this->GetIDForIdent('PV2CarModus'), false);
+                    SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
                     $phasen = $this->ReadPropertyInteger('Phasen');
                     $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
                     $maxWatt = $phasen * 230 * $maxAmp;
@@ -75,6 +76,22 @@ class PVWallboxManager extends IPSModule
                 } else {
                     IPS_LogMessage("PVWallboxManager", "🔌 Manueller Lademodus über WebFront deaktiviert");
                     $this->BerechnePVUeberschuss();
+                }
+                break;
+
+            case 'PV2CarModus':
+                SetValue($this->GetIDForIdent('PV2CarModus'), $value);
+                if ($value) {
+                    SetValue($this->GetIDForIdent('ManuellVollladen'), false);
+                    SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
+                }
+                break;
+
+            case 'ZielzeitladungPVonly':
+                SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), $value);
+                if ($value) {
+                    SetValue($this->GetIDForIdent('ManuellVollladen'), false);
+                    SetValue($this->GetIDForIdent('PV2CarModus'), false);
                 }
                 break;
         }
@@ -178,6 +195,11 @@ class PVWallboxManager extends IPSModule
                     if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
                         SetValue($this->GetIDForIdent('ManuellVollladen'), false);
                         IPS_LogMessage("PVWallboxManager", "🔌 Fahrzeug getrennt – manueller Volllademodus deaktiviert");
+                    }
+                    if (GetValue($this->GetIDForIdent('PV2CarModus')) || GetValue($this->GetIDForIdent('ZielzeitladungPVonly'))) {
+                        SetValue($this->GetIDForIdent('PV2CarModus'), false);
+                        SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
+                        IPS_LogMessage("PVWallboxManager", "🚗 Fahrzeug getrennt – PV2Car- und Zielzeitladung deaktiviert");
                     }
                 }
             }

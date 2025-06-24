@@ -1,41 +1,47 @@
-# ✅ Checkliste für Beta-Freigabe – PVWallboxManager (ab Version 0.4)
+# ✅ PVWallboxManager – Aktueller Entwicklungsstand & To-Do-Liste
 
-## 🔧 Funktionalität
-- [ ] PV-Überschussberechnung und Ladeleistungssteuerung stabil
-- [ ] Phasenumschaltung mit Zähler-Hysterese umgesetzt
-- [ ] Lademodi:
-  - [ ] Manueller Modus
-  - [ ] PV2Car (%-Modus)
-  - [ ] Uhrzeit-Zielladung
-  - [ ] Nur-PV-Modus (Fallback)
+## 🟢 Abgeschlossene Funktionen
 
-## 📈 Logik & Performance
-- [ ] Nur bei Änderungen wird neu gesetzt (Modus / Ladeleistung)
-- [ ] Keine Endlosschleifen oder unnötige Timer-Trigger
-- [ ] Ladeleistung wird sauber auf Rundungswert angepasst (z. B. 230 V * Ampere)
-- [ ] Fehlerhandling für fehlende Fahrzeugverbindung eingebaut (ggf. deaktivierbar)
+### Kernfunktionen
+- [x] PV-Überschussberechnung (PV – Hausverbrauch – Batterie)
+- [x] Visualisierung des PV-Überschusses in IP-Symcon
+- [x] Dynamische Ladeleistungsanpassung (konfigurierbarer Ampere-Bereich)
+- [x] Automatische Phasenumschaltung (1-/3-phasig) mit Hysterese
+- [x] Dynamischer Puffer für stabilere Leistungsregelung
+- [x] Fahrzeugstatusprüfung (Laden nur wenn Fahrzeug verbunden)
 
-## 🌐 Integration
-- [ ] Modul unterstützt go-e Charger (V4)
-- [ ] Kompatibilität mit Symcon 8.x getestet (ggf. 7.x optional dokumentiert)
-- [ ] Optional: Vorbereitung für CarConnectivity-MQTT (Fahrzeugdaten)
+### Erweiterte Ladelogik
+- [x] Manueller Volllademodus mit automatischer Deaktivierung bei Fahrzeugtrennung
+- [x] PV2Car-Modus mit flexiblem Überschuss-Anteil fürs Fahrzeug
+- [x] Zielzeitladung PV-optimiert (nur PV-Überschuss bis x Stunden vor Zielzeit, dann volle Ladung)
+- [x] Automatischer Moduswechsel: Nur ein Modus (Manuell, PV2Car, Zielzeit) aktiv gleichzeitig
+- [x] Automatisches Zurücksetzen aller Modi bei Fahrzeugtrennung
 
-## 📄 Dokumentation
-- [ ] `README.md` enthält:
-  - [ ] Kurze Funktionsübersicht
-  - [ ] Installationsanleitung (Modul-URL, Variablen anlegen, Profile)
-  - [ ] Beschreibung der Lademodi
-  - [ ] Beispielkonfiguration (z. B. Screenshot mit IDs)
-  - [ ] Hinweise zu bekannten Einschränkungen / Limitierungen
-- [ ] `form.json` sauber strukturiert und selbsterklärend
-- [ ] `changelog.md` führt alle bisherigen Änderungen
+### Fahrzeugdaten-Integration
+- [x] SoC-basierte Ladeentscheidungen möglich über `UseCarSOC`
+- [x] Ziel-SoC flexibel über Variable oder Fallback-Wert definierbar
 
-## 📢 Vorbereitung Community-Release (ab Version 0.5)
-- [ ] GitHub-Repository öffentlich (falls noch privat)
-- [ ] Releases mit Tags gepflegt (z. B. `v0.4-beta`)
-- [ ] Screenshot für Forum-Beitrag erstellt
-- [ ] Thema im Symcon-Forum vorbereiten:
-  - [ ] Titel: `[Modul] PVWallboxManager – dynamische PV-Überschussladung (go-e)`
-  - [ ] Link zum GitHub-Modul
-  - [ ] Screenshots & Featureübersicht
-  - [ ] Hinweis: *Beta, Feedback willkommen!*
+### Konfiguration & Oberfläche
+- [x] Konfigurierbare Vorlaufzeit für Zielzeitladung im `form.json`
+- [x] Detaillierte Tooltips & Beschreibungen für alle Einstellungen
+- [x] Strukturierte, übersichtliche Konfigurationsoberfläche
+
+### Dokumentation
+- [x] Vollständig aktualisierte README mit allen Funktionen & Modi
+- [x] Detaillierter Changelog inkl. Version 0.7 (Beta)
+
+---
+
+## 🔧 Offene Punkte & nächste Schritte
+
+### Benutzeroberfläche & Dokumentation
+- [ ] Screenshots und Beispieldarstellungen für WebFront ergänzen
+- [ ] Englische README vorbereiten (optional)
+
+### Funktionale Weiterentwicklung
+- [ ] Ladeplanung für Zielzeitladung vervollständigen (dynamischer Startzeitpunkt je nach SoC)
+- [ ] Anbindung externer Fahrzeugdaten (z. B. über MQTT oder VW-Car-API)
+- [ ] Erweiterte WebFront-Visualisierung (Phasenstatus, Ladezustand, Modus)
+- [ ] Unterstützung weiterer Wallbox-Typen prüfen & vorbereiten (z. B. openWB, easee)
+- [ ] Zielzeitladung finalisieren nach Rückmeldungen aus der Beta-Phase
+
