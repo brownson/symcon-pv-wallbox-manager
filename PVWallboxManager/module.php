@@ -284,7 +284,7 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-                // Kleine Schwankungen ignorieren
+        // Kleine Schwankungen ignorieren
         if (abs($ueberschuss) < 0.01) {
             $ueberschuss = 0.0;
         }
@@ -311,9 +311,10 @@ class PVWallboxManager extends IPSModule
         IPS_LogMessage(
             "PVWallboxManager",
             "📊 Bilanz: PV={$pv} W, Haus={$verbrauch} W, Batterie={$batterie} W, " .
-            "Wallbox={$ladeleistung} W => Überschuss={$ueberschuss} W");
+            "Wallbox={$ladeleistung} W => Überschuss={$ueberschuss} W"
+        );
 
-        // <--- HIER hinzufügen:
+        // Hier ist der zentrale Aufruf!
         $this->SetLadeleistung($ueberschuss);
     }
 
