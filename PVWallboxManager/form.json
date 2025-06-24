@@ -1,63 +1,70 @@
 {
   "elements": [
     {
-      "type": "ExpansionPanel",
-      "caption": "\ud83d\udd0c Wallbox-Konfiguration",
+  "type": "ExpansionPanel",
+  "caption": "🔌 Wallbox-Konfiguration",
+  "items": [
+    {
+      "type": "Label",
+      "label": "⚙️ Konfiguriere hier deine GO-e Wallbox und Ladeparameter."
+    },
+    {
+      "type": "RowLayout",
       "items": [
-        {
-          "type": "Label",
-          "label": "\u2699\ufe0f Konfiguriere hier deine GO-e Wallbox und Ladeparameter."
-        },
-        {
-          "type": "Label",
-          "label": "\ud83d\udcdf GO-e Instanz: W\u00e4hle deine bestehende GO-e Instanz aus."
-        },
         {
           "type": "SelectInstance",
           "name": "GOEChargerID",
           "caption": "GO-e Instanz",
           "validClasses": [
             "GOeCharger"
+          ],
+          "width": "200px"
+        },
+        {
+          "type": "ColumnLayout",
+          "items": [
+            {
+            "type": "Label",
+            "label": "\u2198\ufe0f Minimale Stromst\u00e4rke (Ampere) f\u00fcr das Laden."
+            },
+            {
+              "type": "NumberSpinner",
+              "name": "MinAmpere",
+              "caption": "Minimaler Ladestrom (A)"
+            },
+            {
+            "type": "Label",
+            "label": "\u2197\ufe0f Maximale Stromst\u00e4rke (Ampere) f\u00fcr das Laden."
+            },
+            {
+              "type": "NumberSpinner",
+              "name": "MaxAmpere",
+              "caption": "Maximaler Ladestrom (A)"
+            },
+            {
+            "type": "Label",
+            "label": "\u26a1 Schwelle, ab der das Laden starten darf."
+            },
+            {
+              "type": "NumberSpinner",
+              "name": "MinLadeWatt",
+              "caption": "Start bei PV-Überschuss (W)"
+            },
+            {
+            "type": "Label",
+            "label": "\ud83d\uded1 Schwelle, bei der das Laden gestoppt wird."
+            },
+            {
+              "type": "NumberSpinner",
+              "name": "MinStopWatt",
+              "caption": "Stoppen bei Defizit (W)"
+            }
           ]
-        },
-        {
-          "type": "Label",
-          "label": "\u2198\ufe0f Minimale Stromst\u00e4rke (Ampere) f\u00fcr das Laden."
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "MinAmpere",
-          "caption": "Minimaler Ladestrom (A)"
-        },
-        {
-          "type": "Label",
-          "label": "\u2197\ufe0f Maximale Stromst\u00e4rke (Ampere) f\u00fcr das Laden."
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "MaxAmpere",
-          "caption": "Maximaler Ladestrom (A)"
-        },
-        {
-          "type": "Label",
-          "label": "\u26a1 Schwelle, ab der das Laden starten darf."
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "MinLadeWatt",
-          "caption": "Start bei PV-\u00dcberschuss (W)"
-        },
-        {
-          "type": "Label",
-          "label": "\ud83d\uded1 Schwelle, bei der das Laden gestoppt wird."
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "MinStopWatt",
-          "caption": "Stoppen bei Defizit (W)"
         }
       ]
-    },
+    }
+  ]
+},
     {
       "type": "ExpansionPanel",
       "caption": "\ud83c\udf1e Energiequellen",
@@ -217,17 +224,19 @@
         },
         {
           "type": "CheckBox",
-          "name": "PVVerteilenAktiv",
-          "caption": "PV-Anteil für Auto aktivieren"
+          "name": "PV2CarModus",
+          "caption": "☀️ PV-Anteil fürs Auto aktiv",
+          "description": "Nur ein prozentual definierter Anteil des verfügbaren PV-Überschusses wird zum Laden verwendet. Rest steht dem Haus oder Akku zur Verfügung."
         },
         {
           "type": "NumberSpinner",
           "name": "PVAnteilAuto",
-          "caption": "Anteil der PV-Erzeugung für Auto",
+          "caption": "Anteil des PV-Überschusses fürs Fahrzeug (%)",
           "suffix": "%",
           "minimum": 0,
           "maximum": 100,
           "step": 1,
+          "description": "Definiert, wie viel Prozent des aktuell verfügbaren PV-Überschusses zum Laden des Fahrzeugs verwendet werden, wenn 'PV-Anteil fürs Auto' aktiv ist.",
           "visible": {
             "name": "PVVerteilenAktiv",
             "equals": true
