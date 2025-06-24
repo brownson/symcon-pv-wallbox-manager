@@ -1,116 +1,88 @@
-# Changelog
+# 🕘 Changelog – PVWallboxManager
 
-## 🧪 [0.7] – 24.06.2025 (Beta-Phase)
+Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.  
+**Repository:** https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager
 
-### Neue Funktionen
+---
 
-- Zielzeitladung PV-optimiert:
-  - Neuer Button im WebFront aktiviert eine intelligente Zielzeitladung.
-  - Während dieser aktiv ist, wird nur PV-Überschuss verwendet.
-  - Automatisches Umschalten auf gezielte Ladung (volle Leistung oder dynamisch berechnet) ab konfigurierbarer Vorlaufzeit (Standard: 4 Stunden) vor Zielzeit.
-- PV2Car-Modus:
-  - Getrennte Aktivierung für PV2Car-Laden mit festem prozentualen Anteil des Überschusses.
-- Gegenseitiger Ausschluss der Modi:
-  - Nur ein Modus (Manuell, PV2Car, Zielzeitladung) kann gleichzeitig aktiv sein.
-  - Aktivierung eines Modus deaktiviert automatisch die anderen.
-- Automatische Deaktivierung der Modi:
-  - Alle Modi (Manuell, PV2Car, Zielzeitladung) deaktivieren sich automatisch, wenn das Fahrzeug abgesteckt wird.
-- Formular-Erweiterung:
-  - Vorlaufzeit für die Zielzeitladung ist jetzt konfigurierbar.
+## [0.7] – 2025-06-24
+### 🚀 Highlights
+- Zielzeitladung (PV-optimiert) ist jetzt verfügbar (Beta): Tagsüber PV-Überschuss, 4h vor Zielzeit Umschalten auf Vollladung.
+- Vollständige Überarbeitung der PV-Überschussberechnung:  
+  - Es werden keine negativen Werte mehr als PV-Überschuss geschrieben.
+  - Logik: PV + Wallbox-Leistung – Hausverbrauch – (nur positive) Batterie-Leistung ± Netzeinspeisung.
+- Phasenumschaltung über stabile Umschaltzähler (Hysterese) verfeinert.
+- Dynamischer Pufferfaktor ersetzt statischen Puffer. Staffelung:  
+  - <2000 W → 80 %  
+  - <4000 W → 85 %  
+  - <6000 W → 90 %  
+  - >6000 W → 93 %
+- Neu: Statusvariable und WebFront-Anzeige für aktuellen Lademodus.
+- Alle Buttons (Manuell, PV2Car, Zielzeitladung) schließen sich jetzt gegenseitig aus.
+- Modus-Status und PV-Überschuss werden bei Inaktivität zurückgesetzt.
+- Unterstützung für PV2Car: Prozentsatz des Überschusses als Ladeleistung konfigurierbar.
+- Automatische Deaktivierung aller Modi, wenn Fahrzeug getrennt.
 
-### Verbesserungen
-- Verbesserte Status-Logik beim Trennen des Fahrzeugs.
-- Logging ergänzt für Modus-Umschaltungen und Fahrzeugtrennung.
+### 🛠️ Fixes & interne Änderungen
+- **Bugfix:** Negative Überschusswerte werden nicht mehr als Ladeleistung verwendet.
+- **Bugfix:** PV-Überschuss-Variable zeigt immer >= 0 W.
+- Fehlerhafte/unnötige Properties entfernt (z. B. MinAktivierungsWatt).
+- PV-Überschuss wird jetzt ausschließlich über den aktuellen Betriebsmodus berechnet (keine doppelten Berechnungen).
+- Modul-URL und Doku-Links auf `github.com/Sol-IoTiv` aktualisiert.
+- Verbesserte Loggingausgaben für Debug & Nachvollziehbarkeit.
+- Code-Optimierung und Cleanups (u. a. bessere Trennung von Modus/Status).
+- Default-Werte und form.json-Beschreibungen für Start/Stop und Phasenumschaltung überarbeitet.
 
-## 🚀 [0.6] – 18.06.2025
+---
 
-### Neue Funktionen
-- `ManuellVollladen`: Neuer Button zum Laden mit voller Leistung – unabhängig von PV-Zustand oder Netzbezug
-- Automatische Deaktivierung des manuellen Modus, wenn das Fahrzeug abgesteckt wird
-- Schutz: PV-Berechnung (`BerechnePVUeberschuss`) wird bei aktiviertem Volllade-Modus unterdrückt
+## [0.6] – 2025-06-18
+### 🚗 Zielzeitladung (Beta)
+- Einführung Zielzeitladung (SoC-basiert, Vorlaufzeit 4 h, nur PV oder mit Netz).
+- Fahrzeug-SOC-Integration.
+- Archiv-Variablen und Zielzeit-Vergleich.
+- Fehlerbehandlung, wenn keine Zielwerte verfügbar.
 
-### Verbesserungen
-  - 🔌 Berechnung des PV-Überschusses berücksichtigt jetzt:
-  - Netzeinspeisung nur bei positiven Werten
-  - Batterieladung nur wenn positiv (nur Laden zählt)
-  - Aktuelle Ladeleistung zur Wallbox wird aufgerechnet
-  - Bei zu geringem Überschuss (unter Aktivierungsgrenze) wird die Wallbox zuverlässig deaktiviert (`SetLadeleistung(0)`)
+---
 
-## 🚗 [0.5] – Integration Fahrzeugdaten
+## [0.5] – 2025-06-14
+### 🧠 Fahrzeugdaten, Modus-Buttons & Logging
+- SOC-basierte Ladeentscheidung (aktiver vs. Ziel-SoC).
+- Buttons: Manuell, PV2Car, Zielzeitladung – gegenseitig exklusiv, mit Modus-Statusanzeige.
+- Erweiterung Logging (Phasenumschaltung, Lademodus, SoC).
+- Fehlerhafte Timer-Registrierung gefixt.
 
-- NEU: Unterstützung für Fahrzeugdaten wie aktueller SoC und Ziel-SoC
-- Konfigurierbarer Schalter „Fahrzeugdaten berücksichtigen (UseCarSOC)“
-- Fallback-Ziel-SoC nutzbar, falls keine Variable angegeben ist
-- Dynamisches Verhalten: Nur wenn UseCarSOC aktiv, wird SOC-Logik berücksichtigt
-- Optimierter Code für saubere Ladeentscheidung basierend auf Zielwert
+---
 
-## [0.4] – 2025-06-17
-🚀 Hinzugefügt
-- Fahrzeugstatusprüfung: Ladung wird nur gestartet, wenn ein Fahrzeug angeschlossen ist (Status 2 oder 4)
-- Neue Option „Nur laden, wenn Fahrzeug verbunden ist“ in der Konfiguration (deaktivierbar)
-- Umfangreiche Beschreibungen & Icons zu allen Eingabefeldern im `form.json`
-- Modulstruktur vereinfacht: Unterstützung aktuell ausschließlich für GO-e Charger
-- Fehlerbehandlung und Logging verbessert (z. B. Statusabfrage, Ladeleistung)
+## [0.4] – 2025-06-10
+### 🔁 Phasenumschaltung & Pufferlogik
+- Dynamische Phasenumschaltung (Hysterese 3x unter/über Schwelle).
+- Neuer „Dynamischer Puffer“ für stabilere Ladeleistungsregelung.
+- Neue Properties für Phasenschwellen und Limit.
+- Verbesserte Fehler- und Statuslogs.
 
-🛠️ Geändert
-- Logik zur Statusauswertung (Status 1 und 3 führen jetzt zuverlässig zum Abbruch)
-- Entfernt: `ReadPropertyString('WallboxTyp')` (nur GO-e aktiv)
+---
 
-## [v0.3] – 2025-06-17
+## [0.3] – 2025-06-07
+### 🏁 Start/Stop Schwellen, Logging
+- Separate Properties für Start/Stopp-Leistung (Watt).
+- Überschussberechnung mit Wallbox-Eigenverbrauch.
+- Erweiterte Logik für Batterie (nur positive Werte).
+- Erste Beta-Version an Tester verteilt.
 
-### ✨ Hinzugefügt
-- Dynamische Sicherheits-Pufferlogik für PV-Überschuss: Je nach verfügbarem Überschuss werden 7–20 % abgezogen, um kurzfristige Einbrüche abzufedern.
-- Neuer Konfigurationsschalter `DynamischerPufferAktiv` (Standard: aktiv), um diese Funktion zu aktivieren/deaktivieren.
-- Konfigurierbare Checkbox in der `form.json`, mit Beschreibung zur Wirkung des Puffers im Instanzformular.
+---
 
-### 🔁 Geändert
-- Ladeleistungsberechnung berücksichtigt nun optional den Puffer – wirkt sich direkt auf Phasenumschaltung und Ladeentscheidungen aus.
+## [0.2] – 2025-06-01
+- Basisskript für PV-Überschussladung auf GO-eCharger portiert.
+- Basis-Berechnung für Überschuss, Start/Stopp, Logging, Ladeleistungsregelung.
+- WebFront-Integration, Variablen & Actions angelegt.
 
-## [v0.2] – 2025-06-16
+---
 
-### ✨ Hinzugefügt
-- Automatische Umschaltung zwischen 1-phasigem und 3-phasigem Laden basierend auf PV-Überschuss.
-- Konfigurierbare Hysterese mit Schwellenwerten (`Phasen1Schwelle`, `Phasen3Schwelle`) und Zählerlimits (`Phasen1Limit`, `Phasen3Limit`).
-- Vermeidung unnötiger Umschaltungen durch intelligente Zählerlogik mit Reset bei Zwischenwerten.
-- Ausführliches Logging für:
-  - PV-Überschuss und berechnete Ladeleistung
-  - Phasenumschalt-Zählerstände
-  - Ausgelöste Phasenumschaltungen
-  - Ladeleistungsänderungen und Moduswechsel des go-e Chargers
+## [0.1] – 2025-05-27
+- Initialer Import und Start der Entwicklung.
+- Grundfunktionen für PV-Überschussberechnung und Ladeleistungssteuerung.
+- Dokumentation und Roadmap angelegt.
 
-### 🛠️ Geändert
-- Ladeleistung wird nur gesetzt, wenn sich der neue Wert um mehr als 50 W vom aktuellen unterscheidet.
-- Der go-e Modus (Laden/Nicht laden) wird nur umgeschaltet, wenn sich der Zustand wirklich ändert.
+---
 
-
-## [v0.1] – 2025-06-16
-
-### ✅ Grundfunktionen:
-- Berechnung des PV-Überschusses: `PV-Erzeugung – Hausverbrauch – Batterieladung`
-- Unterstützung für Hausbatterien (positiv = Laden, negativ = Entladen)
-- Visualisierung des Überschusses als IP-Symcon Variable `PV_Ueberschuss`
-- Timer zur zyklischen Ausführung (konfigurierbar 15–600 s)
-
-### ⚙️ Dynamische Ladeleistungsberechnung:
-- Ampere-Berechnung basierend auf konfigurierbarer Phasenanzahl und 230 V
-- Konfigurierbarer Bereich für min. und max. Ampere (z. B. 6–16 A)
-- Ladeleistung wird nur gesetzt, wenn sie sich um mehr als ±50 W ändert
-
-### 🔌 go-e Charger Integration (via IPSCoyote):
-- Auswahl der go-e Instanz im Modul-Konfigurator
-- Verwendung von `GOeCharger_setMode` und `GOeCharger_SetCurrentChargingWatt`
-- Verwendeter Ident für Modus: `accessStateV2`
-- Moduswechsel nur bei tatsächlicher Änderung
-- **NEU:** Logausgabe bei unveränderter Moduslage („🟡 Modus bereits X – keine Umschaltung notwendig“)
-- **NEU:** Logausgabe bei unveränderter Ladeleistung („🟡 Ladeleistung unverändert – keine Änderung notwendig“)
-
-### 🔍 Logging und Verhalten:
-- Umfangreiche Logmeldungen mit Symbolen zur Nachvollziehbarkeit
-- Float-Toleranzfilter (z. B. 2.273736754E-13 W → 0)
-- Negative PV-Überschüsse führen zur Deaktivierung der Wallbox
-- Schwellwerte für Start (`MinLadeWatt`) und Stopp (`MinStopWatt`) frei konfigurierbar
-
-### 🧱 Technisches:
-- Properties vollständig über `form.json` konfigurierbar
-- Automatische Erkennung der Ziel-Instanz und verwendeter Variablen
-- Optimierte `SetLadeleistung()`-Funktion mit robuster Ident-Erkennung
+© 2025 [Siegfried Pesendorfer](https://github.com/Sol-IoTiv) – Open Source für die Symcon-Community

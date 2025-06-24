@@ -16,32 +16,45 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 
 ## 🚀 Funktionen
 
-- 🔋 **PV-Überschussgesteuertes Laden** (PV – Verbrauch – Batterie)
-- ⚙️ **Dynamische Ladeleistungsanpassung** mit einstellbarem Ampere-Bereich
-- 🔁 **Automatische Phasenumschaltung (1-/3-phasig)** mit Hysterese
-- 🧠 **Dynamischer Pufferfaktor** für sichere Leistungsregelung
-- 📉 **Live-Berechnung des PV-Überschusses**
-- 🧪 Optional: Fahrzeug-SoC, Uhrzeit-Zielmodus, PV2Car (%), MQTT-Integration
-- 🚗 Fahrzeugstatusprüfung: Laden nur wenn Fahrzeug verbunden (optional)
-- ✨ **Intelligente Zielzeitladung (ab Version 0.7, Beta):**
-  - Nutzt PV-Überschuss, lädt spätestens X Stunden vor Zielzeit gezielt auf
-  - Vorlaufzeit flexibel einstellbar
-  - Automatische Deaktivierung bei Fahrzeugtrennung
-- ☀️ **PV2Car Modus:**
-  - Ladeanteil des PV-Überschusses konfigurierbar
-  - Modus schließt andere Modi automatisch aus
-- 🔌 **Manuell: Vollladen aktiv:**
-  - Erzwingt volle Ladeleistung unabhängig von PV-Überschuss
-  - Automatische Deaktivierung bei Fahrzeugtrennung
+- 🔋 **PV-Überschussgesteuertes Laden:** PV – Hausverbrauch – (nur positive) Batterie-Leistung, inkl. Wallbox-Eigenverbrauch.
+- ⚙️ **Dynamische Ladeleistungsanpassung** mit konfigurierbarem Ampere-Bereich und Sicherheits-Puffer.
+- 🔁 **Automatische Phasenumschaltung (1-/3-phasig):** Mit konfigurierbaren Schwellwerten und Umschaltzähler, kein hektisches Umschalten.
+- 🧠 **Dynamischer Pufferfaktor:** Sorgt dafür, dass immer ein Sicherheitspuffer bleibt (Wirkungsgrad ≈80–93 %, je nach Überschuss).
+- 📉 **Live-Berechnung des PV-Überschusses:** Alle 60 s (einstellbar) – Bilanz aus PV-Erzeugung, Hausverbrauch, Batterie und Wallbox.
+- 🚗 **Fahrzeugstatusprüfung:** Laden nur wenn ein Fahrzeug verbunden ist (optional).
+- ⏱️ **Intelligente Zielzeitladung (PV-optimiert):**
+  - Tagsüber nur PV-Überschuss; spätestens X Stunden vor Zielzeit automatische Vollladung (PV+Netz).
+  - Ziel-SoC, Zielzeit und Puffer individuell konfigurierbar.
+- ☀️ **PV2Car-Modus:** Ein frei einstellbarer Prozentsatz des Überschusses wird ans Auto weitergegeben.
+- 🔌 **Manueller Volllademodus:** Lädt mit maximaler Leistung, unabhängig von PV, auch aus Netz/Akku.
+- 📊 **Status- und Visualisierungsvariablen:** PV-Überschuss (W), Modus-Status, Zielzeit, aktuelle Ladeleistung, etc.
+- 🛑 **Sicherheitslogik:** Start/Stop-Schwellen (Watt) für stabile Überschuss-Erkennung.
 
-### 🧠 Fahrzeugdatenbasierte Ladung (ab Version 0.5)
+## ⚡ So funktioniert die Berechnung
 
-- Das Modul kann den Ladezustand des Fahrzeugs (State of Charge, SoC) berücksichtigen
-- Ziel-SoC kann per Variable oder manuell definiert werden
-- Die SoC-Werte werden nur dann berücksichtigt, wenn die Option „Fahrzeugdaten berücksichtigen“ aktiviert ist
-- Wenn der aktuelle SoC bereits größer oder gleich Ziel-SoC ist, startet keine Ladung
+**Bilanzformel:**  
+`PV-Überschuss = PV-Erzeugung + (Wallbox-Entnahme) - Hausverbrauch - (nur positive Batterie-Leistung)`
 
----
+- Ist die Batterie im Entladebetrieb (negativ), zählt sie *nicht* zum PV-Überschuss.
+- Im Modus **PV2Car** wird der eingestellte Prozentsatz vom Überschuss als Ladeleistung ans Fahrzeug gegeben.
+- **Dynamischer Puffer**:  
+  - <2000 W: 80 %  
+  - <4000 W: 85 %  
+  - <6000 W: 90 %  
+  - >6000 W: 93 %
+- **Start/Stopp:**  
+  - Start: Überschuss >= `MinLadeWatt`
+  - Stopp: Überschuss < `MinStopWatt`
+  - Überschuss <0 W → Wallbox aus, Wert = 0.
+
+**Phasenumschaltung:**  
+- Umschalten auf 1-phasig, wenn Ladeleistung mehrfach unter Schwelle (`Phasen1Schwelle` + `Phasen1Limit`).
+- Umschalten auf 3-phasig, wenn Ladeleistung mehrfach über Schwelle (`Phasen3Schwelle` + `Phasen3Limit`).
+- Zähler werden automatisch zurückgesetzt, wenn Schwellen nicht dauerhaft erreicht.
+
+**Zielzeitladung (PV-optimiert):**  
+- Bis X Stunden vor Zielzeit: nur PV-Überschussladung.
+- Im letzten Zeitfenster: Maximale Ladeleistung (PV+Netz/Akku) bis Ziel-SoC.
 
 ## 🧰 Voraussetzungen
 
@@ -51,41 +64,39 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 - PV-Erzeugung, Hausverbrauch und Batterieladung als Variablen verfügbar (in Watt)
 - Aktivierter lokaler API-Zugriff im GO-eCharger (API1 + API2)
 
-> ⚠️ **Wichtig:**\
+> ⚠️ **Wichtig:**  
 > Im GO-eCharger müssen **API 1 und API 2 aktiviert** sein (unter Einstellungen > API-Zugriff), damit die Steuerung über das Modul funktioniert.
 
 ---
 
-## 🛠️ Installation
 
-1. Modul-URL im IP-Symcon hinzufügen:
-   ```
-   https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager
-   ```
-2. Instanz „PVWallboxManager“ anlegen
-3. Konfigurationsfelder im WebFront ausfüllen:
-   - GO-e Instanz auswählen
-   - Energiequellen (PV, Hausverbrauch, Batterie)
-   - Ladegrenzen definieren (z. B. 1400 W Start / -300 W Stop)
-   - Min/Max Ampere, Phasenanzahl, Pufferlogik
-   - Fahrzeugdaten und Zielzeitladung konfigurieren (optional)
+## 🔎 Wichtige Einstellungen
+
+- **GO-eCharger Instanz**: Die Instanz-ID deiner Wallbox.
+- **PV-Erzeugung / Hausverbrauch / Batterie**: Jeweils die aktuelle Leistung in Watt als Variable.
+- **Start bei PV-Überschuss** (`MinLadeWatt`): Unterhalb dieses Werts bleibt die Wallbox aus.
+- **Stoppen bei Defizit** (`MinStopWatt`): Sinkt der Überschuss unter diesen Wert, wird gestoppt.
+- **Phasenanzahl**: 1 oder 3, abhängig von der Installation.
+- **Phasenumschalt-Schwellen**: Grenzwerte und Hysterese für Umschaltung.
+- **Dynamischer Puffer**: Reduziert die Ladeleistung automatisch (siehe oben).
+- **Fahrzeugdaten**: Optionale SOC-/Zielwerte für Zielzeitladung.
 
 ---
 
 ## 📋 Beispielkonfiguration
 
-| Einstellung          | Beispielwert |
-| -------------------- | ------------ |
-| GOEChargerID         | 58186        |
-| MinAmpere            | 6            |
-| MaxAmpere            | 16           |
-| MinLadeWatt          | 1400         |
-| MinStopWatt          | -300         |
-| Phasen               | 3            |
-| Phasen1Schwelle      | 1000         |
-| Phasen3Schwelle      | 4200         |
-| Dynamischer Puffer   | Aktiviert    |
-| Zielzeit Vorlauf (h) | 4            |
+| Einstellung               | Beispielwert    |
+|--------------------------|-----------------|
+| GOEChargerID             | 58186           |
+| MinAmpere                | 6               |
+| MaxAmpere                | 16              |
+| MinLadeWatt              | 1400            |
+| MinStopWatt              | -300            |
+| Phasen                   | 3               |
+| Phasen1Schwelle          | 1000            |
+| Phasen3Schwelle          | 4200            |
+| Dynamischer Puffer       | Aktiviert       |
+| Zielzeit Vorlauf (h)     | 4               |
 
 ---
 
@@ -130,20 +141,21 @@ Du möchtest die Weiterentwicklung unterstützen? Wir freuen uns über eine klei
 
 Das Modul protokolliert automatisch relevante Entscheidungen:
 
-- Start/Stop der Ladung
-- Phasenwechsel (inkl. Zählerstand)
+- Start/Stop der Ladung und Phasenwechsel (inkl. Zählerstand)
 - Effektive Ladeleistung und PV-Verfügbarkeit
 - Moduswechsel (Manuell, PV2Car, Zielzeitladung)
 - Fahrzeugtrennung und automatische Modus-Deaktivierung
+- Fehlerbehandlung bei Variablen, Status und API-Kommunikation
 
 ---
 
 ## 🚧 Hinweise
 
-- Dieses Modul wird aktiv weiterentwickelt
-- Derzeit nur mit GO-e Charger getestet, theoretisch aber modular erweiterbar (z. B. openWB etc.)
-- Bei Phasenumschaltung ist zusätzliche Hardware (z. B. Umschaltrelais + Steuerung über Symcon-Variable) erforderlich
-- Die Zielzeitladung befindet sich aktuell in der Beta-Phase
+- Dieses Modul wird aktiv weiterentwickelt.
+- Derzeit nur mit GO-e Charger getestet, theoretisch aber modular erweiterbar (z. B. openWB etc.).
+- Bei Phasenumschaltung ist zusätzliche Hardware (z. B. Umschaltrelais + Steuerung über Symcon-Variable) erforderlich.
+- Die Zielzeitladung befindet sich aktuell in der Beta-Phase.
+- Der „PV2Car“-Anteil steuert nur den Prozentsatz des Überschusses, nicht die absolute Ladeleistung.
 
 ---
 
