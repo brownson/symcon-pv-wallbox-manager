@@ -160,41 +160,35 @@ class PVWallboxManager extends IPSModule
         $netz_id      = $this->ReadPropertyInteger('NetzeinspeisungID');
         $goeID        = $this->ReadPropertyInteger('GOEChargerID');
 
-        // Werte lesen
+        // Werte lesen (je 0 wenn Variable nicht existiert)
         $pv        = @IPS_VariableExists($pv_id)        ? GetValue($pv_id)        : 0;
         $verbrauch = @IPS_VariableExists($verbrauch_id) ? GetValue($verbrauch_id) : 0;
         $batterie  = @IPS_VariableExists($batterie_id)  ? GetValue($batterie_id)  : 0;
         $netz      = @IPS_VariableExists($netz_id)      ? GetValue($netz_id)      : 0;
         $ladeleistung = 0;
 
-        // Ladeleistung der Wallbox zum Fahrzeug, wenn möglich (nur go-e)
+        // Wallbox-Leistung zum Fahrzeug (wird im Standard vom Überschuss abgezogen, daher zurückaddieren)
         if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
             $ladeleistung = @GOeCharger_GetPowerToCar($goeID) * 1000; // in W
+            if ($ladeleistung > 0) {
+                $pv += $ladeleistung; // so wird Wallbox-Leistung zur PV dazugezählt
+                IPS_LogMessage("PVWallboxManager", "⚡ Wallbox-Leistung {$ladeleistung} W zur PV addiert");
+            }
         }
 
-        // PV-Überschuss nach tatsächlicher Energiebilanz
+        // PV-Überschuss: PV – Hausverbrauch – Batterie-Ladung
         $ueberschuss = $pv - $verbrauch - max($batterie, 0);
 
-        // Wallbox-Leistung wird wieder "freigegeben"
-        if ($ladeleistung > 0) {
-            $ueberschuss += $ladeleistung;
-            IPS_LogMessage("PVWallboxManager", "⚡ Wallbox zieht {$ladeleistung} W – zum Überschuss addiert");
-        }
-
-        // Netzeinspeisung positiv = Einspeisung, negativ = Bezug
-        if ($netz !== 0) {
-            $ueberschuss += $netz;
-            if ($netz > 0) {
-                IPS_LogMessage("PVWallboxManager", "🔌 Netzeinspeisung {$netz} W – als Überschuss addiert");
-            } else {
-                IPS_LogMessage("PVWallboxManager", "🔌 Netzbezug {$netz} W – als Defizit abgezogen");
-            }
+        // KEIN Hinzufügen von Netzeinspeisung!
+        // Die Netzeinspeisung entspricht genau diesem Überschuss, deshalb nur zur Info loggen:
+        if ($netz_id > 0 && @IPS_VariableExists($netz_id)) {
+            IPS_LogMessage("PVWallboxManager", "ℹ️ Netzeinspeisung (Info): {$netz} W");
         }
 
         // Dynamischer Puffer
         if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
             $ueberschuss += 300;
-            IPS_LogMessage("PVWallboxManager", "🧮 Dynamischer Puffer (+300 W) angewendet");
+            IPS_LogMessage("PVWallboxManager", "🧮 Dynamischer Puffer (+300 W) angewendet – neuer Überschuss: {$ueberschuss} W");
         }
 
         // Kleine Schwankungen ignorieren
@@ -204,7 +198,10 @@ class PVWallboxManager extends IPSModule
 
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
 
-        IPS_LogMessage("PVWallboxManager", "📊 Bilanz: PV={$pv} W, Haus={$verbrauch} W, Batterie={$batterie} W, Wallbox={$ladeleistung} W, Netz={$netz} W => Überschuss={$ueberschuss} W");
+        IPS_LogMessage(
+            "PVWallboxManager",
+            "📊 Bilanz: PV={$pv} W, Haus={$verbrauch} W, Batterie={$batterie} W, " .
+            "Wallbox={$ladeleistung} W, Netz={$netz} W => Überschuss={$ueberschuss} W");
     }
 
     public function BerechneLadung()
