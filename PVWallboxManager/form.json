@@ -1,337 +1,93 @@
 {
   "elements": [
     {
-  "type": "ExpansionPanel",
-  "caption": "🔌 Wallbox-Konfiguration",
-  "items": [
-    {
-      "type": "Label",
-      "label": "⚙️ Konfiguriere hier deine GO-e Wallbox und Ladeparameter."
+      "type": "ExpansionPanel",
+      "caption": "🔌 Wallbox-Konfiguration",
+      "items": [
+        { "type": "Label", "label": "⚙️ Konfiguriere hier deine GO-e Wallbox und Ladeparameter." },
+        { "type": "Label", "label": "🆔 Auswahl deiner GO-e Charger Instanz:" },
+        { "type": "SelectInstance", "name": "GOEChargerID", "caption": "GO-e Instanz", "validClasses": ["GOeCharger"] },
+        { "type": "Label", "label": "🔧 Minimale Stromstärke in Ampere für den Ladevorgang." },
+        { "type": "NumberSpinner", "name": "MinAmpere", "caption": "Minimaler Ladestrom (A)" },
+        { "type": "Label", "label": "🔧 Maximale Stromstärke in Ampere für den Ladevorgang." },
+        { "type": "NumberSpinner", "name": "MaxAmpere", "caption": "Maximaler Ladestrom (A)" },
+        { "type": "Label", "label": "⚡ Mindestüberschuss, ab dem die Wallbox lädt (Watt)." },
+        { "type": "NumberSpinner", "name": "MinLadeWatt", "caption": "Start bei PV-Überschuss (W)" },
+        { "type": "Label", "label": "🛑 Leistungsgrenze, unter der die Ladung gestoppt wird (Watt)." },
+        { "type": "NumberSpinner", "name": "MinStopWatt", "caption": "Stoppen bei Defizit (W)" }
+      ]
     },
     {
-      "type": "RowLayout",
+      "type": "ExpansionPanel",
+      "caption": "🌞 Energiequellen",
       "items": [
-        {
-          "type": "SelectInstance",
-          "name": "GOEChargerID",
-          "caption": "GO-e Instanz",
-          "validClasses": [
-            "GOeCharger"
-          ],
-          "width": "200px"
-        },
-        {
-          "type": "ColumnLayout",
-          "items": [
-            {
-            "type": "Label",
-            "label": "\u2198\ufe0f Minimale Stromst\u00e4rke (Ampere) f\u00fcr das Laden."
-            },
-            {
-              "type": "NumberSpinner",
-              "name": "MinAmpere",
-              "caption": "Minimaler Ladestrom (A)"
-            },
-            {
-            "type": "Label",
-            "label": "\u2197\ufe0f Maximale Stromst\u00e4rke (Ampere) f\u00fcr das Laden."
-            },
-            {
-              "type": "NumberSpinner",
-              "name": "MaxAmpere",
-              "caption": "Maximaler Ladestrom (A)"
-            },
-            {
-            "type": "Label",
-            "label": "\u26a1 Schwelle, ab der das Laden starten darf."
-            },
-            {
-              "type": "NumberSpinner",
-              "name": "MinLadeWatt",
-              "caption": "Start bei PV-Überschuss (W)"
-            },
-            {
-            "type": "Label",
-            "label": "\ud83d\uded1 Schwelle, bei der das Laden gestoppt wird."
-            },
-            {
-              "type": "NumberSpinner",
-              "name": "MinStopWatt",
-              "caption": "Stoppen bei Defizit (W)"
-            }
-          ]
-        }
+        { "type": "Label", "label": "🌅 PV-Erzeugung in Watt (Pflichtangabe)." },
+        { "type": "SelectVariable", "name": "PVErzeugungID", "caption": "PV-Erzeugung (W)", "validVariableTypes": [2] },
+        { "type": "Label", "label": "🔌 Netzeinspeisung in Watt (positiv = Einspeisung, negativ = Bezug)." },
+        { "type": "SelectVariable", "name": "NetzeinspeisungID", "caption": "Netzeinspeisung (W)" },
+        { "type": "Label", "label": "🏠 Aktueller Gesamtverbrauch des Hauses in Watt." },
+        { "type": "SelectVariable", "name": "HausverbrauchID", "caption": "Hausverbrauch (W)", "validVariableTypes": [2] },
+        { "type": "Label", "label": "🔋 Lade- oder Entladeleistung der Hausbatterie (Watt)." },
+        { "type": "SelectVariable", "name": "BatterieladungID", "caption": "Batterieladung (W)", "validVariableTypes": [2] },
+        { "type": "Label", "label": "🔄 Intervall für die Leistungsberechnung in Sekunden." },
+        { "type": "NumberSpinner", "name": "RefreshInterval", "caption": "Aktualisierungsintervall (s)", "minimum": 15, "maximum": 600 }
+      ]
+    },
+    {
+      "type": "ExpansionPanel",
+      "caption": "⚡ Phasenumschaltung",
+      "items": [
+        { "type": "Label", "label": "🔢 Anfangswert für die Anzahl aktiver Phasen." },
+        { "type": "NumberSpinner", "name": "Phasen", "caption": "Anzahl Phasen (Initialwert)" },
+        { "type": "Label", "label": "⬇️ Schwelle in Watt zum Umschalten auf 1-phasig." },
+        { "type": "NumberSpinner", "name": "Phasen1Schwelle", "caption": "Schwelle auf 1-phasig (W)" },
+        { "type": "Label", "label": "⬆️ Schwelle in Watt zum Umschalten auf 3-phasig." },
+        { "type": "NumberSpinner", "name": "Phasen3Schwelle", "caption": "Schwelle auf 3-phasig (W)" },
+        { "type": "Label", "label": "🔢 Zählerlimit für stabile Umschaltung auf 1-phasig." },
+        { "type": "NumberSpinner", "name": "Phasen1Limit", "caption": "Zählerlimit 1-phasig" },
+        { "type": "Label", "label": "🔢 Zählerlimit für stabile Umschaltung auf 3-phasig." },
+        { "type": "NumberSpinner", "name": "Phasen3Limit", "caption": "Zählerlimit 3-phasig" }
+      ]
+    },
+    {
+      "type": "ExpansionPanel",
+      "caption": "🧠 Intelligente Logik",
+      "items": [
+        { "type": "Label", "label": "🧮 Aktiviert dynamischen Sicherheitsabzug bei der Leistungsberechnung." },
+        { "type": "CheckBox", "name": "DynamischerPufferAktiv", "caption": "Dynamischen Puffer aktivieren" },
+        { "type": "Label", "label": "🚀 Mindestüberschuss zur Aktivierung der Ladung." },
+        { "type": "NumberSpinner", "name": "MinAktivierungsWatt", "caption": "Minimale Aktivierungsleistung (W)" },
+        { "type": "Label", "label": "🚗 Nur laden wenn Fahrzeug erkannt ist (Status 2 oder 4)." },
+        { "type": "CheckBox", "name": "NurMitFahrzeug", "caption": "Nur laden, wenn Fahrzeug verbunden" },
+        { "type": "Label", "label": "⚖️ PV-Leistung anteilig zwischen Haus und Auto aufteilen." },
+        { "type": "CheckBox", "name": "PVVerteilenAktiv", "caption": "PV-Leistung aufteilen aktivieren" },
+        { "type": "Label", "label": "🚗 Anteil des PV-Überschusses fürs Fahrzeug." },
+        { "type": "NumberSpinner", "name": "PVAnteilAuto", "caption": "PV-Anteil fürs Auto (%)", "suffix": "%", "visible": { "name": "PVVerteilenAktiv", "equals": true } },
+        { "type": "Label", "label": "🔋 Hausakku SoC zur Berücksichtigung bei voller Batterie." },
+        { "type": "SelectVariable", "name": "HausakkuSOCID", "caption": "Hausakku SoC (%)", "visible": { "name": "PVVerteilenAktiv", "equals": true } },
+        { "type": "Label", "label": "🔋 Schwelle ab wann Hausakku als voll gilt." },
+        { "type": "NumberSpinner", "name": "HausakkuSOCVollSchwelle", "caption": "Voll-Schwelle Hausbatterie (%)", "suffix": "%", "minimum": 50, "maximum": 100, "visible": { "name": "PVVerteilenAktiv", "equals": true } },
+        { "type": "Label", "label": "⏱️ Stunden vor Zielzeit, ab wann aktiv geladen wird." },
+        { "type": "NumberSpinner", "name": "TargetChargePreTime", "caption": "Umschaltzeit vor Zielzeit (h)", "suffix": "h", "minimum": 1, "maximum": 12 }
+      ]
+    },
+    {
+      "type": "ExpansionPanel",
+      "caption": "🚗 Fahrzeugdaten",
+      "items": [
+        { "type": "Label", "label": "📊 Fahrzeugdaten für SoC-basierte Ladesteuerung verwenden." },
+        { "type": "CheckBox", "name": "UseCarSOC", "caption": "Fahrzeugdaten berücksichtigen" },
+        { "type": "Label", "label": "🔋 Aktueller SoC des Fahrzeugs (Variable)." },
+        { "type": "SelectVariable", "name": "CarSOCID", "caption": "Aktueller SoC (Variable)" },
+        { "type": "Label", "label": "🔋 Fallback SoC in %, wenn keine Variable angegeben." },
+        { "type": "NumberSpinner", "name": "CarSOCFallback", "caption": "Fallback SoC (%)", "suffix": "%" },
+        { "type": "Label", "label": "🎯 Ziel-SoC für das Fahrzeug." },
+        { "type": "SelectVariable", "name": "CarTargetSOCID", "caption": "Ziel-SoC (Variable)" },
+        { "type": "Label", "label": "🎯 Fallback Ziel-SoC in %, wenn keine Variable angegeben." },
+        { "type": "NumberSpinner", "name": "CarTargetSOCFallback", "caption": "Fallback Ziel-SoC (%)", "suffix": "%" },
+        { "type": "Label", "label": "🔋 Batteriekapazität des Fahrzeugs in kWh." },
+        { "type": "NumberSpinner", "name": "CarBatteryCapacity", "caption": "Batteriekapazität (kWh)", "suffix": "kWh" }
       ]
     }
   ]
-},
-    {
-      "type": "ExpansionPanel",
-      "caption": "\ud83c\udf1e Energiequellen",
-      "items": [
-        {
-          "type": "Label",
-          "label": "\ud83d\udd27 W\u00e4hle hier deine Energiequellen zur Berechnung des \u00dcberschusses."
-        },
-        {
-          "type": "Label",
-          "label": "\u2600\ufe0f Aktuelle Erzeugung deiner PV-Anlage (Watt)."
-        },
-        {
-          "type": "SelectVariable",
-          "name": "PVErzeugungID",
-          "caption": "PV-Erzeugung (W)",
-          "validVariableTypes": [
-            2
-          ]
-        },
-        {
-          "type": "SelectVariable",
-          "name": "NetzeinspeisungID",
-          "caption": "Netzeinspeisung (W)",
-          "description": "Positiv = Einspeisung, Negativ = Netzbezug"
-        },
-        {
-          "type": "Label",
-          "label": "\ud83c\udfe0 Aktueller Verbrauch aller Verbraucher im Haus (Watt)."
-        },
-        {
-          "type": "SelectVariable",
-          "name": "HausverbrauchID",
-          "caption": "Hausverbrauch (W)",
-          "validVariableTypes": [
-            2
-          ]
-        },
-        {
-          "type": "Label",
-          "label": "\ud83d\udd0b Aktuelle Lade-/Entladeleistung der Hausbatterie (Watt)."
-        },
-        {
-          "type": "SelectVariable",
-          "name": "BatterieladungID",
-          "caption": "Batterieladung (W)",
-          "validVariableTypes": [
-            2
-          ]
-        },
-        {
-          "type": "Label",
-          "label": "\ud83d\udd01 Wie oft soll die Leistung neu berechnet werden (in Sekunden)."
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "RefreshInterval",
-          "caption": "Aktualisierungsintervall (Sekunden)",
-          "minimum": 15,
-          "maximum": 600
-        }
-      ]
-    },
-    {
-      "type": "ExpansionPanel",
-      "caption": "\ud83d\udd01 Phasenumschaltung",
-      "items": [
-        {
-          "type": "Label",
-          "label": "\u26a1 Umschaltung zwischen 1- und 3-phasigem Laden basierend auf PV-Leistung."
-        },
-        {
-          "type": "Label",
-          "label": "\u2699\ufe0f Aktuell eingestellte Phasenanzahl zu Beginn."
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "Phasen",
-          "caption": "Anzahl der Ladephasen (Initialwert)"
-        },
-        {
-          "type": "Label",
-          "label": "\u2b07\ufe0f Schwelle f\u00fcr Umschaltung auf 1-phasig (Watt)."
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "Phasen1Schwelle",
-          "caption": "Umschalt-Schwelle auf 1-phasig (W)"
-        },
-        {
-          "type": "Label",
-          "label": "\u2b06\ufe0f Schwelle f\u00fcr Umschaltung auf 3-phasig (Watt)."
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "Phasen3Schwelle",
-          "caption": "Umschalt-Schwelle auf 3-phasig (W)"
-        },
-        {
-          "type": "Label",
-          "label": "\ud83d\udcc9 Anzahl Messzyklen unterhalb der 1-phasig-Schwelle."
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "Phasen1Limit",
-          "caption": "Anzahl Messzyklen unter Schwelle (1-phasig)"
-        },
-        {
-          "type": "Label",
-          "label": "\ud83d\udcc8 Anzahl Messzyklen oberhalb der 3-phasig-Schwelle."
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "Phasen3Limit",
-          "caption": "Anzahl Messzyklen \u00fcber Schwelle (3-phasig)"
-        }
-      ]
-    },
-    {
-      "type": "ExpansionPanel",
-      "caption": "\ud83e\udde0 Intelligente Logik",
-      "items": [
-        {
-          "type": "Label",
-          "label": "\ud83e\udde0 Erweiterte Logik zur Pufferung und Fahrzeugpr\u00fcfung."
-        },
-        {
-          "type": "Label",
-          "label": "\ud83e\uddea Dynamischer Sicherheitsabzug bei hoher PV-Leistung."
-        },
-        {
-          "type": "CheckBox",
-          "name": "DynamischerPufferAktiv",
-          "caption": "Dynamischen Pufferfaktor aktivieren"
-        },
-        {
-          "type": "Label",
-          "label": "\ud83d\udd0b Mindestwert des effektiven PV-\u00dcberschusses zur Aktivierung."
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "MinAktivierungsWatt",
-          "caption": "Minimale Aktivierungsleistung (W)"
-        },
-        {
-          "type": "Label",
-          "label": "\ud83d\ude97 Ladefreigabe nur bei erkanntem Fahrzeug (Status 2 oder 4)."
-        },
-        {
-          "type": "CheckBox",
-          "name": "NurMitFahrzeug",
-          "caption": "Nur laden, wenn Fahrzeug verbunden ist"
-        },
-        {
-          "type": "Label",
-          "label": "\u2696\ufe0f PV-Leistung optional anteilig zwischen Haus und Auto aufteilen."
-        },
-        {
-          "type": "CheckBox",
-          "name": "PV2CarModus",
-          "caption": "☀️ PV-Anteil fürs Auto aktiv",
-          "description": "Nur ein prozentual definierter Anteil des verfügbaren PV-Überschusses wird zum Laden verwendet. Rest steht dem Haus oder Akku zur Verfügung."
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "PVAnteilAuto",
-          "caption": "Anteil des PV-Überschusses fürs Fahrzeug (%)",
-          "suffix": "%",
-          "minimum": 0,
-          "maximum": 100,
-          "step": 1,
-          "description": "Definiert, wie viel Prozent des aktuell verfügbaren PV-Überschusses zum Laden des Fahrzeugs verwendet werden, wenn 'PV-Anteil fürs Auto' aktiv ist.",
-          "visible": {
-            "name": "PVVerteilenAktiv",
-            "equals": true
-          }
-        },
-        {
-          "type": "Label",
-          "label": "\ud83d\udd0b Optional: Wenn Hausakku voll, 100% PV-Leistung ins Auto umleiten."
-        },
-        {
-          "type": "SelectVariable",
-          "name": "HausakkuSOCID",
-          "caption": "Hausakku SoC (%)",
-          "description": "Integer-Variable mit Ladezustand der Hausbatterie (0–100\u202f%)",
-          "visible": {
-            "name": "PVVerteilenAktiv",
-            "equals": true
-          }
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "HausakkuSOCVollSchwelle",
-          "caption": "Voll-Schwelle Hausbatterie",
-          "suffix": "%",
-          "minimum": 50,
-          "maximum": 100,
-          "step": 1,
-          "visible": {
-            "name": "PVVerteilenAktiv",
-            "equals": true
-          }
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "TargetChargePreTime",
-          "caption": "Umschaltzeit vor Zielzeit (Stunden)",
-          "suffix": "h",
-          "minimum": 1,
-          "maximum": 12,
-          "default": 4
-      }
-      ]
-    },
-    {
-      "type": "ExpansionPanel",
-      "caption": "Fahrzeugdaten",
-      "icon": "Car",
-      "items": [
-        {
-          "type": "CheckBox",
-          "name": "UseCarSOC",
-          "caption": "Fahrzeugdaten berücksichtigen (SoC/Zielwert manuell setzen)"
-        },
-        {
-          "type": "Label",
-          "caption": "Wenn aktiv, werden die Fahrzeugdaten für geplante Ladung berücksichtigt.\n\nDer SoC (State of Charge) beschreibt den Ladezustand der Fahrzeugbatterie in Prozent.\n\nBeispiel: Wenn der aktuelle SoC bei 45 % liegt und das Ziel 80 % beträgt, wird das Modul die Ladezeit und -leistung entsprechend berechnen, um diesen Zielwert rechtzeitig zu erreichen (z. B. bis 06:00 Uhr)."
-        },
-        {
-          "type": "RowLayout",
-          "visible": {
-            "name": "UseCarSOC",
-            "equals": true
-          },
-          "items": [
-            {
-              "name": "CarTargetSOCID",
-              "type": "SelectVariable",
-              "caption": "Ziel-SoC (Variable, optional)",
-              "variableTypes": ["Integer", "Float"]
-            },
-            {
-              "name": "CarTargetSOCFallback",
-              "type": "NumberSpinner",
-              "caption": "Ziel-SoC (Fallback)",
-              "suffix": "%",
-              "minimum": 0,
-              "maximum": 100,
-              "default": 80
-            }
-          ]
-        },
-        {
-          "type": "NumberSpinner",
-          "name": "CarBatteryCapacity",
-          "caption": "🔋 Batteriekapazität",
-          "suffix": "kWh",
-          "minimum": 5,
-          "maximum": 150,
-          "step": 1,
-          "visible": {
-            "name": "UseCarSOC",
-            "equals": true
-              }
-            }
-          ] 
-        }
-      ]
 }
