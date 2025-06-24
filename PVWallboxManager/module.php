@@ -73,6 +73,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableBoolean('ZielzeitladungPVonly', '⏱️ Zielzeitladung PV-optimiert', '', 97);
         $this->EnableAction('ZielzeitladungPVonly');
 
+        $this->RegisterVariableString('LademodusStatus', 'Aktueller Lademodus', '', 98);
+
+
         $this->RegisterVariableInteger('TargetTime', 'Ziel-Zeit (Uhr)', '~UnixTimestampTime', 60);
         $this->EnableAction('TargetTime');
 
@@ -344,8 +347,6 @@ class PVWallboxManager extends IPSModule
                     $this->WriteAttributeInteger('Phasen1Counter', 0);
                     $this->WriteAttributeInteger('Phasen3Counter', 0);
                 }
-
-                // 🧼 Entfernt: $phasenID, GetValue($phasenID), RequestAction → ersetzt durch go-e API
 
                 $minStopWatt = $this->ReadPropertyInteger('MinStopWatt');
 
