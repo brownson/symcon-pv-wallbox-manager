@@ -2,7 +2,7 @@
     "id": "{DA521576-D412-4906-55EB-D96BB78B0DB1}",
     "name": "PVWallboxManager",
     "author": "Siegfried Pesendorfer",
-    "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
+    "url": "https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager",
     "compatibility": {
         "version": "7.1"
     },

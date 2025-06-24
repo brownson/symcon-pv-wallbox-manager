@@ -60,7 +60,7 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 
 1. Modul-URL im IP-Symcon hinzufügen:
    ```
-   https://github.com/pesensie/symcon-pv-wallbox-manager
+   https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager
    ```
 2. Instanz „PVWallboxManager“ anlegen
 3. Konfigurationsfelder im WebFront ausfüllen:
@@ -156,7 +156,7 @@ Das Modul protokolliert automatisch relevante Entscheidungen:
 
 ## 👥 Mithelfen
 
-- Feature-Idee? 👉 [Issue öffnen](https://github.com/pesensie/symcon-pv-wallbox-manager/issues)
+- Feature-Idee? 👉 [Issue öffnen](https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager/issues)
 - Verbesserungsvorschlag?
 - Unterstützung weiterer Wallboxen?
 
@@ -167,15 +167,15 @@ Das Modul protokolliert automatisch relevante Entscheidungen:
 ## 🕘 Changelog
 
 Alle Änderungen findest du in der Datei:\
-👉 [CHANGELOG.md](https://github.com/pesensie/symcon-pv-wallbox-manager/blob/main/CHANGELOG.md)
+👉 [CHANGELOG.md](https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager/blob/main/CHANGELOG.md)
 
 ---
 
 ## 📄 Lizenz
 
 Dieses Projekt steht unter der MIT License:\
-👉 [LICENSE.md](https://github.com/pesensie/symcon-pv-wallbox-manager/blob/main/LICENSE.md)
+👉 [LICENSE.md](https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager/blob/main/LICENSE.md)
 
 ---
 
-© 2025 [Siegfried Pesendorfer](https://github.com/pesensie) – Open Source für die Symcon-Community
+© 2025 [Siegfried Pesendorfer](https://github.com/Sol-IoTiv) – Open Source für die Symcon-Community

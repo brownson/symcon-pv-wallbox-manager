@@ -7,7 +7,7 @@
   "aliases": [
     "PVWallboxManager"
   ],
-  "url": "https://github.com/pesensie/symcon-pv-wallbox-manager",
+  "url": "https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager",
   "prefix": "PVWM",
   "parentRequirements": [],
   "childRequirements": [],
