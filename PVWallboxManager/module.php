@@ -127,17 +127,20 @@ class PVWallboxManager extends IPSModule
         $pv2car    = GetValue($pv2carID);
         $zielzeit  = GetValue($zielzeitID);
         $ladeModusAktiv = $manuell || $pv2car || $zielzeit;
-        
-        // Fahrzeugprüfung
-        if (!in_array($status, [2, 4])) {
-            $this->SendDebug("Fahrzeugstatus", "Kein Fahrzeug verbunden (Status: {$status}), setze Modus 1 und beende Skript.", 0);
-            if ($aktuellerModus != 1) {
-                GOeCharger_setMode($goeID, 1);
+
+        // Fahrzeugstatus nur prüfen, wenn Property gesetzt!
+        if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
+            if (!in_array($status, [2, 4])) {
+                $this->SendDebug("Fahrzeugstatus", "Kein Fahrzeug verbunden (Status: {$status}), setze Modus 1 und beende Skript.", 0);
+                if ($aktuellerModus != 1) {
+                    GOeCharger_setMode($goeID, 1);
+                }
+                $this->SetLadeleistung(0); // Ladeleistung immer auf 0
+                SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0); // <-- Optional
+                return;
             }
-            $this->SetLadeleistung(0); // Ladeleistung immer auf 0
-            return;
         }
-    
+        
         $ueberschuss = $pv - $haus - $batt;
         $this->SendDebug("Berechnung", "PV: {$pv}W, Haus: {$haus}W, Batterie: {$batt}W, Überschuss: {$ueberschuss}W", 0);
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
