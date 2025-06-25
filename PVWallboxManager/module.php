@@ -160,7 +160,10 @@ class PVWallboxManager extends IPSModule
             elseif ($ueberschuss < 4000) $puffer = 0.85;
             elseif ($ueberschuss < 6000) $puffer = 0.90;
             else $puffer = 0.93;
+            $alterUeberschuss = $ueberschuss;
             $ueberschuss = round($ueberschuss * $puffer);
+            IPS_LogMessage("PVWallboxManager", "🧮 Dynamischer Pufferfaktor angewendet: {$puffer} – Überschuss vorher: {$alterUeberschuss} W, jetzt: {$ueberschuss} W");
+            $this->SendDebug("Puffer", "Dynamischer Puffer: {$puffer} (vorher: {$alterUeberschuss} W, jetzt: {$ueberschuss} W)", 0);
         }
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
         return max(0, $ueberschuss);
@@ -198,11 +201,57 @@ class PVWallboxManager extends IPSModule
     // --- Zielzeitladung-Logik: Dummy ---
     private function LogikZielzeitladung()
     {
-        // Deine Zielzeit-Logik hier einbauen oder nach Bedarf erweitern!
-        $this->SetLademodusStatus("[Zielzeitladung-Logik folgt noch]");
-        $this->SetLadeleistung(0); // Dummy: Setzt Ladeleistung auf 0
-    } 
-
+        // Zielzeit & Parameter holen
+        $targetTimeVarID = $this->GetIDForIdent('TargetTime');
+        $targetTime = GetValue($targetTimeVarID);
+        $now = time();
+        if ($targetTime < $now) $targetTime += 86400; // Wenn Zielzeit schon vorbei, auf nächsten Tag
+    
+        // SOC & Ziel-SOC holen
+        $socID = $this->ReadPropertyInteger('CarSOCID');
+        $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : $this->ReadPropertyFloat('CarSOCFallback');
+        $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
+        $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
+        $capacity = $this->ReadPropertyFloat('CarBatteryCapacity'); // z.B. 52.0 kWh
+    
+        $fehlendeProzent = max(0, $targetSOC - $soc);
+        $fehlendeKWh = $capacity * $fehlendeProzent / 100.0;
+    
+        // Ziel schon erreicht?
+        if ($fehlendeProzent <= 0) {
+            $this->SetLadeleistung(0);
+            $this->SetLademodusStatus("Zielzeitladung: Ziel-SOC erreicht – keine Ladung mehr erforderlich");
+            return;
+        }
+    
+        // Geschätzte Ladezeit (in h)
+        // Annahme: aktuelle Ladeleistung im PV-Modus (nicht 100% genau, da PV-Leistung schwankt!)
+        $maxWatt = $this->GetMaxLadeleistung();
+        $minWatt = $this->ReadPropertyInteger('MinLadeWatt');
+        $pvUeberschuss = $this->BerechnePVUeberschuss();
+        $ladewatt = max($pvUeberschuss, $minWatt);
+    
+        // Restzeit abschätzen (in Stunden)
+        $ladeleistung_kW = $ladewatt / 1000.0;
+        $restStunden = ($ladeleistung_kW > 0) ? ($fehlendeKWh / $ladeleistung_kW) : 999;
+    
+        // x Stunden vorher "Umschalten"
+        $stundenVorher = $this->ReadPropertyInteger('TargetChargePreTime');
+        $forceTime = $targetTime - ($stundenVorher * 3600);
+    
+        // Modus entscheiden
+        if ($now >= $forceTime) {
+            // Volle Leistung (Netzbezug erlaubt)
+            $this->SetLadeleistung($maxWatt);
+            $this->SetLademodusStatus("Zielzeitladung: Maximale Leistung (Netzbezug möglich, $fehlendeKWh kWh fehlen)");
+        } else {
+            // Nur PV-Überschuss
+            $this->SetLadeleistung($pvUeberschuss);
+            $bisWann = date('H:i', $forceTime);
+            $this->SetLademodusStatus("Zielzeitladung: Nur PV-Überschuss bis $bisWann Uhr – $fehlendeKWh kWh fehlen ($restStunden h nötig)");
+        }
+    }
+    
     public function RequestAction($ident, $value)
     {
         switch ($ident) {
