@@ -1,18 +1,4 @@
 <?php
-
-/**
- * PVWallboxManager – Intelligente PV-Überschussladung für den GO-eCharger
- *
- * Dieses Modul steuert dynamisch die Ladeleistung einer GO-e Wallbox basierend auf PV-Überschuss,
- * Hausverbrauch und optionalen Fahrzeugdaten. Unterstützt werden Phasenumschaltung, Ladezeitplanung
- * sowie flexible Lademodi (PV2Car, Zielzeitladung, manuelles Vollladen).
- *
- * Voraussetzungen:
- * - IP-Symcon 8.x oder höher
- * - GO-eCharger V3 oder V4 mit lokal erreichbarer Instanz und aktivierter API
- * - PV-Erzeugung, Hausverbrauch, Batterieladung als Variablen verfügbar.
- */
-
 class PVWallboxManager extends IPSModule
 {
     public function Create()
@@ -90,9 +76,60 @@ class PVWallboxManager extends IPSModule
     {
         parent::ApplyChanges();
         $interval = $this->ReadPropertyInteger('RefreshInterval');
-        $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
+        // Optional: Timer nur aktivieren, wenn die wichtigsten IDs gesetzt sind
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $pvID  = $this->ReadPropertyInteger('PVErzeugungID');
+        if ($goeID > 0 && $pvID > 0 && $interval > 0) {
+            $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
+        } else {
+            $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
+        }
     }
 
+    public function RequestAction($ident, $value)
+    {
+        switch ($ident) {
+            case 'ManuellVollladen':
+                SetValue($this->GetIDForIdent($ident), $value);
+                if ($value) {
+                    SetValue($this->GetIDForIdent('PV2CarModus'), false);
+                    SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
+                    $this->SetLademodusStatus('Manueller Volllademodus aktiv');
+                } else {
+                    $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
+                }
+                break;
+    
+            case 'PV2CarModus':
+                SetValue($this->GetIDForIdent($ident), $value);
+                if ($value) {
+                    SetValue($this->GetIDForIdent('ManuellVollladen'), false);
+                    SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
+                    $this->SetLademodusStatus('PV2Car Modus aktiv');
+                } else {
+                    $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
+                }
+                break;
+    
+            case 'ZielzeitladungPVonly':
+                SetValue($this->GetIDForIdent($ident), $value);
+                if ($value) {
+                    SetValue($this->GetIDForIdent('ManuellVollladen'), false);
+                    SetValue($this->GetIDForIdent('PV2CarModus'), false);
+                    $this->SetLademodusStatus('Zielzeitladung PV-optimiert aktiv');
+                } else {
+                    $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
+                }
+                break;
+    
+            case 'TargetTime':
+                SetValue($this->GetIDForIdent($ident), $value);
+                break;
+        }
+        // Nach jeder Aktion immer den Hauptalgorithmus aufrufen:
+        $this->UpdateCharging();
+    }
+    
     public function UpdateCharging()
     {
         $this->SendDebug("Update", "Starte Berechnung...", 0);
@@ -102,9 +139,19 @@ class PVWallboxManager extends IPSModule
         $status = GOeCharger_GetStatus($goeID); // Rückgabe: 1=bereit,2=lädt,3=warte,4=beendet
         $aktuellerModus = GOeCharger_getMode($goeID); // Rückgabe: 1=bereit,2=lädt,3=warte,4=beendet
 
-         // --- ZUERST: Fahrzeugstatus-Prüfung! ---
+        // --- ZUERST: Fahrzeugstatus-Prüfung! ---
         if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
             if (!in_array($status, [2, 4])) { // KEIN Fahrzeug verbunden!
+                // --- UX-Reset der Buttons: Alle Lademodi deaktivieren, falls Fahrzeug abgesteckt ---
+                if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
+                    SetValue($this->GetIDForIdent('ManuellVollladen'), false);
+                }
+                if (GetValue($this->GetIDForIdent('PV2CarModus'))) {
+                    SetValue($this->GetIDForIdent('PV2CarModus'), false);
+                }
+                if (GetValue($this->GetIDForIdent('ZielzeitladungPVonly'))) {
+                    SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
+                }
                 if ($aktuellerModus != 1) {
                     GOeCharger_setMode($goeID, 1);
                     IPS_LogMessage("PVWallboxManager", "Kein Fahrzeug verbunden – Modus auf 1 (Nicht laden) gestellt!");
@@ -115,8 +162,6 @@ class PVWallboxManager extends IPSModule
                 return; // *** GANZ WICHTIG: Sofort beenden! ***
             }
         }
-
-
         // --- MODUS-WEICHE (Prio: Manuell > Zielzeit > PV2Car > PV-Überschuss/Hysterese) ---
         if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
             $this->SetLadeleistung($this->GetMaxLadeleistung());
@@ -199,102 +244,59 @@ class PVWallboxManager extends IPSModule
 
     // --- Zielzeitladung-Logik: Dummy ---
     private function LogikZielzeitladung()
-    {
-        // Zielzeit & Parameter holen
-        $targetTimeVarID = $this->GetIDForIdent('TargetTime');
-        $targetTime = GetValue($targetTimeVarID);
-        $now = time();
-        if ($targetTime < $now) $targetTime += 86400; // Wenn Zielzeit schon vorbei, auf nächsten Tag
-    
-        // SOC & Ziel-SOC holen
-        $socID = $this->ReadPropertyInteger('CarSOCID');
-        $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : $this->ReadPropertyFloat('CarSOCFallback');
-        $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
-        $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
-        $capacity = $this->ReadPropertyFloat('CarBatteryCapacity'); // z.B. 52.0 kWh
-    
-        $fehlendeProzent = max(0, $targetSOC - $soc);
-        $fehlendeKWh = $capacity * $fehlendeProzent / 100.0;
-    
-        // Ziel schon erreicht?
-        if ($fehlendeProzent <= 0) {
-            $this->SetLadeleistung(0);
-            $this->SetLademodusStatus("Zielzeitladung: Ziel-SOC erreicht – keine Ladung mehr erforderlich");
-            return;
-        }
-    
-        // Geschätzte Ladezeit (in h)
-        // Annahme: aktuelle Ladeleistung im PV-Modus (nicht 100% genau, da PV-Leistung schwankt!)
-        $maxWatt = $this->GetMaxLadeleistung();
-        $minWatt = $this->ReadPropertyInteger('MinLadeWatt');
-        $pvUeberschuss = $this->BerechnePVUeberschuss();
-        $ladewatt = max($pvUeberschuss, $minWatt);
-    
-        // Restzeit abschätzen (in Stunden)
-        $ladeleistung_kW = $ladewatt / 1000.0;
-        $restStunden = ($ladeleistung_kW > 0) ? ($fehlendeKWh / $ladeleistung_kW) : 999;
-    
-        // x Stunden vorher "Umschalten"
-        $stundenVorher = $this->ReadPropertyInteger('TargetChargePreTime');
-        $forceTime = $targetTime - ($stundenVorher * 3600);
-    
-        // Modus entscheiden
-        if ($now >= $forceTime) {
-            // Volle Leistung (Netzbezug erlaubt)
-            $this->SetLadeleistung($maxWatt);
-            $this->SetLademodusStatus("Zielzeitladung: Maximale Leistung (Netzbezug möglich, $fehlendeKWh kWh fehlen)");
-        } else {
-            // Nur PV-Überschuss
-            $this->SetLadeleistung($pvUeberschuss);
-            $bisWann = date('H:i', $forceTime);
-            $this->SetLademodusStatus("Zielzeitladung: Nur PV-Überschuss bis $bisWann Uhr – $fehlendeKWh kWh fehlen ($restStunden h nötig)");
-        }
-    }
-    
-    public function RequestAction($ident, $value)
-    {
-        switch ($ident) {
-            case 'ManuellVollladen':
-                SetValue($this->GetIDForIdent($ident), $value);
-                if ($value) {
-                    SetValue($this->GetIDForIdent('PV2CarModus'), false);
-                    SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
-                    $this->SetLademodusStatus('Manueller Volllademodus aktiv');
-                } else {
-                    $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
-                }
-                break;
-    
-            case 'PV2CarModus':
-                SetValue($this->GetIDForIdent($ident), $value);
-                if ($value) {
-                    SetValue($this->GetIDForIdent('ManuellVollladen'), false);
-                    SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
-                    $this->SetLademodusStatus('PV2Car Modus aktiv');
-                } else {
-                    $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
-                }
-                break;
-    
-            case 'ZielzeitladungPVonly':
-                SetValue($this->GetIDForIdent($ident), $value);
-                if ($value) {
-                    SetValue($this->GetIDForIdent('ManuellVollladen'), false);
-                    SetValue($this->GetIDForIdent('PV2CarModus'), false);
-                    $this->SetLademodusStatus('Zielzeitladung PV-optimiert aktiv');
-                } else {
-                    $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
-                }
-                break;
-    
-            case 'TargetTime':
-                SetValue($this->GetIDForIdent($ident), $value);
-                break;
-        }
-        // Nach jeder Aktion immer den Hauptalgorithmus aufrufen:
-        $this->UpdateCharging();
+{
+    // Zielzeit holen & ggf. auf nächsten Tag anpassen
+    $targetTimeVarID = $this->GetIDForIdent('TargetTime');
+    $targetTime = GetValue($targetTimeVarID);
+    $now = time();
+    if ($targetTime < $now) $targetTime += 86400;
+
+    // SOC & Ziel-SOC holen
+    $socID = $this->ReadPropertyInteger('CarSOCID');
+    $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : $this->ReadPropertyFloat('CarSOCFallback');
+    $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
+    $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
+    $capacity = $this->ReadPropertyFloat('CarBatteryCapacity'); // z.B. 52.0 kWh
+
+    // Restenergie und Zeit
+    $fehlendeProzent = max(0, $targetSOC - $soc);
+    $fehlendeKWh = $capacity * $fehlendeProzent / 100.0;
+
+    // Ziel erreicht?
+    if ($fehlendeProzent <= 0) {
+        $this->SetLadeleistung(0);
+        $this->SetLademodusStatus("Zielzeitladung: Ziel-SOC erreicht – keine Ladung mehr erforderlich");
+        IPS_LogMessage("PVWallboxManager", "Zielzeitladung: Ziel-SOC erreicht – keine Ladung mehr erforderlich");
+        return;
     }
 
+    // Ladeleistung bestimmen (PV-only bis x Stunden vor Zielzeit, dann volle Leistung)
+    $maxWatt = $this->GetMaxLadeleistung();
+    $minWatt = $this->ReadPropertyInteger('MinLadeWatt');
+    $pvUeberschuss = $this->BerechnePVUeberschuss();
+    $ladewatt = max($pvUeberschuss, $minWatt);
+
+    // Reststunden berechnen
+    $ladeleistung_kW = $ladewatt / 1000.0;
+    $restStunden = ($ladeleistung_kW > 0) ? round($fehlendeKWh / $ladeleistung_kW, 2) : 99;
+
+    // Umschaltzeit berechnen
+    $stundenVorher = $this->ReadPropertyInteger('TargetChargePreTime');
+    $forceTime = $targetTime - ($stundenVorher * 3600);
+
+    if ($now >= $forceTime) {
+        // Volle Leistung – Netzbezug erlaubt
+        $this->SetLadeleistung($maxWatt);
+        $this->SetLademodusStatus("Zielzeitladung: Maximale Leistung (Netzbezug möglich, {$fehlendeKWh} kWh fehlen)");
+        IPS_LogMessage("PVWallboxManager", "Zielzeitladung: Netzbezug erlaubt, maximale Leistung {$maxWatt} W – {$fehlendeKWh} kWh fehlen");
+    } else {
+        // Nur PV-Überschuss – Netzbezug vermeiden
+        $this->SetLadeleistung($pvUeberschuss);
+        $bisWann = date('H:i', $forceTime);
+        $this->SetLademodusStatus("Zielzeitladung: Nur PV-Überschuss bis $bisWann Uhr – {$fehlendeKWh} kWh fehlen ({$restStunden} h nötig)");
+        IPS_LogMessage("PVWallboxManager", "Zielzeitladung: Nur PV-Überschuss – noch {$fehlendeKWh} kWh, Restzeit ca. {$restStunden} h, Umschaltung um $bisWann Uhr");
+    }
+}
     private function GetMaxLadeleistung(): int
     {
         $phasen = $this->ReadPropertyInteger('Phasen');
@@ -302,73 +304,6 @@ class PVWallboxManager extends IPSModule
         return $phasen * 230 * $maxAmp;
     }
     
-    public function BerechneLadung()
-    {
-        // === Auto getrennt → manuellen Volllademodus zurücksetzen ===
-        $goeID = $this->ReadPropertyInteger('GOEChargerID');
-        if (@IPS_InstanceExists($goeID)) {
-            $statusVarID = @IPS_GetObjectIDByIdent('carStatus', $goeID);
-            if ($statusVarID !== false && @IPS_VariableExists($statusVarID)) {
-                $status = GetValueInteger($statusVarID);
-                if (!in_array($status, [2, 4])) {
-                    if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
-                        SetValue($this->GetIDForIdent('ManuellVollladen'), false);
-                        IPS_LogMessage("PVWallboxManager", "🔌 Fahrzeug getrennt – manueller Volllademodus deaktiviert");
-                    }
-                    if (GetValue($this->GetIDForIdent('PV2CarModus')) || GetValue($this->GetIDForIdent('ZielzeitladungPVonly'))) {
-                        SetValue($this->GetIDForIdent('PV2CarModus'), false);
-                        SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
-                        IPS_LogMessage("PVWallboxManager", "🚗 Fahrzeug getrennt – PV2Car- und Zielzeitladung deaktiviert");
-                    }
-                }
-            }
-        }
-        // Prüfen ob manueller Modus aktiv ist
-        if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
-            IPS_LogMessage("PVWallboxManager", "🚨 Manueller Lademodus aktiv – maximale Ladeleistung wird erzwungen");
-            $phasen = $this->ReadPropertyInteger('Phasen');
-            $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
-            $maxWatt = $phasen * 230 * $maxAmp;
-            $this->SetLadeleistung($maxWatt);
-            return;
-        }
-        // Beispiel: PV-Überschuss holen (optional)
-        if ($this->ReadPropertyBoolean('UseCarSOC')) {
-            // Aktuellen Fahrzeug-SOC holen (Variable oder Fallback)
-            $carSOCID = $this->ReadPropertyInteger('CarSOCID');
-            if (IPS_VariableExists($carSOCID) && $carSOCID > 0) {
-                $carSOC = GetValue($carSOCID);
-            } else {
-                $this->SendDebug('Info', 'UseCarSOC aktiv, aber kein gültiger Fahrzeug-SOC verfügbar. Abbruch.', 0);
-                return;
-            }
-
-            // Ziel-SOC holen (Variable oder Fallback)
-            $carTargetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
-            if (IPS_VariableExists($carTargetSOCID) && $carTargetSOCID > 0) {
-                $targetSOC = GetValue($carTargetSOCID);
-            } else {
-                $targetSOC = $this->ReadPropertyFloat('CarTargetSOCFallback');
-            }
-
-            // Debug-Ausgabe
-            $this->SendDebug('Fahrzeug-SOC', $carSOC, 1);
-            $this->SendDebug('Ziel-SOC', $targetSOC, 1);
-
-        // Vergleich: Ist Ziel erreicht?
-            if ($carSOC >= $targetSOC) {
-                $this->SendDebug('Ladeentscheidung', 'Ziel-SOC erreicht – kein Laden erforderlich', 0);
-                return;
-            }
-
-        // Hier später: Ladeplanung basierend auf SOC
-            $this->SendDebug('Ladeentscheidung', 'Laden erforderlich – SOC unter Zielwert', 0);
-        } else {
-            $this->SendDebug('Info', 'Fahrzeugdaten werden ignoriert – reine PV-Überschussladung aktiv.', 0);
-        }
-        // Hier kann nun die Ladeleistungsberechnung / Wallbox-Steuerung folgen
-    }
-
     private function SetLadeleistung(int $watt)
     {
         $typ = 'go-e';
@@ -443,25 +378,6 @@ class PVWallboxManager extends IPSModule
                 }
 
                 $minStopWatt = $this->ReadPropertyInteger('MinStopWatt');
-
-                // === Laden deaktivieren ===
-                //if ($watt < $minStopWatt) {
-                //    if ($aktuellerModus !== 1) {
-                //        GOeCharger_setMode($goeID, 1);
-                //        IPS_LogMessage("PVWallboxManager", "🛑 Modus auf 1 (Nicht laden) gesetzt – Ladeleistung: {$watt} W");
-                //    } else {
-                //        IPS_LogMessage("PVWallboxManager", "🟡 Modus bereits 1 (Nicht laden) – keine Umschaltung notwendig");
-                //    }
-                //    return;
-                //}
-
-                // === Laden aktivieren ===
-                if ($aktuellerModus !== 2) {
-                    GOeCharger_setMode($goeID, 2);
-                    IPS_LogMessage("PVWallboxManager", "⚡ Modus auf 2 (Immer laden) gesetzt");
-                } else {
-                    IPS_LogMessage("PVWallboxManager", "🟡 Modus bereits 2 (Immer laden) – keine Umschaltung notwendig");
-                }
 
                 // === Ladeleistung nur setzen, wenn Änderung > 50 W ===
                 if ($aktuelleLeistung < 0 || abs($aktuelleLeistung - $watt) > 50) {
