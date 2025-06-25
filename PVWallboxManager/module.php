@@ -101,11 +101,11 @@ class PVWallboxManager extends IPSModule
         $haus = GetValue($this->ReadPropertyInteger("HausverbrauchID"));
         $batt = GetValue($this->ReadPropertyInteger("BatterieladungID"));
         $ladeleistung = GOeCharger_GetPowerToCar($this->ReadPropertyInteger('GOEChargerID'));
-        $status = GOeCharger_GetStatus($this->ReadPropertyInteger("GOeID"));
+        $status = GOeCharger_GetStatus($this->ReadPropertyInteger('GOEChargerID')); // Rückgabe: 1=bereit,2=lädt,3=warte,4=beendet
 
         // Fahrzeugprüfung
-        if (!$status["connected"]) {
-            $this->SendDebug("Fahrzeugstatus", "Kein Fahrzeug verbunden, Script wird beendet.", 0);
+        if (!in_array($status, [2, 4])) {
+            $this->SendDebug("Fahrzeugstatus", "Kein Fahrzeug verbunden (Status: {$status}), Script wird beendet.", 0);
             return;
         }
 
