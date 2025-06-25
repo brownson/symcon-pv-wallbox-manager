@@ -96,13 +96,17 @@ class PVWallboxManager extends IPSModule
     public function UpdateCharging()
     {
         $this->SendDebug("Update", "Starte Berechnung...", 0);
-
+    
         // Properties nur einmal auslesen
         $pvID      = $this->ReadPropertyInteger("PVErzeugungID");
         $hausID    = $this->ReadPropertyInteger("HausverbrauchID");
         $battID    = $this->ReadPropertyInteger("BatterieladungID");
         $goeID     = $this->ReadPropertyInteger("GOEChargerID");
         $minStart  = $this->ReadPropertyInteger('MinLadeWatt');
+        $pvAnteil  = $this->ReadPropertyInteger('PVAnteilAuto');
+        $phasen    = $this->ReadPropertyInteger('Phasen');
+        $maxAmp    = $this->ReadPropertyInteger('MaxAmpere');
+        $maxWatt   = $phasen * 230 * $maxAmp;
     
         // Aktuelle Werte nur einmal lesen
         $pv             = GetValue($pvID);
@@ -128,13 +132,14 @@ class PVWallboxManager extends IPSModule
             if ($aktuellerModus != 1) {
                 GOeCharger_setMode($goeID, 1);
             }
-            // Optional: Ladeleistung auch explizit auf 0 setzen!
+            $this->SetLadeleistung(0); // Ladeleistung immer auf 0
             return;
         }
-
+    
         $ueberschuss = $pv - $haus - $batt + $ladeleistung;
         $this->SendDebug("Berechnung", "PV: {$pv}W, Haus: {$haus}W, Batterie: {$batt}W, Ladeleistung: {$ladeleistung}W, Überschuss: {$ueberschuss}W", 0);
     
+        // Kein Modus aktiv
         if (!$ladeModusAktiv) {
             if ($aktuellerModus != 1) {
                 $this->SendDebug("Modus", "Kein Lademodus aktiv, setze Modus 1 (Nicht Laden)", 0);
@@ -142,9 +147,23 @@ class PVWallboxManager extends IPSModule
             } else {
                 $this->SendDebug("Modus", "Kein Lademodus aktiv und Modus bereits 1 (Nicht Laden)", 0);
             }
+            $this->SetLadeleistung(0);
             return;
         }
     
+        // Kein Überschuss
+        if ($ueberschuss < $minStart) {
+            if ($aktuellerModus != 1) {
+                $this->SendDebug("Überschuss", "Kein Überschuss vorhanden, setze Modus 1 (Nicht Laden)", 0);
+                GOeCharger_setMode($goeID, 1);
+            } else {
+                $this->SendDebug("Überschuss", "Modus bereits 1 (Nicht Laden), keine Änderung notwendig", 0);
+            }
+            $this->SetLadeleistung(0);
+            return;
+        }
+    
+        // Manueller Modus
         if ($manuell) {
             if ($aktuellerModus != 2) {
                 $this->SendDebug("Manuell", "Volllademodus aktiv, setze Modus 2 (Laden)", 0);
@@ -152,9 +171,50 @@ class PVWallboxManager extends IPSModule
             } else {
                 $this->SendDebug("Manuell", "Volllademodus bereits aktiv, keine Änderung notwendig", 0);
             }
+            $this->SetLadeleistung($maxWatt);
             return;
         }
     
+        // PV2Car-Modus: nur Anteil des Überschusses
+        if ($pv2car) {
+            $ladeWatt = min(max(round($ueberschuss * ($pvAnteil / 100.0)), 0), $maxWatt);
+            if ($aktuellerModus != 2) {
+                $this->SendDebug("PV2Car", "PV2Car aktiv, setze Modus 2 (Laden)", 0);
+                GOeCharger_setMode($goeID, 2);
+            } else {
+                $this->SendDebug("PV2Car", "Modus bereits 2 (Laden), keine Änderung notwendig", 0);
+            }
+            $this->SetLadeleistung($ladeWatt);
+            return;
+        }
+    
+        // Zielzeitladung PV-optimiert
+        if ($zielzeit) {
+            // (Vereinfachte Logik, Details können noch ergänzt werden)
+            $targetTime = GetValue($this->GetIDForIdent('TargetTime'));
+            $now = time();
+            $stundenVorher = $this->ReadPropertyInteger('TargetChargePreTime');
+            $forceTime = $targetTime - ($stundenVorher * 3600);
+    
+            if ($now >= $forceTime) {
+                // Laden auf maximaler Leistung erzwingen
+                if ($aktuellerModus != 2) {
+                    $this->SendDebug("Zielzeit", "Zielzeitladung: Umschalten auf maximale Leistung (Modus 2)", 0);
+                    GOeCharger_setMode($goeID, 2);
+                }
+                $this->SetLadeleistung($maxWatt);
+            } else {
+                // Nur PV-Überschuss verwenden
+                if ($aktuellerModus != 2) {
+                    $this->SendDebug("Zielzeit", "Zielzeitladung: Nur PV-Überschuss, setze Modus 2 (Laden)", 0);
+                    GOeCharger_setMode($goeID, 2);
+                }
+                $this->SetLadeleistung($ueberschuss);
+            }
+            return;
+        }
+    
+        // Default: Genug Überschuss
         if ($ueberschuss >= $minStart) {
             if ($aktuellerModus != 2) {
                 $this->SendDebug("Überschuss", "Genug Überschuss vorhanden, setze Modus 2 (Laden)", 0);
@@ -162,16 +222,9 @@ class PVWallboxManager extends IPSModule
             } else {
                 $this->SendDebug("Überschuss", "Modus bereits 2 (Laden), keine Änderung notwendig", 0);
             }
-        } else {
-            if ($aktuellerModus != 1) {
-                $this->SendDebug("Überschuss", "Kein Überschuss vorhanden, setze Modus 1 (Nicht Laden)", 0);
-                GOeCharger_setMode($goeID, 1);
-            } else {
-                $this->SendDebug("Überschuss", "Modus bereits 1 (Nicht Laden), keine Änderung notwendig", 0);
-            }
+            $this->SetLadeleistung($ueberschuss);
         }
     }
-
     public function GetMinAmpere(): int
     {
         $val = $this->ReadPropertyInteger('MinAmpere');
