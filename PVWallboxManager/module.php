@@ -93,6 +93,37 @@ class PVWallboxManager extends IPSModule
         $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
     }
 
+    public function UpdateCharging()
+    {
+        $this->SendDebug("Update", "Starte Berechnung...", 0);
+
+        $pv = GetValue($this->ReadPropertyInteger("PVErzeugungID"));
+        $haus = GetValue($this->ReadPropertyInteger("HausverbrauchID"));
+        $batt = GetValue($this->ReadPropertyInteger("BatterieladungID"));
+        $ladeleistung = GOeCharger_GetPowerToCar($this->ReadPropertyInteger("GOeID"));
+
+        $ueberschuss = $pv - $haus - $batt + $ladeleistung;
+
+        $this->SendDebug("Berechnung", "PV: {$pv}W, Haus: {$haus}W, Batterie: {$batt}W, Ladeleistung: {$ladeleistung}W, Überschuss: {$ueberschuss}W", 0);
+
+        $modus = GetValue($this->GetIDForIdent("Lademodus"));
+        $manuell = GetValue($this->GetIDForIdent("ManuellLaden"));
+
+        if ($manuell) {
+            $this->SendDebug("Manuell", "Volllademodus aktiv, setze Modus 2 (Immer laden)", 0);
+            GOeCharger_setMode($this->ReadPropertyInteger("GOeID"), 2);
+            return;
+        }
+
+        if ($ueberschuss >= $this->ReadPropertyInteger("MinStartWatt")) {
+            $this->SendDebug("Überschuss", "Genug Überschuss vorhanden, Modus 2 (Immer laden) wird gesetzt.", 0);
+            GOeCharger_setMode($this->ReadPropertyInteger("GOeID"), 2);
+        } else {
+            $this->SendDebug("Überschuss", "Kein Überschuss vorhanden, Modus 0 (Laden aus) wird gesetzt.", 0);
+            GOeCharger_setMode($this->ReadPropertyInteger("GOeID"), 0);
+        }
+    }
+
     public function GetMinAmpere(): int
     {
         $val = $this->ReadPropertyInteger('MinAmpere');
