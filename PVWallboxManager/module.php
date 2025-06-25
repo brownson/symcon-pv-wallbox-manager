@@ -202,7 +202,7 @@ class PVWallboxManager extends IPSModule
         $haus = GetValue($hausID);
         $batt = GetValue($battID);
         $ladeleistung = GOeCharger_GetPowerToCar($goeID);
-        $ueberschuss = round($pv - $haus - $batt);
+        $ueberschuss = $pv - $haus - $batt;
 
         // Optional: Dynamischer Puffer
         $puffer = 1.0;
@@ -212,12 +212,25 @@ class PVWallboxManager extends IPSModule
             elseif ($ueberschuss < 6000) $puffer = 0.90;
             else $puffer = 0.93;
             $alterUeberschuss = $ueberschuss;
-            $ueberschuss = round($ueberschuss * $puffer);
-            IPS_LogMessage("PVWallboxManager", "🧮 Dynamischer Pufferfaktor angewendet: {$puffer} – Überschuss vorher: {$alterUeberschuss} W, jetzt: {$ueberschuss} W");
-            $this->SendDebug("Puffer", "Dynamischer Puffer: {$puffer} (vorher: {$alterUeberschuss} W, jetzt: {$ueberschuss} W)", 0);
+            $ueberschuss = $ueberschuss * $puffer;
+            IPS_LogMessage(
+            "PVWallboxManager",
+            "🧮 Dynamischer Pufferfaktor angewendet: {$puffer} – Überschuss vorher: " . round($alterUeberschuss) . " W, jetzt: " . round($ueberschuss) . " W"
+        );
+        $this->SendDebug(
+            "Puffer",
+            "Dynamischer Puffer: {$puffer} (vorher: " . round($alterUeberschuss) . " W, jetzt: " . round($ueberschuss) . " W)",
+            0
+        );
         }
-        SetValue($this->GetIDForIdent('PV_Ueberschuss'), round($ueberschuss));
-        return max(0, round($ueberschuss));
+        // Auf Ganzzahl runden und negatives abfangen
+        $ueberschuss = max(0, round($ueberschuss));
+        
+        // In Variable schreiben (immer als ganzzahlig und >= 0)
+        SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
+
+        // Rückgabewert (immer >= 0)
+        return $ueberschuss;
     }
 
     // --- Hysterese-Logik für Standardmodus ---
