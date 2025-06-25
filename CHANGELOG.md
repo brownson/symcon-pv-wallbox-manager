@@ -20,7 +20,7 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 
 📈 **PV-Überschuss-Formel überarbeitet**
 - Formel im Modul und in der README vereinheitlicht:  
-  `PV-Überschuss = PV-Erzeugung – Hausverbrauch – Batterieladung + Wallbox-Ladeleistung`
+  `PV-Überschuss = PV-Erzeugung – Hausverbrauch – Batterieladung`
 - Logging und Debug-Ausgaben bei Anwendung des dynamischen Puffers deutlich verbessert (inkl. Puffer-Faktor und berechnetem Wert).
 
 🐞 **Bugfixes**
