@@ -295,6 +295,53 @@ class PVWallboxManager extends IPSModule
             $this->SetLadeleistung($ueberschuss);
         }
 
+        // Start/Stop-Hysterese für die Hauptladung
+        $startLimit = 3; // Anzahl Zyklen über Schwelle
+        $stopLimit = 3;  // Anzahl Zyklen unter Schwelle
+        
+        // Lese oder initialisiere Zähler (Attribut im Modul)
+        $startCounter = $this->ReadAttributeInteger('StartCounter');
+        $stopCounter = $this->ReadAttributeInteger('StopCounter');
+        
+        // --- Laden starten (wenn x Mal über MinLadeWatt) ---
+        if ($ueberschuss >= $minStart) {
+            $startCounter++;
+            $stopCounter = 0; // Reset
+        
+            if ($startCounter >= $startLimit) {
+                if ($aktuellerModus != 2) {
+                    $this->SendDebug("Hysterese", "Start: {$startCounter}/{$startLimit} Zyklen > Schwelle – Laden aktivieren", 0);
+                    GOeCharger_setMode($goeID, 2);
+                }
+                $this->SetLadeleistung($ueberschuss);
+            } else {
+                $this->SendDebug("Hysterese", "Start: {$startCounter}/{$startLimit} – warte...", 0);
+            }
+            $this->WriteAttributeInteger('StartCounter', $startCounter);
+            $this->WriteAttributeInteger('StopCounter', $stopCounter);
+            return;
+        }
+
+        // --- Laden stoppen (wenn x Mal unter MinLadeWatt) ---
+        if ($ueberschuss < $minStart) {
+            $stopCounter++;
+            $startCounter = 0; // Reset
+        
+            if ($stopCounter >= $stopLimit) {
+                if ($aktuellerModus != 1) {
+                    $this->SendDebug("Hysterese", "Stop: {$stopCounter}/{$stopLimit} Zyklen < Schwelle – Laden stoppen", 0);
+                    GOeCharger_setMode($goeID, 1);
+                }
+                $this->SetLadeleistung(0);
+                SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
+            } else {
+                $this->SendDebug("Hysterese", "Stop: {$stopCounter}/{$stopLimit} – warte...", 0);
+            }
+            $this->WriteAttributeInteger('StartCounter', $startCounter);
+            $this->WriteAttributeInteger('StopCounter', $stopCounter);
+            return;
+        }
+
         if ($ueberschuss < 0) {
             $ueberschuss = 0.0;
             IPS_LogMessage("PVWallboxManager", "⚠️ Kein PV-Überschuss – Wert auf 0 gesetzt.");
@@ -303,7 +350,7 @@ class PVWallboxManager extends IPSModule
         // *** Logging der Gesamtbilanz ***
         IPS_LogMessage(
             "PVWallboxManager",
-            "📊 Bilanz: PV={$pv} W, Haus={$haus} W, Batterie={$batt} W, Wallbox={$ladeleistung} W => Überschuss={$ueberschuss} W");
+            "📊 Bilanz: PV={$pv} W, Haus={$haus} W, Batterie={$batt} W, W => Überschuss={$ueberschuss} W");
     }
     
     public function GetMinAmpere(): int
