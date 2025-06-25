@@ -146,21 +146,46 @@ class PVWallboxManager extends IPSModule
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
 
         // Dynamischer Pufferfaktor
-        $effektiv = $ueberschuss;
         $puffer_faktor = 1.0;
         if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
-            if ($effektiv < 2000) {
+            if ($ueberschuss < 2000) {
                 $puffer_faktor = 0.80;
-            } elseif ($effektiv < 4000) {
+            } elseif ($ueberschuss < 4000) {
                 $puffer_faktor = 0.85;
-            } elseif ($effektiv < 6000) {
+            } elseif ($ueberschuss < 6000) {
                 $puffer_faktor = 0.90;
             } else {
                 $puffer_faktor = 0.93;
             }
             $ueberschuss = round($ueberschuss * $puffer_faktor);
             IPS_LogMessage("PVWallboxManager", "🧮 Dynamischer Pufferfaktor {$puffer_faktor} angewendet – neuer Überschuss: {$ueberschuss} W");
-            SetValue($this->GetIDForIdent('PV_Ueberschuss'), max(0, $ueberschuss));
+        }
+
+        // --- Merker: Lädt die Wallbox aktuell? ---
+        $goeID = $this->ReadPropertyInteger("GOEChargerID");
+        $ladeModus = 0; // 1 = Nicht laden, 2 = Laden
+        $ladeModusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
+        if ($ladeModusID !== false && @IPS_VariableExists($ladeModusID)) {
+            $ladeModus = GetValueInteger($ladeModusID);
+        }
+
+        // --- Hysterese Start/Stop ---
+        if ($ladeModus == 2) { // Wallbox lädt gerade
+            if ($ueberschuss <= $minStop) {
+                $this->SetLadeleistung(0);
+                IPS_LogMessage("PVWallboxManager", "🛑 PV-Überschuss unter Stop-Schwelle ({$ueberschuss} W <= {$minStop} W) – Wallbox wird gestoppt.");
+            } else {
+                $this->SetLadeleistung($ueberschuss); // Ladeleistung ggf. anpassen
+                IPS_LogMessage("PVWallboxManager", "➡️ Wallbox bleibt aktiv (Hysterese): {$ueberschuss} W.");
+            }
+        } else { // Wallbox lädt nicht
+            if ($ueberschuss >= $minStart) {
+                $this->SetLadeleistung($ueberschuss);
+                IPS_LogMessage("PVWallboxManager", "✅ PV-Überschuss über Start-Schwelle ({$ueberschuss} W >= {$minStart} W) – Wallbox wird gestartet.");
+            } else {
+                $this->SetLadeleistung(0); // bleibt aus
+                IPS_LogMessage("PVWallboxManager", "⏹️ Wallbox bleibt aus (Hysterese): {$ueberschuss} W.");
+            }
         }
 
         if ($zielzeit) {
@@ -300,10 +325,11 @@ class PVWallboxManager extends IPSModule
             IPS_LogMessage("PVWallboxManager", "⚠️ Kein PV-Überschuss – Wert auf 0 gesetzt.");
         }
 
+        // --- Optional: Wert visualisieren ---
+        SetValue($this->GetIDForIdent('PV_Ueberschuss'), max(0, $ueberschuss));
+        
         // *** Logging der Gesamtbilanz ***
-        IPS_LogMessage(
-            "PVWallboxManager",
-            "📊 Bilanz: PV={$pv} W, Haus={$haus} W, Batterie={$batt} W, W => Überschuss={$ueberschuss} W");
+        IPS_LogMessage("PVWallboxManager", "📊 Bilanz: PV={$pv} W, Haus={$haus} W, Batterie={$batt} W => Überschuss={$ueberschuss} W");
     }
     
     public function GetMinAmpere(): int
