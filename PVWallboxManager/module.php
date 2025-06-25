@@ -106,21 +106,36 @@ class PVWallboxManager extends IPSModule
 
         $this->SendDebug("Berechnung", "PV: {$pv}W, Haus: {$haus}W, Batterie: {$batt}W, Ladeleistung: {$ladeleistung}W, Überschuss: {$ueberschuss}W", 0);
 
-        $modus = GetValue($this->GetIDForIdent("Lademodus"));
+        $minStart = $this->ReadPropertyInteger("MinStartWatt");
+        $goeID = $this->ReadPropertyInteger("GOeID");
+        $aktuellerModus = GOeCharger_getMode($goeID);
+
         $manuell = GetValue($this->GetIDForIdent("ManuellLaden"));
 
         if ($manuell) {
-            $this->SendDebug("Manuell", "Volllademodus aktiv, setze Modus 2 (Immer laden)", 0);
-            GOeCharger_setMode($this->ReadPropertyInteger("GOeID"), 2);
+            if ($aktuellerModus != 2) {
+                $this->SendDebug("Manuell", "Volllademodus aktiv, setze Modus 2 (Immer laden)", 0);
+                GOeCharger_setMode($goeID, 2);
+            } else {
+                $this->SendDebug("Manuell", "Volllademodus bereits aktiv, keine Änderung", 0);
+            }
             return;
         }
 
-        if ($ueberschuss >= $this->ReadPropertyInteger("MinStartWatt")) {
-            $this->SendDebug("Überschuss", "Genug Überschuss vorhanden, Modus 2 (Immer laden) wird gesetzt.", 0);
-            GOeCharger_setMode($this->ReadPropertyInteger("GOeID"), 2);
+        if ($ueberschuss >= $minStart) {
+            if ($aktuellerModus != 2) {
+                $this->SendDebug("Überschuss", "Genug Überschuss vorhanden, setze Modus 2 (Immer laden)", 0);
+                GOeCharger_setMode($goeID, 2);
+            } else {
+                $this->SendDebug("Überschuss", "Modus bereits 2 (Immer laden), keine Änderung notwendig", 0);
+            }
         } else {
-            $this->SendDebug("Überschuss", "Kein Überschuss vorhanden, Modus 0 (Laden aus) wird gesetzt.", 0);
-            GOeCharger_setMode($this->ReadPropertyInteger("GOeID"), 0);
+            if ($aktuellerModus != 0) {
+                $this->SendDebug("Überschuss", "Kein Überschuss vorhanden, setze Modus 0 (Laden aus)", 0);
+                GOeCharger_setMode($goeID, 0);
+            } else {
+                $this->SendDebug("Überschuss", "Modus bereits 0 (Laden aus), keine Änderung notwendig", 0);
+            }
         }
     }
 
