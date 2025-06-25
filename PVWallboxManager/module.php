@@ -124,17 +124,17 @@ class PVWallboxManager extends IPSModule
 
         if ($ueberschuss >= $minStart) {
             if ($aktuellerModus != 2) {
-                $this->SendDebug("Überschuss", "Genug Überschuss vorhanden, setze Modus 2 (Immer laden)", 0);
+                $this->SendDebug("Überschuss", "Genug Überschuss vorhanden, setze Modus 2 (Laden)", 0);
                 GOeCharger_setMode($goeID, 2);
             } else {
-                $this->SendDebug("Überschuss", "Modus bereits 2 (Immer laden), keine Änderung notwendig", 0);
+                $this->SendDebug("Überschuss", "Modus bereits 2 (Laden), keine Änderung notwendig", 0);
             }
         } else {
-            if ($aktuellerModus != 0) {
-                $this->SendDebug("Überschuss", "Kein Überschuss vorhanden, setze Modus 0 (Laden aus)", 0);
-                GOeCharger_setMode($goeID, 0);
+            if ($aktuellerModus != 1) {
+                $this->SendDebug("Überschuss", "Kein Überschuss vorhanden, setze Modus 1 (Nicht Laden)", 0);
+                GOeCharger_setMode($goeID, 1);
             } else {
-                $this->SendDebug("Überschuss", "Modus bereits 0 (Laden aus), keine Änderung notwendig", 0);
+                $this->SendDebug("Überschuss", "Modus bereits 1 (Nicht Laden), keine Änderung notwendig", 0);
             }
         }
     }
