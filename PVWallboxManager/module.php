@@ -88,6 +88,13 @@ class PVWallboxManager extends IPSModule
 
     public function RequestAction($ident, $value)
     {
+        // UX-Prüfung: Funktion abbrechen, wenn "Nur laden, wenn Fahrzeug verbunden" aktiv und kein Fahrzeug verbunden
+        if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !in_array(GOeCharger_GetStatus($this->ReadPropertyInteger('GOEChargerID')), [2,4])) {
+            $this->SetLademodusStatus("⚠️ Button-Funktion nicht ausführbar: Kein Fahrzeug verbunden (oder 'Nur laden, wenn Fahrzeug verbunden' ist aktiv).");
+            IPS_LogMessage("PVWallboxManager", "⚠️ Aktion abgebrochen: Kein Fahrzeug verbunden und 'Nur laden, wenn Fahrzeug verbunden' aktiv.");
+            return;
+        }
+        
         switch ($ident) {
             case 'ManuellVollladen':
                 SetValue($this->GetIDForIdent($ident), $value);
