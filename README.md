@@ -32,8 +32,13 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 
 ## ⚡ So funktioniert die Berechnung
 
+
 **Bilanzformel:**  
-`PV-Überschuss = PV-Erzeugung + (Wallbox-Entnahme) - Hausverbrauch - (nur positive Batterie-Leistung)`
+`PV-Überschuss = PV-Erzeugung – Hausverbrauch – Batterieladung`
+- **PV-Erzeugung:** Gesamte aktuelle PV-Leistung (Watt)
+- **Hausverbrauch:** Haushaltsverbrauch **ohne** Ladeleistung der Wallbox (Watt)
+- **Batterieladung:** Aktuelle Lade-/Entladeleistung der Hausbatterie (positiv = laden, negativ = entladen, Watt)
+- **Wallbox-Ladeleistung:** Aktuell an das Auto abgegebene Ladeleistung (Watt)
 
 - Ist die Batterie im Entladebetrieb (negativ), zählt sie *nicht* zum PV-Überschuss.
 - Im Modus **PV2Car** wird der eingestellte Prozentsatz vom Überschuss als Ladeleistung ans Fahrzeug gegeben.
@@ -69,7 +74,6 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 
 ---
 
-
 ## 🔎 Wichtige Einstellungen
 
 - **GO-eCharger Instanz**: Die Instanz-ID deiner Wallbox.
@@ -80,6 +84,18 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 - **Phasenumschalt-Schwellen**: Grenzwerte und Hysterese für Umschaltung.
 - **Dynamischer Puffer**: Reduziert die Ladeleistung automatisch (siehe oben).
 - **Fahrzeugdaten**: Optionale SOC-/Zielwerte für Zielzeitladung.
+
+- **WICHTIG:** Die Buttons `Manuell: Vollladen`, `PV2Car` und `Zielzeitladung` funktionieren **nur**, wenn:
+  - ein Fahrzeug an der Wallbox angeschlossen ist **UND**
+  - die Option „Nur laden, wenn Fahrzeug verbunden“ aktiviert ist.
+  Andernfalls werden die Button-Kommandos ignoriert und im WebFront/Status angezeigt.
+- **Float-Variable für PV-Logik:**  
+  Damit die Ladeautomatik korrekt arbeitet, muss eine **Float-Variable** für den aktuellen PV-Überschuss korrekt zugeordnet werden.  
+  Berechnung:  
+  `PV-Überschuss = PV-Erzeugung - Hausverbrauch - Batterie (Laden/Entladen) + Ladeleistung zum Fahrzeug`  
+  Wichtig: Der Hausverbrauch muss **ohne** die aktuelle Wallbox-Ladeleistung zum Fahrzeug berechnet werden, sonst stimmt der Überschuss nicht!
+- **Tipp:** Bei Fragen im WebFront: Den Statustext „Aktueller Lademodus“ beachten – hier erscheinen direkte Hinweise, warum ggf. kein Laden erfolgt!
+
 
 ---
 
