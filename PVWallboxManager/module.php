@@ -97,37 +97,44 @@ class PVWallboxManager extends IPSModule
     {
         $this->SendDebug("Update", "Starte Berechnung...", 0);
 
-        $pv = GetValue($this->ReadPropertyInteger("PVErzeugungID"));
-        $haus = GetValue($this->ReadPropertyInteger("HausverbrauchID"));
-        $batt = GetValue($this->ReadPropertyInteger("BatterieladungID"));
-        $ladeleistung = GOeCharger_GetPowerToCar($this->ReadPropertyInteger('GOEChargerID'));
-        $status = GOeCharger_GetStatus($this->ReadPropertyInteger('GOEChargerID')); // Rückgabe: 1=bereit,2=lädt,3=warte,4=beendet
-        $goeID = $this->ReadPropertyInteger('GOEChargerID');
-        $aktuellerModus = GOeCharger_getMode($goeID); // Rückgabe: 1=bereit,2=lädt,3=warte,4=beendet
-
+        // Properties nur einmal auslesen
+        $pvID      = $this->ReadPropertyInteger("PVErzeugungID");
+        $hausID    = $this->ReadPropertyInteger("HausverbrauchID");
+        $battID    = $this->ReadPropertyInteger("BatterieladungID");
+        $goeID     = $this->ReadPropertyInteger("GOEChargerID");
+        $minStart  = $this->ReadPropertyInteger('MinLadeWatt');
+    
+        // Aktuelle Werte nur einmal lesen
+        $pv             = GetValue($pvID);
+        $haus           = GetValue($hausID);
+        $batt           = GetValue($battID);
+        $ladeleistung   = GOeCharger_GetPowerToCar($goeID);
+        $status         = GOeCharger_GetStatus($goeID);        // 1=bereit, 2=lädt, 3=warte, 4=beendet
+        $aktuellerModus = GOeCharger_getMode($goeID);          // dito
+    
+        // Lademodi (auch IDs nur einmal holen)
+        $manuellID   = $this->GetIDForIdent('ManuellVollladen');
+        $pv2carID    = $this->GetIDForIdent('PV2CarModus');
+        $zielzeitID  = $this->GetIDForIdent('ZielzeitladungPVonly');
+    
+        $manuell   = GetValue($manuellID);
+        $pv2car    = GetValue($pv2carID);
+        $zielzeit  = GetValue($zielzeitID);
+        $ladeModusAktiv = $manuell || $pv2car || $zielzeit;
+        
         // Fahrzeugprüfung
         if (!in_array($status, [2, 4])) {
             $this->SendDebug("Fahrzeugstatus", "Kein Fahrzeug verbunden (Status: {$status}), setze Modus 1 und beende Skript.", 0);
             if ($aktuellerModus != 1) {
                 GOeCharger_setMode($goeID, 1);
             }
+            // Optional: Ladeleistung auch explizit auf 0 setzen!
             return;
         }
 
         $ueberschuss = $pv - $haus - $batt + $ladeleistung;
         $this->SendDebug("Berechnung", "PV: {$pv}W, Haus: {$haus}W, Batterie: {$batt}W, Ladeleistung: {$ladeleistung}W, Überschuss: {$ueberschuss}W", 0);
-
-        $minStart = $this->ReadPropertyInteger('MinLadeWatt');
-        $goeID = $this->ReadPropertyInteger('GOEChargerID');
-        $aktuellerModus = GOeCharger_getMode($goeID);
-
-        // Abfrage aktiver Lademodi
-        $manuell = GetValue($this->GetIDForIdent('ManuellVollladen'));
-        $pv2car = GetValue($this->GetIDForIdent('PV2CarModus'));
-        $zielzeit = GetValue($this->GetIDForIdent('ZielzeitladungPVonly'));;
-
-        $ladeModusAktiv = $manuell || $pv2car || $zielzeit;
-
+    
         if (!$ladeModusAktiv) {
             if ($aktuellerModus != 1) {
                 $this->SendDebug("Modus", "Kein Lademodus aktiv, setze Modus 1 (Nicht Laden)", 0);
@@ -137,8 +144,7 @@ class PVWallboxManager extends IPSModule
             }
             return;
         }
-
-        // Manuell-Lademodus
+    
         if ($manuell) {
             if ($aktuellerModus != 2) {
                 $this->SendDebug("Manuell", "Volllademodus aktiv, setze Modus 2 (Laden)", 0);
@@ -148,8 +154,7 @@ class PVWallboxManager extends IPSModule
             }
             return;
         }
-
-        // PV-Überschuss-Regelung (nur Beispiel für PV2Car oder Zielzeit kannst du noch erweitern)
+    
         if ($ueberschuss >= $minStart) {
             if ($aktuellerModus != 2) {
                 $this->SendDebug("Überschuss", "Genug Überschuss vorhanden, setze Modus 2 (Laden)", 0);
