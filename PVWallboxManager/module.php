@@ -10,7 +10,7 @@
  * Voraussetzungen:
  * - IP-Symcon 8.x oder höher
  * - GO-eCharger V3 oder V4 mit lokal erreichbarer Instanz und aktivierter API
- * - PV-Erzeugung, Hausverbrauch, Batterieladung als Variablen verfügbar
+ * - PV-Erzeugung, Hausverbrauch, Batterieladung als Variablen verfügbar.
  */
 
 class PVWallboxManager extends IPSModule
