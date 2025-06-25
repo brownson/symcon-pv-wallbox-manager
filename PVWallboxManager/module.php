@@ -195,7 +195,7 @@ class PVWallboxManager extends IPSModule
         $haus = GetValue($hausID);
         $batt = GetValue($battID);
         $ladeleistung = GOeCharger_GetPowerToCar($goeID);
-        $ueberschuss = $pv - $haus - $batt + $ladeleistung;
+        $ueberschuss = $pv - $haus - $batt;
 
         // Optional: Dynamischer Puffer
         $puffer = 1.0;
