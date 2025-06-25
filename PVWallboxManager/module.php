@@ -216,7 +216,7 @@ class PVWallboxManager extends IPSModule
             IPS_LogMessage("PVWallboxManager", "🧮 Dynamischer Pufferfaktor angewendet: {$puffer} – Überschuss vorher: {$alterUeberschuss} W, jetzt: {$ueberschuss} W");
             $this->SendDebug("Puffer", "Dynamischer Puffer: {$puffer} (vorher: {$alterUeberschuss} W, jetzt: {$ueberschuss} W)", 0);
         }
-        SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
+        SetValue($this->GetIDForIdent('PV_Ueberschuss'), round($ueberschuss));
         return max(0, $ueberschuss);
     }
 
