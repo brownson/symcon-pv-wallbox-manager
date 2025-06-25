@@ -5,6 +5,35 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 
 ---
 
+## [0.8] – 2025-06-25
+
+🛠️ **Großes Refactoring & Aufräumen**
+- Entfernen von alten und doppelten Funktionen ("Altlasten"), komplette Konsolidierung des Codes.
+- Klare Trennung und Vereinfachung der Hauptfunktionen: PV-Überschussberechnung, Modus-Weiche, Zielzeitladung, Phasenumschaltung, Button-Logik, etc.
+- Code vollständig modularisiert und für künftige Feature-Erweiterungen vorbereitet.
+
+✨ **Verbesserte Logik & UX**
+- Buttons im WebFront ("Manuell Vollladen", "PV2Car", "Zielzeitladung PV-optimiert") schließen sich jetzt zuverlässig gegenseitig aus.
+- Reset-Logik der Buttons bei Trennung des Fahrzeugs optimiert.
+- Buttons funktionieren nur, wenn ein Fahrzeug angeschlossen ist **oder** die Option "Nur laden, wenn Fahrzeug verbunden" deaktiviert ist (sichtbarer Hinweis empfohlen).
+- Meldungen zu allen Status- und Umschaltaktionen verbessert.
+
+📈 **PV-Überschuss-Formel überarbeitet**
+- Formel im Modul und in der README vereinheitlicht:  
+  `PV-Überschuss = PV-Erzeugung – Hausverbrauch – Batterieladung + Wallbox-Ladeleistung`
+- Logging und Debug-Ausgaben bei Anwendung des dynamischen Puffers deutlich verbessert (inkl. Puffer-Faktor und berechnetem Wert).
+
+🐞 **Bugfixes**
+- Fehlerbehebung: "Modus 1/2 springt hin und her", wenn kein Fahrzeug angeschlossen ist.
+- Diverse kleinere Korrekturen an Statusmeldungen und der Steuerlogik.
+
+---
+
+**Hinweis:**  
+Nach Update bitte einmal alle Modul-Properties kontrollieren (vor allem Variable-IDs) und die Werte im WebFront prüfen!
+
+---
+
 ## [0.7] – 2025-06-24
 ### 🚀 Highlights
 - Zielzeitladung (PV-optimiert) ist jetzt verfügbar (Beta): Tagsüber PV-Überschuss, 4h vor Zielzeit Umschalten auf Vollladung.
