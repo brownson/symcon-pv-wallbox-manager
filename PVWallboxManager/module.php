@@ -101,9 +101,15 @@ class PVWallboxManager extends IPSModule
         $haus = GetValue($this->ReadPropertyInteger("HausverbrauchID"));
         $batt = GetValue($this->ReadPropertyInteger("BatterieladungID"));
         $ladeleistung = GOeCharger_GetPowerToCar($this->ReadPropertyInteger("GOeID"));
+        $status = GOeCharger_GetStatus($this->ReadPropertyInteger("GOeID"));
+
+        // Fahrzeugprüfung
+        if (!$status["connected"]) {
+            $this->SendDebug("Fahrzeugstatus", "Kein Fahrzeug verbunden, Script wird beendet.", 0);
+            return;
+        }
 
         $ueberschuss = $pv - $haus - $batt + $ladeleistung;
-
         $this->SendDebug("Berechnung", "PV: {$pv}W, Haus: {$haus}W, Batterie: {$batt}W, Ladeleistung: {$ladeleistung}W, Überschuss: {$ueberschuss}W", 0);
 
         $minStart = $this->ReadPropertyInteger("MinStartWatt");
@@ -114,10 +120,10 @@ class PVWallboxManager extends IPSModule
 
         if ($manuell) {
             if ($aktuellerModus != 2) {
-                $this->SendDebug("Manuell", "Volllademodus aktiv, setze Modus 2 (Immer laden)", 0);
+                $this->SendDebug("Manuell", "Volllademodus aktiv, setze Modus 2 (Laden)", 0);
                 GOeCharger_setMode($goeID, 2);
             } else {
-                $this->SendDebug("Manuell", "Volllademodus bereits aktiv, keine Änderung", 0);
+                $this->SendDebug("Manuell", "Volllademodus bereits aktiv, keine Änderung notwendig", 0);
             }
             return;
         }
