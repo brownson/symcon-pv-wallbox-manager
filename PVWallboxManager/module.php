@@ -217,7 +217,7 @@ class PVWallboxManager extends IPSModule
             $this->SendDebug("Puffer", "Dynamischer Puffer: {$puffer} (vorher: {$alterUeberschuss} W, jetzt: {$ueberschuss} W)", 0);
         }
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), round($ueberschuss));
-        return max(0, $ueberschuss);
+        return max(0, round($ueberschuss));
     }
 
     // --- Hysterese-Logik für Standardmodus ---
