@@ -84,8 +84,6 @@ class PVWallboxManager extends IPSModule
 
         // Timer für regelmäßige Berechnung
         $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
-
-
     }
     
     public function ApplyChanges()
@@ -104,19 +102,20 @@ class PVWallboxManager extends IPSModule
         $status = GOeCharger_GetStatus($goeID); // Rückgabe: 1=bereit,2=lädt,3=warte,4=beendet
         $aktuellerModus = GOeCharger_getMode($goeID); // Rückgabe: 1=bereit,2=lädt,3=warte,4=beendet
 
-        // Fahrzeugprüfung (nur wenn Property gesetzt)
+         // --- ZUERST: Fahrzeugstatus-Prüfung! ---
         if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
-            if (!in_array($status, [2, 4])) {
-                $this->SendDebug("Fahrzeugstatus", "Kein Fahrzeug verbunden (Status: {$status}), setze Modus 1 und beende Skript.", 0);
+            if (!in_array($status, [2, 4])) { // KEIN Fahrzeug verbunden!
                 if ($aktuellerModus != 1) {
                     GOeCharger_setMode($goeID, 1);
+                    IPS_LogMessage("PVWallboxManager", "Kein Fahrzeug verbunden – Modus auf 1 (Nicht laden) gestellt!");
                 }
-                $this->SetLadeleistung(0); // Immer auf 0
+                $this->SetLadeleistung(0);
                 $this->SetLademodusStatus("Kein Fahrzeug verbunden – Laden deaktiviert");
                 SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
-                return;
+                return; // *** GANZ WICHTIG: Sofort beenden! ***
             }
         }
+
 
         // --- MODUS-WEICHE (Prio: Manuell > Zielzeit > PV2Car > PV-Überschuss/Hysterese) ---
         if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
