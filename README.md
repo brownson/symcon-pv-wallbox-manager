@@ -32,18 +32,17 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 
 ## ⚡ So funktioniert die Berechnung
 
-
 **Bilanzformel:**  
 `PV-Überschuss = PV-Erzeugung – Hausverbrauch – Batterieladung`
 - **PV-Erzeugung:** Gesamte aktuelle PV-Leistung (Watt)
 - **Hausverbrauch:** Haushaltsverbrauch **ohne** Ladeleistung der Wallbox (Watt)
 - **Batterieladung:** Aktuelle Lade-/Entladeleistung der Hausbatterie (positiv = laden, negativ = entladen, Watt)
 - **Wallbox-Ladeleistung:** Aktuell an das Auto abgegebene Ladeleistung (Watt)
-- Hinweis zur PV-Überschussberechnung:
-Das Modul rechnet standardmäßig nach der Formel
-PV-Überschuss = PV-Erzeugung – Hausverbrauch – Batterieladung
-Der Hausverbrauch muss dabei bereits alle laufenden Verbraucher im Haus (inkl. Wallbox!) enthalten.
-Bitte die Wallbox-Leistung NICHT gesondert addieren, wenn diese schon im Hausverbrauch enthalten ist!
+- **Hinweis zur PV-Überschussberechnung:**
+- Das Modul rechnet standardmäßig nach der Formel
+  PV-Überschuss = PV-Erzeugung – Hausverbrauch – Batterieladung
+  Der Hausverbrauch muss dabei bereits alle laufenden Verbraucher im Haus (inkl. Wallbox!) enthalten.
+  Bitte die Wallbox-Leistung NICHT gesondert addieren, wenn diese schon im Hausverbrauch enthalten ist!
 
 - Ist die Batterie im Entladebetrieb (negativ), zählt sie *nicht* zum PV-Überschuss.
 - Im Modus **PV2Car** wird der eingestellte Prozentsatz vom Überschuss als Ladeleistung ans Fahrzeug gegeben.
