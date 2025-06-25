@@ -116,8 +116,24 @@ class PVWallboxManager extends IPSModule
         $goeID = $this->ReadPropertyInteger("GOeID");
         $aktuellerModus = GOeCharger_getMode($goeID);
 
+        // Abfrage aktiver Lademodi
         $manuell = GetValue($this->GetIDForIdent("ManuellLaden"));
+        $pv2car = GetValue($this->GetIDForIdent("PV2CarAktiv"));
+        $zielzeit = GetValue($this->GetIDForIdent("ZielzeitAktiv"));
 
+        $ladeModusAktiv = $manuell || $pv2car || $zielzeit;
+
+        if (!$ladeModusAktiv) {
+            if ($aktuellerModus != 1) {
+                $this->SendDebug("Modus", "Kein Lademodus aktiv, setze Modus 1 (Nicht Laden)", 0);
+                GOeCharger_setMode($goeID, 1);
+            } else {
+                $this->SendDebug("Modus", "Kein Lademodus aktiv und Modus bereits 1 (Nicht Laden)", 0);
+            }
+            return;
+        }
+
+        // Manuell-Lademodus
         if ($manuell) {
             if ($aktuellerModus != 2) {
                 $this->SendDebug("Manuell", "Volllademodus aktiv, setze Modus 2 (Laden)", 0);
@@ -128,6 +144,7 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
+        // PV-Überschuss-Regelung (nur Beispiel für PV2Car oder Zielzeit kannst du noch erweitern)
         if ($ueberschuss >= $minStart) {
             if ($aktuellerModus != 2) {
                 $this->SendDebug("Überschuss", "Genug Überschuss vorhanden, setze Modus 2 (Laden)", 0);
