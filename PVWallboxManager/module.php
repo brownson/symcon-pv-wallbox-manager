@@ -77,7 +77,6 @@ class PVWallboxManager extends IPSModule
         // Timer für regelmäßige Berechnung
         $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
         $this->RegisterTimer('ZyklusLadevorgangCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "ZyklusLadevorgangCheck", 0);');
-
     }
     
     public function ApplyChanges()
@@ -96,10 +95,7 @@ class PVWallboxManager extends IPSModule
             $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
             $this->SetTimerInterval('ZyklusLadevorgangCheck', 0);
         }
-    
-        // Ladeverlust-Variablen anlegen oder löschen, je nach Checkbox
-        //$this->HandleLadeverlustVariablen($this->ReadPropertyBoolean('CalcLadeverluste'));
-        }
+    }
 
     public function RequestAction($ident, $value)
     {
@@ -289,7 +285,7 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    // --- Zielzeitladung-Logik: Dummy ---
+    // --- Zielzeitladung-Logik: ---
     private function LogikZielzeitladung()
 {
     // Zielzeit holen & ggf. auf nächsten Tag anpassen
@@ -449,17 +445,32 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    private function HandleLadeverlustVariablen(bool $aktiv)
+    // --- Ladeverluste automatisch berechnen, wenn alle Werte vorhanden ---
+    private function BerechneLadeverluste($socStart, $socEnde, $batteryCapacity, $wbEnergy)
     {
-        // Profil für kWh prüfen/erstellen
+        $errors = [];
+        if ($batteryCapacity <= 0) $errors[] = "Batteriekapazität";
+        if ($socStart < 0 || $socEnde < 0) $errors[] = "SOC-Start/Ende";
+        if ($wbEnergy <= 0) $errors[] = "Wallbox-Energie";
+    
+        if (count($errors) > 0) {
+            $msg = "⚠️ Ladeverluste nicht berechnet: Fehlende/falsche Werte: " . implode(", ", $errors);
+            IPS_LogMessage("PVWallboxManager", $msg);
+            $this->SetLadeverlustInfo($msg);
+            return;
+        }
+    
+        $gespeichert = (($socEnde - $socStart) / 100) * $batteryCapacity;
+        $verlustAbsolut = $wbEnergy - $gespeichert;
+        $verlustProzent = $wbEnergy > 0 ? ($verlustAbsolut / $wbEnergy) * 100 : 0;
+    
+        // Profile prüfen/erstellen und Variablen registrieren
         $profil_kwh = "~Electricity";
         if (!IPS_VariableProfileExists($profil_kwh)) {
             IPS_CreateVariableProfile($profil_kwh, 2);
             IPS_SetVariableProfileDigits($profil_kwh, 2);
             IPS_SetVariableProfileText($profil_kwh, "", " kWh");
         }
-    
-        // Profil für Prozent prüfen/erstellen
         $profil_percent = "~Intensity.100";
         if (!IPS_VariableProfileExists($profil_percent)) {
             IPS_CreateVariableProfile($profil_percent, 2);
@@ -467,42 +478,29 @@ class PVWallboxManager extends IPSModule
             IPS_SetVariableProfileText($profil_percent, "", " %");
             IPS_SetVariableProfileValues($profil_percent, 0, 100, 1);
         }
+        $this->RegisterVariableFloat('Ladeverlust_Absolut', 'Ladeverlust absolut (kWh)', $profil_kwh, 100);
+        $this->RegisterVariableFloat('Ladeverlust_Prozent', 'Ladeverlust (%)', $profil_percent, 110);
     
-        if ($aktiv) {
-            // Absolut (kWh)
-            $this->RegisterVariableFloat('Ladeverlust_Absolut', 'Ladeverlust absolut (kWh)', $profil_kwh, 100);
-            // Prozent (%)
-            $this->RegisterVariableFloat('Ladeverlust_Prozent', 'Ladeverlust (%)', $profil_percent, 110);
+        // Logging aktivieren (einmalig)
+        $archiveID = @IPS_GetInstanceIDByName('Archiv', 0);
+        if ($archiveID === false) $archiveID = 1;
+        @AC_SetLoggingStatus($archiveID, $this->GetIDForIdent('Ladeverlust_Absolut'), true);
+        @AC_SetLoggingStatus($archiveID, $this->GetIDForIdent('Ladeverlust_Prozent'), true);
     
-            // Archiv-Instanz suchen (Fallback auf ID 1)
-            $archiveID = @IPS_GetInstanceIDByName('Archiv', 0);
-            if ($archiveID === false) {
-                $archiveID = 1;
-            }
-            // Logging aktivieren
-            AC_SetLoggingStatus($archiveID, $this->GetIDForIdent('Ladeverlust_Absolut'), true);
-            AC_SetLoggingStatus($archiveID, $this->GetIDForIdent('Ladeverlust_Prozent'), true);
-            IPS_ApplyChanges($archiveID);
-        } else {
-            // Bei Deaktivierung optional Variablen löschen
-            // @IPS_DeleteVariable($this->GetIDForIdent('Ladeverlust_Absolut'));
-            // @IPS_DeleteVariable($this->GetIDForIdent('Ladeverlust_Prozent'));
-        }
+        SetValue($this->GetIDForIdent('Ladeverlust_Absolut'), round($verlustAbsolut, 2));
+        SetValue($this->GetIDForIdent('Ladeverlust_Prozent'), round($verlustProzent, 1));
+    
+        $msg = "Ladeverluste berechnet: absolut=" . round($verlustAbsolut, 2) . " kWh, prozentual=" . round($verlustProzent, 1) . " %";
+        IPS_LogMessage("PVWallboxManager", $msg);
+        $this->SetLadeverlustInfo($msg);
     }
 
-//    private function BerechneLadeverluste(float $socStart, float $socEnde, float $batteryCapacity, float $wbEnergy)
-//    {
-//        $gespeichert = (($socEnde - $socStart) / 100) * $batteryCapacity;
-//        $verlustAbsolut = $wbEnergy - $gespeichert;
-//       $verlustProzent = $wbEnergy > 0 ? ($verlustAbsolut / $wbEnergy) * 100 : 0;
-//    
-//        if ($this->ReadPropertyBoolean('CalcLadeverluste')) {
-//            SetValue($this->GetIDForIdent('Ladeverlust_Absolut'), round($verlustAbsolut, 2));
-//            SetValue($this->GetIDForIdent('Ladeverlust_Prozent'), round($verlustProzent, 1));
-//        }
-//        return [$verlustAbsolut, $verlustProzent];
-//    }
-
+    private function SetLadeverlustInfo($msg)
+    {
+        $this->RegisterVariableString('Ladeverlust_Info', 'Ladeverlust Status', '', 120);
+        SetValue($this->GetIDForIdent('Ladeverlust_Info'), $msg);
+    }
+    
     // Ladevorgang-Start
     private function LadevorgangStart($aktuellerSOC, $aktuellerWBZähler)
     {
@@ -531,6 +529,12 @@ class PVWallboxManager extends IPSModule
         $goeID = $this->ReadPropertyInteger("GOEChargerID");
         $carSOCID = $this->ReadPropertyInteger("CarSOCID");
         $batteryCapacity = $this->ReadPropertyFloat("CarBatteryCapacity");
+    
+        // Robustheit: Fehlende Variablen abfangen!
+        if ($goeID == 0 || $carSOCID == 0 || !@IPS_VariableExists($carSOCID)) {
+            $this->SetLadeverlustInfo("⚠️ Ladeverluste nicht berechnet, da GO-e oder Fahrzeug-SOC-Variable fehlt!");
+            return;
+        }
     
         $status = GOeCharger_GetStatus($goeID); // 2/4=verbunden, 1/0=getrennt
         $aktuellerSOC = GetValue($carSOCID);
