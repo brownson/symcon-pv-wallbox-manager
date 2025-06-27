@@ -89,9 +89,17 @@ class PVWallboxManager extends IPSModule
         $pvID     = $this->ReadPropertyInteger('PVErzeugungID');
         
         // Timer nur aktivieren, wenn GO-e und PV-Erzeugung konfiguriert
+        if (!$this->ReadPropertyBoolean('ModulAktiv')) {
+        // Deaktiviert: Alle Timer aus
+        $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
+        $this->SetTimerInterval('ZyklusLadevorgangCheck', 0);
+        $this->SetLademodusStatus("⚠️ Modul ist deaktiviert. Keine Aktionen.");
+        return;
+        }
+    
+        // Timer nur aktivieren, wenn GO-e und PV-Erzeugung konfiguriert
         if ($goeID > 0 && $pvID > 0 && $interval > 0) {
             $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
-            // Zusätzlich: Timer für ZyklusLadevorgangCheck()
             $this->SetTimerInterval('ZyklusLadevorgangCheck', max($interval, 30) * 1000);
         } else {
             $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
