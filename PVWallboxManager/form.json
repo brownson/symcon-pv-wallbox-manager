@@ -25,7 +25,7 @@
         { "type": "SelectVariable", "name": "PVErzeugungID", "caption": "PV-Erzeugung (W)", "validVariableTypes": [2] },
         { "type": "Label", "label": "🔌 Netzeinspeisung (optional): Positiv = Einspeisung, negativ = Bezug. Einheit: Watt." },
         { "type": "SelectVariable", "name": "NetzeinspeisungID", "caption": "Netzeinspeisung (W)" },
-        { "type": "Label", "label": "🏠 Hausverbrauch (Pflichtvariable): Aktueller Gesamtverbrauch in Watt. Immer positiv.,
+        { "type": "Label", "label": "🏠 Hausverbrauch (Pflichtvariable): Aktueller Gesamtverbrauch in Watt. Immer positiv.},
         { "type": "SelectVariable", "name": "HausverbrauchID", "caption": "Hausverbrauch (W) - Wallboxleistung zum Fahrzeug", "validVariableTypes": [2] },
         { "type": "Label", "label": "🔋 Batterieladung (optional): Lade- oder Entladeleistung der Hausbatterie in Watt (positiv = Laden, negativ = Entladen). Wenn keine Variable ausgewählt ist, wird 0 verwendet." },
         { "type": "SelectVariable", "name": "BatterieladungID", "caption": "Batterieladung (W)", "validVariableTypes": [2] },
