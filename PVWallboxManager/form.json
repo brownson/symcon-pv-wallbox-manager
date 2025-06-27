@@ -89,7 +89,7 @@
     },
     {
       "type": "ExpansionPanel",
-      "caption": "📊 Ladeverluste & Auswertung⚡️ Coming soon!",
+      "caption": "📊 Ladeverluste & Auswertung - Coming soon!",
       "items": [
         { "type": "Label", "label": "Die Auswertung und das automatische Logging der Ladeverluste (kWh und %) werden in einer der nächsten Versionen integriert.\n\n⚡️ Coming soon!"
         { "type": "CheckBox", "name": "CalcLadeverluste", "caption": "Ladeverluste berechnen (absolut & prozentual)" }
