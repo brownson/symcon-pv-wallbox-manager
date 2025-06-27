@@ -2,6 +2,16 @@
   "elements": [
     {
       "type": "ExpansionPanel",
+      "caption": "🛑 Modulsteuerung",
+      "items": [
+        {
+          "type": "CheckBox",
+          "name": "ModulAktiv",
+          "caption": "Modul aktiv (bei Deaktivierung werden keine Aktionen ausgeführt)"}
+      ]
+    },
+    {
+      "type": "ExpansionPanel",
       "caption": "🔌 Wallbox-Konfiguration",
       "items": [
         { "type": "Label", "label": "⚙️ Konfiguriere hier deine GO-e Wallbox und Ladeparameter." },
