@@ -82,6 +82,9 @@ class PVWallboxManager extends IPSModule
     {
         parent::ApplyChanges();
         $interval = $this->ReadPropertyInteger('RefreshInterval');
+        $interval = $this->ReadPropertyInteger('RefreshInterval');
+        $goeID    = $this->ReadPropertyInteger('GOEChargerID');
+        $pvID     = $this->ReadPropertyInteger('PVErzeugungID');
         
         // Timer nur aktivieren, wenn GO-e und PV-Erzeugung konfiguriert
         if ($goeID > 0 && $pvID > 0 && $interval > 0) {
