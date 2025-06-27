@@ -84,7 +84,6 @@ class PVWallboxManager extends IPSModule
     {
         parent::ApplyChanges();
         $interval = $this->ReadPropertyInteger('RefreshInterval');
-        $interval = $this->ReadPropertyInteger('RefreshInterval');
         $goeID    = $this->ReadPropertyInteger('GOEChargerID');
         $pvID     = $this->ReadPropertyInteger('PVErzeugungID');
         
@@ -99,7 +98,7 @@ class PVWallboxManager extends IPSModule
         }
     
         // Ladeverlust-Variablen anlegen oder löschen, je nach Checkbox
-        $this->HandleLadeverlustVariablen($this->ReadPropertyBoolean('CalcLadeverluste'));
+        //$this->HandleLadeverlustVariablen($this->ReadPropertyBoolean('CalcLadeverluste'));
         }
 
     public function RequestAction($ident, $value)
@@ -497,9 +496,9 @@ class PVWallboxManager extends IPSModule
         $verlustAbsolut = $wbEnergy - $gespeichert;
         $verlustProzent = $wbEnergy > 0 ? ($verlustAbsolut / $wbEnergy) * 100 : 0;
     
-        if ($this->ReadPropertyBoolean('CalcLadeverluste')) {
-            SetValue($this->GetIDForIdent('Ladeverlust_Absolut'), round($verlustAbsolut, 2));
-            SetValue($this->GetIDForIdent('Ladeverlust_Prozent'), round($verlustProzent, 1));
+        //if ($this->ReadPropertyBoolean('CalcLadeverluste')) {
+        //    SetValue($this->GetIDForIdent('Ladeverlust_Absolut'), round($verlustAbsolut, 2));
+        //    SetValue($this->GetIDForIdent('Ladeverlust_Prozent'), round($verlustProzent, 1));
         }
         return [$verlustAbsolut, $verlustProzent];
     }
