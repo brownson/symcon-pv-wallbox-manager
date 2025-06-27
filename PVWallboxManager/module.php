@@ -68,6 +68,12 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('RefreshInterval', 60); // Intervall für die Überschuss-Berechnung (Sekunden)
         $this->RegisterPropertyInteger('TargetChargePreTime', 4); // Stunden vor Zielzeit aktiv laden
 
+        //Für die Berechnung der Ladeverluste
+        $this->RegisterAttributeBoolean("ChargingActive", false);
+        $this->RegisterAttributeFloat("ChargeSOCStart", 0);
+        $this->RegisterAttributeFloat("ChargeEnergyStart", 0);
+        $this->RegisterAttributeInteger("ChargeStartTime", 0);
+
         // Timer für regelmäßige Berechnung
         $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
     }
@@ -76,15 +82,20 @@ class PVWallboxManager extends IPSModule
     {
         parent::ApplyChanges();
         $interval = $this->ReadPropertyInteger('RefreshInterval');
-        // Optional: Timer nur aktivieren, wenn die wichtigsten IDs gesetzt sind
-        $goeID = $this->ReadPropertyInteger('GOEChargerID');
-        $pvID  = $this->ReadPropertyInteger('PVErzeugungID');
+        
+        // Timer nur aktivieren, wenn GO-e und PV-Erzeugung konfiguriert
         if ($goeID > 0 && $pvID > 0 && $interval > 0) {
             $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
+            // Zusätzlich: Timer für ZyklusLadevorgangCheck()
+            $this->SetTimerInterval('ZyklusLadevorgangCheck', max($interval, 30) * 1000);
         } else {
             $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
+            $this->SetTimerInterval('ZyklusLadevorgangCheck', 0);
         }
-    }
+    
+        // Ladeverlust-Variablen anlegen oder löschen, je nach Checkbox
+        $this->HandleLadeverlustVariablen($this->ReadPropertyBoolean('CalcLadeverluste'));
+        }
 
     public function RequestAction($ident, $value)
     {
@@ -431,6 +442,106 @@ class PVWallboxManager extends IPSModule
         $varID = $this->GetIDForIdent('LademodusStatus');
         if ($varID !== false && @IPS_VariableExists($varID)) {
             SetValue($varID, $text);
+        }
+    }
+
+    private function HandleLadeverlustVariablen(bool $aktiv)
+    {
+        // Profil für kWh prüfen/erstellen
+        $profil_kwh = "~Electricity";
+        if (!IPS_VariableProfileExists($profil_kwh)) {
+            IPS_CreateVariableProfile($profil_kwh, 2);
+            IPS_SetVariableProfileDigits($profil_kwh, 2);
+            IPS_SetVariableProfileText($profil_kwh, "", " kWh");
+        }
+    
+        // Profil für Prozent prüfen/erstellen
+        $profil_percent = "~Intensity.100";
+        if (!IPS_VariableProfileExists($profil_percent)) {
+            IPS_CreateVariableProfile($profil_percent, 2);
+            IPS_SetVariableProfileDigits($profil_percent, 1);
+            IPS_SetVariableProfileText($profil_percent, "", " %");
+            IPS_SetVariableProfileValues($profil_percent, 0, 100, 1);
+        }
+    
+        if ($aktiv) {
+            // Absolut (kWh)
+            $this->RegisterVariableFloat('Ladeverlust_Absolut', 'Ladeverlust absolut (kWh)', $profil_kwh, 100);
+            // Prozent (%)
+            $this->RegisterVariableFloat('Ladeverlust_Prozent', 'Ladeverlust (%)', $profil_percent, 110);
+    
+            // Archiv-Instanz suchen (Fallback auf ID 1)
+            $archiveID = @IPS_GetInstanceIDByName('Archiv', 0);
+            if ($archiveID === false) {
+                $archiveID = 1;
+            }
+            // Logging aktivieren
+            AC_SetLoggingStatus($archiveID, $this->GetIDForIdent('Ladeverlust_Absolut'), true);
+            AC_SetLoggingStatus($archiveID, $this->GetIDForIdent('Ladeverlust_Prozent'), true);
+            IPS_ApplyChanges($archiveID);
+        } else {
+            // Bei Deaktivierung optional Variablen löschen
+            // @IPS_DeleteVariable($this->GetIDForIdent('Ladeverlust_Absolut'));
+            // @IPS_DeleteVariable($this->GetIDForIdent('Ladeverlust_Prozent'));
+        }
+    }
+
+    private function BerechneLadeverluste(float $socStart, float $socEnde, float $batteryCapacity, float $wbEnergy)
+    {
+        $gespeichert = (($socEnde - $socStart) / 100) * $batteryCapacity;
+        $verlustAbsolut = $wbEnergy - $gespeichert;
+        $verlustProzent = $wbEnergy > 0 ? ($verlustAbsolut / $wbEnergy) * 100 : 0;
+    
+        if ($this->ReadPropertyBoolean('CalcLadeverluste')) {
+            SetValue($this->GetIDForIdent('Ladeverlust_Absolut'), round($verlustAbsolut, 2));
+            SetValue($this->GetIDForIdent('Ladeverlust_Prozent'), round($verlustProzent, 1));
+        }
+        return [$verlustAbsolut, $verlustProzent];
+    }
+
+    // Ladevorgang-Start
+    private function LadevorgangStart($aktuellerSOC, $aktuellerWBZähler)
+    {
+        $this->WriteAttributeBoolean("ChargingActive", true);
+        $this->WriteAttributeFloat("ChargeSOCStart", $aktuellerSOC);
+        $this->WriteAttributeFloat("ChargeEnergyStart", $aktuellerWBZähler);
+        $this->WriteAttributeInteger("ChargeStartTime", time());
+    }
+    
+    // Ladevorgang-Ende
+    private function LadevorgangEnde($aktuellerSOC, $aktuellerWBZähler, $batteryCapacity)
+    {
+        $socStart = $this->ReadAttributeFloat("ChargeSOCStart");
+        $socEnde  = $aktuellerSOC;
+        $energyStart = $this->ReadAttributeFloat("ChargeEnergyStart");
+        $energyEnd   = $aktuellerWBZähler;
+        $wbEnergy = $energyEnd - $energyStart;
+        $this->BerechneLadeverluste($socStart, $socEnde, $batteryCapacity, $wbEnergy);
+    
+        // Reset Status
+        $this->WriteAttributeBoolean("ChargingActive", false);
+    }
+
+    public function ZyklusLadevorgangCheck()
+    {
+        $goeID = $this->ReadPropertyInteger("GOEChargerID");
+        $carSOCID = $this->ReadPropertyInteger("CarSOCID");
+        $batteryCapacity = $this->ReadPropertyFloat("CarBatteryCapacity");
+    
+        $status = GOeCharger_GetStatus($goeID); // 2/4=verbunden, 1/0=getrennt
+        $aktuellerSOC = GetValue($carSOCID);
+        $aktuellerWBZähler = GOeCharger_GetEnergyTotal($goeID); // in kWh
+    
+        if (in_array($status, [2, 4])) {
+            if (!$this->ReadAttributeBoolean("ChargingActive")) {
+                // Ladefenster startet
+                $this->LadevorgangStart($aktuellerSOC, $aktuellerWBZähler);
+            }
+        } else {
+            if ($this->ReadAttributeBoolean("ChargingActive")) {
+                // Ladefenster endet
+                $this->LadevorgangEnde($aktuellerSOC, $aktuellerWBZähler, $batteryCapacity);
+            }
         }
     }
 }
