@@ -122,14 +122,23 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 
 ## 📦 Roadmap
 
-- 🕓 Zeitbasierte Zielladung auf Ziel-SoC inkl. Ladeplanung (bereits Beta)
-- 🔋 Ziel-SoC konfigurierbar
-- 🚗 Fahrzeugstatus prüfen (nur laden wenn verbunden)
-- ⏱️ Ladebeginn dynamisch rückrechnen
-- 🧮 Lademodi: Manuell / PV2Car % / Zielzeit / Nur PV
-- 🌐 Integration externer Fahrzeugdaten via MQTT
-- 📊 Visualisierung & WebFront Widgets
-- 🔧 Erweiterbarkeit für andere Hersteller (openWB, easee …)
+### ✅ Bereits integriert
+- 🔋 Ziel-SoC frei konfigurierbar
+- 🚗 Fahrzeugstatus-Prüfung (nur laden, wenn verbunden)
+- 🧮 Flexible Lademodi: Manuell / PV2Car % / Zielzeit / Nur PV
+
+### 🧪 Bereits als Beta integriert
+- 🕓 Zeitbasierte Zielladung auf Ziel-SoC inkl. Ladeplanung
+- ⏱️ Dynamische Ladebeginn-Berechnung je nach Zielzeit/SoC
+- 🌐 Externe Fahrzeugdaten-Integration (MQTT, REST)
+
+### 🛠️ Geplant / In Vorbereitung
+- 📊 Visualisierung & WebFront Widgets (erweiterte Anzeige)
+- 📈 Auswertung Ladeverluste (kWh, %)
+- 🌐 Spotmarkt-/Stromtarif-Integration (Awattar, Tibber & Co.)
+
+### 🕓 Langfristig
+- 🔧 Erweiterbarkeit für andere Wallbox-Hersteller (openWB, easee, etc.)
 
 ---
 
