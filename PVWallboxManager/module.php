@@ -77,6 +77,8 @@ class PVWallboxManager extends IPSModule
         // Timer für regelmäßige Berechnung
         $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
         $this->RegisterTimer('ZyklusLadevorgangCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "ZyklusLadevorgangCheck", 0);');
+        
+        $this->RegisterPropertyBoolean('ModulAktiv', true);
     }
     
     public function ApplyChanges()
