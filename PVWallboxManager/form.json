@@ -86,6 +86,14 @@
         { "type": "Label", "label": "🔋 Batteriekapazität des Fahrzeugs in kWh (z. B. 52 für ID.3 Pure)." },
         { "type": "NumberSpinner", "name": "CarBatteryCapacity", "caption": "Batteriekapazität (kWh)", "suffix": "kWh" }
       ]
+    },
+    {
+      "type": "ExpansionPanel",
+      "caption": "📊 Ladeverluste & Auswertung",
+      "items": [
+        { "type": "Label", "label": "Optional: Berechnung und Logging der Ladeverluste (kWh und %). Legt bei Aktivierung zwei zusätzliche Variablen an und archiviert diese automatisch." },
+        { "type": "CheckBox", "name": "CalcLadeverluste", "caption": "Ladeverluste berechnen (absolut & prozentual)" }
+      ]
     }
   ]
 }
