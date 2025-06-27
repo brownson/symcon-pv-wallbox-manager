@@ -89,9 +89,9 @@
     },
     {
       "type": "ExpansionPanel",
-      "caption": "📊 Ladeverluste & Auswertung",
+      "caption": "📊 Ladeverluste & Auswertung\n\n⚡️ Coming soon!",
       "items": [
-        { "type": "Label", "label": "Optional: Berechnung und Logging der Ladeverluste (kWh und %). Legt bei Aktivierung zwei zusätzliche Variablen an und archiviert diese automatisch." },
+        { "type": "Label", "label": "Die Auswertung und das automatische Logging der Ladeverluste (kWh und %) werden in einer der nächsten Versionen integriert.\n\n⚡️ Coming soon!"
         { "type": "CheckBox", "name": "CalcLadeverluste", "caption": "Ladeverluste berechnen (absolut & prozentual)" }
       ]
     }
