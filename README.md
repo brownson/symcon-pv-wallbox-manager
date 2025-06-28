@@ -47,23 +47,40 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 - Ist die Batterie im Entladebetrieb (negativ), zählt sie *nicht* zum PV-Überschuss.
 - Im Modus **PV2Car** wird der eingestellte Prozentsatz vom Überschuss als Ladeleistung ans Fahrzeug gegeben.
 - **Dynamischer Puffer**:  
-  - <2000 W: 80 %  
-  - <4000 W: 85 %  
-  - <6000 W: 90 %  
-  - >6000 W: 93 %
+Um Schwankungen im PV-Überschuss abzufangen und Netzrückspeisung zu vermeiden, kann ein dynamischer Sicherheits-Puffer aktiviert werden. Der Puffer reduziert die für die Wallbox berechnete Überschussleistung je nach Höhe des aktuellen Überschusses um einen bestimmten Prozentsatz. Das sorgt für eine stabilere Regelung und verhindert, dass bei leichten PV-Einbrüchen sofort Netzbezug entsteht.
+
+  - **Beispiel:**
+
+  - Formel (vereinfacht):  
+  `PV-Überschuss = (PV-Erzeugung – Hausverbrauch – Batterieladung) × Puffer`
+
+  - Typische Stufen (Beispielwerte):  
+    - Bei Überschuss < 2000 W: Puffer = 0.80 (→ 20 % Reserve)
+    - <2000 W: 80 %  
+    - <4000 W: 85 %  
+    - <6000 W: 90 %  
+    - ab 6000 W: 93 %
+
+    **Praxis:**
+  
+    Wenn z. B. 1500 W Überschuss berechnet werden, wird bei aktivem Puffer daraus:
+    1500 W × 0.80 = **1200 W**
+    die maximal als Ladeleistung freigegeben werden.
+    Das sorgt für Sicherheit und stabile Steuerung auch bei schwankenden Wetterverhältnissen.
+  
 - **Start/Stopp:**  
   - Start: Überschuss >= `MinLadeWatt`
   - Stopp: Überschuss < `MinStopWatt`
   - Überschuss <0 W → Wallbox aus, Wert = 0.
 
-**Phasenumschaltung:**  
-- Umschalten auf 1-phasig, wenn Ladeleistung mehrfach unter Schwelle (`Phasen1Schwelle` + `Phasen1Limit`).
-- Umschalten auf 3-phasig, wenn Ladeleistung mehrfach über Schwelle (`Phasen3Schwelle` + `Phasen3Limit`).
-- Zähler werden automatisch zurückgesetzt, wenn Schwellen nicht dauerhaft erreicht.
+- **Phasenumschaltung:**  
+  - Umschalten auf 1-phasig, wenn Ladeleistung mehrfach unter Schwelle (`Phasen1Schwelle` + `Phasen1Limit`).
+  - Umschalten auf 3-phasig, wenn Ladeleistung mehrfach über Schwelle (`Phasen3Schwelle` + `Phasen3Limit`).
+  - Zähler werden automatisch zurückgesetzt, wenn Schwellen nicht dauerhaft erreicht.
 
-**Zielzeitladung (PV-optimiert):**  
-- Bis X Stunden vor Zielzeit: nur PV-Überschussladung.
-- Im letzten Zeitfenster: Maximale Ladeleistung (PV+Netz/Akku) bis Ziel-SoC.
+- **Zielzeitladung (PV-optimiert):**  
+  - Bis X Stunden vor Zielzeit: nur PV-Überschussladung.
+  - Im letzten Zeitfenster: Maximale Ladeleistung (PV+Netz/Akku) bis Ziel-SoC.
 
 ## 🧰 Voraussetzungen
 
@@ -122,23 +139,33 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 
 ## 📦 Roadmap
 
-### ✅ Bereits integriert
-- 🔋 Ziel-SoC frei konfigurierbar
-- 🚗 Fahrzeugstatus-Prüfung (nur laden, wenn verbunden)
-- 🧮 Flexible Lademodi: Manuell / PV2Car % / Zielzeit / Nur PV
+### ✅ Integriert
+- 🛡️ Dynamischer Sicherheits-Puffer für Ladeleistung
+- ♻️ Hysterese & automatische Phasenumschaltung
+- 🕓 Zeitbasierte Zielladung inkl. Ladeplanung
+- 🧮 Lademodi: Manuell / PV2Car % / Zielzeit / Nur PV
+- 🎯 Ziel-SoC konfigurierbar
+- 🚗 Fahrzeugstatus-Prüfung (nur laden wenn verbunden)
+- 🔋 PV-Überschussberechnung ohne Hausbatterie
+- 📉 Automatische Ladeverlusterkennung pro Ladevorgang
+- 🛑 Deaktivieren-Button (Modul-Aktiv-Schalter)
 
-### 🧪 Bereits als Beta integriert
-- 🕓 Zeitbasierte Zielladung auf Ziel-SoC inkl. Ladeplanung
-- ⏱️ Dynamische Ladebeginn-Berechnung je nach Zielzeit/SoC
-- 🌐 Externe Fahrzeugdaten-Integration (MQTT, REST)
+### 🧪 Beta / In Vorbereitung
+- 📊 Visualisierung & WebFront-Widgets
+- 💶 Kompatibilität zu Symcon-Strompreis-Modul (Awattar, Tibber …)
+- ⏱️ Preisoptimiertes Laden (Vorbereitung)
 
-### 🛠️ Geplant / In Vorbereitung
-- 📊 Visualisierung & WebFront Widgets (erweiterte Anzeige)
-- 📈 Auswertung Ladeverluste (kWh, %)
-- 🌐 Spotmarkt-/Stromtarif-Integration (Awattar, Tibber & Co.)
+### 🔜 Geplant
+- 🔄 Invertierungs-Schalter für Netzeinspeisung, Batterieladung & Hausverbrauch
+- 📨 Integration externer Fahrzeugdaten (z. B. via MQTT)
+- 📈 Auswertung Ladeverluste & Statistiken
+- 🧰 Flexible Einheiten-Auswahl (W/kW/%) für Variablen
+- 🕵️‍♂️ Erweiterte Benutzer-Info/Diagnose (z. B. warum kein Laden)
 
-### 🕓 Langfristig
-- 🔧 Erweiterbarkeit für andere Wallbox-Hersteller (openWB, easee, etc.)
+---
+
+### 😄 Idee, wenn mir mal so richtig faad ist…
+- 🌍 Unterstützung für andere Wallboxen, falls Nachfrage wirklich riesig ist (aktuell Fokus: GO-e)
 
 ---
 
