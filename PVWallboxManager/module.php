@@ -68,6 +68,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean("InvertHausverbrauch", false);
         $this->RegisterPropertyBoolean("InvertBatterieladung", false);
 
+        $this->RegisterPropertyString("NetzeinspeisungEinheit", "W");
+
         // Zykluszeiten & Ladeplanung
         $this->RegisterPropertyInteger('RefreshInterval', 60); // Intervall für die Überschuss-Berechnung (Sekunden)
         $this->RegisterPropertyInteger('TargetChargePreTime', 4); // Stunden vor Zielzeit aktiv laden
