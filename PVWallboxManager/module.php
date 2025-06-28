@@ -61,9 +61,12 @@ class PVWallboxManager extends IPSModule
 
         $this->RegisterVariableString('LademodusStatus', 'Aktueller Lademodus', '', 98);
 
-
         $this->RegisterVariableInteger('TargetTime', 'Ziel-Zeit (Uhr)', '~UnixTimestampTime', 60);
         $this->EnableAction('TargetTime');
+
+        $this->RegisterPropertyBoolean("InvertNetzeinspeisung", false);
+        $this->RegisterPropertyBoolean("InvertHausverbrauch", false);
+        $this->RegisterPropertyBoolean("InvertBatterieladung", false);
 
         // Zykluszeiten & Ladeplanung
         $this->RegisterPropertyInteger('RefreshInterval', 60); // Intervall für die Überschuss-Berechnung (Sekunden)
