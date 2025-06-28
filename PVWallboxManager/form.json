@@ -124,10 +124,8 @@
           { "type": "Label", "caption": "    " },
           { "type": "SelectVariable", "name": "ForecastPriceID", "caption": "24h-Preisprognose (€/kWh, Array)", "validVariableTypes": [2], "optional": true }
         ]},
-        {
           { "type": "NumberSpinner", "name": "MinPrice", "caption": "Mindestpreis (€/kWh)", "suffix": "€/kWh", "digits": 3, "default": 0.00 },
           { "type": "NumberSpinner", "name": "MaxPrice", "caption": "Höchstpreis (€/kWh)", "suffix": "€/kWh", "digits": 3, "default": 0.20 }
-        }
       ]
     },
     {
