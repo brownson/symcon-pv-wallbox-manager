@@ -2,7 +2,7 @@
   "elements": [
     {
       "type": "ExpansionPanel",
-      "caption": "🛑 Modulsteuerung",
+      "caption": "🛑 Modulsteuerung -",
       "items": [
         {
           "type": "CheckBox",
