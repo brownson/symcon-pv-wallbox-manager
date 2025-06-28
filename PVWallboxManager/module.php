@@ -232,7 +232,15 @@ class PVWallboxManager extends IPSModule
         $goeID  = $this->ReadPropertyInteger("GOEChargerID");
 
         // Werte auslesen, immer auf Watt normiert
-        $pv    = $this->GetNormWert('PVErzeugungID', 'PVErzeugungEinheit', 'InvertPVErzeugung', "PV-Erzeugung");
+        $pv    = 0;
+        $pvID  = $this->ReadPropertyInteger('PVErzeugungID');
+        if ($pvID > 0 && @IPS_VariableExists($pvID)) {
+            $pv = GetValue($pvID);
+            if ($this->ReadPropertyString('PVErzeugungEinheit') == 'kW') {
+                $pv *= 1000;
+            }
+        }
+        
         $haus  = $this->GetNormWert('HausverbrauchID', 'HausverbrauchEinheit', 'InvertHausverbrauch', "Hausverbrauch");
         $batt  = $this->GetNormWert('BatterieladungID', 'BatterieladungEinheit', 'InvertBatterieladung', "Batterieladung");
         $netz  = $this->GetNormWert('NetzeinspeisungID', 'NetzeinspeisungEinheit', 'InvertNetzeinspeisung', "Netzeinspeisung");
