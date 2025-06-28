@@ -149,6 +149,7 @@ Um Schwankungen im PV-Überschuss abzufangen und Netzrückspeisung zu vermeiden,
 - 🔋 PV-Überschussberechnung ohne Hausbatterie
 - 📉 Automatische Ladeverlusterkennung pro Ladevorgang
 - 🛑 Deaktivieren-Button (Modul-Aktiv-Schalter)
+- 🔄 Invertierungs-Schalter für Netzeinspeisung, Batterieladung & Hausverbrauch
 
 ### 🧪 Beta / In Vorbereitung
 - 📊 Visualisierung & WebFront-Widgets
@@ -156,7 +157,7 @@ Um Schwankungen im PV-Überschuss abzufangen und Netzrückspeisung zu vermeiden,
 - ⏱️ Preisoptimiertes Laden (Vorbereitung)
 
 ### 🔜 Geplant
-- 🔄 Invertierungs-Schalter für Netzeinspeisung, Batterieladung & Hausverbrauch
+- 🔄 Einheits-Auswahl (W / kW) ergänzen für Netzeinspeisung, Batterieladung & Hausverbrauch
 - 📨 Integration externer Fahrzeugdaten (z. B. via MQTT)
 - 📈 Auswertung Ladeverluste & Statistiken
 - 🧰 Flexible Einheiten-Auswahl (W/kW/%) für Variablen
