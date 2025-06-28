@@ -229,69 +229,41 @@ class PVWallboxManager extends IPSModule
     // --- Hilfsfunktion: PV-Überschuss berechnen ---
     private function BerechnePVUeberschuss(): float
     {
-        $pvID   = $this->ReadPropertyInteger("PVErzeugungID");
-        $hausID = $this->ReadPropertyInteger("HausverbrauchID");
-        $battID = $this->ReadPropertyInteger("BatterieladungID");
         $goeID  = $this->ReadPropertyInteger("GOEChargerID");
 
-        $pv  = GetValue($pvID);
+        // Werte auslesen, immer auf Watt normiert
+        $pv    = $this->GetNormWert('PVErzeugungID', 'PVErzeugungEinheit', 'InvertPVErzeugung', "PV-Erzeugung");
+        $haus  = $this->GetNormWert('HausverbrauchID', 'HausverbrauchEinheit', 'InvertHausverbrauch', "Hausverbrauch");
+        $batt  = $this->GetNormWert('BatterieladungID', 'BatterieladungEinheit', 'InvertBatterieladung', "Batterieladung");
+        $netz  = $this->GetNormWert('NetzeinspeisungID', 'NetzeinspeisungEinheit', 'InvertNetzeinspeisung', "Netzeinspeisung");
 
-        // Batterieladung (invertierbar):
-        $batt = 0;
-        if ($battID > 0 && @IPS_VariableExists($battID)) {
-            $batt = GetValue($battID);
-            if ($this->ReadPropertyBoolean('InvertBatterieladung')) {
-                $batt *= -1;
-            }
-        } else {
-            IPS_LogMessage("PVWallboxManager", "Hinweis: Keine Batterieladung-Variable gewählt, Wert wird als 0 angesetzt.");
-        }
-        
-        // Hausverbrauch (invertierbar):
-        $haus = 0;
-        if ($hausID > 0 && @IPS_VariableExists($hausID)) {
-            $haus = GetValue($hausID);
-            if ($this->ReadPropertyBoolean('InvertHausverbrauch')) {
-                $haus *= -1;
-            }
-        } else {
-            IPS_LogMessage("PVWallboxManager", "Hinweis: Keine Hausverbrauch-Variable gewählt, Wert wird als 0 angesetzt.");
-        }
 
-        // Netzeinspeisung (invertierbar):
-        $netzID = $this->ReadPropertyInteger('NetzeinspeisungID');
-        $netz = 0;
-        if ($netzID > 0 && @IPS_VariableExists($netzID)) {
-            $netz = GetValue($netzID);
-            if ($this->ReadPropertyBoolean('InvertNetzeinspeisung')) {
-                $netz *= -1;
-            }
-        } else {
-            IPS_LogMessage("PVWallboxManager", "Hinweis: Keine Netzeinspeisung-Variable gewählt, Wert wird als 0 angesetzt.");
-        }
-        
-        $ladeleistung = GOeCharger_GetPowerToCar($goeID);
+        // Ladeleistung (optional für Debugging)
+        $ladeleistung = ($goeID > 0) ? GOeCharger_GetPowerToCar($goeID) : 0;
+
+        // PV-Überschuss-Berechnung (anpassen falls nötig!)
         $ueberschuss = $pv - $haus - $batt;
 
-        // Optional: Dynamischer Puffer
+        // Dynamischer Puffer
         $puffer = 1.0;
         if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
-            if ($ueberschuss < 2000) $puffer = 0.80;
-            elseif ($ueberschuss < 4000) $puffer = 0.85;
-            elseif ($ueberschuss < 6000) $puffer = 0.90;
-            else $puffer = 0.93;
+            if ($ueberschuss < 2000)      $puffer = 0.80;
+            elseif ($ueberschuss < 4000)  $puffer = 0.85;
+            elseif ($ueberschuss < 6000)  $puffer = 0.90;
+            else                          $puffer = 0.93;
             $alterUeberschuss = $ueberschuss;
-            $ueberschuss = $ueberschuss * $puffer;
+            $ueberschuss *= $puffer;
             IPS_LogMessage(
-            "PVWallboxManager",
-            "🧮 Dynamischer Pufferfaktor angewendet: {$puffer} – Überschuss vorher: " . round($alterUeberschuss) . " W, jetzt: " . round($ueberschuss) . " W"
-        );
-        $this->SendDebug(
-            "Puffer",
-            "Dynamischer Puffer: {$puffer} (vorher: " . round($alterUeberschuss) . " W, jetzt: " . round($ueberschuss) . " W)",
-            0
-        );
+                "PVWallboxManager",
+                "🧮 Dynamischer Pufferfaktor angewendet: {$puffer} – Überschuss vorher: " . round($alterUeberschuss) . " W, jetzt: " . round($ueberschuss) . " W"
+            );
+            $this->SendDebug(
+                "Puffer",
+                "Dynamischer Puffer: {$puffer} (vorher: " . round($alterUeberschuss) . " W, jetzt: " . round($ueberschuss) . " W)",
+                0
+            );
         }
+        
         // Auf Ganzzahl runden und negatives abfangen
         $ueberschuss = max(0, round($ueberschuss));
         
@@ -599,16 +571,23 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    protected function GetInvertedValue($varIdProperty, $invertProperty)
+    private function GetNormWert(string $idProp, string $einheitProp, string $invertProp, string $name = ""): float
     {
-        $varID = $this->ReadPropertyInteger($varIdProperty);
-        if ($varID > 0 && @IPS_VariableExists($varID)) {
-            $value = GetValueFloat($varID);
-            if ($this->ReadPropertyBoolean($invertProperty)) {
-                $value *= -1;
+        $wert = 0;
+        $vid = $this->ReadPropertyInteger($idProp);
+        if ($vid > 0 && @IPS_VariableExists($vid)) {
+            $wert = GetValue($vid);
+            if ($this->ReadPropertyBoolean($invertProp)) {
+                $wert *= -1;
             }
-            return $value;
+            if ($this->ReadPropertyString($einheitProp) == "kW") {
+                $wert *= 1000;
+            }
+        } else {
+            if ($name != "") {
+                IPS_LogMessage("PVWallboxManager", "Hinweis: Keine $name-Variable gewählt, Wert wird als 0 angesetzt.");
+            }
         }
-        return 0.0;
+        return $wert;
     }
 }
