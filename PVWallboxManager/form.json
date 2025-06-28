@@ -111,6 +111,7 @@
           { "type": "NumberSpinner", "name": "HausakkuSOCVollSchwelle", "caption": "Voll-Schwelle Hausbatterie (%)", "suffix": "%", "minimum": 50, "maximum": 100, "visible": { "name": "PVVerteilenAktiv", "equals": true } }
         ]},
         { "type": "Label", "caption": "    " },
+        { "type": "Label", "label": "⏰ Zielzeit-Ladung: Definiert, wie viele Stunden vor der eingestellten Zielzeit (z. B. 06:00 Uhr) mit garantiertem Laden begonnen wird. Davor wird vorrangig nur mit PV-Überschuss geladen." },
         { "type": "RowLayout", "items": [
           { "type": "NumberSpinner", "name": "TargetChargePreTime", "caption": "⏱️ Umschaltzeit vor Zielzeit (h)", "suffix": "h", "minimum": 1, "maximum": 12 }
         ]},
@@ -118,16 +119,15 @@
         { "type": "Label", "label": "💶 Strompreisbasiertes Laden (dynamische Tarife)" },
         { "type": "RowLayout", "items": [
           { "type": "CheckBox", "name": "StrompreisModus", "caption": "€ Strompreisladen aktiv" },
-          { "type": "SelectVariable", "name": "CurrentPriceID", "caption": "Aktueller Strompreis (€/kWh)", "validVariableTypes": [2] }
+          { "type": "Label", "caption": "    " },
+          { "type": "SelectVariable", "name": "CurrentPriceID", "caption": "Aktueller Strompreis (€/kWh)", "validVariableTypes": [2] },
+          { "type": "Label", "caption": "    " },
+          { "type": "SelectVariable", "name": "ForecastPriceID", "caption": "24h-Preisprognose (€/kWh, Array)", "validVariableTypes": [2], "optional": true }
         ]},
-        { "type": "RowLayout", "items": [
+        {
           { "type": "NumberSpinner", "name": "MinPrice", "caption": "Mindestpreis (€/kWh)", "suffix": "€/kWh", "digits": 3, "default": 0.00 },
           { "type": "NumberSpinner", "name": "MaxPrice", "caption": "Höchstpreis (€/kWh)", "suffix": "€/kWh", "digits": 3, "default": 0.20 }
-        ]},
-        { "type": "Label", "caption": "    " },
-        { "type": "RowLayout", "items": [
-          { "type": "SelectVariable", "name": "ForecastPriceID", "caption": "24h-Preisprognose (€/kWh, Array)", "validVariableTypes": [2], "optional": true }
-        ]}
+        }
       ]
     },
     {
