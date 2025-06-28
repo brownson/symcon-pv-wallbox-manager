@@ -11,9 +11,21 @@ class PVWallboxManager extends IPSModule
 
         // Energiequellen (Variablen-IDs für Berechnung)
         $this->RegisterPropertyInteger('PVErzeugungID', 0); // PV-Erzeugung in Watt
+        $this->RegisterPropertyString("PVErzeugungEinheit", "W");
+        
         $this->RegisterPropertyInteger('HausverbrauchID', 0); // Hausverbrauch in Watt
+        $this->RegisterPropertyBoolean("InvertHausverbrauch", false);
+        $this->RegisterPropertyString("HausverbrauchEinheit", "W");
+        
         $this->RegisterPropertyInteger('BatterieladungID', 0); // Batterie-Lade-/Entladeleistung in Watt
+        $this->RegisterPropertyBoolean("InvertBatterieladung", false);
+        $this->RegisterPropertyString("BatterieladungEinheit", "W");
+        
         $this->RegisterPropertyInteger('NetzeinspeisungID', 0); // Einspeisung/Bezug ins Netz (positiv/negativ)
+        $this->RegisterPropertyBoolean("InvertNetzeinspeisung", false);
+        $this->RegisterPropertyString("NetzeinspeisungEinheit", "W");
+
+       
 
         // Wallbox-Einstellungen
         $this->RegisterPropertyInteger('GOEChargerID', 0); // Instanz-ID des GO-e Chargers
@@ -63,12 +75,6 @@ class PVWallboxManager extends IPSModule
 
         $this->RegisterVariableInteger('TargetTime', 'Ziel-Zeit (Uhr)', '~UnixTimestampTime', 60);
         $this->EnableAction('TargetTime');
-
-        $this->RegisterPropertyBoolean("InvertNetzeinspeisung", false);
-        $this->RegisterPropertyBoolean("InvertHausverbrauch", false);
-        $this->RegisterPropertyBoolean("InvertBatterieladung", false);
-
-        $this->RegisterPropertyString("NetzeinspeisungEinheit", "W");
 
         // Zykluszeiten & Ladeplanung
         $this->RegisterPropertyInteger('RefreshInterval', 60); // Intervall für die Überschuss-Berechnung (Sekunden)
