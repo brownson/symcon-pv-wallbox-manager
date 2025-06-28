@@ -33,15 +33,25 @@
       "items": [
         { "type": "Label", "label": "🌅 PV-Erzeugung (Pflichtvariable): Leistung der PV-Anlage in Watt. Immer positiv." },
         { "type": "SelectVariable", "name": "PVErzeugungID", "caption": "PV-Erzeugung (W)", "validVariableTypes": [2] },
+    
         { "type": "Label", "label": "🔌 Netzeinspeisung (optional): Positiv = Einspeisung, negativ = Bezug. Einheit: Watt." },
-        { "type": "Row", "items": [{ "type": "SelectVariable", "name": "NetzeinspeisungID", "caption": "Netzeinspeisung (W)" },
-        { "type": "CheckBox", "name": "InvertNetzeinspeisung", "caption": "invertieren" },
+        { "type": "Row", "items": [
+          { "type": "SelectVariable", "name": "NetzeinspeisungID", "caption": "Netzeinspeisung (W)" },
+          { "type": "CheckBox", "name": "InvertNetzeinspeisung", "caption": "invertieren" }
+        ]},
+    
         { "type": "Label", "label": "🏠 Hausverbrauch (Pflichtvariable): Aktueller Gesamtverbrauch in Watt. Sollte normalerweise immer positiv sein. Falls dein Zähler negativ liefert, hier invertieren." },
-        { "type": "Row", "items": [{ "type": "SelectVariable", "name": "HausverbrauchID", "caption": "Hausverbrauch (W) - Wallboxleistung zum Fahrzeug", "validVariableTypes": [2] },
-        { "type": "CheckBox", "name": "InvertHausverbrauch", "caption": "invertieren" },
+        { "type": "Row", "items": [
+          { "type": "SelectVariable", "name": "HausverbrauchID", "caption": "Hausverbrauch (W) - Wallboxleistung zum Fahrzeug", "validVariableTypes": [2] },
+          { "type": "CheckBox", "name": "InvertHausverbrauch", "caption": "invertieren" }
+        ]},
+    
         { "type": "Label", "label": "🔋 Batterieladung (optional): Lade- oder Entladeleistung der Hausbatterie in Watt. Positiv = Laden, negativ = Entladen. Falls dein System umgekehrte Vorzeichen liefert, hier invertieren. Wenn keine Variable ausgewählt ist, wird 0 verwendet." },
-        { "type": "Row", "items": [{ "type": "SelectVariable", "name": "BatterieladungID", "caption": "Batterieladung (W)", "validVariableTypes": [2] },
-        { "type": "CheckBox", "name": "InvertBatterieladung", "caption": "invertieren" },
+        { "type": "Row", "items": [
+          { "type": "SelectVariable", "name": "BatterieladungID", "caption": "Batterieladung (W)", "validVariableTypes": [2] },
+          { "type": "CheckBox", "name": "InvertBatterieladung", "caption": "invertieren" }
+        ]},
+    
         { "type": "Label", "label": "🔄 Intervall für die Leistungsberechnung in Sekunden (15–600)." },
         { "type": "NumberSpinner", "name": "RefreshInterval", "caption": "Aktualisierungsintervall (s)", "minimum": 15, "maximum": 600 }
       ]
