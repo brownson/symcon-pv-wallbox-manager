@@ -120,12 +120,12 @@
         { "type": "RowLayout", "items": [
           { "type": "CheckBox", "name": "StrompreisModus", "caption": "€ Strompreisladen aktiv" },
           { "type": "Label", "caption": "    " },
-          { "type": "SelectVariable", "name": "CurrentPriceID", "caption": "Aktueller Strompreis (€/kWh)", "validVariableTypes": [2] },
+          { "type": "SelectVariable", "name": "CurrentPriceID", "caption": "Aktueller Strompreis (ct/kWh)", "validVariableTypes": [2] },
           { "type": "Label", "caption": "    " },
-          { "type": "SelectVariable", "name": "ForecastPriceID", "caption": "24h-Preisprognose (€/kWh, Array)", "validVariableTypes": [2], "optional": true }
+          { "type": "SelectVariable", "name": "ForecastPriceID", "caption": "24h-Preisprognose (ct/kWh, Array)", "validVariableTypes": [3], "optional": true }
         ]},
-          { "type": "NumberSpinner", "name": "MinPrice", "caption": "Mindestpreis (€/kWh)", "suffix": "€/kWh", "digits": 3, "default": 0.00 },
-          { "type": "NumberSpinner", "name": "MaxPrice", "caption": "Höchstpreis (€/kWh)", "suffix": "€/kWh", "digits": 3, "default": 0.20 }
+          { "type": "NumberSpinner", "name": "MinPrice", "caption": "Mindestpreis (ct/kWh)", "suffix": "ct/kWh", "digits": 3, "default": 0.00 },
+          { "type": "NumberSpinner", "name": "MaxPrice", "caption": "Höchstpreis (ct/kWh)", "suffix": "ct/kWh", "digits": 3, "default": 0.20 }
       ]
     },
     {
