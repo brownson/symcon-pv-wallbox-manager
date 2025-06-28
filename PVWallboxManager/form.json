@@ -35,7 +35,12 @@
         { "type": "SelectVariable", "name": "PVErzeugungID", "caption": "PV-Erzeugung (W)", "validVariableTypes": [2] },
         { "type": "Label", "label": "🔌 Netzeinspeisung (optional): Positiv = Einspeisung, negativ = Bezug. Einheit: Watt." },
         { "type": "RowLayout", "items": [
-          { "type": "SelectVariable", "name": "NetzeinspeisungID", "caption": "Netzeinspeisung (W)" },
+          { "type": "SelectVariable", "name": "NetzeinspeisungID", "caption": "Netzeinspeisung" },
+          { "type": "Label", "caption": "    " },
+          { "type": "Select", "name": "NetzeinspeisungEinheit", "caption": "Einheit", "options": [
+            { "caption": "Watt (W)", "value": "W" },
+            { "caption": "Kilowatt (kW)", "value": "kW" }
+            ], "default": "W" },
           { "type": "Label", "caption": "         " },
           { "type": "CheckBox", "name": "InvertNetzeinspeisung", "caption": "Normal positiv. Falls dein Zähler negativ liefert, hier invertieren." }
         ]},
