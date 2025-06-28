@@ -84,6 +84,13 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeFloat("ChargeEnergyStart", 0);
         $this->RegisterAttributeInteger("ChargeStartTime", 0);
 
+        // Strompreis-Ladung (ab Version 0.9)
+        $this->RegisterPropertyBoolean("StrompreisModus", false); // €-Button
+        $this->RegisterPropertyInteger("CurrentPriceID", 0);      // Aktueller Preis (ct/kWh, Float)
+        $this->RegisterPropertyInteger("ForecastPriceID", 0);     // 24h-Prognose (ct/kWh, String)
+        $this->RegisterPropertyFloat("MinPrice", 0.000);       // Mindestpreis (ct/kWh)
+        $this->RegisterPropertyFloat("MaxPrice", 30.000);      // Höchstpreis (ct/kWh)
+
         // Timer für regelmäßige Berechnung
         $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
         $this->RegisterTimer('ZyklusLadevorgangCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "ZyklusLadevorgangCheck", 0);');
@@ -136,6 +143,7 @@ class PVWallboxManager extends IPSModule
                 if ($value) {
                     SetValue($this->GetIDForIdent('PV2CarModus'), false);
                     SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
+                    SetValue($this->GetIDForIdent('StrompreisModus'), false);
                     $this->SetLademodusStatus('Manueller Volllademodus aktiv');
                 } else {
                     $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
@@ -147,6 +155,7 @@ class PVWallboxManager extends IPSModule
                 if ($value) {
                     SetValue($this->GetIDForIdent('ManuellVollladen'), false);
                     SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
+                    SetValue($this->GetIDForIdent('StrompreisModus'), false);
                     $this->SetLademodusStatus('PV2Car Modus aktiv');
                 } else {
                     $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
@@ -158,7 +167,20 @@ class PVWallboxManager extends IPSModule
                 if ($value) {
                     SetValue($this->GetIDForIdent('ManuellVollladen'), false);
                     SetValue($this->GetIDForIdent('PV2CarModus'), false);
+                    SetValue($this->GetIDForIdent('StrompreisModus'), false);
                     $this->SetLademodusStatus('Zielzeitladung PV-optimiert aktiv');
+                } else {
+                    $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
+                }
+                break;
+            
+            case 'StrompreisModus':
+                SetValue($this->GetIDForIdent($ident), $value);
+                if ($value) {
+                    SetValue($this->GetIDForIdent('ManuellVollladen'), false);
+                    SetValue($this->GetIDForIdent('PV2CarModus'), false);
+                    SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
+                    $this->SetLademodusStatus('Strompreisladen aktiv');
                 } else {
                     $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
                 }
@@ -166,6 +188,11 @@ class PVWallboxManager extends IPSModule
     
             case 'TargetTime':
                 SetValue($this->GetIDForIdent($ident), $value);
+                break;
+            // Weitere Cases ggf. ergänzen
+    
+            default:
+                parent::RequestAction($ident, $value);
                 break;
         }
         // Nach jeder Aktion immer den Hauptalgorithmus aufrufen:
@@ -204,7 +231,47 @@ class PVWallboxManager extends IPSModule
                 return; // *** GANZ WICHTIG: Sofort beenden! ***
             }
         }
+
         // --- MODUS-WEICHE (Prio: Manuell > Zielzeit > PV2Car > PV-Überschuss/Hysterese) ---
+        // Strompreismodus aktiv?
+        $strompreisModus = $this->ReadPropertyBoolean("StrompreisModus");
+        $currentPriceID = $this->ReadPropertyInteger("CurrentPriceID");
+        $minPrice = $this->ReadPropertyFloat("MinPrice");
+        $maxPrice = $this->ReadPropertyFloat("MaxPrice");
+    
+        // Strompreis laden und in Euro umrechnen (ct/kWh -> €/kWh)
+        $currentPriceCt = 0.0;
+        if ($currentPriceID > 0 && @IPS_VariableExists($currentPriceID)) {
+            $currentPriceCt = GetValueFloat($currentPriceID);
+        }
+        $currentPriceEuro = $currentPriceCt / 100.0;
+        $minPriceEuro = $minPrice / 100.0;
+        $maxPriceEuro = $maxPrice / 100.0;
+    
+        // Debug/Log-Ausgabe
+        $this->SendDebug(
+            "Strompreis",
+            "Aktueller Strompreis: {$currentPriceCt} ct/kWh ({$currentPriceEuro} €/kWh), Min: {$minPrice} ct, Max: {$maxPrice} ct",
+            0
+        );
+    
+        // --- Strompreislogik ---
+        if ($strompreisModus) {
+            if ($currentPriceEuro < $minPriceEuro || $currentPriceEuro > $maxPriceEuro) {
+                // Strompreis außerhalb Limit: KEINE Ladung!
+                $this->SetLadeleistung(0);
+                $this->SetLademodusStatus("Ladung gesperrt: Strompreis " . round($currentPriceCt, 3) . " ct/kWh außerhalb Limit");
+                IPS_LogMessage("PVWallboxManager", "Ladung blockiert – Strompreis: {$currentPriceCt} ct/kWh nicht im Bereich {$minPrice}–{$maxPrice} ct/kWh");
+                return; // Sofort abbrechen!
+            }
+    
+            // Preis im Bereich: Ladung freigeben (hier kannst du beliebige Logik ergänzen!)
+            // Beispiel: Lade wie im normalen PV-Überschussmodus
+            $this->LogikPVPureMitHysterese();
+            $this->SetLademodusStatus("Strompreisladen aktiv: Preis {$currentPriceCt} ct/kWh im Bereich");
+            return;
+        }
+        
         if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
             $this->SetLadeleistung($this->GetMaxLadeleistung());
             $this->SetLademodusStatus("Manueller Volllademodus aktiv");
@@ -222,6 +289,7 @@ class PVWallboxManager extends IPSModule
             $this->SetLademodusStatus("PV2Car: {$anteil}% vom Überschuss ({$ladeWatt} W)");
             return;
         }
+        
         // --- Standard: Nur PV-Überschuss mit Start/Stop-Hysterese ---
         $this->LogikPVPureMitHysterese();
     }
