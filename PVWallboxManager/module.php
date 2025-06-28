@@ -85,6 +85,10 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+        $this->SendDebug('InvertHausverbrauch', $this->ReadPropertyBoolean('InvertHausverbrauch'), 0);
+        $this->SendDebug('InvertBatterieladung', $this->ReadPropertyBoolean('InvertBatterieladung'), 0);
+        $this->SendDebug('InvertNetzeinspeisung', $this->ReadPropertyBoolean('InvertNetzeinspeisung'), 0);
+        
         $interval = $this->ReadPropertyInteger('RefreshInterval');
         $goeID    = $this->ReadPropertyInteger('GOEChargerID');
         $pvID     = $this->ReadPropertyInteger('PVErzeugungID');
