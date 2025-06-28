@@ -69,6 +69,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableBoolean('ZielzeitladungPVonly', '⏱️ Zielzeitladung PV-optimiert', '', 97);
         $this->EnableAction('ZielzeitladungPVonly');
 
+        $this->RegisterVariableBoolean('StrompreisModus', '€ Strompreisladen aktiv', '~Switch', 60);
+        $this->EnableAction('StrompreisModus');
+
         $this->RegisterVariableString('LademodusStatus', 'Aktueller Lademodus', '', 98);
 
         $this->RegisterVariableInteger('TargetTime', 'Ziel-Zeit (Uhr)', '~UnixTimestampTime', 60);
