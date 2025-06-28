@@ -342,6 +342,17 @@ class PVWallboxManager extends IPSModule
         
         // Auf Ganzzahl runden und negatives abfangen
         $ueberschuss = max(0, round($ueberschuss));
+
+        // --- Hier Logging der kompletten Berechnung ---
+        $logMsg = "PV-Überschuss = PV: {$pv} W - Haus: {$haus} W - Batterie: {$batt} W + Netz: {$netz} W";
+        if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
+            $logMsg .= " [Pufferfaktor: {$puffer}]";
+            $logMsg .= " → nach Puffer: " . round($ueberschuss) . " W";
+        } else {
+            $logMsg .= " → Ergebnis: " . round($ueberschuss) . " W";
+        }
+        IPS_LogMessage("PVWallboxManager", $logMsg);
+        $this->SendDebug("PV-Berechnung", $logMsg, 0);
         
         // In Variable schreiben (immer als ganzzahlig und >= 0)
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
