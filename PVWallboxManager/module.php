@@ -215,24 +215,46 @@ class PVWallboxManager extends IPSModule
     // --- Hilfsfunktion: PV-Überschuss berechnen ---
     private function BerechnePVUeberschuss(): float
     {
-        $pvID = $this->ReadPropertyInteger("PVErzeugungID");
+        $pvID   = $this->ReadPropertyInteger("PVErzeugungID");
         $hausID = $this->ReadPropertyInteger("HausverbrauchID");
         $battID = $this->ReadPropertyInteger("BatterieladungID");
         $goeID  = $this->ReadPropertyInteger("GOEChargerID");
 
-        // Wenn eine ID nicht gesetzt ist (0), wird der Wert automatisch auf 0 gesetzt!
-        //$pv   = $pvID   > 0 ? GetValue($pvID)   : 0;
-        //$haus = $hausID > 0 ? GetValue($hausID) : 0;
-        $batt = $battID > 0 ? GetValue($battID) : 0;
-        
         $pv  = GetValue($pvID);
-        $haus = GetValue($hausID);
-        //$batt = GetValue($battID);
 
-        // Optional: Logging für bessere Nachvollziehbarkeit
-        //if ($pvID == 0)   IPS_LogMessage("PVWallboxManager", "Hinweis: Keine PV-Erzeugung-Variable gewählt, Wert wird als 0 angesetzt.");
-        //if ($hausID == 0) IPS_LogMessage("PVWallboxManager", "Hinweis: Keine Hausverbrauch-Variable gewählt, Wert wird als 0 angesetzt.");
-        if ($battID == 0) IPS_LogMessage("PVWallboxManager", "Hinweis: Keine Batterieladung-Variable gewählt, Wert wird als 0 angesetzt.");
+        // Batterieladung (invertierbar):
+        $batt = 0;
+        if ($battID > 0 && @IPS_VariableExists($battID)) {
+            $batt = GetValue($battID);
+            if ($this->ReadPropertyBoolean('InvertBatterieladung')) {
+                $batt *= -1;
+            }
+        } else {
+            IPS_LogMessage("PVWallboxManager", "Hinweis: Keine Batterieladung-Variable gewählt, Wert wird als 0 angesetzt.");
+        }
+        
+        // Hausverbrauch (invertierbar):
+        $haus = 0;
+        if ($hausID > 0 && @IPS_VariableExists($hausID)) {
+            $haus = GetValue($hausID);
+            if ($this->ReadPropertyBoolean('InvertHausverbrauch')) {
+                $haus *= -1;
+            }
+        } else {
+            IPS_LogMessage("PVWallboxManager", "Hinweis: Keine Hausverbrauch-Variable gewählt, Wert wird als 0 angesetzt.");
+        }
+
+        // Netzeinspeisung (invertierbar):
+        $netzID = $this->ReadPropertyInteger('NetzeinspeisungID');
+        $netz = 0;
+        if ($netzID > 0 && @IPS_VariableExists($netzID)) {
+            $netz = GetValue($netzID);
+            if ($this->ReadPropertyBoolean('InvertNetzeinspeisung')) {
+                $netz *= -1;
+            }
+        } else {
+            IPS_LogMessage("PVWallboxManager", "Hinweis: Keine Netzeinspeisung-Variable gewählt, Wert wird als 0 angesetzt.");
+        }
         
         $ladeleistung = GOeCharger_GetPowerToCar($goeID);
         $ueberschuss = $pv - $haus - $batt;
@@ -561,5 +583,18 @@ class PVWallboxManager extends IPSModule
                 $this->LadevorgangEnde($aktuellerSOC, $aktuellerWBZähler, $batteryCapacity);
             }
         }
+    }
+
+    protected function GetInvertedValue($varIdProperty, $invertProperty)
+    {
+        $varID = $this->ReadPropertyInteger($varIdProperty);
+        if ($varID > 0 && @IPS_VariableExists($varID)) {
+            $value = GetValueFloat($varID);
+            if ($this->ReadPropertyBoolean($invertProperty)) {
+                $value *= -1;
+            }
+            return $value;
+        }
+        return 0.0;
     }
 }
