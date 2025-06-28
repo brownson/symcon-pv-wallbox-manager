@@ -32,8 +32,9 @@
       "caption": "🌞 Energiequellen",
       "items": [
         { "type": "Label", "label": "🌅 PV-Erzeugung (Pflichtvariable): Leistung der PV-Anlage in Watt." },
-        { "type": "SelectVariable", "name": "PVErzeugungID", "caption": "PV-Erzeugung (W)", "validVariableTypes": [2] },
-        { "type": "Label", "caption": "    " },
+        { "type": "RowLayout", "items": [
+          { "type": "SelectVariable", "name": "PVErzeugungID", "caption": "PV-Erzeugung (W)", "validVariableTypes": [2] },
+          { "type": "Label", "caption": "    " },
           { "type": "Select", "name": "PVErzeugungEinheit", "caption": "Einheit", "options": [
             { "caption": "Watt (W)", "value": "W" },
             { "caption": "Kilowatt (kW)", "value": "kW" } ], "default": "W" },
