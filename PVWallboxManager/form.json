@@ -93,20 +93,50 @@
       "type": "ExpansionPanel",
       "caption": "🧠 Intelligente Logik",
       "items": [
-        { "type": "Label", "label": "🧮 Aktiviert dynamischen Sicherheitsabzug bei der Leistungsberechnung (Empfehlung: aktivieren bei PV-Überschussladung)." },
-        { "type": "CheckBox", "name": "DynamischerPufferAktiv", "caption": "Dynamischen Puffer aktivieren" },
-        { "type": "Label", "label": "🚗 Nur laden wenn Fahrzeug erkannt ist (Status 2 oder 4, siehe GO-e Doku)." },
-        { "type": "CheckBox", "name": "NurMitFahrzeug", "caption": "Nur laden, wenn Fahrzeug verbunden" },
-        { "type": "Label", "label": "⚖️ PV-Leistung anteilig zwischen Haus und Auto aufteilen." },
-        { "type": "CheckBox", "name": "PVVerteilenAktiv", "caption": "PV-Leistung aufteilen aktivieren" },
-        { "type": "Label", "label": "🚗 Anteil des PV-Überschusses fürs Fahrzeug in Prozent (nur bei aktivierter Aufteilung)." },
-        { "type": "NumberSpinner", "name": "PVAnteilAuto", "caption": "Anteil fürs Fahrzeug (%)", "suffix": "%", "visible": { "name": "PVVerteilenAktiv", "equals": true } },
-        { "type": "Label", "label": "🔋 Hausakku SoC zur Berücksichtigung bei voller Batterie (nur bei aktivierter Aufteilung, Einheit: %)." },
-        { "type": "SelectVariable", "name": "HausakkuSOCID", "caption": "Hausakku SoC (%)", "visible": { "name": "PVVerteilenAktiv", "equals": true } },
-        { "type": "Label", "label": "🔋 Schwelle ab wann Hausakku als voll gilt (nur bei aktivierter Aufteilung, 50–100%)." },
-        { "type": "NumberSpinner", "name": "HausakkuSOCVollSchwelle", "caption": "Voll-Schwelle Hausbatterie (%)", "suffix": "%", "minimum": 50, "maximum": 100, "visible": { "name": "PVVerteilenAktiv", "equals": true } },
-        { "type": "Label", "label": "⏱️ Stunden vor Zielzeit, ab wann aktiv geladen wird (ganzzahlig, 1–12 h)." },
-        { "type": "NumberSpinner", "name": "TargetChargePreTime", "caption": "Umschaltzeit vor Zielzeit (h)", "suffix": "h", "minimum": 1, "maximum": 12 }
+        // Dynamischer Puffer
+        { "type": "RowLayout", "items": [
+          { "type": "CheckBox", "name": "DynamischerPufferAktiv", "caption": "🧮 Dynamischen Puffer aktivieren" }
+        ]},
+        { "type": "Label", "caption": "    " },
+    
+        // NurMitFahrzeug
+        { "type": "RowLayout", "items": [
+          { "type": "CheckBox", "name": "NurMitFahrzeug", "caption": "🚗 Nur laden, wenn Fahrzeug verbunden" }
+        ]},
+        { "type": "Label", "caption": "    " },
+    
+        // PV-Verteilung
+        { "type": "Label", "label": "⚖️ PV-Leistung aufteilen (PV2Car-Regelung)" },
+        { "type": "RowLayout", "items": [
+          { "type": "CheckBox", "name": "PVVerteilenAktiv", "caption": "PV-Leistung aufteilen aktivieren" },
+          { "type": "NumberSpinner", "name": "PVAnteilAuto", "caption": "Anteil fürs Fahrzeug (%)", "suffix": "%", "visible": { "name": "PVVerteilenAktiv", "equals": true } }
+        ]},
+        { "type": "RowLayout", "items": [
+          { "type": "SelectVariable", "name": "HausakkuSOCID", "caption": "Hausakku SoC (%)", "visible": { "name": "PVVerteilenAktiv", "equals": true } },
+          { "type": "NumberSpinner", "name": "HausakkuSOCVollSchwelle", "caption": "Voll-Schwelle Hausbatterie (%)", "suffix": "%", "minimum": 50, "maximum": 100, "visible": { "name": "PVVerteilenAktiv", "equals": true } }
+        ]},
+        { "type": "Label", "caption": "    " },
+    
+        // Zielzeitladung
+        { "type": "RowLayout", "items": [
+          { "type": "NumberSpinner", "name": "TargetChargePreTime", "caption": "⏱️ Umschaltzeit vor Zielzeit (h)", "suffix": "h", "minimum": 1, "maximum": 12 }
+        ]},
+        { "type": "Label", "caption": "    " },
+    
+        // Strompreisladen
+        { "type": "Label", "label": "💶 Strompreisbasiertes Laden (dynamische Tarife)" },
+        { "type": "RowLayout", "items": [
+          { "type": "CheckBox", "name": "StrompreisModus", "caption": "€ Strompreisladen aktiv" },
+          { "type": "SelectVariable", "name": "CurrentPriceID", "caption": "Aktueller Strompreis (€/kWh)", "validVariableTypes": [2] }
+        ]},
+        { "type": "RowLayout", "items": [
+          { "type": "NumberSpinner", "name": "MinPrice", "caption": "Mindestpreis (€/kWh)", "suffix": "€/kWh", "digits": 3, "default": 0.00 },
+          { "type": "NumberSpinner", "name": "MaxPrice", "caption": "Höchstpreis (€/kWh)", "suffix": "€/kWh", "digits": 3, "default": 0.20 }
+        ]},
+        { "type": "Label", "caption": "    " },
+        { "type": "RowLayout", "items": [
+          { "type": "SelectVariable", "name": "ForecastPriceID", "caption": "24h-Preisprognose (€/kWh, Array)", "validVariableTypes": [2], "optional": true }
+        ]}
       ]
     },
     {
