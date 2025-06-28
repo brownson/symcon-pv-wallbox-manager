@@ -37,13 +37,13 @@
         { "type": "RowLayout", "items": [
           { "type": "SelectVariable", "name": "NetzeinspeisungID", "caption": "Netzeinspeisung (W)" },
           { "type": "Label", "caption": "         " },
-          { "type": "CheckBox", "name": "InvertNetzeinspeisung", "caption": "Sollte normalerweise immer positiv sein. Falls dein Zähler negativ liefert, hier invertieren." }
+          { "type": "CheckBox", "name": "InvertNetzeinspeisung", "caption": "Normal positiv. Falls dein Zähler negativ liefert, hier invertieren." }
         ]},
         { "type": "Label", "label": "🏠 Hausverbrauch (Pflichtvariable): Aktueller Gesamtverbrauch in Watt." },
         { "type": "RowLayout", "items": [
           { "type": "SelectVariable", "name": "HausverbrauchID", "caption": "Hausverbrauch (W) - Wallboxleistung zum Fahrzeug", "validVariableTypes": [2] },
           { "type": "Label", "caption": "         " },
-          { "type": "CheckBox", "name": "InvertHausverbrauch", "caption": "Sollte normalerweise immer positiv sein. Falls dein Zähler negativ liefert, hier invertieren." }
+          { "type": "CheckBox", "name": "InvertHausverbrauch", "caption": "Normal positiv. Falls dein Zähler negativ liefert, hier invertieren." }
         ]},
         { "type": "Label", "label": "🔋 Batterieladung (optional): Lade- oder Entladeleistung der Hausbatterie in Watt.  Wenn keine Variable ausgewählt ist, wird 0 verwendet." },
         { "type": "RowLayout", "items": [
