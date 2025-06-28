@@ -25,8 +25,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean("InvertNetzeinspeisung", false);
         $this->RegisterPropertyString("NetzeinspeisungEinheit", "W");
 
-       
-
         // Wallbox-Einstellungen
         $this->RegisterPropertyInteger('GOEChargerID', 0); // Instanz-ID des GO-e Chargers
         $this->RegisterPropertyInteger('MinAmpere', 6); // Minimale Ladeleistung (Ampere)
