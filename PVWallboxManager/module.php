@@ -209,7 +209,7 @@ class PVWallboxManager extends IPSModule
             if (GOeCharger_getMode($goeID) != 1) {
                 GOeCharger_setMode($goeID, 1);
             }
-            $this->SetLademodusStatus("⚠️ Kein Fahrzeug verbunden – bitte erst Fahrzeug anschließen.");
+            $this->SetFahrzeugStatus("⚠️ Kein Fahrzeug verbunden – bitte erst Fahrzeug anschließen.");
             SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
             $this->Log("Kein Fahrzeug verbunden – Abbruch der Berechnung", 'warn');
             $this->UpdateWallboxStatusText();
@@ -222,7 +222,7 @@ class PVWallboxManager extends IPSModule
                 $this->Log("Fahrzeug angeschlossen, wartet auf Freigabe", 'debug');
             }
             if ($status == 4) {
-                $this->SetLademodusStatus("🅿️ Fahrzeug verbunden, Ladung beendet. Moduswechsel möglich.");
+                $this->SetFahrzeugStatus("🅿️ Fahrzeug verbunden, Ladung beendet. Moduswechsel möglich.");
                 $this->Log("Fahrzeug verbunden, Ladung beendet", 'debug');
             }
         }
