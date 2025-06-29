@@ -255,16 +255,15 @@ class PVWallboxManager extends IPSModule
     
         // --- Strompreislogik ---
         if ($strompreisModus) {
-            if ($currentPriceEuro < $minPriceEuro || $currentPriceEuro > $maxPriceEuro) {
-                // Strompreis außerhalb Limit: KEINE Ladung!
+            if ($currentPriceEuro > $maxPriceEuro) {
+                // Strompreis über Limit: KEINE Ladung!
                 $this->SetLadeleistung(0);
-                $this->SetLademodusStatus("Ladung gesperrt: Strompreis " . round($currentPriceCt, 3) . " ct/kWh außerhalb Limit");
-                IPS_LogMessage("PVWallboxManager", "Ladung blockiert – Strompreis: {$currentPriceCt} ct/kWh nicht im Bereich {$minPrice}–{$maxPrice} ct/kWh");
+                $this->SetLademodusStatus("Ladung gesperrt: Strompreis " . round($currentPriceCt, 3) . " ct/kWh über Limit");
+                IPS_LogMessage("PVWallboxManager", "Ladung blockiert – Strompreis: {$currentPriceCt} ct/kWh > {$maxPrice} ct/kWh");
                 return; // Sofort abbrechen!
             }
-    
-            // Preis im Bereich: Ladung freigeben (hier kannst du beliebige Logik ergänzen!)
-            // Beispiel: Lade wie im normalen PV-Überschussmodus
+        
+            // Preis im Bereich: Ladung freigeben (wie im normalen PV-Überschussmodus)
             $this->LogikPVPureMitHysterese();
             $this->SetLademodusStatus("Strompreisladen aktiv: Preis {$currentPriceCt} ct/kWh im Bereich");
             return;
