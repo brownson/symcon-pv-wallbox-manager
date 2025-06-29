@@ -133,7 +133,7 @@
       "items": [
         { "type": "Label", "label": "📊 Fahrzeugdaten für SoC-basierte Ladesteuerung verwenden (optional)." },
         { "type": "CheckBox", "name": "UseCarSOC", "caption": "Fahrzeugdaten berücksichtigen" },
-        { "type": "Label", "caption": "    " }
+        { "type": "Label", "caption": "    " },
         { "type": "RowLayout", "items": [
           { "type": "Label", "caption": "🔋 Aktueller SoC des Fahrzeugs (Einheit: %, positiv) & 🔋 Fallback SoC in %, wenn keine Variable angegeben ist (positiv)." },
           { "type": "SelectVariable", "name": "CarSOCID", "caption": "Aktueller SoC (Variable)" },
