@@ -123,7 +123,6 @@
           { "type": "Label", "caption": "    " },
           { "type": "SelectVariable", "name": "ForecastPriceID", "caption": "24h-Preisprognose (ct/kWh, Array)", "validVariableTypes": [3], "optional": true }
         ]},
-          { "type": "NumberSpinner", "name": "MinPrice", "caption": "Mindestpreis (ct/kWh)", "suffix": "ct/kWh", "digits": 3, "minimum": 0.000, "maximum": 999.999, "default": 0.000 },
           { "type": "NumberSpinner", "name": "MaxPrice", "caption": "Höchstpreis (ct/kWh)", "suffix": "ct/kWh", "digits": 3, "minimum": 0.000, "maximum": 999.999, "default": 0.000 }
       ]
     },
