@@ -130,13 +130,25 @@ class PVWallboxManager extends IPSModule
 
     public function RequestAction($ident, $value)
     {
-        // UX-Prüfung: Funktion abbrechen, wenn "Nur laden, wenn Fahrzeug verbunden" aktiv und kein Fahrzeug verbunden
-        if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !in_array(GOeCharger_GetStatus($this->ReadPropertyInteger('GOEChargerID')), [2,4])) {
-            $this->SetLademodusStatus("⚠️ Button-Funktion nicht ausführbar: Kein Fahrzeug verbunden (oder 'Nur laden, wenn Fahrzeug verbunden' ist aktiv).");
-            IPS_LogMessage("PVWallboxManager", "⚠️ Aktion abgebrochen: Kein Fahrzeug verbunden und 'Nur laden, wenn Fahrzeug verbunden' aktiv.");
-            return;
+        // Fahrzeug-Status prüfen
+        $status = GOeCharger_GetStatus($this->ReadPropertyInteger('GOEChargerID'));
+        if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
+            switch ($status) {
+                case 1: // Kein Fahrzeug verbunden
+                    $this->SetLademodusStatus("⚠️ Kein Fahrzeug verbunden – bitte erst Fahrzeug anschließen.");
+                    IPS_LogMessage("PVWallboxManager", "⚠️ Aktion abgebrochen: Kein Fahrzeug verbunden und 'Nur laden, wenn Fahrzeug verbunden' aktiv.");
+                    return;
+                case 3: // Fahrzeug angeschlossen, wartet auf Freigabe
+                    $this->SetLademodusStatus("🚗 Fahrzeug angeschlossen, wartet auf Freigabe (z.B. Tür öffnen, oder am Fahrzeug 'Laden' aktivieren).");
+                    // Buttons dürfen trotzdem geschaltet werden!
+                    break;
+                case 4: // Ladung beendet, Fahrzeug verbunden
+                    $this->SetLademodusStatus("🅿️ Fahrzeug verbunden, Ladung beendet. Moduswechsel möglich.");
+                    break;
+                // Status 2: Ladevorgang läuft – Buttons wie gehabt.
+            }
         }
-        
+    
         switch ($ident) {
             case 'ManuellVollladen':
                 SetValue($this->GetIDForIdent($ident), $value);
@@ -146,7 +158,7 @@ class PVWallboxManager extends IPSModule
                     SetValue($this->GetIDForIdent('StrompreisModus'), false);
                     $this->SetLademodusStatus('Manueller Volllademodus aktiv');
                 } else {
-                    $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
+                    $this->SetLademodusStatus('Volllademodus deaktiviert');
                 }
                 break;
     
@@ -158,7 +170,7 @@ class PVWallboxManager extends IPSModule
                     SetValue($this->GetIDForIdent('StrompreisModus'), false);
                     $this->SetLademodusStatus('PV2Car Modus aktiv');
                 } else {
-                    $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
+                    $this->SetLademodusStatus('PV2Car Modus deaktiviert');
                 }
                 break;
     
@@ -170,10 +182,10 @@ class PVWallboxManager extends IPSModule
                     SetValue($this->GetIDForIdent('StrompreisModus'), false);
                     $this->SetLademodusStatus('Zielzeitladung PV-optimiert aktiv');
                 } else {
-                    $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
+                    $this->SetLademodusStatus('Zielzeitladung deaktiviert');
                 }
                 break;
-            
+    
             case 'StrompreisModus':
                 SetValue($this->GetIDForIdent($ident), $value);
                 if ($value) {
@@ -182,13 +194,14 @@ class PVWallboxManager extends IPSModule
                     SetValue($this->GetIDForIdent('ZielzeitladungPVonly'), false);
                     $this->SetLademodusStatus('Strompreisladen aktiv');
                 } else {
-                    $this->SetLademodusStatus('Kein Fahrzeug verbunden – Laden deaktiviert');
+                    $this->SetLademodusStatus('Strompreisladen deaktiviert');
                 }
                 break;
     
             case 'TargetTime':
                 SetValue($this->GetIDForIdent($ident), $value);
                 break;
+    
             // Weitere Cases ggf. ergänzen
     
             default:
