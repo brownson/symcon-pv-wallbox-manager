@@ -253,7 +253,7 @@ class PVWallboxManager extends IPSModule
             $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
     
             $this->Log("SOC-Prüfung (AlwaysUseTargetSOC): Ist={$soc}%, Ziel={$targetSOC}% (Option aktiv)", 'info');
-            $this->SendDebug("SOC-Prüfung", "Aktueller SOC={$soc}%, Ziel-SOC={$targetSOC}%", 0);
+            $this->Log("SOC-Prüfung", "Aktueller SOC={$soc}%, Ziel-SOC={$targetSOC}%", 0);
     
             if ($soc >= $targetSOC) {
                 $this->SetLadeleistung(0);
@@ -390,7 +390,7 @@ class PVWallboxManager extends IPSModule
     
         // Immer 1x loggen (zentrales Level: info)
         $this->Log($logMsg, 'info');
-        $this->SendDebug("PV-Berechnung", $logMsg, 0);
+        $this->Log("PV-Berechnung", $logMsg, 0);
     
         // In Variable schreiben (nur im Standardmodus als Visualisierung)
         if ($modus == 'standard') {
@@ -869,7 +869,7 @@ class PVWallboxManager extends IPSModule
             case 'debug':
                 if ($this->ReadPropertyBoolean('DebugLogging')) {
                     IPS_Log("{$prefix} [DEBUG]", $message);
-                    $this->SendDebug("DEBUG", $message, 0);
+                    $this->Log("DEBUG", $message, 0);
                 }
                 break;
             case 'warn':
