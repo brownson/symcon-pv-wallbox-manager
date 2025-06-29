@@ -842,9 +842,9 @@ class PVWallboxManager extends IPSModule
         $normalized = strtolower(trim($level));
 
         // Unerwünschte/zu kurze Nachrichten unterdrücken
-        if (in_array(strtolower(trim($message)), ['warn', 'debug', 'info', ''])) {
-            return;
-        }
+        //if (in_array(strtolower(trim($message)), ['warn', 'debug', 'info', ''])) {
+        //    return;
+        //}
 
         switch ($normalized) {
             case 'debug':
