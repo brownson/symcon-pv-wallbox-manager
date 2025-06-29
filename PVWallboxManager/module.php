@@ -862,7 +862,7 @@ class PVWallboxManager extends IPSModule
     private function Log(string $level, string $message)
     {
         // Unterstützte Level: debug, info, warn, warning, error
-        $prefix = "PVWallboxManager";
+        $prefix = "PVWM";
         $normalized = strtolower(trim($level));
 
         // Unerwünschte/zu kurze Nachrichten unterdrücken
