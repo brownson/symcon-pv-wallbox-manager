@@ -54,6 +54,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeInteger('Phasen1Counter', 0);
         $this->RegisterAttributeInteger('Phasen3Counter', 0);
 
+        $this->RegisterAttributeBoolean('RunLogFlag', true);
+
         // Erweiterte Logik: PV-Verteilung Auto/Haus
         $this->RegisterPropertyBoolean('PVVerteilenAktiv', false); // PV-Leistung anteilig zum Auto leiten
         $this->RegisterPropertyInteger('PVAnteilAuto', 33); // Anteil für das Auto in Prozent
@@ -99,8 +101,6 @@ class PVWallboxManager extends IPSModule
         
         $this->RegisterPropertyBoolean('ModulAktiv', true);
         $this->RegisterPropertyBoolean('DebugLogging', false);
-
-        $this->WriteAttributeBoolean('RunLogFlag', true);
 
     }
     
