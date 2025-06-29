@@ -347,7 +347,7 @@ class PVWallboxManager extends IPSModule
         $ueberschuss = max(0, round($ueberschuss));
 
         // --- Hier Logging der kompletten Berechnung ---
-        $logMsg = "PV-Überschuss = PV: {$pv} W - Haus: {$haus} W - Batterie: {$batt} W + Netz: {$netz} W";
+        $logMsg = "PV-Überschuss = PV: {$pv} W - Haus: {$haus} W - Batterie: {$batt} W";
         if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
             $logMsg .= " [Pufferfaktor: {$puffer}]";
             $logMsg .= " → nach Puffer: " . round($ueberschuss) . " W";
