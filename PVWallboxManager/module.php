@@ -638,7 +638,7 @@ class PVWallboxManager extends IPSModule
                             $this->Log("🔌 Modus auf 'Bereit' gestellt (1)", 'info');
                         }
                     } else {
-                        $this->Log("🟡 Ladeleistung unverändert – keine Änderung notwendig", 'debug');
+                        $this->Log("🟡 Ladeleistung unverändert – keine Änderung notwendig", 'info');
                     }
                     // Prüfe: Leistung > 0, Modus ist "bereit" (1), Fahrzeug verbunden (Status 3 oder 4)
                     $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
