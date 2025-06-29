@@ -667,7 +667,7 @@ class PVWallboxManager extends IPSModule
 
     private function SetFahrzeugStatus(string $text)
     {
-        $varID = $this->GetIDForIdent('FahrzeugStatus');
+        $varID = $this->GetIDForIdent('FahrzeugStatusText');
         if ($varID !== false && @IPS_VariableExists($varID)) {
             if (GetValue($varID) !== $text) {
                 SetValue($varID, $text);
