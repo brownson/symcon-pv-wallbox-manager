@@ -4,10 +4,8 @@
       "type": "ExpansionPanel",
       "caption": "🛑 Modulsteuerung",
       "items": [
-        {
-          "type": "CheckBox",
-          "name": "ModulAktiv",
-          "caption": "Modul aktiv (bei Deaktivierung werden keine Aktionen ausgeführt)"}
+        { "type": "CheckBox", "name": "ModulAktiv", "caption": "Modul aktiv (bei Deaktivierung werden keine Aktionen ausgeführt)"},
+        { "type": "CheckBox", "name": "DebugLogging", "caption": "🐞 Debug-Logging aktivieren (Details zu allen Variablen und Werten ins IPS-Log)", "default": false }
       ]
     },
     {
