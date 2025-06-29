@@ -368,7 +368,12 @@ class PVWallboxManager extends IPSModule
         } else {
             $logMsg .= " → Ergebnis: " . round($ueberschuss) . " W";
         }
-        IPS_LogMessage("PVWallboxManager", $logMsg);
+    
+        // NUR ein Log pro Durchlauf:
+        if ($this->runLogFlag) {
+            IPS_LogMessage("PVWallboxManager", $logMsg);
+            $this->runLogFlag = false;
+        }
         $this->SendDebug("PV-Berechnung", $logMsg, 0);
         
         // In Variable schreiben (nur im Standardmodus als Visualisierung)
