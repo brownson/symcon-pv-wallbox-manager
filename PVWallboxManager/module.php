@@ -102,6 +102,14 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('ModulAktiv', true);
         $this->RegisterPropertyBoolean('DebugLogging', false);
 
+        // Logging-Attribute initialisieren (beim ersten Modulstart oder nach Reset)
+        if (@$this->ReadAttributeString('LastLogMessage') === false) {
+            $this->WriteAttributeString('LastLogMessage', '');
+        }
+        if (@$this->ReadAttributeString('LastLogLevel') === false) {
+            $this->WriteAttributeString('LastLogLevel', '');
+        }
+
     }
     
     public function ApplyChanges()
