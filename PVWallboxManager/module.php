@@ -834,12 +834,12 @@ class PVWallboxManager extends IPSModule
         $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
         $useCarSOC = $this->ReadPropertyBoolean('UseCarSOC');
         IPS_LogMessage("PVWallboxManager [DEBUG]", sprintf(
-            "SOC-Status: Vehicle-SOC=%s | Ziel-SOC=%s | SOC-Fallback=%.1f | ZielSOC-Fallback=%.1f | UseCarSOC=%s",
-            is_numeric($soc) ? round($soc, 1) . "%" : "n/a",
-            is_numeric($targetSOC) ? round($targetSOC, 1) . "%" : "n/a",
-            $this->ReadPropertyFloat('CarSOCFallback'),
-            $this->ReadPropertyFloat('CarTargetSOCFallback'),
-            $useCarSOC ? "aktiv" : "inaktiv"
+        "SOC-Status: Vehicle-SOC=%s | Ziel-SOC=%s | SOC-Fallback=%d%% | ZielSOC-Fallback=%d%% | UseCarSOC=%s",
+        is_numeric($soc) ? round($soc, 1) . "%" : "n/a",
+        is_numeric($targetSOC) ? round($targetSOC, 1) . "%" : "n/a",
+        round($this->ReadPropertyFloat('CarSOCFallback')),
+        round($this->ReadPropertyFloat('CarTargetSOCFallback')),
+        $useCarSOC ? "aktiv" : "inaktiv"
         ));
     }
 }
