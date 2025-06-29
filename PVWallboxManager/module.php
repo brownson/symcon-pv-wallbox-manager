@@ -102,14 +102,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('ModulAktiv', true);
         $this->RegisterPropertyBoolean('DebugLogging', false);
 
-        // Logging-Attribute initialisieren (beim ersten Modulstart oder nach Reset)
-        if (@$this->ReadAttributeString('LastLogMessage') === false) {
-            $this->WriteAttributeString('LastLogMessage', '');
-        }
-        if (@$this->ReadAttributeString('LastLogLevel') === false) {
-            $this->WriteAttributeString('LastLogLevel', '');
-        }
-
     }
     
     public function ApplyChanges()
@@ -878,16 +870,6 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        // Doppelte Nachrichten vermeiden (pro Level)
-        if (
-            $message === $this->ReadAttributeString('LastLogMessage') &&
-            $normalized === $this->ReadAttributeString('LastLogLevel')
-        ) {
-            return;
-        }
-        $this->WriteAttributeString('LastLogMessage', $message);
-        $this->WriteAttributeString('LastLogLevel', $normalized);
-        
         switch ($normalized) {
             case 'debug':
                 if ($this->ReadPropertyBoolean('DebugLogging')) {
