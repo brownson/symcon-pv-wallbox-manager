@@ -40,7 +40,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('Phasen3Limit', 3); // Messzyklen oberhalb Schwelle vor Umschalten auf 3-phasig
         $this->RegisterPropertyBoolean('DynamischerPufferAktiv', true); // Dynamischer Sicherheitsabzug aktiv
 
-        // Fahrzeug-Erkennung & Steuerung
+        // Fahrzeug-Erkennung & Ziel-SOC
         $this->RegisterPropertyBoolean('NurMitFahrzeug', true); // Ladung nur wenn Fahrzeug verbunden
         $this->RegisterPropertyBoolean('UseCarSOC', false); // Fahrzeug-SOC berücksichtigen
         $this->RegisterPropertyInteger('CarSOCID', 0); // Variable für aktuellen SOC des Fahrzeugs
@@ -48,6 +48,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('CarTargetSOCID', 0); // Ziel-SOC Variable
         $this->RegisterPropertyFloat('CarTargetSOCFallback', 80); // Fallback-Zielwert für SOC
         $this->RegisterPropertyFloat('CarBatteryCapacity', 52.0); // Batteriekapazität des Fahrzeugs in kWh
+        $this->RegisterPropertyBoolean('AlwaysUseTargetSOC', false); // Ziel-SOC immer berücksichtigen (auch bei PV-Überschussladung)
 
         // Interne Status-Zähler für Phasenumschaltung
         $this->RegisterAttributeInteger('Phasen1Counter', 0);
@@ -218,6 +219,24 @@ class PVWallboxManager extends IPSModule
             if ($status == 4) {
                 $this->SetLademodusStatus("🅿️ Fahrzeug verbunden, Ladung beendet. Moduswechsel möglich.");
                 // KEIN return; → Buttons dürfen genutzt werden!
+            }
+        }
+        
+        // Ziel-SOC immer berücksichtigen, wenn Option aktiv
+        if ($this->ReadPropertyBoolean('AlwaysUseTargetSOC')) {
+            $socID = $this->ReadPropertyInteger('CarSOCID');
+            $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : $this->ReadPropertyFloat('CarSOCFallback');
+            $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
+            $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
+        
+            // Logging – für bessere Nachvollziehbarkeit
+            IPS_LogMessage("PVWallboxManager", "SOC-Prüfung (AlwaysUseTargetSOC): Ist={$soc}%, Ziel={$targetSOC}% (Property aktiviert: " . ($this->ReadPropertyBoolean('AlwaysUseTargetSOC') ? "ja" : "nein") . ")");
+            $this->SendDebug("SOC-Prüfung", "Aktueller SOC={$soc}%, Ziel-SOC={$targetSOC}%", 0);
+        
+            if ($soc >= $targetSOC) {
+                $this->SetLadeleistung(0);
+                $this->SetLademodusStatus("Ziel-SOC erreicht ({$soc}% ≥ {$targetSOC}%) – keine weitere Ladung.");
+                return; // *** Hauptalgorithmus abbrechen! ***
             }
         }
     
