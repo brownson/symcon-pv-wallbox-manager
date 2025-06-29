@@ -856,43 +856,29 @@ class PVWallboxManager extends IPSModule
     }
 
 
-    private function DebugLog($text)
+    private function Log(string $level, string $message)
     {
-        if ($this->ReadPropertyBoolean('DebugLogging')) {
-            IPS_LogMessage("PVWallboxManager [DEBUG]", $text);
-            $this->SendDebug("Debug", $text, 0);
-        }
-    }
-
-    private function Log($message, $level = 'info')
-    {
+        // Unterstützte Level: debug, info, warn, error
         $prefix = "PVWallboxManager";
-        switch ($level) {
-            case 'info':
-                // Nur einmal pro Durchlauf loggen!
-                if ($this->ReadAttributeBoolean('RunLogFlag')) {
-                    IPS_LogMessage($prefix, $message);
-                    $this->WriteAttributeBoolean('RunLogFlag', false);
-                }
-                break;
-            case 'warn':
-                IPS_LogMessage($prefix . " [WARN]", $message);
-                break;
-            case 'error':
-                IPS_LogMessage($prefix . " [ERROR]", $message);
-                break;
+        switch (strtolower($level)) {
             case 'debug':
                 if ($this->ReadPropertyBoolean('DebugLogging')) {
-                    IPS_LogMessage($prefix . " [DEBUG]", $message);
-                    $this->SendDebug("Debug", $message, 0);
+                    IPS_LogMessage("{$prefix} [DEBUG]", $message);
+                    $this->SendDebug("DEBUG", $message, 0);
                 }
                 break;
+            case 'info':
+                IPS_LogMessage("{$prefix}", $message);
+                break;
+            case 'warn':
+                IPS_LogMessage("{$prefix} [WARN]", $message);
+                break;
+            case 'error':
+                IPS_LogMessage("{$prefix} [ERROR]", $message);
+                break;
             default:
-                // Fallback auf info
-                if ($this->ReadAttributeBoolean('RunLogFlag')) {
-                    IPS_LogMessage($prefix, $message);
-                    $this->WriteAttributeBoolean('RunLogFlag', false);
-                }
+                // Unbekanntes Level, treat as info
+                IPS_LogMessage("{$prefix}", $message);
                 break;
         }
     }
