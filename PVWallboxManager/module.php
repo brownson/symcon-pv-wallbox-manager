@@ -227,20 +227,31 @@ class PVWallboxManager extends IPSModule
             return;
         }
         if (GetValue($this->GetIDForIdent('PV2CarModus'))) {
-        $ueberschuss = $this->BerechnePVUeberschuss();
-        $anteil = $this->ReadPropertyInteger('PVAnteilAuto');
+        // PV-Überschuss NACH Hausverbrauch, aber OHNE Batterieabzug berechnen!
+        $pv = 0;
+        $pvID = $this->ReadPropertyInteger('PVErzeugungID');
+        if ($pvID > 0 && @IPS_VariableExists($pvID)) {
+            $pv = GetValue($pvID);
+            if ($this->ReadPropertyString('PVErzeugungEinheit') == 'kW') {
+                $pv *= 1000;
+            }
+        }
+        $haus = $this->GetNormWert('HausverbrauchID', 'HausverbrauchEinheit', 'InvertHausverbrauch', "Hausverbrauch");
+        $ueberschuss = max(0, $pv - $haus);
+    
+        // Hausakku-SOC prüfen
         $hausakkuSocID = $this->ReadPropertyInteger('HausakkuSOCID');
         $hausakkuSocVoll = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle'); // z. B. 95
-    
-        // Standard-Anteil fürs Auto
-        $autoProzent = $anteil;
-        $restProzent = 100 - $anteil;
-    
-        // Hausakku-SoC prüfen
         $hausakkuSoc = 0;
         if ($hausakkuSocID > 0 && @IPS_VariableExists($hausakkuSocID)) {
             $hausakkuSoc = GetValue($hausakkuSocID);
         }
+    
+        // Standard-Anteil fürs Auto
+        $anteil = $this->ReadPropertyInteger('PVAnteilAuto'); // z.B. 40
+        $autoProzent = $anteil;
+        $restProzent = 100 - $anteil;
+    
         // Wenn Hausakku voll: Alles ins Auto
         if ($hausakkuSoc >= $hausakkuSocVoll) {
             $autoProzent = 100;
@@ -355,7 +366,8 @@ class PVWallboxManager extends IPSModule
     {
         $minStart = $this->ReadPropertyInteger('MinLadeWatt');
         $minStop  = $this->ReadPropertyInteger('MinStopWatt');
-        $ueberschuss = $this->BerechnePVUeberschuss();
+        //$ueberschuss = $this->BerechnePVUeberschuss();
+        $ueberschuss = $this->BerechnePVUeberschuss('standard');
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
         $ladeModusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
         $ladeModus = ($ladeModusID !== false && @IPS_VariableExists($ladeModusID)) ? GetValueInteger($ladeModusID) : 0;
