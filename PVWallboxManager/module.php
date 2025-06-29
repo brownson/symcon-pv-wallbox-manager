@@ -354,28 +354,24 @@ class PVWallboxManager extends IPSModule
         
         // Auf Ganzzahl runden und negatives abfangen
         $ueberschuss = max(0, round($ueberschuss));
-    
+
         // --- Zentrales Logging ---
-        $logMsg = "[{$logModus}] PV-Überschuss = PV: {$pv} W - Haus: {$haus} W";
-        if ($modus != 'pv2car') {
-            $logMsg .= " - Batterie: {$batt} W";
-        }
-        if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
-            $logMsg .= " [Pufferfaktor: {$puffer}]";
-            $logMsg .= " → nach Puffer: " . round($ueberschuss) . " W";
-        } else {
-            $logMsg .= " → Ergebnis: " . round($ueberschuss) . " W";
-        }
-    
-        // Immer 1x loggen (zentrales Level: info)
-        $this->Log($logMsg, 'info');
-        //$this->Log("PV-Berechnung", $logMsg, 0);
-    
+        $this->Log(
+            "[{$logModus}] PV: {$pv} W | Haus: {$haus} W | Batterie: {$batt} W | Netz: {$netz} W | Ladeleistung: {$ladeleistung} W | → Überschuss: {$ueberschuss} W",
+            'info'
+        );
+
         // In Variable schreiben (nur im Standardmodus als Visualisierung)
         if ($modus == 'standard') {
             SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
         }
-        $this->Log( "🧮 Dynamischer Pufferfaktor angewendet: {$puffer} – Überschuss vorher: " . round($alterUeberschuss) . " W, jetzt: " . round($ueberschuss) . " W", 'info' );
+        
+        //$this->Log( "🧮 Dynamischer Pufferfaktor angewendet: {$puffer} – Überschuss vorher: " . round($alterUeberschuss) . " W, jetzt: " . round($ueberschuss) . " W", 'info' );
+        $this->Log(
+            "[{$logModus}] PV: {$pv} W | Haus: {$haus} W | Batterie: {$batt} W | Netz: {$netz} W | Ladeleistung: {$ladeleistung} W | → Überschuss: {$ueberschuss} W",
+            'info'
+        );
+
         return $ueberschuss;
     }
 
