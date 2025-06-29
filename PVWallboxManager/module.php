@@ -868,23 +868,24 @@ class PVWallboxManager extends IPSModule
         switch ($normalized) {
             case 'debug':
                 if ($this->ReadPropertyBoolean('DebugLogging')) {
-                    IPS_Log("{$prefix} [DEBUG]", $message);
-                    $this->Log("DEBUG", $message, 0);
+                    IPS_LogMessage("{$prefix} [DEBUG]", $message);
+                    $this->SendDebug("DEBUG", $message, 0);
                 }
                 break;
             case 'warn':
             case 'warning':
-                IPS_Log("{$prefix} [WARN]", $message);
+                IPS_LogMessage("{$prefix} [WARN]", $message);
                 break;
             case 'error':
-                IPS_Log("{$prefix} [ERROR]", $message);
+                IPS_LogMessage("{$prefix} [ERROR]", $message);
                 break;
             case 'info':
             case '':
             case null:
-                // Fällt durch zum Default
+                IPS_LogMessage("{$prefix}", $message);
+                break;
             default:
-                IPS_Log("{$prefix}", $message);
+                IPS_LogMessage("{$prefix}", $message);
                 break;
         }
     }
