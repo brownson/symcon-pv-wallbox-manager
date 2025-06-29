@@ -864,7 +864,22 @@ class PVWallboxManager extends IPSModule
         // Unterstützte Level: debug, info, warn, warning, error
         $prefix = "PVWallboxManager";
         $normalized = strtolower(trim($level));
-    
+
+        // Unerwünschte/zu kurze Nachrichten unterdrücken
+        if (in_array(strtolower(trim($message)), ['warn', 'debug', 'info', ''])) {
+            return;
+        }
+
+        // Doppelte Nachrichten vermeiden (pro Level)
+        if (
+            $message === $this->ReadAttributeString('LastLogMessage') &&
+            $normalized === $this->ReadAttributeString('LastLogLevel')
+        ) {
+            return;
+        }
+        $this->WriteAttributeString('LastLogMessage', $message);
+        $this->WriteAttributeString('LastLogLevel', $normalized);
+        
         switch ($normalized) {
             case 'debug':
                 if ($this->ReadPropertyBoolean('DebugLogging')) {
