@@ -544,47 +544,44 @@ class PVWallboxManager extends IPSModule
         }
     }
     
-        private function GetMaxLadeleistung(): int
-        {
-            $phasen = $this->ReadPropertyInteger('Phasen');
-            $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
-            return $phasen * 230 * $maxAmp;
-        }
-        
-        private function SetLadeleistung(int $watt)
-        {
-            $typ = 'go-e';
-        
-            switch ($typ) {
-                case 'go-e':
-                    $goeID = $this->ReadPropertyInteger('GOEChargerID');
-                    if (!@IPS_InstanceExists($goeID)) {
-                        $this->Log("⚠️ go-e Charger Instanz nicht gefunden (ID: $goeID)", 'warn');
-                        return;
-                    }
-                    
-                    // *** Korrektur: Counterlogik nur bei > 0 W ***
-                    if ($watt > 0) {
-                        // ...Counter für Phasenumschaltung wie gehabt...
-                    } else {
-                        // Counter zurücksetzen, keine Umschaltung ausführen
-                        $this->WriteAttributeInteger('Phasen1Counter', 0);
-                        $this->WriteAttributeInteger('Phasen3Counter', 0);
-                    }
-        
+    private function GetMaxLadeleistung(): int
+    {
+        $phasen = $this->ReadPropertyInteger('Phasen');
+        $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+        return $phasen * 230 * $maxAmp;
+    }
+    
+    private function SetLadeleistung(int $watt)
+    {
+        $typ = 'go-e';
+    
+        switch ($typ) {
+            case 'go-e':
+                $goeID = $this->ReadPropertyInteger('GOEChargerID');
+                if (!@IPS_InstanceExists($goeID)) {
+                    $this->Log("⚠️ go-e Charger Instanz nicht gefunden (ID: $goeID)", 'warn');
+                    return;
+                }
+    
+                // Counter nur bei > 0 W prüfen, sonst zurücksetzen
+                if ($watt > 0) {
                     // Phasenumschaltung prüfen
                     $phaseVarID = @IPS_GetObjectIDByIdent('SinglePhaseCharging', $goeID);
                     $aktuell1phasig = false;
                     if ($phaseVarID !== false && @IPS_VariableExists($phaseVarID)) {
                         $aktuell1phasig = GetValueBoolean($phaseVarID);
                     }
-        
-                    // Hysterese für Umschaltung
+    
+                    // Hysterese für Umschaltung 1-phasig
                     if ($watt < $this->ReadPropertyInteger('Phasen1Schwelle') && !$aktuell1phasig) {
-                        $counter = $this->ReadAttributeInteger('Phasen1Counter') + 1;
+                        $alterCounter = $this->ReadAttributeInteger('Phasen1Counter');
+                        $counter = $alterCounter + 1;
                         $this->WriteAttributeInteger('Phasen1Counter', $counter);
                         $this->WriteAttributeInteger('Phasen3Counter', 0);
-                        $this->Log("⏬ Zähler 1-phasig: {$counter} / {$this->ReadPropertyInteger('Phasen1Limit')}", 'info');
+                        // **Nur loggen, wenn sich der Counter erhöht**
+                        if ($counter !== $alterCounter) {
+                            $this->Log("⏬ Zähler 1-phasig: {$counter} / {$this->ReadPropertyInteger('Phasen1Limit')}", 'info');
+                        }
                         if ($counter >= $this->ReadPropertyInteger('Phasen1Limit')) {
                             if (!$aktuell1phasig) {
                                 GOeCharger_SetSinglePhaseCharging($goeID, true);
@@ -592,11 +589,17 @@ class PVWallboxManager extends IPSModule
                             }
                             $this->WriteAttributeInteger('Phasen1Counter', 0);
                         }
-                    } elseif ($watt > $this->ReadPropertyInteger('Phasen3Schwelle') && $aktuell1phasig) {
-                        $counter = $this->ReadAttributeInteger('Phasen3Counter') + 1;
+                    }
+                    // Hysterese für Umschaltung 3-phasig
+                    elseif ($watt > $this->ReadPropertyInteger('Phasen3Schwelle') && $aktuell1phasig) {
+                        $alterCounter = $this->ReadAttributeInteger('Phasen3Counter');
+                        $counter = $alterCounter + 1;
                         $this->WriteAttributeInteger('Phasen3Counter', $counter);
                         $this->WriteAttributeInteger('Phasen1Counter', 0);
-                        $this->Log("⏫ Zähler 3-phasig: {$counter} / {$this->ReadPropertyInteger('Phasen3Limit')}", 'info');
+                        // **Nur loggen, wenn sich der Counter erhöht**
+                        if ($counter !== $alterCounter) {
+                            $this->Log("⏫ Zähler 3-phasig: {$counter} / {$this->ReadPropertyInteger('Phasen3Limit')}", 'info');
+                        }
                         if ($counter >= $this->ReadPropertyInteger('Phasen3Limit')) {
                             if ($aktuell1phasig) {
                                 GOeCharger_SetSinglePhaseCharging($goeID, false);
@@ -604,56 +607,63 @@ class PVWallboxManager extends IPSModule
                             }
                             $this->WriteAttributeInteger('Phasen3Counter', 0);
                         }
-                    } else {
+                    }
+                    // Keine Umschaltbedingung – Zähler zurücksetzen
+                    else {
                         $this->WriteAttributeInteger('Phasen1Counter', 0);
                         $this->WriteAttributeInteger('Phasen3Counter', 0);
                     }
-        
-                    // Modus & Ladeleistung nur setzen, wenn nötig
-                    $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
-                    $wattID  = @IPS_GetObjectIDByIdent('Watt', $goeID);
-        
-                    $aktuellerModus = -1;
-                    if ($modusID !== false && @IPS_VariableExists($modusID)) {
-                        $aktuellerModus = GetValueInteger($modusID);
+                } else {
+                    // Zähler zurücksetzen, wenn Leistung 0
+                    $this->WriteAttributeInteger('Phasen1Counter', 0);
+                    $this->WriteAttributeInteger('Phasen3Counter', 0);
+                }
+    
+                // Modus & Ladeleistung nur setzen, wenn nötig
+                $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
+                $wattID  = @IPS_GetObjectIDByIdent('Watt', $goeID);
+    
+                $aktuellerModus = -1;
+                if ($modusID !== false && @IPS_VariableExists($modusID)) {
+                    $aktuellerModus = GetValueInteger($modusID);
+                }
+    
+                $aktuelleLeistung = -1;
+                if ($wattID !== false && @IPS_VariableExists($wattID)) {
+                    $aktuelleLeistung = GetValueFloat($wattID);
+                }
+    
+                // === Ladeleistung nur setzen, wenn Änderung > 50 W ===
+                if ($aktuelleLeistung < 0 || abs($aktuelleLeistung - $watt) > 50) {
+                    GOeCharger_SetCurrentChargingWatt($goeID, $watt);
+                    $this->Log("✅ Ladeleistung gesetzt: {$watt} W", 'info');
+    
+                    // Nach Setzen der Leistung Modus sicherheitshalber aktivieren:
+                    if ($watt > 0 && $aktuellerModus != 2) {
+                        GOeCharger_setMode($goeID, 2); // 2 = Laden erzwingen
+                        $this->Log("⚡ Modus auf 'Laden' gestellt (2)", 'info');
                     }
-        
-                    $aktuelleLeistung = -1;
-                    if ($wattID !== false && @IPS_VariableExists($wattID)) {
-                        $aktuelleLeistung = GetValueFloat($wattID);
+                    if ($watt == 0 && $aktuellerModus != 1) {
+                        GOeCharger_setMode($goeID, 1); // 1 = Bereit
+                        $this->Log("🔌 Modus auf 'Bereit' gestellt (1)", 'info');
                     }
-        
-                    // === Ladeleistung nur setzen, wenn Änderung > 50 W ===
-                    if ($aktuelleLeistung < 0 || abs($aktuelleLeistung - $watt) > 50) {
-                        GOeCharger_SetCurrentChargingWatt($goeID, $watt);
-                        $this->Log("✅ Ladeleistung gesetzt: {$watt} W", 'info');
-        
-                        // Nach Setzen der Leistung Modus sicherheitshalber aktivieren:
-                        if ($watt > 0 && $aktuellerModus != 2) {
-                            GOeCharger_setMode($goeID, 2); // 2 = Laden erzwingen
-                            $this->Log("⚡ Modus auf 'Laden' gestellt (2)", 'info');
-                        }
-                        if ($watt == 0 && $aktuellerModus != 1) {
-                            GOeCharger_setMode($goeID, 1); // 1 = Bereit
-                            $this->Log("🔌 Modus auf 'Bereit' gestellt (1)", 'info');
-                        }
-                    } else {
-                        $this->Log("🟡 Ladeleistung unverändert – keine Änderung notwendig", 'debug');
-                    }
-                    // Prüfe: Leistung > 0, Modus ist "bereit" (1), Fahrzeug verbunden (Status 3 oder 4)
-                    $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
-                    if ($watt > 0 && $aktuellerModus == 1 && in_array($status, [3, 4])) {
-                        $msg = "⚠️ Ladeleistung gesetzt, aber die Ladung startet nicht automatisch.<br>
-                                Bitte Fahrzeug einmal ab- und wieder anstecken, um die Ladung zu aktivieren!";
-                        $this->SetLademodusStatus($msg);
-                        $this->Log($msg, 'warn');
-                    }
-                    break;
-                default:
-                    $this->Log("❌ Unbekannter Wallbox-Typ '$typ' – keine Steuerung durchgeführt.", 'error');
-                    break;
-            }
+                } else {
+                    $this->Log("🟡 Ladeleistung unverändert – keine Änderung notwendig", 'debug');
+                }
+                // Prüfe: Leistung > 0, Modus ist "bereit" (1), Fahrzeug verbunden (Status 3 oder 4)
+                $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
+                if ($watt > 0 && $aktuellerModus == 1 && in_array($status, [3, 4])) {
+                    $msg = "⚠️ Ladeleistung gesetzt, aber die Ladung startet nicht automatisch.<br>
+                            Bitte Fahrzeug einmal ab- und wieder anstecken, um die Ladung zu aktivieren!";
+                    $this->SetLademodusStatus($msg);
+                    $this->Log($msg, 'warn');
+                }
+                break;
+            default:
+                $this->Log("❌ Unbekannter Wallbox-Typ '$typ' – keine Steuerung durchgeführt.", 'error');
+                break;
         }
+    }
 
     private function SetLademodusStatus(string $text)
     {
