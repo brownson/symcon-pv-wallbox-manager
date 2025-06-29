@@ -272,10 +272,11 @@ class PVWallboxManager extends IPSModule
     }
 
     // --- Hilfsfunktion: PV-Überschuss berechnen ---
-    private function BerechnePVUeberschuss(): float
+    // Modus kann 'standard' (bisher wie gehabt) oder 'pv2car' (neuer PV2Car-Modus) sein
+    private function BerechnePVUeberschuss(string $modus = 'standard'): float
     {
         $goeID  = $this->ReadPropertyInteger("GOEChargerID");
-
+    
         // Werte auslesen, immer auf Watt normiert
         $pv    = 0;
         $pvID  = $this->ReadPropertyInteger('PVErzeugungID');
@@ -289,13 +290,21 @@ class PVWallboxManager extends IPSModule
         $haus  = $this->GetNormWert('HausverbrauchID', 'HausverbrauchEinheit', 'InvertHausverbrauch', "Hausverbrauch");
         $batt  = $this->GetNormWert('BatterieladungID', 'BatterieladungEinheit', 'InvertBatterieladung', "Batterieladung");
         $netz  = $this->GetNormWert('NetzeinspeisungID', 'NetzeinspeisungEinheit', 'InvertNetzeinspeisung', "Netzeinspeisung");
-
+    
         // Ladeleistung (optional für Debugging)
         $ladeleistung = ($goeID > 0) ? GOeCharger_GetPowerToCar($goeID) : 0;
-
-        // PV-Überschuss-Berechnung (anpassen falls nötig!)
-        $ueberschuss = $pv - $haus - $batt;
-
+    
+        // --- Unterscheidung nach Modus ---
+        if ($modus == 'pv2car') {
+            // Anteil direkt ans Auto (Rest für Batterie)
+            $ueberschuss = $pv - $haus;
+            $logModus = "PV2Car (Auto bekommt Anteil vom Überschuss, Rest Batterie)";
+        } else {
+            // Standard: Batterie bekommt Vorrang
+            $ueberschuss = $pv - $haus - max(0, $batt);
+            $logModus = "Standard (Batterie hat Vorrang)";
+        }
+    
         // Dynamischer Puffer
         $puffer = 1.0;
         if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
@@ -318,9 +327,12 @@ class PVWallboxManager extends IPSModule
         
         // Auf Ganzzahl runden und negatives abfangen
         $ueberschuss = max(0, round($ueberschuss));
-
-        // --- Hier Logging der kompletten Berechnung ---
-        $logMsg = "PV-Überschuss = PV: {$pv} W - Haus: {$haus} W - Batterie: {$batt} W";
+    
+        // --- Logging ---
+        $logMsg = "[{$logModus}] PV-Überschuss = PV: {$pv} W - Haus: {$haus} W";
+        if ($modus != 'pv2car') {
+            $logMsg .= " - Batterie: {$batt} W";
+        }
         if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
             $logMsg .= " [Pufferfaktor: {$puffer}]";
             $logMsg .= " → nach Puffer: " . round($ueberschuss) . " W";
@@ -330,10 +342,11 @@ class PVWallboxManager extends IPSModule
         IPS_LogMessage("PVWallboxManager", $logMsg);
         $this->SendDebug("PV-Berechnung", $logMsg, 0);
         
-        // In Variable schreiben (immer als ganzzahlig und >= 0)
-        SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
-
-        // Rückgabewert (immer >= 0)
+        // In Variable schreiben (nur im Standardmodus als Visualisierung)
+        if ($modus == 'standard') {
+            SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
+        }
+    
         return $ueberschuss;
     }
 
