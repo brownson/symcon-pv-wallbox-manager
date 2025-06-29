@@ -365,12 +365,6 @@ class PVWallboxManager extends IPSModule
         if ($modus == 'standard') {
             SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
         }
-        
-        //$this->Log( "🧮 Dynamischer Pufferfaktor angewendet: {$puffer} – Überschuss vorher: " . round($alterUeberschuss) . " W, jetzt: " . round($ueberschuss) . " W", 'info' );
-        $this->Log(
-            "[{$logModus}] PV: {$pv} W | Haus: {$haus} W | Batterie: {$batt} W | Netz: {$netz} W | Ladeleistung: {$ladeleistung} W | → Überschuss: {$ueberschuss} W",
-            'info'
-        );
 
         return $ueberschuss;
     }
