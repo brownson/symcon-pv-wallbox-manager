@@ -345,7 +345,7 @@ class PVWallboxManager extends IPSModule
             $ueberschuss *= $puffer;
             $this->Log(
                 "🧮 Dynamischer Pufferfaktor angewendet: {$puffer} – Überschuss vorher: " . round($alterUeberschuss) . " W, jetzt: " . round($ueberschuss) . " W",
-                'debug'
+                'info'
             );
         }
         
@@ -389,7 +389,7 @@ class PVWallboxManager extends IPSModule
     
         $this->Log(
             "Hysterese: Modus={$ladeModus}, Überschuss={$ueberschuss} W, MinStart={$minStart} W, MinStop={$minStop} W",
-            'debug'
+            'info'
         );
     
         if ($ladeModus == 2) { // Lädt bereits
