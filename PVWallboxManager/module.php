@@ -509,32 +509,40 @@ class PVWallboxManager extends IPSModule
                     // Modus & Ladeleistung nur setzen, wenn nötig
                     $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
                     $wattID  = @IPS_GetObjectIDByIdent('Watt', $goeID);
-    
+        
                     $aktuellerModus = -1;
                     if ($modusID !== false && @IPS_VariableExists($modusID)) {
                         $aktuellerModus = GetValueInteger($modusID);
                     }
-    
+        
                     $aktuelleLeistung = -1;
                     if ($wattID !== false && @IPS_VariableExists($wattID)) {
                         $aktuelleLeistung = GetValueFloat($wattID);
                     }
-    
-                    $minStopWatt = $this->ReadPropertyInteger('MinStopWatt');
-    
-                    // === Ladeleistung nur setzen, wenn Änderung > 50 W ===
+        
+                    // === Ladeleistung nur setzen, wenn Änderung > 50 W ===
                     if ($aktuelleLeistung < 0 || abs($aktuelleLeistung - $watt) > 50) {
                         GOeCharger_SetCurrentChargingWatt($goeID, $watt);
                         IPS_LogMessage("PVWallboxManager", "✅ Ladeleistung gesetzt: {$watt} W");
+        
+                        // Nach Setzen der Leistung Modus sicherheitshalber aktivieren:
+                        if ($watt > 0 && $aktuellerModus != 2) {
+                            GOeCharger_setMode($goeID, 2); // 2 = Laden erzwingen
+                            IPS_LogMessage("PVWallboxManager", "⚡ Modus auf 'Laden' gestellt (2)");
+                        }
+                        if ($watt == 0 && $aktuellerModus != 1) {
+                            GOeCharger_setMode($goeID, 1); // 1 = Bereit
+                            IPS_LogMessage("PVWallboxManager", "🔌 Modus auf 'Bereit' gestellt (1)");
+                        }
                     } else {
                         IPS_LogMessage("PVWallboxManager", "🟡 Ladeleistung unverändert – keine Änderung notwendig");
                     }
                     break;
-    
+        
                 default:
                     IPS_LogMessage("PVWallboxManager", "❌ Unbekannter Wallbox-Typ '$typ' – keine Steuerung durchgeführt.");
                     break;
-            }
+                    }
         }
 
     private function SetLademodusStatus(string $text)
