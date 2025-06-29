@@ -187,7 +187,7 @@ class PVWallboxManager extends IPSModule
     public function UpdateCharging()
     {
         $this->WriteAttributeBoolean('RunLogFlag', true); // Start eines neuen Durchlaufs
-        $this->Log('debug', "Starte Berechnung (UpdateCharging)");
+        $this->Log("Starte Berechnung (UpdateCharging)", 'debug');
     
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
         $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
@@ -238,7 +238,7 @@ class PVWallboxManager extends IPSModule
         $fehlendeProzent = max(0, $targetSOC - $soc);
         $fehlendeKWh = $capacity * $fehlendeProzent / 100.0;
     
-        $this->Log('info', "SOC-Prüfung: Ist={$soc}% | Ziel={$targetSOC}% | Fehlend=" . round($fehlendeProzent, 2) . "% | Fehlende kWh=" . round($fehlendeKWh, 2) . " kWh");
+        $this->Log("SOC-Prüfung: Ist={$soc}% | Ziel={$targetSOC}% | Fehlend=" . round($fehlendeProzent, 2) . "% | Fehlende kWh=" . round($fehlendeKWh, 2) . " kWh", 'info');
     
         if ($soc >= $targetSOC) {
             $this->SetLadeleistung(0);
@@ -310,7 +310,6 @@ class PVWallboxManager extends IPSModule
     // Modus kann 'standard' (bisher wie gehabt) oder 'pv2car' (neuer PV2Car-Modus) sein
     private function BerechnePVUeberschuss(string $modus = 'standard'): float
     {
-        //$this->Log('info', '>>> Starte BerechnePVUeberschuss()');
         $goeID  = $this->ReadPropertyInteger("GOEChargerID");
     
         // Werte auslesen, immer auf Watt normiert
@@ -560,7 +559,7 @@ class PVWallboxManager extends IPSModule
                 case 'go-e':
                     $goeID = $this->ReadPropertyInteger('GOEChargerID');
                     if (!@IPS_InstanceExists($goeID)) {
-                        $this->Log('warn', "⚠️ go-e Charger Instanz nicht gefunden (ID: $goeID)");
+                        $this->Log("⚠️ go-e Charger Instanz nicht gefunden (ID: $goeID)", 'warn');
                         return;
                     }
                     
@@ -585,11 +584,11 @@ class PVWallboxManager extends IPSModule
                         $counter = $this->ReadAttributeInteger('Phasen1Counter') + 1;
                         $this->WriteAttributeInteger('Phasen1Counter', $counter);
                         $this->WriteAttributeInteger('Phasen3Counter', 0);
-                        $this->Log('info', "⏬ Zähler 1-phasig: {$counter} / {$this->ReadPropertyInteger('Phasen1Limit')}");
+                        $this->Log("⏬ Zähler 1-phasig: {$counter} / {$this->ReadPropertyInteger('Phasen1Limit')}", 'info');
                         if ($counter >= $this->ReadPropertyInteger('Phasen1Limit')) {
                             if (!$aktuell1phasig) {
                                 GOeCharger_SetSinglePhaseCharging($goeID, true);
-                                $this->Log('info', "🔁 Umschaltung auf 1-phasig ausgelöst");
+                                $this->Log("🔁 Umschaltung auf 1-phasig ausgelöst", 'info');
                             }
                             $this->WriteAttributeInteger('Phasen1Counter', 0);
                         }
@@ -597,11 +596,11 @@ class PVWallboxManager extends IPSModule
                         $counter = $this->ReadAttributeInteger('Phasen3Counter') + 1;
                         $this->WriteAttributeInteger('Phasen3Counter', $counter);
                         $this->WriteAttributeInteger('Phasen1Counter', 0);
-                        $this->Log('info', "⏫ Zähler 3-phasig: {$counter} / {$this->ReadPropertyInteger('Phasen3Limit')}");
+                        $this->Log("⏫ Zähler 3-phasig: {$counter} / {$this->ReadPropertyInteger('Phasen3Limit')}", 'info');
                         if ($counter >= $this->ReadPropertyInteger('Phasen3Limit')) {
                             if ($aktuell1phasig) {
                                 GOeCharger_SetSinglePhaseCharging($goeID, false);
-                                $this->Log('info', "🔁 Umschaltung auf 3-phasig ausgelöst");
+                                $this->Log("🔁 Umschaltung auf 3-phasig ausgelöst", 'info');
                             }
                             $this->WriteAttributeInteger('Phasen3Counter', 0);
                         }
@@ -627,19 +626,19 @@ class PVWallboxManager extends IPSModule
                     // === Ladeleistung nur setzen, wenn Änderung > 50 W ===
                     if ($aktuelleLeistung < 0 || abs($aktuelleLeistung - $watt) > 50) {
                         GOeCharger_SetCurrentChargingWatt($goeID, $watt);
-                        $this->Log('info', "✅ Ladeleistung gesetzt: {$watt} W");
+                        $this->Log("✅ Ladeleistung gesetzt: {$watt} W", 'info');
         
                         // Nach Setzen der Leistung Modus sicherheitshalber aktivieren:
                         if ($watt > 0 && $aktuellerModus != 2) {
                             GOeCharger_setMode($goeID, 2); // 2 = Laden erzwingen
-                            $this->Log('info', "⚡ Modus auf 'Laden' gestellt (2)");
+                            $this->Log("⚡ Modus auf 'Laden' gestellt (2)", 'info');
                         }
                         if ($watt == 0 && $aktuellerModus != 1) {
                             GOeCharger_setMode($goeID, 1); // 1 = Bereit
-                            $this->Log('info', "🔌 Modus auf 'Bereit' gestellt (1)");
+                            $this->Log("🔌 Modus auf 'Bereit' gestellt (1)", 'info');
                         }
                     } else {
-                        $this->Log('debug', "🟡 Ladeleistung unverändert – keine Änderung notwendig");
+                        $this->Log("🟡 Ladeleistung unverändert – keine Änderung notwendig", 'debug');
                     }
                     // Prüfe: Leistung > 0, Modus ist "bereit" (1), Fahrzeug verbunden (Status 3 oder 4)
                     $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
@@ -647,11 +646,11 @@ class PVWallboxManager extends IPSModule
                         $msg = "⚠️ Ladeleistung gesetzt, aber die Ladung startet nicht automatisch.<br>
                                 Bitte Fahrzeug einmal ab- und wieder anstecken, um die Ladung zu aktivieren!";
                         $this->SetLademodusStatus($msg);
-                        $this->Log('warn', $msg);
+                        $this->Log($msg, 'warn');
                     }
                     break;
                 default:
-                    $this->Log('error', "❌ Unbekannter Wallbox-Typ '$typ' – keine Steuerung durchgeführt.");
+                    $this->Log("❌ Unbekannter Wallbox-Typ '$typ' – keine Steuerung durchgeführt.", 'error');
                     break;
             }
         }
@@ -682,7 +681,7 @@ class PVWallboxManager extends IPSModule
     
         if (count($errors) > 0) {
             $msg = "⚠️ Ladeverluste nicht berechnet: Fehlende/falsche Werte: " . implode(", ", $errors);
-            $this->Log('warn', $msg);
+            $this->Log($msg, 'warn');
             $this->SetLadeverlustInfo($msg);
             return;
         }
@@ -718,7 +717,7 @@ class PVWallboxManager extends IPSModule
         SetValue($this->GetIDForIdent('Ladeverlust_Prozent'), round($verlustProzent, 1));
     
         $msg = "Ladeverluste berechnet: absolut=" . round($verlustAbsolut, 2) . " kWh, prozentual=" . round($verlustProzent, 1) . " %";
-        $this->Log('info', $msg);
+        $this->Log($msg, 'info');
         $this->SetLadeverlustInfo($msg);
     }
 
@@ -746,7 +745,7 @@ class PVWallboxManager extends IPSModule
         $energyEnd   = $aktuellerWBZähler;
         $wbEnergy = $energyEnd - $energyStart;
     
-        $this->Log('info', "LadevorgangEnde: SOC von $socStart auf $socEnde, Energie von $energyStart auf $energyEnd, WB-Energie $wbEnergy kWh");
+        $this->Log("LadevorgangEnde: SOC von $socStart auf $socEnde, Energie von $energyStart auf $energyEnd, WB-Energie $wbEnergy kWh", 'info');
         $this->BerechneLadeverluste($socStart, $socEnde, $batteryCapacity, $wbEnergy);
     
         // Reset Status
@@ -761,7 +760,7 @@ class PVWallboxManager extends IPSModule
     
         // Robustheit: Fehlende Variablen abfangen!
         if ($goeID == 0 || $carSOCID == 0 || !@IPS_VariableExists($carSOCID)) {
-            $this->Log('warn', "Ladeverluste nicht berechnet, da GO-e oder Fahrzeug-SOC-Variable fehlt!");
+            $this->Log("Ladeverluste nicht berechnet, da GO-e oder Fahrzeug-SOC-Variable fehlt!", 'warn');
             $this->SetLadeverlustInfo("⚠️ Ladeverluste nicht berechnet, da GO-e oder Fahrzeug-SOC-Variable fehlt!");
             return;
         }
@@ -773,13 +772,13 @@ class PVWallboxManager extends IPSModule
         if (in_array($status, [2, 4])) {
             if (!$this->ReadAttributeBoolean("ChargingActive")) {
                 // Ladefenster startet
-                $this->Log('info', "Ladevorgang gestartet: SOC={$aktuellerSOC}, WB-Zähler={$aktuellerWBZähler} kWh");
+                $this->Log("Ladevorgang gestartet: SOC={$aktuellerSOC}, WB-Zähler={$aktuellerWBZähler} kWh", 'info');
                 $this->LadevorgangStart($aktuellerSOC, $aktuellerWBZähler);
             }
         } else {
             if ($this->ReadAttributeBoolean("ChargingActive")) {
                 // Ladefenster endet
-                $this->Log('info', "Ladevorgang beendet: SOC={$aktuellerSOC}, WB-Zähler={$aktuellerWBZähler} kWh");
+                $this->Log("Ladevorgang beendet: SOC={$aktuellerSOC}, WB-Zähler={$aktuellerWBZähler} kWh", 'info');
                 $this->LadevorgangEnde($aktuellerSOC, $aktuellerWBZähler, $batteryCapacity);
             }
         }
@@ -799,7 +798,7 @@ class PVWallboxManager extends IPSModule
             }
         } else {
             if ($name != "") {
-                $this->Log('debug', "Hinweis: Keine $name-Variable gewählt, Wert wird als 0 angesetzt.");
+                $this->Log("Hinweis: Keine $name-Variable gewählt, Wert wird als 0 angesetzt.", 'debug');
             }
         }
         return $wert;
@@ -829,13 +828,13 @@ class PVWallboxManager extends IPSModule
                 break;
             default:
                 $text = '<span style="color: red;">Unbekannter Status</span>';
-                $this->Log('warn', "Unbekannter Status vom GO-e Charger: $status");
+                $this->Log("Unbekannter Status vom GO-e Charger: $status", 'warn');
         }
         SetValue($this->GetIDForIdent('WallboxStatusText'), $text);
     }
 
+    private function Log(string $message, string $level)
 
-    private function Log(string $level, string $message)
     {
         // Unterstützte Level: debug, info, warn, warning, error
         $prefix = "PVWM";
