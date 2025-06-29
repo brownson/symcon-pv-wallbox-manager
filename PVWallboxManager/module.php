@@ -537,12 +537,19 @@ class PVWallboxManager extends IPSModule
                     } else {
                         IPS_LogMessage("PVWallboxManager", "🟡 Ladeleistung unverändert – keine Änderung notwendig");
                     }
+                    // Prüfe: Leistung > 0, Modus ist "bereit" (1), Fahrzeug verbunden (Status 3 oder 4)
+                    $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
+                    if ($watt > 0 && $aktuellerModus == 1 && in_array($status, [3, 4])) {
+                        $msg = "⚠️ Ladeleistung gesetzt, aber die Ladung startet nicht automatisch.<br>
+                                Bitte Fahrzeug einmal ab- und wieder anstecken, um die Ladung zu aktivieren!";
+                        $this->SetLademodusStatus($msg);
+                        IPS_LogMessage("PVWallboxManager", $msg);
+                    }
                     break;
-        
                 default:
                     IPS_LogMessage("PVWallboxManager", "❌ Unbekannter Wallbox-Typ '$typ' – keine Steuerung durchgeführt.");
                     break;
-                    }
+            }
         }
 
     private function SetLademodusStatus(string $text)
