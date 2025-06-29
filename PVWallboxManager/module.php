@@ -627,6 +627,10 @@ class PVWallboxManager extends IPSModule
                     if ($aktuelleLeistung < 0 || abs($aktuelleLeistung - $watt) > 50) {
                         GOeCharger_SetCurrentChargingWatt($goeID, $watt);
                         $this->Log("✅ Ladeleistung gesetzt: {$watt} W", 'info');
+                        } else {
+                            // Optional: Loggen, dass nichts gemacht wurde
+                            $this->Log("Ladeleistung unverändert – kein neuer Wert gesetzt", "debug");
+                        }
         
                         // Nach Setzen der Leistung Modus sicherheitshalber aktivieren:
                         if ($watt > 0 && $aktuellerModus != 2) {
