@@ -627,7 +627,6 @@ class PVWallboxManager extends IPSModule
                     if ($aktuelleLeistung < 0 || abs($aktuelleLeistung - $watt) > 50) {
                         GOeCharger_SetCurrentChargingWatt($goeID, $watt);
                         $this->Log("✅ Ladeleistung gesetzt: {$watt} W", 'info');
-                        } 
         
                         // Nach Setzen der Leistung Modus sicherheitshalber aktivieren:
                         if ($watt > 0 && $aktuellerModus != 2) {
@@ -639,7 +638,7 @@ class PVWallboxManager extends IPSModule
                             $this->Log("🔌 Modus auf 'Bereit' gestellt (1)", 'info');
                         }
                     } else {
-                        $this->Log("🟡 Ladeleistung unverändert – keine Änderung notwendig", 'info');
+                        $this->Log("🟡 Ladeleistung unverändert – keine Änderung notwendig", 'debug');
                     }
                     // Prüfe: Leistung > 0, Modus ist "bereit" (1), Fahrzeug verbunden (Status 3 oder 4)
                     $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
