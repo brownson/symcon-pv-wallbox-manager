@@ -305,7 +305,7 @@ class PVWallboxManager extends IPSModule
     // Modus kann 'standard' (bisher wie gehabt) oder 'pv2car' (neuer PV2Car-Modus) sein
     private function BerechnePVUeberschuss(string $modus = 'standard'): float
     {
-        $this->Log('info', '>>> Starte BerechnePVUeberschuss()');
+        //$this->Log('info', '>>> Starte BerechnePVUeberschuss()');
         $goeID  = $this->ReadPropertyInteger("GOEChargerID");
     
         // Werte auslesen, immer auf Watt normiert
@@ -345,11 +345,7 @@ class PVWallboxManager extends IPSModule
             else                          $puffer = 0.93;
             $alterUeberschuss = $ueberschuss;
             $ueberschuss *= $puffer;
-            $this->Log(
-                "🧮 Dynamischer Pufferfaktor angewendet: {$puffer} – Überschuss vorher: " . round($alterUeberschuss) . " W, jetzt: " . round($ueberschuss) . " W",
-                'info'
-            );
-        }
+                    }
         
         // Auf Ganzzahl runden und negatives abfangen
         $ueberschuss = max(0, round($ueberschuss));
@@ -374,7 +370,7 @@ class PVWallboxManager extends IPSModule
         if ($modus == 'standard') {
             SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
         }
-    
+        $this->Log( "🧮 Dynamischer Pufferfaktor angewendet: {$puffer} – Überschuss vorher: " . round($alterUeberschuss) . " W, jetzt: " . round($ueberschuss) . " W", 'info' );
         return $ueberschuss;
     }
 
