@@ -861,26 +861,29 @@ class PVWallboxManager extends IPSModule
 
     private function Log(string $level, string $message)
     {
-        // Unterstützte Level: debug, info, warn, error
+        // Unterstützte Level: debug, info, warn, warning, error
         $prefix = "PVWallboxManager";
-        switch (strtolower($level)) {
+        $normalized = strtolower(trim($level));
+    
+        switch ($normalized) {
             case 'debug':
                 if ($this->ReadPropertyBoolean('DebugLogging')) {
                     IPS_LogMessage("{$prefix} [DEBUG]", $message);
                     $this->SendDebug("DEBUG", $message, 0);
                 }
                 break;
-            case 'info':
-                IPS_LogMessage("{$prefix}", $message);
-                break;
             case 'warn':
+            case 'warning':
                 IPS_LogMessage("{$prefix} [WARN]", $message);
                 break;
             case 'error':
                 IPS_LogMessage("{$prefix} [ERROR]", $message);
                 break;
+            case 'info':
+            case '':
+            case null:
+                // Fällt durch zum Default
             default:
-                // Unbekanntes Level, treat as info
                 IPS_LogMessage("{$prefix}", $message);
                 break;
         }
