@@ -187,7 +187,11 @@ class PVWallboxManager extends IPSModule
     
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
         $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
-    
+
+        // Immer: Standard-PV-Überschuss (inkl. Batterieabzug) berechnen und anzeigen
+        $pvUeberschussStandard = $this->BerechnePVUeberschuss();
+        SetValue($this->GetIDForIdent('PV_Ueberschuss'), $pvUeberschussStandard);
+        
         // === Fahrzeugstatus-Logik ===
         if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
             // 1: Kein Fahrzeug → Buttons zurücksetzen, Statusmeldung und beenden
@@ -226,54 +230,45 @@ class PVWallboxManager extends IPSModule
             $this->LogikZielzeitladung();
             return;
         }
+        // PV2Car: Anteil vom Überschuss direkt NACH Hausverbrauch, OHNE Batterieabzug
         if (GetValue($this->GetIDForIdent('PV2CarModus'))) {
-        // PV-Überschuss NACH Hausverbrauch, aber OHNE Batterieabzug berechnen!
-        $pv = 0;
-        $pvID = $this->ReadPropertyInteger('PVErzeugungID');
-        if ($pvID > 0 && @IPS_VariableExists($pvID)) {
-            $pv = GetValue($pvID);
-            if ($this->ReadPropertyString('PVErzeugungEinheit') == 'kW') {
-                $pv *= 1000;
+            $pv = 0;
+            $pvID = $this->ReadPropertyInteger('PVErzeugungID');
+            if ($pvID > 0 && @IPS_VariableExists($pvID)) {
+                $pv = GetValue($pvID);
+                if ($this->ReadPropertyString('PVErzeugungEinheit') == 'kW') {
+                    $pv *= 1000;
+                }
             }
+            $haus = $this->GetNormWert('HausverbrauchID', 'HausverbrauchEinheit', 'InvertHausverbrauch', "Hausverbrauch");
+            $pvUeberschussDirekt = max(0, $pv - $haus);
+    
+            // Hausakku SoC prüfen ...
+            $hausakkuSocID = $this->ReadPropertyInteger('HausakkuSOCID');
+            $hausakkuSocVoll = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
+            $hausakkuSoc = 0;
+            if ($hausakkuSocID > 0 && @IPS_VariableExists($hausakkuSocID)) {
+                $hausakkuSoc = GetValue($hausakkuSocID);
+            }
+            $anteil = $this->ReadPropertyInteger('PVAnteilAuto');
+            $autoProzent = $anteil;
+            $restProzent = 100 - $anteil;
+            if ($hausakkuSoc >= $hausakkuSocVoll) {
+                $autoProzent = 100;
+                $restProzent = 0;
+            }
+            $ladeWatt = min(max(round($pvUeberschussDirekt * ($autoProzent / 100.0)), 0), $this->GetMaxLadeleistung());
+            $info = "PV2Car: {$autoProzent}% vom Überschuss ({$ladeWatt} W)";
+            if ($autoProzent == 100) {
+                $info .= " (Hausakku voll, 100 % ins Auto)";
+            } else {
+                $info .= " ({$restProzent}% zur Batterie)";
+            }
+            $this->SetLadeleistung($ladeWatt);
+            $this->SetLademodusStatus($info);
+            $this->SendDebug("PV2Car", "PV-Haus: {$pvUeberschussDirekt} W, Anteil Auto: {$autoProzent}%, LadeWatt: {$ladeWatt} W", 0);
+            return;
         }
-        $haus = $this->GetNormWert('HausverbrauchID', 'HausverbrauchEinheit', 'InvertHausverbrauch', "Hausverbrauch");
-        $ueberschuss = max(0, $pv - $haus);
-    
-        // Hausakku-SOC prüfen
-        $hausakkuSocID = $this->ReadPropertyInteger('HausakkuSOCID');
-        $hausakkuSocVoll = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle'); // z. B. 95
-        $hausakkuSoc = 0;
-        if ($hausakkuSocID > 0 && @IPS_VariableExists($hausakkuSocID)) {
-            $hausakkuSoc = GetValue($hausakkuSocID);
-        }
-    
-        // Standard-Anteil fürs Auto
-        $anteil = $this->ReadPropertyInteger('PVAnteilAuto'); // z.B. 40
-        $autoProzent = $anteil;
-        $restProzent = 100 - $anteil;
-    
-        // Wenn Hausakku voll: Alles ins Auto
-        if ($hausakkuSoc >= $hausakkuSocVoll) {
-            $autoProzent = 100;
-            $restProzent = 0;
-        }
-    
-        // Ladeleistung für Auto berechnen
-        $ladeWatt = min(max(round($ueberschuss * ($autoProzent / 100.0)), 0), $this->GetMaxLadeleistung());
-        $info = "PV2Car: {$autoProzent}% vom Überschuss ({$ladeWatt} W)";
-        if ($autoProzent == 100) {
-            $info .= " (Hausakku voll, 100 % ins Auto)";
-        } else {
-            $info .= " ({$restProzent}% zur Batterie)";
-        }
-        $this->SetLadeleistung($ladeWatt);
-        $this->SetLademodusStatus($info);
-    
-        // Debug/Logging
-        $this->SendDebug("PV2Car", "Anteil Auto: {$autoProzent}%, Hausakku-SoC: {$hausakkuSoc}%, Überschuss: {$ueberschuss} W, LadeWatt: {$ladeWatt} W", 0);
-    
-        return;
-    }
 
         // === Standard: Nur PV-Überschuss/Hysterese ===
         $this->LogikPVPureMitHysterese();
@@ -366,7 +361,6 @@ class PVWallboxManager extends IPSModule
     {
         $minStart = $this->ReadPropertyInteger('MinLadeWatt');
         $minStop  = $this->ReadPropertyInteger('MinStopWatt');
-        //$ueberschuss = $this->BerechnePVUeberschuss();
         $ueberschuss = $this->BerechnePVUeberschuss('standard');
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
         $ladeModusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
