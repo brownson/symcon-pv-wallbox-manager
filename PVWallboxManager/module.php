@@ -68,8 +68,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableBoolean('ZielzeitladungPVonly', '⏱️ Zielzeitladung PV-optimiert', '', 97);
         $this->EnableAction('ZielzeitladungPVonly');
 
-        $this->RegisterVariableBoolean('StrompreisModus', '€ Strompreisladen aktiv', '~Switch', 60);
-        $this->EnableAction('StrompreisModus');
+        //$this->RegisterVariableBoolean('StrompreisModus', '€ Strompreisladen aktiv', '~Switch', 60);
+        //$this->EnableAction('StrompreisModus');
 
         $this->RegisterVariableString('LademodusStatus', 'Aktueller Lademodus', '', 98);
 
@@ -87,7 +87,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeInteger("ChargeStartTime", 0);
 
         // Strompreis-Ladung (ab Version 0.9)
-        $this->RegisterPropertyBoolean("StrompreisModus", false); // €-Button
+        //$this->RegisterPropertyBoolean("StrompreisModus", false); // €-Button
         $this->RegisterPropertyInteger("CurrentPriceID", 0);      // Aktueller Preis (ct/kWh, Float)
         $this->RegisterPropertyInteger("ForecastPriceID", 0);     // 24h-Prognose (ct/kWh, String)
         $this->RegisterPropertyFloat("MinPrice", 0.000);       // Mindestpreis (ct/kWh)
@@ -236,7 +236,7 @@ class PVWallboxManager extends IPSModule
 
         // --- MODUS-WEICHE (Prio: Manuell > Zielzeit > PV2Car > PV-Überschuss/Hysterese) ---
         // Strompreismodus aktiv?
-        $strompreisModus = $this->ReadPropertyBoolean("StrompreisModus");
+        $strompreisModus = GetValue($this->GetIDForIdent('StrompreisModus'));
         $currentPriceID = $this->ReadPropertyInteger("CurrentPriceID");
         $minPrice = $this->ReadPropertyFloat("MinPrice");
         $maxPrice = $this->ReadPropertyFloat("MaxPrice");
