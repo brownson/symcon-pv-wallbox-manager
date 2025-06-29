@@ -305,6 +305,7 @@ class PVWallboxManager extends IPSModule
     // Modus kann 'standard' (bisher wie gehabt) oder 'pv2car' (neuer PV2Car-Modus) sein
     private function BerechnePVUeberschuss(string $modus = 'standard'): float
     {
+        $this->Log('info', '>>> Starte BerechnePVUeberschuss()');
         $goeID  = $this->ReadPropertyInteger("GOEChargerID");
     
         // Werte auslesen, immer auf Watt normiert
