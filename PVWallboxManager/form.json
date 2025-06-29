@@ -117,7 +117,7 @@
         ]},
         { "type": "Label", "caption": "    " },
         { "type": "Label", "label": "💶 Strompreisbasiertes Laden (dynamische Tarife)" },
-        { "type": "Label", "label": "⚠️ Aktivierung nur über den '€ Strompreisladen aktiv' Button im WebFront!" },
+        { "type": "Label", "label": "⚠️ Aktivierung nur über den '€ Strompreisladen aktiv' Button im WebFront! Lädt, wenn Strompreis ≤ Höchstpreis" },
         { "type": "RowLayout", "items": [
           { "type": "SelectVariable", "name": "CurrentPriceID", "caption": "Aktueller Strompreis (ct/kWh)", "validVariableTypes": [2] },
           { "type": "Label", "caption": "    " },
