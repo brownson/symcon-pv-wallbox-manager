@@ -659,15 +659,19 @@ class PVWallboxManager extends IPSModule
     {
         $varID = $this->GetIDForIdent('LademodusStatus');
         if ($varID !== false && @IPS_VariableExists($varID)) {
-            SetValue($varID, $text);
+            if (GetValue($varID) !== $text) {
+                SetValue($varID, $text);
+            }
         }
     }
 
     private function SetFahrzeugStatus(string $text)
     {
-        $varID = $this->GetIDForIdent('FahrzeugStatusText');
+        $varID = $this->GetIDForIdent('FahrzeugStatus');
         if ($varID !== false && @IPS_VariableExists($varID)) {
-            SetValue($varID, $text);
+            if (GetValue($varID) !== $text) {
+                SetValue($varID, $text);
+            }
         }
     }
     
@@ -809,28 +813,32 @@ class PVWallboxManager extends IPSModule
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
         if ($goeID == 0) {
             $text = '<span style="color:gray;">Keine GO-e Instanz gewählt</span>';
-            SetValue($this->GetIDForIdent('WallboxStatusText'), $text);
-            return;
+        } else {
+            $status = GOeCharger_GetStatus($goeID);
+            switch ($status) {
+                case 1:
+                    $text = '<span style="color: gray;">Ladestation bereit, kein Fahrzeug</span>';
+                    break;
+                case 2:
+                    $text = '<span style="color: green; font-weight:bold;">Fahrzeug lädt</span>';
+                    break;
+                case 3:
+                    $text = '<span style="color: orange;">Fahrzeug angeschlossen, wartet auf Ladefreigabe</span>';
+                    break;
+                case 4:
+                    $text = '<span style="color: blue;">Ladung beendet, Fahrzeug verbunden</span>';
+                    break;
+                default:
+                    $text = '<span style="color: red;">Unbekannter Status</span>';
+                    $this->Log('warn', "Unbekannter Status vom GO-e Charger: $status");
+            }
         }
-        $status = GOeCharger_GetStatus($goeID);
-        switch ($status) {
-            case 1:
-                $text = '<span style="color: gray;">Ladestation bereit, kein Fahrzeug</span>';
-                break;
-            case 2:
-                $text = '<span style="color: green; font-weight:bold;">Fahrzeug lädt</span>';
-                break;
-            case 3:
-                $text = '<span style="color: orange;">Fahrzeug angeschlossen, wartet auf Ladefreigabe</span>';
-                break;
-            case 4:
-                $text = '<span style="color: blue;">Ladung beendet, Fahrzeug verbunden</span>';
-                break;
-            default:
-                $text = '<span style="color: red;">Unbekannter Status</span>';
-                $this->Log("Unbekannter Status vom GO-e Charger: $status", 'warn');
+        $varID = $this->GetIDForIdent('WallboxStatusText');
+        if ($varID !== false && @IPS_VariableExists($varID)) {
+            if (GetValue($varID) !== $text) {
+                SetValue($varID, $text);
+            }
         }
-        SetValue($this->GetIDForIdent('WallboxStatusText'), $text);
     }
 
     private function Log(string $message, string $level)
