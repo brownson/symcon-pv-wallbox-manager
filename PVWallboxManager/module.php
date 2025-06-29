@@ -387,11 +387,25 @@ class PVWallboxManager extends IPSModule
         if ($ladeModus == 2) { // Lädt bereits
             if ($ueberschuss <= $minStop) {
                 $this->SetLadeleistung(0);
+                // **Explizit Wallbox auf Modus "Bereit" stellen!**
+                $goeID = $this->ReadPropertyInteger('GOEChargerID');
+                if (@IPS_InstanceExists($goeID)) {
+                    GOeCharger_setMode($goeID, 1); // 1 = Bereit
+                    $this->Log("🔌 Wallbox-Modus auf 'Bereit' gestellt (1)", 'info');
+                }
                 $msg = "PV-Überschuss unter Stop-Schwelle ({$ueberschuss} W ≤ {$minStop} W) – Wallbox gestoppt";
                 $this->Log($msg, 'info');
                 $this->SetLademodusStatus($msg);
             } else {
                 $this->SetLadeleistung($ueberschuss);
+                // Hier Modus auf 2 (Laden) nur wenn wirklich > 0!
+                if ($ueberschuss > 0) {
+                    $goeID = $this->ReadPropertyInteger('GOEChargerID');
+                    if (@IPS_InstanceExists($goeID)) {
+                        GOeCharger_setMode($goeID, 2); // 2 = Laden erzwingen
+                        $this->Log("⚡ Wallbox-Modus auf 'Laden' gestellt (2)", 'info');
+                    }
+                }
                 $msg = "PV-Überschuss: Bleibt an ({$ueberschuss} W)";
                 $this->Log($msg, 'info');
                 $this->SetLademodusStatus($msg);
@@ -399,17 +413,31 @@ class PVWallboxManager extends IPSModule
         } else { // Lädt NICHT
             if ($ueberschuss >= $minStart) {
                 $this->SetLadeleistung($ueberschuss);
+                // Hier Modus auf 2 (Laden) nur wenn wirklich > 0!
+                if ($ueberschuss > 0) {
+                    $goeID = $this->ReadPropertyInteger('GOEChargerID');
+                    if (@IPS_InstanceExists($goeID)) {
+                        GOeCharger_setMode($goeID, 2); // 2 = Laden erzwingen
+                        $this->Log("⚡ Wallbox-Modus auf 'Laden' gestellt (2)", 'info');
+                    }
+                }
                 $msg = "PV-Überschuss über Start-Schwelle ({$ueberschuss} W ≥ {$minStart} W) – Wallbox startet";
                 $this->Log($msg, 'info');
                 $this->SetLademodusStatus($msg);
             } else {
                 $this->SetLadeleistung(0);
+                // **Immer Modus auf "Bereit" stellen, solange kein Überschuss!**
+                $goeID = $this->ReadPropertyInteger('GOEChargerID');
+                if (@IPS_InstanceExists($goeID)) {
+                    GOeCharger_setMode($goeID, 1); // 1 = Bereit
+                    $this->Log("🔌 Wallbox-Modus auf 'Bereit' gestellt (1)", 'info');
+                }
                 $msg = "PV-Überschuss zu niedrig ({$ueberschuss} W) – bleibt aus";
                 $this->Log($msg, 'info');
                 $this->SetLademodusStatus($msg);
+                }
             }
         }
-    }
 
     // --- Zielzeitladung-Logik: ---
     private function LogikZielzeitladung()
