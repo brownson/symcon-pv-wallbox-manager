@@ -98,6 +98,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterTimer('ZyklusLadevorgangCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "ZyklusLadevorgangCheck", 0);');
         
         $this->RegisterPropertyBoolean('ModulAktiv', true);
+        $this->RegisterPropertyBoolean('DebugLogging', false);
+
     }
     
     public function ApplyChanges()
@@ -185,8 +187,9 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateCharging()
     {
+        $this->DebugLogSOC();
         $this->SendDebug("Update", "Starte Berechnung...", 0);
-    
+            
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
         $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
 
@@ -239,7 +242,7 @@ class PVWallboxManager extends IPSModule
                 return; // *** Hauptalgorithmus abbrechen! ***
             }
         }
-    
+        
         // === Modus-Weiche: NUR eine Logik pro Durchlauf! ===
         if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
             $this->SetLadeleistung($this->GetMaxLadeleistung());
@@ -812,5 +815,31 @@ class PVWallboxManager extends IPSModule
                 $text = '<span style="color: red;">Unbekannter Status</span>';
         }
         SetValue($this->GetIDForIdent('WallboxStatusText'), $text);
+    }
+
+    private function DebugLog($text)
+    {
+        if ($this->ReadPropertyBoolean('DebugLogging')) {
+            IPS_LogMessage("PVWallboxManager [DEBUG]", $text);
+            $this->SendDebug("Debug", $text, 0);
+        }
+    }
+
+    private function DebugLogSOC()
+    {
+        if (!$this->ReadPropertyBoolean('DebugLogging')) return;
+        $socID = $this->ReadPropertyInteger('CarSOCID');
+        $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
+        $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : $this->ReadPropertyFloat('CarSOCFallback');
+        $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
+        $useCarSOC = $this->ReadPropertyBoolean('UseCarSOC');
+        IPS_LogMessage("PVWallboxManager [DEBUG]", sprintf(
+            "SOC-Status: Vehicle-SOC=%s | Ziel-SOC=%s | SOC-Fallback=%.1f | ZielSOC-Fallback=%.1f | UseCarSOC=%s",
+            is_numeric($soc) ? round($soc, 1) . "%" : "n/a",
+            is_numeric($targetSOC) ? round($targetSOC, 1) . "%" : "n/a",
+            $this->ReadPropertyFloat('CarSOCFallback'),
+            $this->ReadPropertyFloat('CarTargetSOCFallback'),
+            $useCarSOC ? "aktiv" : "inaktiv"
+        ));
     }
 }
