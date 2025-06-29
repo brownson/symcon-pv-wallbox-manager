@@ -227,18 +227,43 @@ class PVWallboxManager extends IPSModule
             return;
         }
         if (GetValue($this->GetIDForIdent('PV2CarModus'))) {
-            $ueberschuss = $this->BerechnePVUeberschuss();
-            $anteil = $this->ReadPropertyInteger('PVAnteilAuto');
-            $ladeWatt = min(max(round($ueberschuss * ($anteil / 100.0)), 0), $this->GetMaxLadeleistung());
-
-            // --- Debug-Ausgabe einbauen ---
-            IPS_LogMessage("PVWallboxManager", "DEBUG PV2Car: Anteil: $anteil %, Überschuss: $ueberschuss W, LadeWatt: $ladeWatt W");
-            
-            $this->SetLadeleistung($ladeWatt);
-            $this->SetLademodusStatus("PV2Car: {$anteil}% vom Überschuss ({$ladeWatt} W)");
-            return;
+        $ueberschuss = $this->BerechnePVUeberschuss();
+        $anteil = $this->ReadPropertyInteger('PVAnteilAuto');
+        $hausakkuSocID = $this->ReadPropertyInteger('HausakkuSOCID');
+        $hausakkuSocVoll = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle'); // z. B. 95
+    
+        // Standard-Anteil fürs Auto
+        $autoProzent = $anteil;
+        $restProzent = 100 - $anteil;
+    
+        // Hausakku-SoC prüfen
+        $hausakkuSoc = 0;
+        if ($hausakkuSocID > 0 && @IPS_VariableExists($hausakkuSocID)) {
+            $hausakkuSoc = GetValue($hausakkuSocID);
         }
-        
+        // Wenn Hausakku voll: Alles ins Auto
+        if ($hausakkuSoc >= $hausakkuSocVoll) {
+            $autoProzent = 100;
+            $restProzent = 0;
+        }
+    
+        // Ladeleistung für Auto berechnen
+        $ladeWatt = min(max(round($ueberschuss * ($autoProzent / 100.0)), 0), $this->GetMaxLadeleistung());
+        $info = "PV2Car: {$autoProzent}% vom Überschuss ({$ladeWatt} W)";
+        if ($autoProzent == 100) {
+            $info .= " (Hausakku voll, 100 % ins Auto)";
+        } else {
+            $info .= " ({$restProzent}% zur Batterie)";
+        }
+        $this->SetLadeleistung($ladeWatt);
+        $this->SetLademodusStatus($info);
+    
+        // Debug/Logging
+        $this->SendDebug("PV2Car", "Anteil Auto: {$autoProzent}%, Hausakku-SoC: {$hausakkuSoc}%, Überschuss: {$ueberschuss} W, LadeWatt: {$ladeWatt} W", 0);
+    
+        return;
+    }
+
         // === Standard: Nur PV-Überschuss/Hysterese ===
         $this->LogikPVPureMitHysterese();
     
