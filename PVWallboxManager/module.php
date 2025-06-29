@@ -72,6 +72,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableBoolean('ZielzeitladungPVonly', '⏱️ Zielzeitladung PV-optimiert', '', 97);
         $this->EnableAction('ZielzeitladungPVonly');
 
+        $this->RegisterVariableString('FahrzeugStatusText', 'Fahrzeug Status', '', 97);
         $this->RegisterVariableString('LademodusStatus', 'Aktueller Lademodus', '', 98);
         $this->RegisterVariableString('WallboxStatusText', 'Wallbox Status', '~HTMLBox', 99);
 
@@ -217,7 +218,7 @@ class PVWallboxManager extends IPSModule
         // Status-Logik für weitere Fahrzeugstatus
         if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
             if ($status == 3) {
-                $this->SetLademodusStatus("🚗 Fahrzeug angeschlossen, wartet auf Freigabe (z.B. Tür öffnen oder am Fahrzeug 'Laden' aktivieren)");
+                $this->SetFahrzeugStatus("🚗 Fahrzeug angeschlossen, wartet auf Freigabe (z.B. Tür öffnen oder am Fahrzeug 'Laden' aktivieren)");
                 $this->Log("Fahrzeug angeschlossen, wartet auf Freigabe", 'debug');
             }
             if ($status == 4) {
@@ -663,7 +664,6 @@ class PVWallboxManager extends IPSModule
             }
         }
 
-
     private function SetLademodusStatus(string $text)
     {
         $varID = $this->GetIDForIdent('LademodusStatus');
@@ -672,6 +672,14 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+    private function SetFahrzeugStatus(string $text)
+    {
+        $varID = $this->GetIDForIdent('FahrzeugStatusText');
+        if ($varID !== false && @IPS_VariableExists($varID)) {
+            SetValue($varID, $text);
+        }
+    }
+    
     // --- Ladeverluste automatisch berechnen, wenn alle Werte vorhanden ---
     private function BerechneLadeverluste($socStart, $socEnde, $batteryCapacity, $wbEnergy)
     {
