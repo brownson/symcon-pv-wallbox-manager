@@ -69,6 +69,8 @@ class PVWallboxManager extends IPSModule
         $this->EnableAction('ZielzeitladungPVonly');
 
         $this->RegisterVariableString('LademodusStatus', 'Aktueller Lademodus', '', 98);
+        $this->RegisterVariableString('WallboxStatusText', 'Wallbox Status', '~HTMLBox', 99);
+
 
         $this->RegisterVariableInteger('TargetTime', 'Ziel-Zeit (Uhr)', '~UnixTimestampTime', 60);
         $this->EnableAction('TargetTime');
@@ -289,6 +291,9 @@ class PVWallboxManager extends IPSModule
         
         // --- Standard: Nur PV-Überschuss mit Start/Stop-Hysterese ---
         $this->LogikPVPureMitHysterese();
+
+        $this->UpdateWallboxStatusText();
+
     }
 
     // --- Hilfsfunktion: PV-Überschuss berechnen ---
@@ -672,5 +677,33 @@ class PVWallboxManager extends IPSModule
             }
         }
         return $wert;
+    }
+
+    private function UpdateWallboxStatusText()
+    {
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        if ($goeID == 0) {
+            $text = '<span style="color:gray;">Keine GO-e Instanz gewählt</span>';
+            SetValue($this->GetIDForIdent('WallboxStatusText'), $text);
+            return;
+        }
+        $status = GOeCharger_GetStatus($goeID);
+        switch ($status) {
+            case 1:
+                $text = '<span style="color: gray;">Ladestation bereit, kein Fahrzeug</span>';
+                break;
+            case 2:
+                $text = '<span style="color: green; font-weight:bold;">Fahrzeug lädt</span>';
+                break;
+            case 3:
+                $text = '<span style="color: orange;">Fahrzeug angeschlossen, wartet auf Ladefreigabe</span>';
+                break;
+            case 4:
+                $text = '<span style="color: blue;">Ladung beendet, Fahrzeug verbunden</span>';
+                break;
+            default:
+                $text = '<span style="color: red;">Unbekannter Status</span>';
+        }
+        SetValue($this->GetIDForIdent('WallboxStatusText'), $text);
     }
 }
