@@ -230,10 +230,15 @@ class PVWallboxManager extends IPSModule
             $ueberschuss = $this->BerechnePVUeberschuss();
             $anteil = $this->ReadPropertyInteger('PVAnteilAuto');
             $ladeWatt = min(max(round($ueberschuss * ($anteil / 100.0)), 0), $this->GetMaxLadeleistung());
+
+            // --- Debug-Ausgabe einbauen ---
+            IPS_LogMessage("PVWallboxManager", "DEBUG PV2Car: Anteil: $anteil %, Überschuss: $ueberschuss W, LadeWatt: $ladeWatt W");
+            
             $this->SetLadeleistung($ladeWatt);
             $this->SetLademodusStatus("PV2Car: {$anteil}% vom Überschuss ({$ladeWatt} W)");
             return;
         }
+        
         // === Standard: Nur PV-Überschuss/Hysterese ===
         $this->LogikPVPureMitHysterese();
     
