@@ -229,18 +229,23 @@ class PVWallboxManager extends IPSModule
     
         // === Ziel-SOC immer berücksichtigen, wenn Option aktiv ===
         if ($this->ReadPropertyBoolean('AlwaysUseTargetSOC')) {
-            $socID = $this->ReadPropertyInteger('CarSOCID');
-            $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : $this->ReadPropertyFloat('CarSOCFallback');
-            $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
-            $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
+        $socID = $this->ReadPropertyInteger('CarSOCID');
+        $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : $this->ReadPropertyFloat('CarSOCFallback');
+        $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
+        $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
+        $capacity = $this->ReadPropertyFloat('CarBatteryCapacity'); // z.B. 52.0
     
-            $this->Log("SOC-Prüfung (AlwaysUseTargetSOC): Ist={$soc}%, Ziel={$targetSOC}% (Option aktiv)", 'info');
-            if ($soc >= $targetSOC) {
-                $this->SetLadeleistung(0);
-                $this->SetLademodusStatus("Ziel-SOC erreicht ({$soc}% ≥ {$targetSOC}%) – keine weitere Ladung.");
-                $this->Log("Ziel-SOC erreicht ({$soc}% ≥ {$targetSOC}%) – keine weitere Ladung.", 'info');
-                $this->UpdateWallboxStatusText();
-                return;
+        $fehlendeProzent = max(0, $targetSOC - $soc);
+        $fehlendeKWh = $capacity * $fehlendeProzent / 100.0;
+    
+        $this->Log('info', "SOC-Prüfung: Ist={$soc}% | Ziel={$targetSOC}% | Fehlend=" . round($fehlendeProzent, 2) . "% | Fehlende kWh=" . round($fehlendeKWh, 2) . " kWh");
+    
+        if ($soc >= $targetSOC) {
+            $this->SetLadeleistung(0);
+            $this->SetLademodusStatus("Ziel-SOC erreicht ({$soc}% ≥ {$targetSOC}%) – keine weitere Ladung.");
+            $this->Log("Ziel-SOC erreicht ({$soc}% ≥ {$targetSOC}%) – keine weitere Ladung.", 'info');
+            $this->UpdateWallboxStatusText();
+            return;
             }
         }
     
