@@ -100,6 +100,10 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('ModulAktiv', true);
         $this->RegisterPropertyBoolean('DebugLogging', false);
 
+        if ($this->ReadAttributeBoolean('RunLogFlag') === null) {
+            $this->WriteAttributeBoolean('RunLogFlag', true);
+        }
+
     }
     
     public function ApplyChanges()
@@ -204,9 +208,10 @@ class PVWallboxManager extends IPSModule
     public function UpdateCharging()
     {
         $this->WriteAttributeBoolean('RunLogFlag', true); // Start eines neuen Durchlaufs
-        $this->DebugLogSOC();
+        //$this->DebugLogSOC();
     
-        $this->LogMessage("Starte Berechnung (UpdateCharging)", 'debug');
+        //$this->LogMessage("Starte Berechnung (UpdateCharging)", 'debug');
+        $this->Log('debug', "Starte Berechnung (UpdateCharging)");
             
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
         $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
