@@ -390,7 +390,7 @@ class PVWallboxManager extends IPSModule
     
         // Immer 1x loggen (zentrales Level: info)
         $this->Log($logMsg, 'info');
-        $this->Log("PV-Berechnung", $logMsg, 0);
+        //$this->Log("PV-Berechnung", $logMsg, 0);
     
         // In Variable schreiben (nur im Standardmodus als Visualisierung)
         if ($modus == 'standard') {
