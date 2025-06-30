@@ -190,7 +190,7 @@ class PVWallboxManager extends IPSModule
         $this->UpdateCharging();
     }
 
-    public function UpdateCharging()
+        public function UpdateCharging()
     {
         $this->WriteAttributeBoolean('RunLogFlag', true); // Start eines neuen Durchlaufs
         $this->Log("Starte Berechnung (UpdateCharging)", 'debug');
@@ -235,23 +235,23 @@ class PVWallboxManager extends IPSModule
     
         // === Ziel-SOC immer berücksichtigen, wenn Option aktiv ===
         if ($this->ReadPropertyBoolean('AlwaysUseTargetSOC')) {
-        $socID = $this->ReadPropertyInteger('CarSOCID');
-        $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : $this->ReadPropertyFloat('CarSOCFallback');
-        $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
-        $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
-        $capacity = $this->ReadPropertyFloat('CarBatteryCapacity'); // z.B. 52.0
+            $socID = $this->ReadPropertyInteger('CarSOCID');
+            $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : $this->ReadPropertyFloat('CarSOCFallback');
+            $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
+            $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
+            $capacity = $this->ReadPropertyFloat('CarBatteryCapacity'); // z.B. 52.0
     
-        $fehlendeProzent = max(0, $targetSOC - $soc);
-        $fehlendeKWh = $capacity * $fehlendeProzent / 100.0;
+            $fehlendeProzent = max(0, $targetSOC - $soc);
+            $fehlendeKWh = $capacity * $fehlendeProzent / 100.0;
     
-        $this->Log("SOC-Prüfung: Ist={$soc}% | Ziel={$targetSOC}% | Fehlend=" . round($fehlendeProzent, 2) . "% | Fehlende kWh=" . round($fehlendeKWh, 2) . " kWh", 'info');
+            $this->Log("SOC-Prüfung: Ist={$soc}% | Ziel={$targetSOC}% | Fehlend=" . round($fehlendeProzent, 2) . "% | Fehlende kWh=" . round($fehlendeKWh, 2) . " kWh", 'info');
     
-        if ($soc >= $targetSOC) {
-            $this->SetLadeleistung(0);
-            $this->SetLademodusStatus("Ziel-SOC erreicht ({$soc}% ≥ {$targetSOC}%) – keine weitere Ladung.");
-            $this->Log("Ziel-SOC erreicht ({$soc}% ≥ {$targetSOC}%) – keine weitere Ladung.", 'info');
-            $this->UpdateWallboxStatusText();
-            return;
+            if ($soc >= $targetSOC) {
+                $this->SetLadeleistung(0);
+                $this->SetLademodusStatus("Ziel-SOC erreicht ({$soc}% ≥ {$targetSOC}%) – keine weitere Ladung.");
+                $this->Log("Ziel-SOC erreicht ({$soc}% ≥ {$targetSOC}%) – keine weitere Ladung.", 'info');
+                $this->UpdateWallboxStatusText();
+                return;
             }
         }
     
@@ -266,7 +266,7 @@ class PVWallboxManager extends IPSModule
             $this->LogikZielzeitladung();
         } elseif (GetValue($this->GetIDForIdent('PV2CarModus'))) {
             $this->Log("Modus: PV2Car aktiv", 'info');
-            // --- PV2Car Code, wie gehabt ---
+            // --- PV2Car Modus ---
             $pv = 0;
             $pvID = $this->ReadPropertyInteger('PVErzeugungID');
             if ($pvID > 0 && @IPS_VariableExists($pvID)) {
@@ -292,25 +292,29 @@ class PVWallboxManager extends IPSModule
                 $autoProzent = 100;
                 $restProzent = 0;
             }
-            $ladeWatt = min(max(round($pvUeberschussDirekt * ($autoProzent / 100.0)), 0), $this->GetMaxLadeleistung());
-            $ladeleistungBatterie = $pvUeberschussDirekt - $ladeWatt;
-            
-            // Glätten: kleine Werte (<1 W) auf 0, sonst runden auf ganze Watt
-            if (abs($ladeleistungBatterie) < 1) {
-                $ladeleistungBatterie = 0;
-            } else {
-                $ladeleistungBatterie = round($ladeleistungBatterie);
-            }
-            
+            $ladeWatt = min(
+                max(round($pvUeberschussDirekt * ($autoProzent / 100.0)), 0),
+                $this->GetMaxLadeleistung()
+            );
+            // Rest für Batterie (nur Info)
+            $ladeleistungBatterie = max(0, $pvUeberschussDirekt - $ladeWatt);
+            $ladeleistungBatterie = (abs($ladeleistungBatterie) < 1) ? 0 : round($ladeleistungBatterie);
+    
             $info = "PV2Car: {$autoProzent}% Auto ({$ladeWatt} W)";
             if ($autoProzent == 100) {
                 $info .= " (Hausakku voll, 100 % ins Auto)";
             } else {
                 $info .= " | {$restProzent}% zur Batterie: {$ladeleistungBatterie} W";
             }
+    
+            // Nur diesen Wert an die Wallbox!
             $this->SetLadeleistung($ladeWatt);
             $this->SetLademodusStatus($info);
-            $this->Log("PV2Car: {$autoProzent}% Auto ({$ladeWatt} W) | {$restProzent}% Batterie ({$ladeleistungBatterie} W)", 'debug');
+            $this->Log($info, 'debug');
+            // **Kein weiteres Umschalten/Logik im selben Zyklus**
+            $this->UpdateWallboxStatusText();
+            $this->UpdateFahrzeugStatusText();
+            return;
         } else {
             // === Standard: Nur PV-Überschuss/Hysterese ===
             $this->Log("Modus: PV-Überschuss (Standard)", 'info');
