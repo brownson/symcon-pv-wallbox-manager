@@ -395,6 +395,7 @@ class PVWallboxManager extends IPSModule
             if ($ueberschuss <= $minStop) {
                 $counter = $this->ReadAttributeInteger('StopHystereseCounter') + 1;
                 $this->WriteAttributeInteger('StopHystereseCounter', $counter);
+                $this->Log("🛑 Stop-Hysterese: {$counter}/" . ($this->ReadPropertyInteger('StopHysterese')+1), 'debug');
                 if ($counter > $this->ReadPropertyInteger('StopHysterese')) {
                     $this->SetLadeleistung(0);
                     // **Explizit Wallbox auf Modus "Bereit" stellen!**
@@ -406,8 +407,6 @@ class PVWallboxManager extends IPSModule
                     $this->Log($msg, 'info');
                     $this->SetLademodusStatus($msg);
                     $this->WriteAttributeInteger('StopHystereseCounter', 0);
-                } else {
-                    $this->Log("Stop-Hysterese: {$counter}/" . ($this->ReadPropertyInteger('StopHysterese')+1) . " – noch nicht gestoppt", 'debug');
                 }
             } else {
                 $this->WriteAttributeInteger('StopHystereseCounter', 0);
@@ -428,6 +427,7 @@ class PVWallboxManager extends IPSModule
             if ($ueberschuss >= $minStart) {
                 $counter = $this->ReadAttributeInteger('StartHystereseCounter') + 1;
                 $this->WriteAttributeInteger('StartHystereseCounter', $counter);
+                $this->Log("🟢 Start-Hysterese: {$counter}/" . ($this->ReadPropertyInteger('StartHysterese')+1), 'debug');
                 if ($counter > $this->ReadPropertyInteger('StartHysterese')) {
                     $this->SetLadeleistung($ueberschuss);
                     // Hier Modus auf 2 (Laden) nur wenn wirklich > 0!
@@ -441,8 +441,6 @@ class PVWallboxManager extends IPSModule
                     $this->Log($msg, 'info');
                     $this->SetLademodusStatus($msg);
                     $this->WriteAttributeInteger('StartHystereseCounter', 0);
-                } else {
-                    $this->Log("Start-Hysterese: {$counter}/" . ($this->ReadPropertyInteger('StartHysterese')+1) . " – noch nicht gestartet", 'debug');
                 }
             } else {
                 $this->WriteAttributeInteger('StartHystereseCounter', 0);
