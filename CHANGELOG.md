@@ -23,6 +23,10 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
   - Wallbox wird jetzt immer explizit auf „Bereit“ gesetzt, wenn kein PV-Überschuss vorhanden ist (verhindert Fehlermeldungen im Fahrzeug).
   - Lademodus, Fahrzeugstatus und Wallbox-Status werden nur noch bei Änderungen neu geschrieben.
   - Alle Aktionen (Modus/Leistung) werden nur bei echten Änderungen ausgeführt (keine unnötigen Schreibzugriffe, weniger Log-Spam).
+ 
+- **Preisoptimiertes Laden (in Vorbereitung)**
+  - Vorbereitung zur Integration mit dem Symcon-Strompreis-Modul ([Awattar, Tibber, …](https://github.com/symcon/Strompreis)) für automatisierte, zeit- und preisbasierte Ladeplanung (z.B. Laden bei günstigen Börsenstrompreisen).  
+  - Interne Platzhalter und Properties für die kommende Preislogik angelegt.
 
 - **Logging & Debug:**
   - Debug-Logging in der Instanzkonfig Modulsteuerung eingebaut
