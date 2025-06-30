@@ -226,10 +226,11 @@ class PVWallboxManager extends IPSModule
                         SetValue($this->GetIDForIdent($mod), false);
                     }
                 }
-                // Wallbox auf "Bereit" setzen
+                // Wallbox auf "Bereit" setzen UND Ladeleistung 0 setzen
                 if (GOeCharger_getMode($goeID) != 1) {
                     GOeCharger_setMode($goeID, 1);
                 }
+                $this->SetLadeleistung(0); // <--- Ladeleistung explizit auf 0
                 $this->SetFahrzeugStatus("⚠️ Kein Fahrzeug verbunden – bitte erst Fahrzeug anschließen.");
                 SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
                 $this->Log("Kein Fahrzeug verbunden – Abbruch der Berechnung", 'warn');
