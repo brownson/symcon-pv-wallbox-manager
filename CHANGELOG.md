@@ -9,6 +9,15 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 
 ### 🚀 Neue Funktionen & Verbesserungen
 
+- **PV-Batterieentladung:**
+  -  Über die Instanzkonfiguration steuerbar (Boolean, Standard: aktiviert).
+  -  Neu: Statusvariable **PV-Batterieentladung erlaubt**
+  -  Im WebFront als Status sichtbar (nur lesbar, nicht schaltbar).
+  - Synchronisation:  
+    - Die Variable spiegelt stets den aktuellen Property-Status wider.
+  - Hinweis:  
+    → Die Freigabe der Batterieentladung kann so z. B. per Skript für einen Passivmodus automatisiert werden, bleibt aber ausschließlich über die Konfiguration änderbar.
+
 - **Start- und Stop-Hysterese:**  
   Einstellbare Hysterese-Zyklen für das Starten und Stoppen der PV-Überschussladung. Erhöht die Stabilität bei schwankender PV-Leistung (z. B. Wolkendurchzug, Hausverbrauch).
   - Einstellungen komfortabel im WebFront mit Icons, kurzen Erklärungen, RowLayout.
