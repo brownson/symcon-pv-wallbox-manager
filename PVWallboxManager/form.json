@@ -109,7 +109,7 @@
         { "type": "RowLayout", "items": [
           { "type": "CheckBox", "name": "NurMitFahrzeug", "caption": "🚗 Nur laden, wenn Fahrzeug verbunden" }
         ]},
-        { "type": "RowLayout", "items": [
+        { "type": "Label", "caption": "    " },
           { "type": "Label", "label": "Erlaubt die Entladung der Hausbatterie zur Unterstützung des PV-Überschussladens." },
           { "type": "Label", "label": "Kann extern über ein Skript gesteuert werden (z. B. für Passivmodus)." },
           { "type": "CheckBox", "name": "AllowBatteryDischarge", "caption": "PV-Batterieentladung zulassen", "default": true, "icon": "BatteryCharging"}
