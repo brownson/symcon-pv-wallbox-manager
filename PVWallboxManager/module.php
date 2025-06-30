@@ -80,7 +80,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableBoolean('ZielzeitladungPVonly', '⏱️ Zielzeitladung PV-optimiert', '', 97);
         $this->EnableAction('ZielzeitladungPVonly');
 
-        $this->RegisterVariableBoolean('AllowBatteryDischargeActive', 'PV-Batterieentladung zulassen', '~Switch', 20);
+        $this->RegisterVariableBoolean('AllowBatteryDischargeActive', 'PV-Batterieentladung zulassen', '', 98);
+        $this->EnableAction('AllowBatteryDischargeActive');
         
         $this->RegisterVariableString('FahrzeugStatusText', 'Fahrzeug Status', '', 97);
         $this->RegisterVariableString('LademodusStatus', 'Aktueller Lademodus', '', 98);
