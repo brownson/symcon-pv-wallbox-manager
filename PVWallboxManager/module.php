@@ -192,14 +192,9 @@ class PVWallboxManager extends IPSModule
 
         public function UpdateCharging()
     {
-        //$this->WriteAttributeBoolean('RunLogFlag', true); // Start eines neuen Durchlaufs
-        //$this->Log("Starte Berechnung (UpdateCharging)", 'debug');
+        $this->WriteAttributeBoolean('RunLogFlag', true); // Start eines neuen Durchlaufs
+        $this->Log("Starte Berechnung (UpdateCharging)", 'debug');
         
-        // Doppelausführung verhindern
-        if ($this->ReadAttributeBoolean('RunLogFlag')) {
-            $this->Log("UpdateCharging() läuft bereits – abgebrochen! [Source: $triggerSource]", 'debug');
-            return;
-        }
         $this->WriteAttributeBoolean('RunLogFlag', true);
         $this->Log("UpdateCharging() gestartet [Source: $triggerSource]", 'debug');
         
