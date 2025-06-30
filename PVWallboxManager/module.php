@@ -83,8 +83,6 @@ class PVWallboxManager extends IPSModule
 
         $this->RegisterVariableBoolean('AllowBatteryDischargeStatus', 'PV-Batterieentladung zulassen', '', 98);
 
-
-        
         $this->RegisterVariableString('FahrzeugStatusText', 'Fahrzeug Status', '', 70);
         $this->RegisterVariableString('LademodusStatus', 'Aktueller Lademodus', '', 80);
         $this->RegisterVariableString('WallboxStatusText', 'Wallbox Status', '~HTMLBox', 90);
