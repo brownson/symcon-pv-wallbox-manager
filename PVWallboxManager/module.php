@@ -272,7 +272,7 @@ class PVWallboxManager extends IPSModule
             }
     
             // === Modus-Weiche: NUR eine Logik pro Durchlauf! ===
-            // Priorität: Manuell > Zielzeit > PV2Car > Standard
+            // Priorität: Manuell > Zielzeit > PV2Car > Strompreis > Standard
             if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
                 $this->SetLadeleistung($this->GetMaxLadeleistung());
                 $this->SetLademodusStatus("Manueller Volllademodus aktiv");
@@ -283,7 +283,12 @@ class PVWallboxManager extends IPSModule
             } elseif (GetValue($this->GetIDForIdent('PV2CarModus'))) {
                 $this->Log("Modus: PV2Car aktiv", 'info');
                 // ... (PV2Car-Modus-Logik, wie gehabt) ...
-                // (Rest deines bestehenden Codes, ggf. wie oben)
+                $this->UpdateWallboxStatusText();
+                $this->UpdateFahrzeugStatusText();
+                return;
+            } elseif (GetValue($this->GetIDForIdent('StrompreisModus'))) {
+                $this->Log("Modus: Strompreisladen aktiv", 'info');
+                $this->LogikStrompreisladen();
                 $this->UpdateWallboxStatusText();
                 $this->UpdateFahrzeugStatusText();
                 return;
@@ -303,7 +308,7 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeBoolean('RunLock', false);
         }
     }
-
+    
     // --- Hilfsfunktion: PV-Überschuss berechnen ---
     // Modus kann 'standard' (bisher wie gehabt) oder 'pv2car' (neuer PV2Car-Modus) sein
     private function BerechnePVUeberschuss(string $modus = 'standard'): float
@@ -450,6 +455,40 @@ class PVWallboxManager extends IPSModule
                 $this->SetLademodusStatus($msg);
             }
         }
+    }
+
+    private function LogikStrompreisladen()
+    {
+        $priceID = $this->ReadPropertyInteger('CurrentPriceID');
+        $maxPrice = $this->ReadPropertyFloat('MaxPrice');
+        $currentPrice = ($priceID > 0 && @IPS_VariableExists($priceID)) ? GetValueFloat($priceID) : 9999;
+    
+        // Fahrzeugstatus prüfen, ggf. keine Freigabe wenn kein Auto da!
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $status = GOeCharger_GetStatus($goeID);
+    
+        if ($this->ReadPropertyBoolean('NurMitFahrzeug') && $status == 1) {
+            $msg = "Strompreisladen: Kein Fahrzeug verbunden – keine Ladefreigabe!";
+            $this->SetLademodusStatus($msg);
+            $this->SetLadeleistung(0);
+            $this->Log($msg, 'warn');
+            return;
+        }
+    
+        if ($currentPrice > $maxPrice) {
+            $msg = "Strompreisladen: Preis zu hoch! Aktuell: {$currentPrice} ct/kWh, Maximum: {$maxPrice} ct/kWh – keine Ladefreigabe!";
+            $this->SetLademodusStatus($msg);
+            $this->SetLadeleistung(0);
+            $this->Log($msg, 'info');
+            return;
+        }
+    
+        // Sonst: maximal erlaubte Leistung freigeben
+        $maxWatt = $this->GetMaxLadeleistung();
+        $msg = "Strompreisladen: Preis OK ({$currentPrice} ct/kWh ≤ {$maxPrice} ct/kWh) – maximale Leistung {$maxWatt} W freigegeben";
+        $this->SetLadeleistung($maxWatt);
+        $this->SetLademodusStatus($msg);
+        $this->Log($msg, 'info');
     }
 
     // --- Zielzeitladung-Logik: ---
