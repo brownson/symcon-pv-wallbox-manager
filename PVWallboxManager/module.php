@@ -107,6 +107,7 @@ class PVWallboxManager extends IPSModule
         
         $this->RegisterPropertyBoolean('ModulAktiv', true);
         $this->RegisterPropertyBoolean('DebugLogging', false);
+        $this->RegisterAttributeBoolean('RunLock', false);
 
     }
     
