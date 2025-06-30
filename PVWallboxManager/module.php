@@ -643,8 +643,8 @@ class PVWallboxManager extends IPSModule
                             if (!$aktuell1phasig) {
                                 GOeCharger_SetSinglePhaseCharging($goeID, true);
                                 $this->Log("🔁 Umschaltung auf 1-phasig ausgelöst", 'info');
-                                // Direkt nach Umschaltung sofort wieder Berechnung starten:
-                                $this->UpdateCharging();
+                                // Direkt nach Umschaltung sofort wieder Berechnung starten: TEST-TEST-TEST
+                                //$this->UpdateCharging();
                             }
                             $this->WriteAttributeInteger('Phasen1Counter', 0);
                         }
@@ -663,8 +663,8 @@ class PVWallboxManager extends IPSModule
                             if ($aktuell1phasig) {
                                 GOeCharger_SetSinglePhaseCharging($goeID, false);
                                 $this->Log("🔁 Umschaltung auf 3-phasig ausgelöst", 'info');
-                                // Direkt nach Umschaltung sofort wieder Berechnung starten:
-                                $this->UpdateCharging();
+                                // Direkt nach Umschaltung sofort wieder Berechnung starten: TEST-TEST-TEST
+                                //$this->UpdateCharging();
                             }
                             $this->WriteAttributeInteger('Phasen3Counter', 0);
                         }
