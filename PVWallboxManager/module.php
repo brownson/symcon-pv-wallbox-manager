@@ -298,7 +298,7 @@ class PVWallboxManager extends IPSModule
             if ($autoProzent == 100) {
                 $info .= " (Hausakku voll, 100 % ins Auto)";
             } else {
-                $info .= " ({$restProzent}% zur Batterie: {$ladeleistungBatterie} W)";
+                $info .= " {$restProzent}% zur Batterie: ({$ladeleistungBatterie} W)";
             }
             $this->SetLadeleistung($ladeWatt);
             $this->SetLademodusStatus($info);
