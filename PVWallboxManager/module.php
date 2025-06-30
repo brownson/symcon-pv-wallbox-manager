@@ -359,7 +359,7 @@ class PVWallboxManager extends IPSModule
     
         // --- Zentrales Logging ---
         $this->Log(
-            "[{$logModus}] PV: {$pv} W - Haus: {$haus} W- Batterie: {$batt} W - Dyn.Puffer: {$netz} W | Ladeleistung: {$abgezogen} W = → Überschuss: {$ueberschuss} W",
+            "[{$logModus}] PV: {$pv} W | Haus: {$haus} W | Batterie: {$batt} W | Dyn.Puffer: {$abgezogen} W | → Überschuss: {$ueberschuss} W",
             'info'
         );
     
