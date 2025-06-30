@@ -80,8 +80,10 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableBoolean('ZielzeitladungPVonly', '⏱️ Zielzeitladung PV-optimiert', '', 97);
         $this->EnableAction('ZielzeitladungPVonly');
 
-        $this->RegisterVariableBoolean('AllowBatteryDischargeActive', 'PV-Batterieentladung zulassen', '', 98);
-        $this->EnableAction('AllowBatteryDischargeActive');
+        $this->RegisterVariableBoolean('AllowBatteryDischargeStatus', 'PV-Batterieentladung zulassen', '', 98);
+        //$this->EnableAction('AllowBatteryDischargeActive');
+        //$this->SetValue('AllowBatteryDischargeStatus', $this->ReadPropertyBoolean('AllowBatteryDischarge'));
+
         
         $this->RegisterVariableString('FahrzeugStatusText', 'Fahrzeug Status', '', 97);
         $this->RegisterVariableString('LademodusStatus', 'Aktueller Lademodus', '', 98);
@@ -142,6 +144,7 @@ class PVWallboxManager extends IPSModule
             $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
             $this->Log('Timer deaktiviert – GO-e Instanz oder PV-Erzeugung oder Intervall nicht konfiguriert.', 'warn');
         }
+        $this->SetValue('AllowBatteryDischargeStatus', $this->ReadPropertyBoolean('AllowBatteryDischarge'));
     }
 
     public function RequestAction($ident, $value)
