@@ -712,11 +712,27 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    private function SetFahrzeugStatus(string $text)
+    private function SetFahrzeugStatus($text)
     {
         $this->SetLogValue('FahrzeugStatusText', $text);
     }
     
+//    private function SetFahrzeugStatus(string $text)
+//    {
+//        $varID = $this->GetIDForIdent('LademodusStatus');
+//        if ($varID !== false && @IPS_VariableExists($varID)) {
+//            if (GetValue($varID) !== $text) {
+//                SetValue($varID, $text);
+//            }
+//        }
+//    }
+
+    private function SetLademodusStatus($text)
+    {
+        $this->SetLogValue('LademodusStatus', $text);
+    }
+    
+//    private function SetLademodusStatus(string $text)
 //    {
 //        $varID = $this->GetIDForIdent('LademodusStatus');
 //        if ($varID !== false && @IPS_VariableExists($varID)) {
@@ -937,6 +953,7 @@ class PVWallboxManager extends IPSModule
         if ($varID !== false && @IPS_VariableExists($varID)) {
             if (GetValue($varID) !== $value) {
                 SetValue($varID, $value);
+                // Logausgabe max. 100 Zeichen, sonst abgeschnitten
                 $short = is_string($value) ? mb_strimwidth($value, 0, 100, "...") : $value;
                 IPS_LogMessage("PVWM", "[$ident] = " . $short);
             }
