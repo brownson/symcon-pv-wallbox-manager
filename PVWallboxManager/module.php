@@ -42,6 +42,7 @@ class PVWallboxManager extends IPSModule
 
         // Fahrzeug-Erkennung & Ziel-SOC
         $this->RegisterPropertyBoolean('NurMitFahrzeug', true); // Ladung nur wenn Fahrzeug verbunden
+        $this->RegisterPropertyBoolean('AllowBatteryDischarge', true); // Erlaubt die Entladung der Hausbatterie zur Unterstützung des PV-Überschussladens
         $this->RegisterPropertyBoolean('UseCarSOC', false); // Fahrzeug-SOC berücksichtigen
         $this->RegisterPropertyInteger('CarSOCID', 0); // Variable für aktuellen SOC des Fahrzeugs
         $this->RegisterPropertyFloat('CarSOCFallback', 20); // Fallback-SOC wenn keine Variable verfügbar
@@ -79,10 +80,11 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableBoolean('ZielzeitladungPVonly', '⏱️ Zielzeitladung PV-optimiert', '', 97);
         $this->EnableAction('ZielzeitladungPVonly');
 
+        $this->RegisterVariableBoolean('AllowBatteryDischargeActive', 'PV-Batterieentladung zulassen', '~Switch', 20);
+        
         $this->RegisterVariableString('FahrzeugStatusText', 'Fahrzeug Status', '', 97);
         $this->RegisterVariableString('LademodusStatus', 'Aktueller Lademodus', '', 98);
         $this->RegisterVariableString('WallboxStatusText', 'Wallbox Status', '~HTMLBox', 99);
-
 
         $this->RegisterVariableInteger('TargetTime', 'Ziel-Zeit (Uhr)', '~UnixTimestampTime', 60);
         $this->EnableAction('TargetTime');
