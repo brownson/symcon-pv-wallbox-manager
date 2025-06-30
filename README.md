@@ -162,15 +162,21 @@ Für jede Variable separat aktivierbar, falls dein Messwert andersherum zählt.
 ### 🧪 Beta / In Vorbereitung
 - 📊 Visualisierung & WebFront-Widgets
 - 💶 Optimiertes Zusammenspiel mit Symcon-Strompreis-Modul (Awattar, Tibber …)
+- 🛠️ Berücksichtigung der maximalen Fahrzeug-Ladeleistung bei Ladezeit- und Forecast-Berechnung.
+- 📊 Geplantes Ladefenster-Logging: Für jede Stunde geplante Ladeleistung und Strompreis transparent im Log sichtbar.
 
 ### 🔜 Geplant
 - 📨 Integration externer Fahrzeugdaten (z. B. via MQTT)
 - 📈 Erweiterte Statistiken und Auswertungen
+- ❄️ Umschalten auf Winterbetrieb aktiv andere Standardlademodi, da im Winter weniger bis gar kein PV-Überschuss
 
 ---
 
 ### 😄 Idee, wenn mal so richtig faad ist…
 - 🌍 Unterstützung für andere Wallboxen, falls Nachfrage wirklich riesig ist (aktuell Fokus: GO-e)
+- 🔃 die versiedenen Modi per RFID umschaltn
+- 📲 Interaktive Push-Nachricht: Beim Fahrzeug-Anstecken Modusauswahl (Vollladen, PV2Car, Zielzeit, Strompreis) per Smartphone-Button.
+- ⚡️ Automatische Testladung zur Erkennung der maximalen Fahrzeug-Ladeleistung (Auto-Detection-Feature).
 
 ---
 
