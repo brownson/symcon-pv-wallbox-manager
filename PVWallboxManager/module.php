@@ -368,7 +368,8 @@ class PVWallboxManager extends IPSModule
 
         // In Variable schreiben (nur im Standardmodus als Visualisierung)
         if ($modus == 'standard') {
-            SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
+            //SetValue($this->GetIDForIdent('PV_Ueberschuss'), $ueberschuss);
+            $this->SetLogValue('PV_Ueberschuss', $ueberschuss);
         }
 
         return $ueberschuss;
@@ -711,15 +712,19 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    private function SetLademodusStatus(string $text)
+    private function SetFahrzeugStatus(string $text)
     {
-        $varID = $this->GetIDForIdent('LademodusStatus');
-        if ($varID !== false && @IPS_VariableExists($varID)) {
-            if (GetValue($varID) !== $text) {
-                SetValue($varID, $text);
-            }
-        }
+        $this->SetLogValue('FahrzeugStatusText', $text);
     }
+    
+//    {
+//        $varID = $this->GetIDForIdent('LademodusStatus');
+//        if ($varID !== false && @IPS_VariableExists($varID)) {
+//            if (GetValue($varID) !== $text) {
+//                SetValue($varID, $text);
+//            }
+//        }
+//    }
 
     private function SetFahrzeugStatus(string $text)
     {
@@ -889,12 +894,14 @@ class PVWallboxManager extends IPSModule
                     $this->Log('warn', "Unbekannter Status vom GO-e Charger: $status");
             }
         }
-        $varID = $this->GetIDForIdent('WallboxStatusText');
-        if ($varID !== false && @IPS_VariableExists($varID)) {
-            if (GetValue($varID) !== $text) {
-                SetValue($varID, $text);
-            }
-        }
+        $this->SetLogValue('WallboxStatusText', $text);
+        
+//        $varID = $this->GetIDForIdent('WallboxStatusText');
+//        if ($varID !== false && @IPS_VariableExists($varID)) {
+//            if (GetValue($varID) !== $text) {
+//                SetValue($varID, $text);
+//            }
+//        }
     }
 
     private function Log(string $message, string $level)
@@ -931,6 +938,18 @@ class PVWallboxManager extends IPSModule
             default:
                 IPS_LogMessage("{$prefix}", $message);
                 break;
+        }
+    }
+
+    private function SetLogValue($ident, $value)
+    {
+        $varID = $this->GetIDForIdent($ident);
+        if ($varID !== false && @IPS_VariableExists($varID)) {
+            if (GetValue($varID) !== $value) {
+                SetValue($varID, $value);
+                $short = is_string($value) ? mb_strimwidth($value, 0, 100, "...") : $value;
+                IPS_LogMessage("PVWM", "[$ident] = " . $short);
+            }
         }
     }
 }
