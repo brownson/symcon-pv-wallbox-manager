@@ -13,7 +13,7 @@
       "caption": "🔌 Wallbox-Konfiguration",
       "icon": "Plug",
       "items": [
-        { "type": "Label", "label": "⚙️ Konfiguriere hier deine GO-e Wallbox und Ladeparameter & 🔌 Ladeströme" },
+        { "type": "Label", "label": "⚙️ Konfiguriere hier deine GO-e Wallbox und Ladeparameter & 🔌 Ladeströme." },
         { "type": "RowLayout", "items": [
           { "type": "SelectInstance", "name": "GOEChargerID", "caption": "GO-e Instanz", "validClasses": ["GOeCharger"], "icon": "Plug" },
           { "type": "Label", "caption": "    " },
