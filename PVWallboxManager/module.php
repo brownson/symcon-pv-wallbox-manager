@@ -192,9 +192,17 @@ class PVWallboxManager extends IPSModule
 
         public function UpdateCharging()
     {
-        $this->WriteAttributeBoolean('RunLogFlag', true); // Start eines neuen Durchlaufs
-        $this->Log("Starte Berechnung (UpdateCharging)", 'debug');
-    
+        //$this->WriteAttributeBoolean('RunLogFlag', true); // Start eines neuen Durchlaufs
+        //$this->Log("Starte Berechnung (UpdateCharging)", 'debug');
+        
+        // Doppelausführung verhindern
+        if ($this->ReadAttributeBoolean('RunLogFlag')) {
+            $this->Log("UpdateCharging() läuft bereits – abgebrochen! [Source: $triggerSource]", 'debug');
+            return;
+        }
+        $this->WriteAttributeBoolean('RunLogFlag', true);
+        $this->Log("UpdateCharging() gestartet [Source: $triggerSource]", 'debug');
+        
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
         $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
     
@@ -324,6 +332,7 @@ class PVWallboxManager extends IPSModule
         // Optional: WallboxStatusText für WebFront aktualisieren (nur einmal pro Zyklus)
         $this->UpdateWallboxStatusText();
         $this->UpdateFahrzeugStatusText();
+        $this->WriteAttributeBoolean('RunLogFlag', false);
     }
 
     // --- Hilfsfunktion: PV-Überschuss berechnen ---
