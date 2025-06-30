@@ -294,7 +294,7 @@ class PVWallboxManager extends IPSModule
             }
             $ladeWatt = min(max(round($pvUeberschussDirekt * ($autoProzent / 100.0)), 0), $this->GetMaxLadeleistung());
             $ladeleistungBatterie = max(0, $pvUeberschussDirekt - $ladeWatt);
-            $info = "PV2Car: {$autoProzent}% vom Überschuss ({$ladeWatt} W)";
+            $info = "PV2Car: {$autoProzent}% Auto ({$ladeWatt} W) | ";
             if ($autoProzent == 100) {
                 $info .= " (Hausakku voll, 100 % ins Auto)";
             } else {
