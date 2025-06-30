@@ -725,16 +725,6 @@ class PVWallboxManager extends IPSModule
 //            }
 //        }
 //    }
-
-    private function SetFahrzeugStatus(string $text)
-    {
-        $varID = $this->GetIDForIdent('FahrzeugStatusText');
-        if ($varID !== false && @IPS_VariableExists($varID)) {
-            if (GetValue($varID) !== $text) {
-                SetValue($varID, $text);
-            }
-        }
-    }
     
     // --- Ladeverluste automatisch berechnen, wenn alle Werte vorhanden ---
     private function BerechneLadeverluste($socStart, $socEnde, $batteryCapacity, $wbEnergy)
