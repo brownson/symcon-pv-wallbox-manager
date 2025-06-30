@@ -162,7 +162,7 @@
         { "type": "NumberSpinner", "name": "CarTargetSOCFallback", "caption": "Fallback Ziel-SoC (%)", "suffix": "%" }
         ]},
         { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "🔋 Maximale Fahrzeug-Ladeleistung (W) 'minimum': 0 W, 'maximum': 22000 W " },
+        { "type": "Label", "label": "⚡️ Maximale Fahrzeug-Ladeleistung (W) 'minimum': 0 W, 'maximum': 22000 W " },
         { "type": "NumberSpinner", "name": "MaxAutoWatt", "caption": "Max. Ladeleistung Fahrzeug (W)", "suffix": "W", "minimum": 0, "maximum": 22000 },
         { "type": "Label", "caption": "    " },
         { "type": "Label", "label": "🔋 Batteriekapazität des Fahrzeugs in kWh (z. B. 52 für ID.3 Pure)." },
