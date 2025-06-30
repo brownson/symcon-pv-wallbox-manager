@@ -55,6 +55,13 @@ class PVWallboxManager extends IPSModule
 
         $this->RegisterAttributeBoolean('RunLogFlag', true);
 
+        // Start/Stop-Hysterese
+        $this->RegisterPropertyInteger('StartHysterese', 0); // Anzahl Zyklen über Startschwelle bis gestartet wird
+        $this->RegisterPropertyInteger('StopHysterese', 0);  // Anzahl Zyklen unter Stoppschwelle bis gestoppt wird
+
+        $this->RegisterAttributeInteger('StartHystereseCounter', 0);
+        $this->RegisterAttributeInteger('StopHystereseCounter', 0);
+
         // Erweiterte Logik: PV-Verteilung Auto/Haus
         $this->RegisterPropertyBoolean('PVVerteilenAktiv', false); // PV-Leistung anteilig zum Auto leiten
         $this->RegisterPropertyInteger('PVAnteilAuto', 33); // Anteil für das Auto in Prozent
@@ -378,25 +385,35 @@ class PVWallboxManager extends IPSModule
         $ladeModusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
         $ladeModus = ($ladeModusID !== false && @IPS_VariableExists($ladeModusID)) ? GetValueInteger($ladeModusID) : 0;
     
-        $this->Log( "Hysterese: Modus={$ladeModus}, Überschuss={$ueberschuss} W, MinStart={$minStart} W, MinStop={$minStop} W", 'info');
+        $this->Log(
+            "Hysterese: Modus={$ladeModus}, Überschuss={$ueberschuss} W, MinStart={$minStart} W, MinStop={$minStop} W",
+            'info'
+        );
     
         if ($ladeModus == 2) { // Lädt bereits
+            // === Stop-Hysterese ===
             if ($ueberschuss <= $minStop) {
-                $this->SetLadeleistung(0);
-                // **Explizit Wallbox auf Modus "Bereit" stellen!**
-                $goeID = $this->ReadPropertyInteger('GOEChargerID');
-                if (@IPS_InstanceExists($goeID)) {
-                    GOeCharger_setMode($goeID, 1); // 1 = Bereit
-                    $this->Log("🔌 Wallbox-Modus auf 'Bereit' gestellt (1)", 'info');
+                $counter = $this->ReadAttributeInteger('StopHystereseCounter') + 1;
+                $this->WriteAttributeInteger('StopHystereseCounter', $counter);
+                if ($counter > $this->ReadPropertyInteger('StopHysterese')) {
+                    $this->SetLadeleistung(0);
+                    // **Explizit Wallbox auf Modus "Bereit" stellen!**
+                    if (@IPS_InstanceExists($goeID)) {
+                        GOeCharger_setMode($goeID, 1); // 1 = Bereit
+                        $this->Log("🔌 Wallbox-Modus auf 'Bereit' gestellt (1)", 'info');
+                    }
+                    $msg = "PV-Überschuss unter Stop-Schwelle ({$ueberschuss} W ≤ {$minStop} W) – Wallbox gestoppt";
+                    $this->Log($msg, 'info');
+                    $this->SetLademodusStatus($msg);
+                    $this->WriteAttributeInteger('StopHystereseCounter', 0);
+                } else {
+                    $this->Log("Stop-Hysterese: {$counter}/" . ($this->ReadPropertyInteger('StopHysterese')+1) . " – noch nicht gestoppt", 'debug');
                 }
-                $msg = "PV-Überschuss unter Stop-Schwelle ({$ueberschuss} W ≤ {$minStop} W) – Wallbox gestoppt";
-                $this->Log($msg, 'info');
-                $this->SetLademodusStatus($msg);
             } else {
+                $this->WriteAttributeInteger('StopHystereseCounter', 0);
                 $this->SetLadeleistung($ueberschuss);
                 // Hier Modus auf 2 (Laden) nur wenn wirklich > 0!
                 if ($ueberschuss > 0) {
-                    $goeID = $this->ReadPropertyInteger('GOEChargerID');
                     if (@IPS_InstanceExists($goeID)) {
                         GOeCharger_setMode($goeID, 2); // 2 = Laden erzwingen
                         $this->Log("⚡ Wallbox-Modus auf 'Laden' gestellt (2)", 'info');
@@ -407,23 +424,30 @@ class PVWallboxManager extends IPSModule
                 $this->SetLademodusStatus($msg);
             }
         } else { // Lädt NICHT
+            // === Start-Hysterese ===
             if ($ueberschuss >= $minStart) {
-                $this->SetLadeleistung($ueberschuss);
-                // Hier Modus auf 2 (Laden) nur wenn wirklich > 0!
-                if ($ueberschuss > 0) {
-                    $goeID = $this->ReadPropertyInteger('GOEChargerID');
-                    if (@IPS_InstanceExists($goeID)) {
-                        GOeCharger_setMode($goeID, 2); // 2 = Laden erzwingen
-                        $this->Log("⚡ Wallbox-Modus auf 'Laden' gestellt (2)", 'info');
+                $counter = $this->ReadAttributeInteger('StartHystereseCounter') + 1;
+                $this->WriteAttributeInteger('StartHystereseCounter', $counter);
+                if ($counter > $this->ReadPropertyInteger('StartHysterese')) {
+                    $this->SetLadeleistung($ueberschuss);
+                    // Hier Modus auf 2 (Laden) nur wenn wirklich > 0!
+                    if ($ueberschuss > 0) {
+                        if (@IPS_InstanceExists($goeID)) {
+                            GOeCharger_setMode($goeID, 2); // 2 = Laden erzwingen
+                            $this->Log("⚡ Wallbox-Modus auf 'Laden' gestellt (2)", 'info');
+                        }
                     }
+                    $msg = "PV-Überschuss über Start-Schwelle ({$ueberschuss} W ≥ {$minStart} W) – Wallbox startet";
+                    $this->Log($msg, 'info');
+                    $this->SetLademodusStatus($msg);
+                    $this->WriteAttributeInteger('StartHystereseCounter', 0);
+                } else {
+                    $this->Log("Start-Hysterese: {$counter}/" . ($this->ReadPropertyInteger('StartHysterese')+1) . " – noch nicht gestartet", 'debug');
                 }
-                $msg = "PV-Überschuss über Start-Schwelle ({$ueberschuss} W ≥ {$minStart} W) – Wallbox startet";
-                $this->Log($msg, 'info');
-                $this->SetLademodusStatus($msg);
             } else {
+                $this->WriteAttributeInteger('StartHystereseCounter', 0);
                 $this->SetLadeleistung(0);
                 // **Immer Modus auf "Bereit" stellen, solange kein Überschuss!**
-                $goeID = $this->ReadPropertyInteger('GOEChargerID');
                 if (@IPS_InstanceExists($goeID)) {
                     GOeCharger_setMode($goeID, 1); // 1 = Bereit
                     $this->Log("🔌 Wallbox-Modus auf 'Bereit' gestellt (1)", 'info');
@@ -431,9 +455,9 @@ class PVWallboxManager extends IPSModule
                 $msg = "PV-Überschuss zu niedrig ({$ueberschuss} W) – bleibt aus";
                 $this->Log($msg, 'info');
                 $this->SetLademodusStatus($msg);
-                }
             }
         }
+    }
 
     // --- Zielzeitladung-Logik: ---
     private function LogikZielzeitladung()
