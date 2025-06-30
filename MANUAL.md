@@ -177,9 +177,9 @@ Ein herzliches Dankeschön an die Community und an [@Coyote](https://github.com/
 
 | Version | Datum       | Änderungen                                                    |
 |---------|------------|---------------------------------------------------------------|
-| 0.9.0   | 2025-06-30 | Button-Logik exklusiv, Zielzeit-Puffer einstellbar, diverse Fixes |
-| 0.8.0   | 2025-06-25 | Zielzeitladen, Button für Modus, exakte Statuskontrolle        |
-| 0.7.0   | 2025-06-17 | Fahrzeugstatus, Hysterese Phasenumschaltung                   |
+| 0.9.b   | 2025-06-30 | Button-Logik exklusiv, Zielzeit-Puffer einstellbar, diverse Fixes |
+| 0.8     | 2025-06-25 | Zielzeitladen, Button für Modus, exakte Statuskontrolle        |
+| 0.7     | 2025-06-17 | Fahrzeugstatus, Hysterese Phasenumschaltung                   |
 | ...     | ...        | ...                                                           |
 
 ---
