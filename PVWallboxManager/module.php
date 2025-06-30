@@ -301,7 +301,8 @@ class PVWallboxManager extends IPSModule
             }
             $this->SetLadeleistung($ladeWatt);
             $this->SetLademodusStatus($info);
-            $this->Log("PV2Car: Anteil Auto: {$autoProzent}% | Ladeleistung: {$ladeWatt} W | Rest zur Batterie: {$restProzent}%", 'debug');
+            $ladeleistungBatterie = max(0, $pvUeberschussDirekt - $ladeWatt);
+            $this->Log("PV2Car: {$autoProzent}% Auto ({$ladeWatt} W) | {$restProzent}% Batterie ({$ladeleistungBatterie} W)", 'debug');
         } else {
             // === Standard: Nur PV-Überschuss/Hysterese ===
             $this->Log("Modus: PV-Überschuss (Standard)", 'info');
