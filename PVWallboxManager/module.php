@@ -293,12 +293,20 @@ class PVWallboxManager extends IPSModule
                 $restProzent = 0;
             }
             $ladeWatt = min(max(round($pvUeberschussDirekt * ($autoProzent / 100.0)), 0), $this->GetMaxLadeleistung());
-            $ladeleistungBatterie = max(0, $pvUeberschussDirekt - $ladeWatt);
-            $info = "PV2Car: {$autoProzent}% Auto ({$ladeWatt} W) | ";
+            $ladeleistungBatterie = $pvUeberschussDirekt - $ladeWatt;
+            
+            // Glätten: kleine Werte (<1 W) auf 0, sonst runden auf ganze Watt
+            if (abs($ladeleistungBatterie) < 1) {
+                $ladeleistungBatterie = 0;
+            } else {
+                $ladeleistungBatterie = round($ladeleistungBatterie);
+            }
+            
+            $info = "PV2Car: {$autoProzent}% Auto ({$ladeWatt} W)";
             if ($autoProzent == 100) {
                 $info .= " (Hausakku voll, 100 % ins Auto)";
             } else {
-                $info .= " {$restProzent}% zur Batterie: ({$ladeleistungBatterie} W)";
+                $info .= " | {$restProzent}% zur Batterie: {$ladeleistungBatterie} W";
             }
             $this->SetLadeleistung($ladeWatt);
             $this->SetLademodusStatus($info);
@@ -311,6 +319,7 @@ class PVWallboxManager extends IPSModule
     
         // Optional: WallboxStatusText für WebFront aktualisieren (nur einmal pro Zyklus)
         $this->UpdateWallboxStatusText();
+        $this->UpdateFahrzeugStatusText();
     }
 
     // --- Hilfsfunktion: PV-Überschuss berechnen ---
@@ -909,6 +918,36 @@ class PVWallboxManager extends IPSModule
 //                SetValue($varID, $text);
 //            }
 //        }
+    }
+
+    private function UpdateFahrzeugStatusText()
+    {
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $status = GOeCharger_GetStatus($goeID);
+        $modus = 'Kein Modus aktiv';
+        if (GetValue($this->GetIDForIdent('ManuellVollladen'))) $modus = 'Manueller Volllademodus';
+        elseif (GetValue($this->GetIDForIdent('PV2CarModus'))) $modus = 'PV2Car';
+        elseif (GetValue($this->GetIDForIdent('ZielzeitladungPVonly'))) $modus = 'Zielzeitladung';
+        elseif (GetValue($this->GetIDForIdent('StrompreisModus'))) $modus = 'Strompreis';
+    
+        switch ($status) {
+            case 2:
+                $this->SetFahrzeugStatus("⚡️ Fahrzeug lädt – Modus: $modus");
+                break;
+            case 3:
+                $this->SetFahrzeugStatus("🚗 Fahrzeug angeschlossen, wartet auf Freigabe (Modus: $modus)");
+                break;
+            case 4:
+                if ($modus !== 'Kein Modus aktiv')
+                    $this->SetFahrzeugStatus("🔋 Modus aktiv: $modus – aber Ladung beendet.");
+                else
+                    $this->SetFahrzeugStatus("🅿️ Fahrzeug verbunden, Ladung beendet. Moduswechsel möglich.");
+                break;
+            case 1:
+            default:
+                $this->SetFahrzeugStatus("⚠️ Kein Fahrzeug verbunden.");
+                break;
+        }
     }
 
     private function Log(string $message, string $level)
