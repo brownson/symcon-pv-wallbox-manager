@@ -164,6 +164,7 @@ Für jede Variable separat aktivierbar, falls dein Messwert andersherum zählt.
 - 💶 Optimiertes Zusammenspiel mit Symcon-Strompreis-Modul (Awattar, Tibber …)
 - 🛠️ Berücksichtigung der maximalen Fahrzeug-Ladeleistung bei Ladezeit- und Forecast-Berechnung.
 - 📊 Geplantes Ladefenster-Logging: Für jede Stunde geplante Ladeleistung und Strompreis transparent im Log sichtbar.
+- ⚡️ Maximale Fahrzeug-Ladeleistung (W)
 
 ### 🔜 Geplant
 - 📨 Integration externer Fahrzeugdaten (z. B. via MQTT)
