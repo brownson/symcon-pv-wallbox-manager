@@ -4,25 +4,41 @@
       "type": "ExpansionPanel",
       "caption": "🛑 Modulsteuerung",
       "items": [
-        { "type": "CheckBox", "name": "ModulAktiv", "caption": "Modul aktiv (bei Deaktivierung werden keine Aktionen ausgeführt)"},
+        { "type": "CheckBox", "name": "ModulAktiv", "caption": "⚡ Modul aktiv (bei Deaktivierung werden keine Aktionen ausgeführt)"},
         { "type": "CheckBox", "name": "DebugLogging", "caption": "🐞 Debug-Logging aktivieren (Details zu allen Variablen und Werten ins IPS-Log)", "default": false }
       ]
     },
     {
       "type": "ExpansionPanel",
       "caption": "🔌 Wallbox-Konfiguration",
+      "icon": "Plug",
       "items": [
         { "type": "Label", "label": "⚙️ Konfiguriere hier deine GO-e Wallbox und Ladeparameter." },
         { "type": "Label", "label": "🆔 Auswahl deiner GO-e Charger Instanz:" },
-        { "type": "SelectInstance", "name": "GOEChargerID", "caption": "GO-e Instanz", "validClasses": ["GOeCharger"] },
-        { "type": "Label", "label": "🔧 Minimale Stromstärke in Ampere für den Ladevorgang (ganzzahlig, z.B. 6)." },
-        { "type": "NumberSpinner", "name": "MinAmpere", "caption": "Minimaler Ladestrom (A)" },
-        { "type": "Label", "label": "🔧 Maximale Stromstärke in Ampere für den Ladevorgang (ganzzahlig, z.B. 16)." },
-        { "type": "NumberSpinner", "name": "MaxAmpere", "caption": "Maximaler Ladestrom (A)" },
-        { "type": "Label", "label": "⚡ Mindestüberschuss, ab dem die Wallbox lädt (in Watt, nur positiv)." },
-        { "type": "NumberSpinner", "name": "MinLadeWatt", "caption": "Start bei PV-Überschuss (W)" },
-        { "type": "Label", "label": "🛑 Leistungsgrenze, unter der die Ladung gestoppt wird (in Watt, kann auch negativ für Defizit sein)." },
-        { "type": "NumberSpinner", "name": "MinStopWatt", "caption": "Stoppen bei Defizit (W)" }
+        { "type": "SelectInstance", "name": "GOEChargerID", "caption": "GO-e Instanz", "validClasses": ["GOeCharger"], "icon": "Plug" },
+        { "type": "Label", "caption": "    " },
+        { "type": "Label", "label": "🔌 Ladeströme:" },
+        { "type": "RowLayout", "items": [
+          { "type": "NumberSpinner", "name": "MinAmpere", "caption": "Minimaler Ladestrom (A)", "icon": "Minus" },
+          { "type": "Label", "caption": "    " },
+          { "type": "NumberSpinner", "name": "MaxAmpere", "caption": "Maximaler Ladestrom (A)", "icon": "Plus" },
+          { "type": "Label", "caption": "    " }
+        ]},
+        { "type": "Label", "label": "🟢 Start-Bedingung:" },
+        { "type": "Label", "label": "🟢 Startwert: Ab diesem PV-Überschuss startet das Laden. Die Hysterese legt fest, wie oft der Wert überschritten sein muss." },
+        { "type": "RowLayout", "items": [
+          { "type": "NumberSpinner", "name": "MinLadeWatt", "caption": "Start bei PV-Überschuss (W)", "icon": "Play" },
+          { "type": "Label", "caption": "    " },
+          { "type": "NumberSpinner", "name": "StartHysterese", "caption": "Start-Hysterese (Zyklen)", "suffix": "Zyklen", "default": 0, "minimum": 0, "maximum": 10, "icon": "Repeat" },
+          { "type": "Label", "caption": "    " }
+        ]},
+        { "type": "Label", "label": "🛑 Stop-Bedingung:" },
+        { "type": "Label", "label": "🛑 Stopwert: Unter diesem Wert wird die Ladung gestoppt. Hysterese = wie oft der Wert unterschritten sein muss." },
+        { "type": "RowLayout", "items": [
+          { "type": "NumberSpinner", "name": "MinStopWatt", "caption": "Stop bei fehlendem PV-Überschuss (W)", "icon": "Pause" },
+          { "type": "Label", "caption": "    " },
+          { "type": "NumberSpinner", "name": "StopHysterese", "caption": "Stop-Hysterese (Zyklen)", "suffix": "Zyklen", "default": 0, "minimum": 0, "maximum": 10, "icon": "Repeat" }
+        ]}
       ]
     },
     {
