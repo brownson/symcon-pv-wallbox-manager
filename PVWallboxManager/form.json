@@ -109,11 +109,9 @@
         { "type": "RowLayout", "items": [
           { "type": "CheckBox", "name": "NurMitFahrzeug", "caption": "🚗 Nur laden, wenn Fahrzeug verbunden" }
         ]},
-        { "type": "Label", "caption": "    " },
-          { "type": "Label", "label": "Erlaubt die Entladung der Hausbatterie zur Unterstützung des PV-Überschussladens." },
-          { "type": "Label", "label": "Kann extern über ein Skript gesteuert werden (z. B. für Passivmodus)." },
-          { "type": "CheckBox", "name": "AllowBatteryDischarge", "caption": "PV-Batterieentladung zulassen", "default": true, "icon": "BatteryCharging"}
-        ]},
+        { "type": "Label", "label": "Erlaubt die Entladung der Hausbatterie zur Unterstützung des PV-Überschussladens." },
+        { "type": "Label", "label": "Kann extern über ein Skript gesteuert werden (z. B. für Passivmodus)." },
+        { "type": "CheckBox", "name": "AllowBatteryDischarge", "caption": "PV-Batterieentladung zulassen", "default": true, "icon": "BatteryCharging"},
         { "type": "Label", "caption": "    " },
         { "type": "Label", "label": "⚖️ PV-Leistung aufteilen zwischen Haus und Auto aufteilen.(PV2Car-Regelung)" },
         { "type": "RowLayout", "items": [
