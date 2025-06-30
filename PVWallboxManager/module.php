@@ -378,7 +378,7 @@ class PVWallboxManager extends IPSModule
         $ladeModusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
         $ladeModus = ($ladeModusID !== false && @IPS_VariableExists($ladeModusID)) ? GetValueInteger($ladeModusID) : 0;
     
-        $this->Log( "Hysterese: Modus={$ladeModus}, Überschuss={$ueberschuss} W, MinStart={$minStart} W, MinStop={$minStop} W", 'debug');
+        $this->Log( "Hysterese: Modus={$ladeModus}, Überschuss={$ueberschuss} W, MinStart={$minStart} W, MinStop={$minStop} W", 'info');
     
         if ($ladeModus == 2) { // Lädt bereits
             if ($ueberschuss <= $minStop) {
