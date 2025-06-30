@@ -71,18 +71,17 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('HausakkuSOCVollSchwelle', 95); // Schwelle ab wann Akku voll gilt
 
         // Visualisierung & WebFront-Buttons
-        $this->RegisterVariableBoolean('ManuellVollladen', '🔌 Manuell: Vollladen aktiv', '', 10);
+        $this->RegisterVariableBoolean('ManuellVollladen', '🔌 Manuell: Vollladen aktiv', '', 20);
         $this->EnableAction('ManuellVollladen');
 
-        $this->RegisterVariableBoolean('PV2CarModus', '☀️ PV-Anteil fürs Auto aktiv', '', 96);
+        $this->RegisterVariableBoolean('PV2CarModus', '☀️ PV-Anteil fürs Auto aktiv', '', 30);
         $this->EnableAction('PV2CarModus');
 
-        $this->RegisterVariableBoolean('ZielzeitladungPVonly', '⏱️ Zielzeitladung PV-optimiert', '', 97);
+        $this->RegisterVariableBoolean('ZielzeitladungPVonly', '⏱️ Zielzeitladung PV-optimiert', '', 40);
         $this->EnableAction('ZielzeitladungPVonly');
 
         $this->RegisterVariableBoolean('AllowBatteryDischargeStatus', 'PV-Batterieentladung zulassen', '', 98);
-        //$this->EnableAction('AllowBatteryDischargeActive');
-        //$this->SetValue('AllowBatteryDischargeStatus', $this->ReadPropertyBoolean('AllowBatteryDischarge'));
+
 
         
         $this->RegisterVariableString('FahrzeugStatusText', 'Fahrzeug Status', '', 97);
@@ -103,6 +102,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeInteger("ChargeStartTime", 0);
 
         // Strompreis-Ladung (ab Version 0.9)
+      
+        $this->RegisterVariableBoolean('StrompreisModus', '💰 Strompreis-Modus aktiv', '', 50);
+        $this->EnableAction('StrompreisModus');
         $this->RegisterPropertyInteger("CurrentPriceID", 0);      // Aktueller Preis (ct/kWh, Float)
         $this->RegisterPropertyInteger("ForecastPriceID", 0);     // 24h-Prognose (ct/kWh, String)
         $this->RegisterPropertyFloat("MinPrice", 0.000);       // Mindestpreis (ct/kWh)
