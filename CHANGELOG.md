@@ -5,6 +5,41 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 
 ---
 
+## [0.9] – 2025-06-30
+
+### 🚀 Neue Funktionen & Verbesserungen
+
+- **Start- und Stop-Hysterese:**  
+  Einstellbare Hysterese-Zyklen für das Starten und Stoppen der PV-Überschussladung. Erhöht die Stabilität bei schwankender PV-Leistung (z. B. Wolkendurchzug, Hausverbrauch).
+  - Einstellungen komfortabel im WebFront (form.json) mit Icons, kurzen Erklärungen, RowLayout.
+  - Hysterese-Zähler und -Zustände werden für Nachvollziehbarkeit ins Debug-Log geschrieben.
+
+- **Wallbox-Konfig-Panel:**  
+  Komplettes Redesign des Konfigurationsbereichs für die Wallbox im WebFront:  
+  - Klar strukturierte Darstellung per RowLayout, einheitliche Icons, praxisnahe Erklärungen.
+  - Start-/Stop-Hysterese mit deutlicher Trennung und Kurzbeschreibungen.
+
+- **Ladelogik & Statushandling:**  
+  - Wallbox wird jetzt immer explizit auf „Bereit“ gesetzt, wenn kein PV-Überschuss vorhanden ist (verhindert Fehlermeldungen im Fahrzeug).
+  - Lademodus, Fahrzeugstatus und Wallbox-Status werden nur noch bei Änderungen neu geschrieben.
+  - Alle Aktionen (Modus/Leistung) werden nur bei echten Änderungen ausgeführt (keine unnötigen Schreibzugriffe, weniger Log-Spam).
+
+- **Logging & Debug:**  
+  - PV-Überschussberechnung mit detailreichem Logging (PV, Hausverbrauch, Batterie, Netz, Ladeleistung, Puffer).
+  - Hysterese-Zustände, Phasenumschaltung und Ladestatus werden jetzt nachvollziehbar mitprotokolliert.
+  - Reduktion unnötiger/wiederholter Logeinträge.
+
+- **Diverse Bugfixes & Cleanups:**  
+  - Optimierte Fehlerbehandlung, robusteres Status- und Hysterese-Handling.
+  - Properties, die nicht mehr benötigt werden (z. B. Ladeverluste), entfernt.
+
+---
+
+**Hinweis:**  
+Nach dem Update sollten die Modul-Properties (insbesondere IDs und Schwellenwerte) sowie die Wallbox-Konfiguration überprüft werden!
+
+---
+
 ## [0.8] – 2025-06-25
 
 🛠️ **Großes Refactoring & Aufräumen**
