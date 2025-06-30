@@ -572,14 +572,16 @@ class PVWallboxManager extends IPSModule
     
         // Alle Zeitslots bis zur Zielzeit sammeln
         $stundenslots = [];
-        for ($i = 0; $i < count($forecast); $i++) {
-            $slotTime = $now + $i * 3600;
-            if ($slotTime > $targetTime) continue;
-            $stundenslots[] = [
-                "index" => $i,
-                "price" => floatval($forecast[$i]),
-                "time" => $slotTime,
-            ];
+        foreach ($forecast as $slot) {
+            // Lade-Slot nur, wenn der Slot innerhalb des Zeitfensters bis Zielzeit liegt
+            // ($slot['end'] <= $targetTime) → Slot endet vor Zielzeit
+            if ($slot['end'] <= $targetTime) {
+                $stundenslots[] = [
+                    "price" => floatval($slot['price']),
+                    "start" => $slot['start'],
+                    "end" => $slot['end'],
+                ];
+            }
         }
     
         // Günstigste Slots (nach Preis sortiert) ermitteln
@@ -599,8 +601,8 @@ class PVWallboxManager extends IPSModule
     
         // --- Logging der geplanten Ladefenster ---
         $logTxt = implode(" | ", array_map(function($slot) {
-            $von = date('H:i', $slot["time"]);
-            $bis = date('H:i', $slot["time"] + 3600);
+            $von = date('H:i', $slot["start"]);
+            $bis = date('H:i', $slot["end"]);
             return "{$von}-{$bis}: " . number_format($slot["kwh"], 2, ',', '.') . " kWh (" . number_format($slot["price"], 2, ',', '.') . " ct)";
         }, $slotsWithEnergy));
         $this->Log("Forecast-Ladeplan: $logTxt", 'info');
