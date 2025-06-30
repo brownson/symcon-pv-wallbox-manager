@@ -199,7 +199,7 @@ class PVWallboxManager extends IPSModule
     public function UpdateCharging()
     {
         // Schutz vor Überschneidung: Nur ein Durchlauf gleichzeitig!
-        if ($this->GetAttributeBoolean('RunLock')) {
+        if ($this->ReadAttributeBoolean('RunLock')) {
             $this->Log("UpdateCharging() läuft bereits – neuer Aufruf wird abgebrochen.", 'warn');
             return;
         }
