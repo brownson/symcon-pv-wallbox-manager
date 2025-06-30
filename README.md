@@ -14,6 +14,13 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 
 ---
 
+## 📖 Dokumentation
+
+Eine **ausführliche Schritt-für-Schritt-Anleitung, FAQ und viele Tipps** findest du im  
+➡️ [Benutzerhandbuch (MANUAL.md)](./MANUAL.md)
+
+---
+
 ## 🚀 Funktionen
 
 - 🔋 **PV-Überschussgesteuertes Laden:** PV – Hausverbrauch – (nur positive) Batterie-Leistung, inkl. Wallbox-Eigenverbrauch.
