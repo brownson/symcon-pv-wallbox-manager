@@ -468,7 +468,7 @@ class PVWallboxManager extends IPSModule
     // --- Strompreis-Modus-Logik: ---
     private function LogikStrompreisladen()
     {
-        // --- 1. Fahrzeugstatus prüfen ---
+        // 1. Fahrzeugstatus prüfen
         $goeID  = $this->ReadPropertyInteger('GOEChargerID');
         $status = GOeCharger_GetStatus($goeID);
         if ($this->ReadPropertyBoolean('NurMitFahrzeug') && $status == 1) {
@@ -479,47 +479,94 @@ class PVWallboxManager extends IPSModule
             return;
         }
     
-        // --- 2. Zielzeit und Forecast holen (optional, für spätere Erweiterungen) ---
+        // 2. Zielzeit & Forecast holen
         $targetTimeVarID = $this->GetIDForIdent('TargetTime');
         $targetTime = GetValue($targetTimeVarID);
         $now = time();
         if ($targetTime < $now) $targetTime += 86400;
     
-        // --- 3. Preisabfrage ---
-        $priceID   = $this->ReadPropertyInteger('CurrentPriceID');
-        $maxPrice  = $this->ReadPropertyFloat('MaxPrice');
-        $currentPrice = ($priceID > 0 && @IPS_VariableExists($priceID)) ? GetValueFloat($priceID) : 9999;
-    
-        // --- 4. Ladeentscheidung nach Preisfenster (Netzladung zu günstigen Zeiten, unabhängig von PV) ---
-        if ($currentPrice <= $maxPrice) {
-            // → Im Preisfenster: Maximale erlaubte Ladeleistung
-            $maxWatt = $this->GetMaxLadeleistung();
-            $pvUeberschuss = $this->BerechnePVUeberschuss(); // für Logging (und ggf. als "Booster")
-            $msg = "Strompreisladen: Im Preisfenster ({$currentPrice} ct/kWh ≤ {$maxPrice} ct/kWh) – lade mit maximaler Netzleistung ({$maxWatt} W)";
-            if ($pvUeberschuss > 0) {
-                $msg .= " + PV-Überschuss verfügbar ({$pvUeberschuss} W).";
+        $forecastVarID = $this->ReadPropertyInteger("ForecastPriceID");
+        $forecast = [];
+        if ($forecastVarID > 0 && @IPS_VariableExists($forecastVarID)) {
+            $forecastString = GetValue($forecastVarID);
+            $forecast = json_decode($forecastString, true);
+            if (!is_array($forecast)) {
+                $forecast = array_map('floatval', explode(';', $forecastString));
             }
+        }
+        if (!is_array($forecast) || count($forecast) < 1) {
+            $this->Log("Forecast: Keine gültigen Prognosedaten gefunden – kann nicht preisoptimiert laden.", 'warn');
+            $this->SetLadeleistung(0);
+            $this->SetLademodusStatus("Keine Forecast-Daten – kein Laden möglich!");
+            return;
+        }
+    
+        // 3. Ladebedarf berechnen
+        $socID = $this->ReadPropertyInteger('CarSOCID');
+        $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : $this->ReadPropertyFloat('CarSOCFallback');
+        $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
+        $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
+        $capacity = $this->ReadPropertyFloat('CarBatteryCapacity');
+        $fehlendeProzent = max(0, $targetSOC - $soc);
+        $fehlendeKWh = $capacity * $fehlendeProzent / 100.0;
+        $maxWatt = $this->GetMaxLadeleistung();
+        $kwhProStunde = $maxWatt / 1000.0;
+        $ladezeitStd = ceil($fehlendeKWh / $kwhProStunde);
+    
+        // 4. Forecast-Slots bis Zielzeit sammeln
+        $slots = [];
+        foreach ($forecast as $slot) {
+            if ($slot['end'] <= $targetTime) {
+                $slots[] = [
+                    "price" => floatval($slot['price']),
+                    "start" => $slot['start'],
+                    "end"   => $slot['end'],
+                ];
+            }
+        }
+        // Nach Preis sortieren, günstigste Slots wählen
+        usort($slots, function($a, $b) { return $a["price"] <=> $b["price"]; });
+        $ladeSlots = array_slice($slots, 0, $ladezeitStd);
+    
+        // Logging
+        $logTxt = implode(" | ", array_map(function($slot) {
+            $von = date('H:i', $slot["start"]);
+            $bis = date('H:i', $slot["end"]);
+            return "{$von}-{$bis}: " . number_format($slot["price"], 2, ',', '.') . " ct";
+        }, $ladeSlots));
+        $this->Log("Strompreis-Ladeplan: $logTxt", 'info');
+    
+        // 5. Sind wir gerade im ausgewählten Preisfenster?
+        $ladeJetzt = false;
+        $aktuellerSlotPrice = null;
+        foreach ($ladeSlots as $slot) {
+            if ($now >= $slot["start"] && $now < $slot["end"]) {
+                $ladeJetzt = true;
+                $aktuellerSlotPrice = $slot["price"];
+                break;
+            }
+        }
+    
+        if ($ladeJetzt) {
             $this->SetLadeleistung($maxWatt);
+            $msg = "Strompreisladen: Lade jetzt im günstigsten Slot (" . number_format($aktuellerSlotPrice, 2, ',', '.') . " ct/kWh).";
             $this->SetLademodusStatus($msg);
             $this->Log($msg, 'info');
-            return;
+        } else {
+            // In Nicht-Preisstunden: PV-Überschuss laden, wenn vorhanden
+            $pvUeberschuss = $this->BerechnePVUeberschuss();
+            if ($pvUeberschuss > 0) {
+                $msg = "Strompreisladen: Nicht im Preisslot – lade NUR mit PV-Überschuss ({$pvUeberschuss} W).";
+                $this->SetLadeleistung($pvUeberschuss);
+                $this->SetLademodusStatus($msg);
+                $this->Log($msg, 'info');
+            } else {
+                $msg = "Strompreisladen: Warte auf nächstes günstiges Preisfenster.";
+                $this->SetLadeleistung(0);
+                $this->SetLademodusStatus($msg);
+                $this->Log($msg, 'info');
+            }
         }
-    
-        // --- 5. Nur wenn NICHT im Preisfenster: PV-Überschuss trotzdem nutzen, falls vorhanden ---
-        $pvUeberschuss = $this->BerechnePVUeberschuss();
-        if ($pvUeberschuss > 0) {
-            $msg = "Strompreisladen: Außerhalb Preisfenster – lade NUR mit PV-Überschuss ({$pvUeberschuss} W).";
-            $this->SetLadeleistung($pvUeberschuss);
-            $this->SetLademodusStatus($msg);
-            $this->Log($msg, 'info');
-            return;
-        }
-    
-        // --- 6. Kein PV-Überschuss, kein Preisfenster: Laden gestoppt ---
-        $msg = "Strompreisladen: Kein PV-Überschuss & Preis zu hoch ({$currentPrice} ct/kWh > {$maxPrice} ct/kWh) – Ladevorgang gestoppt.";
-        $this->SetLadeleistung(0);
-        $this->SetLademodusStatus($msg);
-        $this->Log($msg, 'info');
     }
 
     // --- Zielzeitladung-Logik: ---
@@ -554,33 +601,8 @@ class PVWallboxManager extends IPSModule
         $maxWatt = $this->GetMaxLadeleistung();
         $kwhProStunde = $maxWatt / 1000.0;
     
-        // Forecast auslesen (nur fürs Logging, nicht zur Planung)
-        $forecastVarID = $this->ReadPropertyInteger("ForecastPriceID");
-        $forecast = [];
-        if ($forecastVarID > 0 && @IPS_VariableExists($forecastVarID)) {
-            $forecastString = GetValue($forecastVarID);
-            $forecast = json_decode($forecastString, true); // Wenn es JSON ist!
-            if (!is_array($forecast)) {
-                $forecast = array_map('floatval', explode(';', $forecastString));
-            }
-        }
-    
         // Umschaltzeit berechnen – ab wann Netzladung erlaubt ist
         $forceTime = $targetTime - ($ladeReserveStd * 3600);
-    
-        // --- Logging Forecast (für Transparenz im Log) ---
-        if (is_array($forecast) && count($forecast) > 0) {
-            $logForecast = [];
-            foreach ($forecast as $slot) {
-                if ($slot['end'] <= $targetTime && $slot['end'] >= $now) {
-                    $logForecast[] = date('d.m. H:i', $slot['start']) . '-' . date('H:i', $slot['end']) . ': '
-                        . number_format($slot['price'], 2, ',', '.') . " ct";
-                }
-            }
-            $this->Log("Forecast-Preise bis Zielzeit: " . implode(" | ", $logForecast), 'info');
-        }
-    
-        // ==== Hauptlogik ====
     
         // 1) Bis "forceTime": Nur PV-Überschuss laden
         if ($now < $forceTime) {
