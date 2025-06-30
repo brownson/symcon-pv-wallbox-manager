@@ -459,44 +459,44 @@ class PVWallboxManager extends IPSModule
 
     private function LogikStrompreisladen()
     {
-        $priceID  = $this->ReadPropertyInteger('CurrentPriceID');
-        $maxPrice = $this->ReadPropertyFloat('MaxPrice');
+        $priceID   = $this->ReadPropertyInteger('CurrentPriceID');
+        $maxPrice  = $this->ReadPropertyFloat('MaxPrice');
         $currentPrice = ($priceID > 0 && @IPS_VariableExists($priceID)) ? GetValueFloat($priceID) : 9999;
     
-        // Fahrzeugstatus prüfen
-        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $goeID  = $this->ReadPropertyInteger('GOEChargerID');
         $status = GOeCharger_GetStatus($goeID);
     
+        // Fahrzeugstatus prüfen, ggf. keine Freigabe wenn kein Auto da!
         if ($this->ReadPropertyBoolean('NurMitFahrzeug') && $status == 1) {
-            $msg = "Strompreisladen: Kein Fahrzeug verbunden – keine Ladefreigabe!";
+            $msg = "Strompreisladen: Kein Fahrzeug verbunden – keine Ladefreigabe.";
             $this->SetLademodusStatus($msg);
             $this->SetLadeleistung(0);
             $this->Log($msg, 'warn');
             return;
         }
     
-        // 1. PV-Überschuss vorhanden? → Nur mit PV laden!
+        // PV-Überschuss priorisieren
         $pvUeberschuss = $this->BerechnePVUeberschuss();
         if ($pvUeberschuss > 0) {
-            $msg = "Strompreisladen: PV-Überschuss erkannt ({$pvUeberschuss} W) – **nur mit PV laden!**";
+            $msg = "Strompreisladen: PV-Überschuss erkannt ({$pvUeberschuss} W) – Fahrzeug wird ausschließlich mit Solarstrom geladen.";
             $this->SetLadeleistung($pvUeberschuss);
             $this->SetLademodusStatus($msg);
             $this->Log($msg, 'info');
             return;
         }
     
-        // 2. Kein PV-Überschuss, Strompreis prüfen
+        // Kein PV, Strompreis prüfen
         if ($currentPrice > $maxPrice) {
-            $msg = "Strompreisladen: Kein PV, Preis zu hoch ({$currentPrice} ct/kWh > {$maxPrice} ct/kWh) – keine Ladefreigabe!";
+            $msg = "Strompreisladen: Kein PV-Überschuss, aktueller Strompreis zu hoch ({$currentPrice} ct/kWh > {$maxPrice} ct/kWh) – Ladevorgang gestoppt.";
             $this->SetLadeleistung(0);
             $this->SetLademodusStatus($msg);
             $this->Log($msg, 'info');
             return;
         }
     
-        // 3. Kein PV, Preis ok → Netzladung
+        // Kein PV, aber Preis OK: Netzladen erlauben
         $maxWatt = $this->GetMaxLadeleistung();
-        $msg = "Strompreisladen: Kein PV-Überschuss, aber Preis OK ({$currentPrice} ct/kWh ≤ {$maxPrice} ct/kWh) – maximale Leistung freigegeben: {$maxWatt} W";
+        $msg = "Strompreisladen: Kein PV-Überschuss, aber günstiger Strompreis ({$currentPrice} ct/kWh ≤ {$maxPrice} ct/kWh) – Fahrzeug lädt mit Netzstrom.";
         $this->SetLadeleistung($maxWatt);
         $this->SetLademodusStatus($msg);
         $this->Log($msg, 'info');
