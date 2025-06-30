@@ -84,9 +84,9 @@ class PVWallboxManager extends IPSModule
 
 
         
-        $this->RegisterVariableString('FahrzeugStatusText', 'Fahrzeug Status', '', 97);
-        $this->RegisterVariableString('LademodusStatus', 'Aktueller Lademodus', '', 98);
-        $this->RegisterVariableString('WallboxStatusText', 'Wallbox Status', '~HTMLBox', 99);
+        $this->RegisterVariableString('FahrzeugStatusText', 'Fahrzeug Status', '', 70);
+        $this->RegisterVariableString('LademodusStatus', 'Aktueller Lademodus', '', 80);
+        $this->RegisterVariableString('WallboxStatusText', 'Wallbox Status', '~HTMLBox', 90);
 
         $this->RegisterVariableInteger('TargetTime', 'Ziel-Zeit (Uhr)', '~UnixTimestampTime', 60);
         $this->EnableAction('TargetTime');
