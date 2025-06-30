@@ -48,6 +48,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyFloat('CarSOCFallback', 20); // Fallback-SOC wenn keine Variable verfügbar
         $this->RegisterPropertyInteger('CarTargetSOCID', 0); // Ziel-SOC Variable
         $this->RegisterPropertyFloat('CarTargetSOCFallback', 80); // Fallback-Zielwert für SOC
+        $this->RegisterPropertyInteger('MaxAutoWatt', 11000); // / Standardwert: 11.000 W (typisch für 3-phasige Wallbox/Fahrzeug, bei Bedarf anpassen)
         $this->RegisterPropertyFloat('CarBatteryCapacity', 52.0); // Batteriekapazität des Fahrzeugs in kWh
         $this->RegisterPropertyBoolean('AlwaysUseTargetSOC', false); // Ziel-SOC immer berücksichtigen (auch bei PV-Überschussladung)
 
