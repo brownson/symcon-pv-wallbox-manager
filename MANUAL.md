@@ -5,6 +5,7 @@
 1. [Was ist der PVWallboxManager?](#-was-ist-der-pvwallboxmanager)
 2. [Die wichtigsten Funktionen](#-die-wichtigsten-funktionen)
 3. [Einrichtung & Inbetriebnahme](#-einrichtung--inbetriebnahme)
+   - [PV-Batterieentladung](#-pv-batterieentladung)
 4. [Typische Anwendungsbeispiele](#-typische-anwendungsbeispiele)
 5. [Tipps & Best Practices](#-tipps--best-practices)
 6. [Modulsteuerung und Debug-Logging](#-modulsteuerung-und-debug-logging)
@@ -53,7 +54,7 @@ Das Modul steuert vollautomatisch Ladeleistung, Phasenumschaltung (1-/3-phasig),
 
 - Modul über den Symcon Module Store suchen: `PVWallboxManager`
 - Oder GitHub Repo einbinden:  
-  `https://github.com/pesensie/symcon-pv-wallbox-manager`
+  `https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager`
 - Instanz anlegen und konfigurieren
 
 ### 3. Konfiguration (Wesentliche Einstellungen)
@@ -62,8 +63,38 @@ Das Modul steuert vollautomatisch Ladeleistung, Phasenumschaltung (1-/3-phasig),
 - **PV-Erzeugung:** Variable für aktuelle PV-Leistung wählen
 - **Hausverbrauch:** Variable für aktuellen Hausverbrauch
 - **Batterieladung:** (optional) Variable für Batterie (positiv = laden, negativ = entladen)
-- **Modi aktivieren/deaktivieren** je nach Bedarf  
-  ![Beispiel WebFront](assets/example_webfront.png)
+- **Modi aktivieren/deaktivieren** je nach Bedarf
+
+---
+
+### ⚡ PV-Batterieentladung
+
+Mit der Funktion **PV-Batterieentladung zulassen** kannst du steuern, ob dein Hausakku zur Unterstützung der PV-Überschussladung verwendet werden darf.
+
+#### Was macht die Funktion?
+
+- **Einstellung:**  
+  Die Option *PV-Batterieentladung zulassen* findest du in der Instanzkonfiguration (unter „Intelligente Logik“).  
+  Ist sie aktiviert (Standard), kann der Hausakku bei Bedarf Energie zur Fahrzeugladung beisteuern.  
+  Ist sie deaktiviert, bleibt der Akku im Passivmodus – er wird nicht entladen, selbst wenn gerade kein PV-Überschuss vorhanden ist.
+
+- **Statusanzeige im WebFront:**  
+  Der aktuelle Status (erlaubt/nicht erlaubt) wird im WebFront als lesbare Variable angezeigt.  
+  Diese Anzeige ist rein informativ – geändert werden kann die Einstellung ausschließlich über die Modulkonfiguration.
+
+- **Automatisierung & Use Cases:**  
+  Die Einstellung lässt sich gezielt (z. B. per externem Skript oder Szenario) setzen, um deine PV-Anlage in einen Passivmodus zu versetzen (z. B. für Urlaub, Wartung, Netzproblemen usw.).
+
+#### Beispiel:
+
+- **Aktiviert:**  
+  Die Batterie darf Energie ins System einspeisen und die Wallbox unterstützen, sobald zu wenig PV-Überschuss vorhanden ist.
+- **Deaktiviert:**  
+  Die Batterie bleibt passiv. Die Fahrzeugladung nutzt dann nur aktuellen PV-Überschuss oder – falls zugelassen – Strom aus dem Netz.
+
+#### Hinweis
+
+Diese Option ist hilfreich, wenn du gezielt verhindern möchtest, dass deine Batterie zur Fahrzeugladung herangezogen wird – z. B. um die Zyklenzahl zu begrenzen oder die Batterie zu schonen.
 
 ---
 
