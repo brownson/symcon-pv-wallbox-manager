@@ -974,17 +974,38 @@ public function UpdateCharging()
 
 // =====================================================================================================
 
-    private function SetFahrzeugStatus($text, $log = false)
+    private function SetFahrzeugStatus(string $text, bool $log = false)
+
+{
+    $this->SetLogValue('FahrzeugStatusText', $text);
+    
+    if ($log) {
+        $this->Log("FahrzeugStatus: $text", 'info');
+    }
+}
+
+// =====================================================================================================
+
+    private function SetLademodusStatus(string $text)
     {
-        $this->SetLogValue('FahrzeugStatusText', $text);
-        if ($log) $this->Log("FahrzeugStatus: $text", 'info');
+        $this->SetLogValue('LademodusStatus', $text);
     }
 
 // =====================================================================================================
 
-    private function SetLademodusStatus($text)
+private function SetLogValue(string $ident, $value)
     {
-        $this->SetLogValue('LademodusStatus', $text);
+        $id = $this->GetIDForIdent($ident);
+    
+        if (!IPS_VariableExists($id)) {
+            $this->Log("SetLogValue: Variable {$ident} existiert nicht!", 'warn');
+            return;
+        }
+    
+        if (GetValue($id) !== $value) {
+            SetValue($id, $value);
+            $this->Log("{$ident} geändert: {$value}", 'debug');
+        }
     }
 
 // =====================================================================================================
