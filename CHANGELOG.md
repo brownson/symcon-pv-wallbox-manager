@@ -9,7 +9,8 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 
 - **Update:**
   - alte Variablen „Zielzeitladung PV-optimiert“ und „Strompreis-Modus aktiv“ löschen !!!
-  - Zielzeitladung sucht jetzt bis zu dem Ziel-Zeit die anhand vom Forecast 24h den billigsten Strompreis und lädt in diesen Stunden - Forecast 24h über GitHub - symcon/Strompreis: Liest die aktuellen/vorhergesagten Strompreise von aWATTar, Tibber oder Epex Spot DE aus liefert mir nur werte von heute 0 - 24Uhr Ich möchte sie aber immer von jetzt +24h.
+  - Zielzeitladung
+    - sucht jetzt bis zu dem Ziel-Zeit die anhand vom Forecast 24h den billigsten Strompreis und lädt in diesen Stunden - Forecast 24h über GitHub - symcon/Strompreis: Liest die aktuellen/vorhergesagten Strompreise von aWATTar, Tibber oder Epex Spot DE leider liefert diese Modul nur werte von heute 0 - 24Uhr Ich möchte sie aber immer von jetzt +24h. Das Feld „Höchstpreis (ct/kWh)“ im Konfigurationsformular wurde ausgegraut, da derzeit kein UseCae
   - logging noch weiter ausgebaut
     - Im PV2Car-Modus wird jetzt im Log immer der eingestellte Prozentanteil und die daraus berechnete Ladeleistung fürs Auto angezeigt.
   - Beim Aktivieren des Moduls erfolgt jetzt sofort ein Initialdurchlauf der Ladelogik – das System reagiert damit sofort und wartet nicht mehr auf das nächste Intervall.
@@ -23,7 +24,6 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
   - Unnötige Fallback-Werte entfernt, konsistente Verwendung der Hilfsfunktion GetMaxLadeleistung() für maximale Ladeleistung implementiert.
   - Variablen-Initialisierung in der Hystereselogik. Alle Zustände sind jetzt robust gegen „Undefined variable“-Fehler, insbesondere beim Batterie-Prioritäts-Return.
   - Die Prio-Logik für PV-Batterie im Standardmodus setzt die Ladeleistung jetzt immer auf 0, ohne die Hystereselogik zu verlassen. Dadurch bleiben alle Status- und Lademodusmeldungen konsistent und Fehler werden vermieden.
-
 
 ---
 
