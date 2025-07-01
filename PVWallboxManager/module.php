@@ -106,8 +106,7 @@ class PVWallboxManager extends IPSModule
 
         //Strompreis-Börse / Forecast
         $this->RegisterVariableString('MarketPrices', '🔢 Strompreis-Forecast', '', 21);
-        $this->RegisterVariableString('MarketPricesText', 'Preisvorschau', '', 22);
-        $this->RegisterVariableString('MarketPricesText', 'Strompreis Info', '', 99);
+        $this->RegisterVariableString('MarketPricesText', 'Strompreis Info', '', 22);
                 
         $this->RegisterPropertyBoolean('UseMarketPrices', false);
         $this->RegisterPropertyString('MarketPriceProvider', 'awattar_at');
