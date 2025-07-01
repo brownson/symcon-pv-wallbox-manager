@@ -442,7 +442,6 @@ class PVWallboxManager extends IPSModule
             if ($varID > 0) {
                 SetValue($varID, $vorschau);
             }
-
         $this->Log("Strompreisdaten erfolgreich aktualisiert ({$count} Slots, Provider: $provider)", 'info');
     }
 
@@ -797,7 +796,6 @@ class PVWallboxManager extends IPSModule
             }
         }
     }
-
     
 // =====================================================================================================
     
