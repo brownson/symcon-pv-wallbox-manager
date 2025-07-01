@@ -203,7 +203,7 @@
           "name": "MarketPriceAPI",
           "caption": "API-URL (nur für Custom/Experten)",
           "default": "",
-          "visible": "{MarketPriceProvider} == 'custom'"
+          ""enable": "{MarketPriceProvider} == 'custom'"
         },
         {
           "type": "NumberSpinner",
