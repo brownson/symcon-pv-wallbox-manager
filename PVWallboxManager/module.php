@@ -947,7 +947,7 @@ class PVWallboxManager extends IPSModule
         $hausverbrauchID      = $this->ReadPropertyInteger('HausverbrauchID');
         $hausverbrauchEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
         $invertHausverbrauch  = $this->ReadPropertyBoolean('InvertHausverbrauch');
-        $goeID                = $this->ReadPropertyInteger('GOeChargerID');
+        $goeID                = $this->ReadPropertyInteger('GOEChargerID');
     
         // Gesamtverbrauch lesen
         $gesamtverbrauch = @GetValueFloat($hausverbrauchID);
