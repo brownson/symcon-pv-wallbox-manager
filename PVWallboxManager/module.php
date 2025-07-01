@@ -122,32 +122,29 @@ class PVWallboxManager extends IPSModule
         $this->Log('Instanz-Config: ' . json_encode(IPS_GetConfiguration($this->InstanceID)), 'debug');
     
         $interval = $this->ReadPropertyInteger('RefreshInterval');
-        $goeID    = $this->ReadPropertyInteger('GOEChargerID');
+        $goeID    = $this->ReadPropertyInteger('GOeChargerID');
         $pvID     = $this->ReadPropertyInteger('PVErzeugungID');
     
         // === Modul deaktiviert: Alles stoppen & zurücksetzen ===
         if (!$this->ReadPropertyBoolean('ModulAktiv')) {
-            // Wallbox auf "Bereit" & Ladeleistung 0
             if (@IPS_InstanceExists($goeID)) {
                 GOeCharger_setMode($goeID, 1);
                 GOeCharger_SetCurrentChargingWatt($goeID, 0);
             }
-            // Alle Lademodi deaktivieren (Variablen auf false)
             foreach (['ManuellVollladen', 'PV2CarModus', 'ZielzeitladungModus'] as $mod) {
                 if (@$this->GetIDForIdent($mod) && GetValue($this->GetIDForIdent($mod))) {
                     SetValue($this->GetIDForIdent($mod), false);
                 }
             }
-            // Statusvariablen zurücksetzen
             $this->SetLademodusStatus("🛑 Modul deaktiviert – alle Vorgänge gestoppt.");
             $this->SetFahrzeugStatus("🛑 Modul deaktiviert.");
             if (@$this->GetIDForIdent('PV_Ueberschuss')) {
                 SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
             }
-    
-            // Timer deaktivieren
             $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
             $this->Log('Modul ist deaktiviert – alle Ladevorgänge gestoppt, Modi und Status zurückgesetzt, Timer aus.', 'info');
+            // Ereignis ggf. löschen:
+            $this->RemoveStatusEvent();
             return;
         }
     
@@ -159,9 +156,15 @@ class PVWallboxManager extends IPSModule
             // Initialen Durchlauf direkt nach Aktivierung auslösen
             $this->Log('Modul wurde aktiviert – initialer Berechnungsdurchlauf gestartet.', 'info');
             $this->UpdateCharging();
+    
+            // Ereignis für Wallbox-Statuswechsel anlegen/aktualisieren:
+            $this->CreateStatusEvent($goeID);
+    
         } else {
             $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
             $this->Log('Timer deaktiviert – GO-e Instanz oder PV-Erzeugung oder Intervall nicht konfiguriert.', 'warn');
+            // Ereignis ggf. löschen:
+            $this->RemoveStatusEvent();
         }
         $this->SetValue('AllowBatteryDischargeStatus', $this->ReadPropertyBoolean('AllowBatteryDischarge'));
     }
@@ -1054,5 +1057,61 @@ class PVWallboxManager extends IPSModule
     }
     
 // =====================================================================================================
+
+    //Legt ein Ereignis an, das bei Status-Änderung der Wallbox (Status > 1) sofort UpdateCharging() auslöst.
+    private function CreateStatusEvent($goeID)
+    {
+        // Suche nach passender Status-Variable
+        $statusIdent = 'accessStateV2'; // Passe ggf. an deinen Instanz-Baum an!
+        $statusVarID = @IPS_GetObjectIDByIdent($statusIdent, $goeID);
+        if ($statusVarID === false) {
+            $this->Log("Kein Status-Ident ($statusIdent) in GO-e Instanz ($goeID) gefunden – Sofort-Trigger nicht angelegt!", 'warn');
+            return;
+        }
     
+        // Prüfe, ob Ereignis schon existiert:
+        $eventIdent = 'Trigger_UpdateCharging_OnStatusChange';
+        $eventID = @IPS_GetObjectIDByIdent($eventIdent, $this->InstanceID);
+    
+        if ($eventID === false) {
+            // Ereignis neu anlegen
+            $eventID = IPS_CreateEvent(0); // 0 = Ausgelöst bei Variablenänderung
+            IPS_SetParent($eventID, $this->InstanceID);
+            IPS_SetIdent($eventID, $eventIdent);
+            IPS_SetName($eventID, "Trigger: UpdateCharging bei Fahrzeugstatus > 1");
+            IPS_SetEventTrigger($eventID, 1, $statusVarID); // 1 = Bei Wertänderung
+            IPS_SetEventActive($eventID, true);
+    
+            // Aktionsskript: Nur bei Status > 1
+            $code = 'if ($_IPS["VALUE"] > 1) { ' .
+                'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", true); ' .
+            '}';
+            IPS_SetEventScript($eventID, $code);
+    
+            $this->Log("Ereignis zum sofortigen Update bei Statuswechsel wurde erstellt.", 'info');
+        } else {
+            // Prüfe ggf. Trigger/Script/StatusVar und stelle sicher, dass alles stimmt
+            if (@IPS_GetEvent($eventID)['TriggerVariableID'] != $statusVarID) {
+                IPS_SetEventTrigger($eventID, 1, $statusVarID);
+            }
+            IPS_SetEventActive($eventID, true);
+            $this->Log("Ereignis zum sofortigen Update geprüft und ggf. reaktiviert.", 'debug');
+        }
+    }
+
+// =====================================================================================================
+
+    // Löscht das Ereignis für Statuswechsel, falls vorhanden.
+    private function RemoveStatusEvent()
+    {
+        $eventIdent = 'Trigger_UpdateCharging_OnStatusChange';
+        $eventID = @IPS_GetObjectIDByIdent($eventIdent, $this->InstanceID);
+        if ($eventID !== false) {
+            IPS_DeleteEvent($eventID);
+            $this->Log("Sofort-Trigger-Ereignis bei Statuswechsel wurde entfernt.", 'debug');
+        }
+    }
+    
+// =====================================================================================================
+
 }
