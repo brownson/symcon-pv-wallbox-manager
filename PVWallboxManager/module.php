@@ -151,38 +151,50 @@ class PVWallboxManager extends IPSModule
     {
         // NUR Variablen und Modus-Flags setzen! KEINE Statusmeldungen!
         switch ($ident) {
-    case 'ManuellVollladen':
-        SetValue($this->GetIDForIdent($ident), $value);
-        if ($value) {
-            SetValue($this->GetIDForIdent('PV2CarModus'), false);
-            SetValue($this->GetIDForIdent('ZielzeitladungModus'), false);
-        }
-        break;
+            case 'ManuellVollladen':
+                SetValue($this->GetIDForIdent($ident), $value);
+                if ($value) {
+                    SetValue($this->GetIDForIdent('PV2CarModus'), false);
+                    SetValue($this->GetIDForIdent('ZielzeitladungModus'), false);
+                }
+                break;
+            
+            case 'PV2CarModus':
+                SetValue($this->GetIDForIdent($ident), $value);
+                if ($value) {
+                    SetValue($this->GetIDForIdent('ManuellVollladen'), false);
+                    SetValue($this->GetIDForIdent('ZielzeitladungModus'), false);
+                }
+                break;
+            
+            case 'ZielzeitladungModus':
+                SetValue($this->GetIDForIdent($ident), $value);
+                if ($value) {
+                    SetValue($this->GetIDForIdent('ManuellVollladen'), false);
+                    SetValue($this->GetIDForIdent('PV2CarModus'), false);
+                }
+                break;
     
-    case 'PV2CarModus':
-        SetValue($this->GetIDForIdent($ident), $value);
-        if ($value) {
-            SetValue($this->GetIDForIdent('ManuellVollladen'), false);
-            SetValue($this->GetIDForIdent('ZielzeitladungModus'), false);
-        }
-        break;
+            case 'TargetTime':
+                SetValue($this->GetIDForIdent($ident), $value);
+                break;
     
-    case 'ZielzeitladungModus':
-        SetValue($this->GetIDForIdent($ident), $value);
-        if ($value) {
-            SetValue($this->GetIDForIdent('ManuellVollladen'), false);
-            SetValue($this->GetIDForIdent('PV2CarModus'), false);
+            default:
+                parent::RequestAction($ident, $value);
+                break;
         }
-        break;
-
-        case 'TargetTime':
-            SetValue($this->GetIDForIdent($ident), $value);
-            break;
     
-        default:
-            parent::RequestAction($ident, $value);
-            break;
-    }
+        // **Neuer Block: Prüfen, ob alle Modi aus sind**
+        $manuell = GetValue($this->GetIDForIdent('ManuellVollladen'));
+        $pv2car  = GetValue($this->GetIDForIdent('PV2CarModus'));
+        $ziel    = GetValue($this->GetIDForIdent('ZielzeitladungModus'));
+    
+        if (!$manuell && !$pv2car && !$ziel) {
+            $this->Log('Alle Lademodi deaktiviert – Standardmodus wird aktiviert.', 'info');
+            // Optional: Setze hier eine Statusvariable für den Modus, falls vorhanden
+            // SetValue($this->GetIDForIdent('AktiverLademodus'), 'standard');
+            // Die Hauptlogik (`UpdateCharging`) wird sowieso am Ende aufgerufen!
+        }
     
         // Hauptlogik immer am Ende aufrufen!
         $this->UpdateCharging();
@@ -319,10 +331,17 @@ class PVWallboxManager extends IPSModule
     
         $ladeleistung = ($goeID > 0) ? GOeCharger_GetPowerToCar($goeID) : 0;
     
-        // --- Unterscheidung nach Modus ---
+        /// --- Unterscheidung nach Modus ---
         if ($modus == 'pv2car') {
             $ueberschuss = $pv - $haus;
             $logModus = "PV2Car (Auto bekommt Anteil vom Überschuss, Rest Batterie)";
+    
+            // Anteil auslesen und berechnen
+            $prozent = $this->ReadPropertyInteger('PV2CarProzent');
+            $anteilWatt = intval($ueberschuss * $prozent / 100);
+    
+            // Log-Ausgabe Anteil für das Auto
+            $this->Log("PV2Car-Modus: Nutzer-Anteil = {$prozent}% → Ladeleistung für das Auto = {$anteilWatt} W (PV-Überschuss gesamt: {$ueberschuss} W)", 'info');
         } else {
             $ueberschuss = $pv - $haus - max(0, $batt);
             $logModus = "Standard (Batterie hat Vorrang)";
