@@ -438,7 +438,7 @@ class PVWallboxManager extends IPSModule
         $this->SetLogValue('MarketPrices', $jsonShort);
     
         // Optional: Textvorschau erzeugen für WebFront
-        $vorschau = "Test" . date('H:i:s');
+        $vorschau = "";
         $count = 0;
         foreach ($preise36 as $p) {
             if ($count++ >= 6) break;
