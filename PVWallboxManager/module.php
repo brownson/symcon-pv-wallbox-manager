@@ -9,14 +9,14 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableFloat('PV_Ueberschuss', 'PV-Überschuss (W)', '~Watt', 10); // Aktuell berechneter PV-Überschuss in Watt
 
         // Energiequellen (Variablen-IDs für Berechnung)
-        $this->RegisterPropertyInteger('PVErzeugungID', 0); // PV-Erzeugung in Watt
+        $this->RegisterPropertyInteger('PVErzeugungID', 0); // PV-Erzeugung
         $this->RegisterPropertyString("PVErzeugungEinheit", "W");
         
-        $this->RegisterPropertyInteger('HausverbrauchID', 0); // Hausverbrauch in Watt
+        $this->RegisterPropertyInteger('HausverbrauchID', 0); // Hausverbrauch gesamt
         $this->RegisterPropertyBoolean("InvertHausverbrauch", false);
         $this->RegisterPropertyString("HausverbrauchEinheit", "W");
         
-        $this->RegisterPropertyInteger('BatterieladungID', 0); // Batterie-Lade-/Entladeleistung in Watt
+        $this->RegisterPropertyInteger('BatterieladungID', 0); // Batterie-Lade-/Entladeleistung
         $this->RegisterPropertyBoolean("InvertBatterieladung", false);
         $this->RegisterPropertyString("BatterieladungEinheit", "W");
         
