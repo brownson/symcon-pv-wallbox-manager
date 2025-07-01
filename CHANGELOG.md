@@ -13,10 +13,17 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
   - logging noch weiter ausgebaut
     - Im PV2Car-Modus wird jetzt im Log immer der eingestellte Prozentanteil und die daraus berechnete Ladeleistung fürs Auto angezeigt.
   - Beim Aktivieren des Moduls erfolgt jetzt sofort ein Initialdurchlauf der Ladelogik – das System reagiert damit sofort und wartet nicht mehr auf das nächste Intervall.
+  - Bei Deaktivierung alles sauber stoppen, zurücksetzen, Timer aus.
+  - Manueller Volllademodus nutzt jetzt konsequent die Property MaxAutoWatt (falls gesetzt). Ist kein Wert hinterlegt, wird die Ladeleistung automatisch anhand Phasen und Ampere berechnet.
 
 - **Bugfix:**
   - StrompreisModus Boolean wurde nicht angelegt
   - Der aktuelle Lademodus („standard“, „manuell“, „pv2car“ oder „zielzeit“) wird nun als Variable gespeichert und bei jedem Moduswechsel korrekt gesetzt bzw. zurückgesetzt und berechnet.
+  - Die Property für den PV2Car-Anteil (PVAnteilAuto) wird nun durchgehend verwendet, Namenskonflikte behoben.
+  - Unnötige Fallback-Werte entfernt, konsistente Verwendung der Hilfsfunktion GetMaxLadeleistung() für maximale Ladeleistung implementiert.
+  - Variablen-Initialisierung in der Hystereselogik. Alle Zustände sind jetzt robust gegen „Undefined variable“-Fehler, insbesondere beim Batterie-Prioritäts-Return.
+  - Die Prio-Logik für PV-Batterie im Standardmodus setzt die Ladeleistung jetzt immer auf 0, ohne die Hystereselogik zu verlassen. Dadurch bleiben alle Status- und Lademodusmeldungen konsistent und Fehler werden vermieden.
+
 
 ---
 
