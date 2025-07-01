@@ -110,7 +110,7 @@ class PVWallboxManager extends IPSModule
         
         $this->RegisterPropertyBoolean('UseMarketPrices', false);
         $this->RegisterPropertyString('MarketPriceProvider', 'awattar_at');
-        $this->RegisterPropertyString('MarketPriceAPI', 'https://api.awattar.at/v1/marketdata');
+        $this->RegisterPropertyString('MarketPriceAPI', '');
         $this->RegisterPropertyInteger('MarketPriceInterval', 30); // Minuten
 
 
