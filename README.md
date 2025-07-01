@@ -165,6 +165,7 @@ Für jede Variable separat aktivierbar, falls dein Messwert andersherum zählt.
 - 🛠️ Berücksichtigung der maximalen Fahrzeug-Ladeleistung bei Ladezeit- und Forecast-Berechnung.
 - 📊 Geplantes Ladefenster-Logging: Für jede Stunde geplante Ladeleistung und Strompreis transparent im Log sichtbar.
 - ⚡️ Maximale Fahrzeug-Ladeleistung (W)
+- ℹ️ Beim Netzladen keinen Dynamischen Puffer berrechnen. Ist nur beim PV-Überschussladen relevant 
 
 ### 🔜 Geplant
 - 📨 Integration externer Fahrzeugdaten (z. B. via MQTT)
