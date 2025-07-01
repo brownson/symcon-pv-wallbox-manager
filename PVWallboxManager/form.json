@@ -89,14 +89,20 @@
       "items": [
         { "type": "Label", "label": "🔢 Anfangswert Anzahl aktiver Phasen (1 oder 3)." },
         { "type": "NumberSpinner", "name": "Phasen", "caption": "Anzahl Phasen (Initialwert)" },
-        { "type": "Label", "label": "⬇️ Schwelle in Watt zum Umschalten auf 1-phasig (positiv, z.B. 1000)." },
-        { "type": "NumberSpinner", "name": "Phasen1Schwelle", "caption": "Schwelle auf 1-phasig (W)" },
-        { "type": "Label", "label": "⬆️ Schwelle in Watt zum Umschalten auf 3-phasig (positiv, z.B. 4200)." },
-        { "type": "NumberSpinner", "name": "Phasen3Schwelle", "caption": "Schwelle auf 3-phasig (W)" },
-        { "type": "Label", "label": "🔢 Zählerlimit für stabile Umschaltung auf 1-phasig (ganzzahlig)." },
-        { "type": "NumberSpinner", "name": "Phasen1Limit", "caption": "Zählerlimit 1-phasig" },
-        { "type": "Label", "label": "🔢 Zählerlimit für stabile Umschaltung auf 3-phasig (ganzzahlig)." },
-        { "type": "NumberSpinner", "name": "Phasen3Limit", "caption": "Zählerlimit 3-phasig" }
+        { "type": "Label", "caption": "    " },
+        { "type": "Label", "label": "⬇️ Schwelle in Watt zum Umschalten auf 1-phasig & 🔢 Zählerlimit für stabile Umschaltung auf 1-phasig." },
+         { "type": "RowLayout", "items": [
+           { "type": "NumberSpinner", "name": "Phasen1Schwelle", "caption": "Schwelle auf 1-phasig (W)" },
+           { "type": "Label", "caption": "    " },
+            { "type": "NumberSpinner", "name": "Phasen1Limit", "caption": "Zählerlimit 1-phasig" },
+        ]},
+        { "type": "Label", "caption": "    " },
+        { "type": "Label", "label": "⬆️ Schwelle in Watt zum Umschalten auf 3-phasig & 🔢 Zählerlimit für stabile Umschaltung auf 3-phasig." },
+           { "type": "RowLayout", "items": [
+             { "type": "NumberSpinner", "name": "Phasen3Schwelle", "caption": "Schwelle auf 3-phasig (W)" },
+             { "type": "Label", "caption": "    " },
+             { "type": "NumberSpinner", "name": "Phasen3Limit", "caption": "Zählerlimit 3-phasig" }
+        ]}
       ]
     },
     {
