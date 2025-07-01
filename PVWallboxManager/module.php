@@ -331,11 +331,12 @@ class PVWallboxManager extends IPSModule
             $logModus = "Standard (Batterie hat Vorrang)";
         }
     
-        // Dynamischer Puffer
-        $abgezogen = 0; // <--- Initialisierung!
+        // === Dynamischer Puffer NUR im Standard-Modus (PV-Überschussladen) ===
         $pufferProzent = 1.0;
+        $abgezogen = 0;
         $pufferText = "Dynamischer Puffer ist deaktiviert. Kein Abzug.";
-        if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
+    
+        if ($modus === 'standard' && $this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
             if ($ueberschuss < 2000)      $pufferProzent = 0.80;
             elseif ($ueberschuss < 4000)  $pufferProzent = 0.85;
             elseif ($ueberschuss < 6000)  $pufferProzent = 0.90;
