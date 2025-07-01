@@ -194,7 +194,6 @@
           "options": [
             { "caption": "Awattar Österreich", "value": "awattar_at" },
             { "caption": "Awattar Deutschland", "value": "awattar_de" },
-            { "caption": "Tibber (Beta)", "value": "tibber" },
             { "caption": "Custom API", "value": "custom" }
           ],
           "default": "awattar_at"
@@ -202,8 +201,9 @@
         {
           "type": "ValidationTextBox",
           "name": "MarketPriceAPI",
-          "caption": "API-URL (nur für Custom/Experten) bei Provider einfach Custom API auswählen",
-          "default": ""
+          "caption": "API-URL (nur für Custom/Experten)",
+          "default": "",
+          "visible": "{MarketPriceProvider} == 'custom'"
         },
         {
           "type": "NumberSpinner",
