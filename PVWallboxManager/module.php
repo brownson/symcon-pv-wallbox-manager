@@ -387,7 +387,7 @@ class PVWallboxManager extends IPSModule
     }
 
 // =====================================================================================================
-///// TEST-TEST-TEST
+
     public function ResetLock()
     {
         $this->WriteAttributeBoolean('RunLock', false);
@@ -699,113 +699,110 @@ class PVWallboxManager extends IPSModule
 
     // --- Zielzeitladung mit Preisoptimierung & PV-Überschuss ---
     private function LogikZielzeitladung($hausverbrauch = null)
-    {
-        // --- 1. Zielzeit bestimmen (als Timestamp für heute oder ggf. morgen) ---
-        $targetTimeVarID = $this->GetIDForIdent('TargetTime');
-        $targetTimeRaw = GetValue($targetTimeVarID);
-    
-        $heute = strtotime('today');
-        $targetTime = $heute + ($targetTimeRaw % 86400);
-        if ($targetTime < time()) $targetTime += 86400;
-    
-        $this->Log("DEBUG: Zielzeit (lokal): $targetTime / " . date('d.m.Y H:i:s', $targetTime), 'debug');
-    
-        // --- 2. Ladebedarf (kWh) ---
-        $socID = $this->ReadPropertyInteger('CarSOCID');
-        $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : $this->ReadPropertyFloat('CarSOCFallback');
-        $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
-        $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
-        $capacity = $this->ReadPropertyFloat('CarBatteryCapacity');
-        $fehlendeProzent = max(0, $targetSOC - $soc);
-        $fehlendeKWh = $capacity * $fehlendeProzent / 100.0;
-        $maxWatt = $this->GetMaxLadeleistung();
-        $ladezeitStunden = ceil($fehlendeKWh / ($maxWatt / 1000));
-    
-        // --- 3. Forecast (24h Preise) ---
-        $forecastVarID = $this->ReadPropertyInteger("ForecastPriceID");
-        $forecast = [];
-        if ($forecastVarID > 0 && @IPS_VariableExists($forecastVarID)) {
-            $forecastString = GetValue($forecastVarID);
-            $forecast = json_decode($forecastString, true);
-            if (!is_array($forecast)) {
-                $forecast = array_map('floatval', explode(';', $forecastString));
-            }
+{
+    // 1. Zielzeit bestimmen (als Timestamp für heute oder ggf. morgen)
+    $targetTimeVarID = $this->GetIDForIdent('TargetTime');
+    $targetTimeRaw = GetValue($targetTimeVarID);
+
+    $heute = strtotime('today');
+    $targetTime = $heute + ($targetTimeRaw % 86400);
+    if ($targetTime < time()) $targetTime += 86400;
+
+    $this->Log("DEBUG: Zielzeit (lokal): $targetTime / " . date('d.m.Y H:i:s', $targetTime), 'debug');
+
+    // 2. Ladebedarf (kWh)
+    $socID = $this->ReadPropertyInteger('CarSOCID');
+    $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : $this->ReadPropertyFloat('CarSOCFallback');
+    $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
+    $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
+    $capacity = $this->ReadPropertyFloat('CarBatteryCapacity');
+    $fehlendeProzent = max(0, $targetSOC - $soc);
+    $fehlendeKWh = $capacity * $fehlendeProzent / 100.0;
+    $maxWatt = $this->GetMaxLadeleistung();
+    $ladezeitStunden = ceil($fehlendeKWh / ($maxWatt / 1000));
+
+    // 3. MarketPrices holen (immer up-to-date!)
+    $json = $this->GetLogValue('MarketPrices');
+    $preise = json_decode($json, true);
+    if (!is_array($preise) || count($preise) < 1) {
+        $this->Log("MarketPrices: Keine gültigen Preisdaten gefunden!", 'warn');
+        $this->SetLadeleistung(0);
+        $this->SetLademodusStatus("Keine Strompreisdaten – kein Laden möglich!");
+        return;
+    }
+
+    // 4. Nur Slots bis Zielzeit (und ab jetzt) filtern
+    $now = time();
+    $slots = array_values(array_filter($preise, function($slot) use ($now, $targetTime) {
+        return $slot['end'] > $now && $slot['start'] < $targetTime;
+    }));
+
+    if (count($slots) < $ladezeitStunden) {
+        $this->Log("Zielzeitladung: Nicht genug Preisslots im Planungszeitraum!", 'warn');
+        $this->SetLadeleistung(0);
+        $this->SetLademodusStatus("Zielzeitladung: Zu wenig Preisslots gefunden!");
+        return;
+    }
+
+    // 5. Günstigste aufeinanderfolgende Slots finden (Blocksuche)
+    $minSum = null;
+    $minIndex = 0;
+    $n = count($slots);
+    for ($i = 0; $i <= $n - $ladezeitStunden; $i++) {
+        $summe = 0;
+        for ($j = 0; $j < $ladezeitStunden; $j++) {
+            $summe += $slots[$i + $j]['price'];
         }
-        if (!is_array($forecast) || count($forecast) < 1) {
-            $this->Log("Forecast: Keine gültigen Strompreis-Prognosedaten gefunden.", 'warn');
-            $this->SetLadeleistung(0);
-            $this->SetLademodusStatus("Keine Preis-Forecastdaten – kein Laden möglich!");
-            return;
+        if ($minSum === null || $summe < $minSum) {
+            $minSum = $summe;
+            $minIndex = $i;
         }
-    
-        // --- 4. Nur Slots bis Zielzeit (und ab jetzt) filtern ---
-        $now = time();
-        $slots = [];
-        foreach ($forecast as $slot) {
-            if (isset($slot['start']) && isset($slot['end'])) {
-                if ($slot['end'] > $now && $slot['start'] < $targetTime) {
-                    $slots[] = [
-                        "price" => floatval($slot['price']),
-                        "start" => $slot['start'],
-                        "end"   => $slot['end'],
-                    ];
-                }
-            }
+    }
+    $ladeSlots = array_slice($slots, $minIndex, $ladezeitStunden);
+
+    // Ladeplan-Logging
+    $ladeplanLog = implode(" | ", array_map(function($slot) {
+        $von = date('H:i', $slot["start"]);
+        $bis = date('H:i', $slot["end"]);
+        return "{$von}-{$bis}: " . number_format($slot["price"], 2, ',', '.') . " ct";
+    }, $ladeSlots));
+    $this->Log("Zielzeit-Ladeplan (günstigste zusammenhängende Stunden): $ladeplanLog", 'info');
+
+    // 6. Laden nur im geplanten Slot, sonst PV-only
+    $ladeJetzt = false;
+    $aktuellerSlotPrice = null;
+    foreach ($ladeSlots as $slot) {
+        if ($now >= $slot["start"] && $now < $slot["end"]) {
+            $ladeJetzt = true;
+            $aktuellerSlotPrice = $slot["price"];
+            break;
         }
-        if (count($slots) == 0) {
-            $this->Log("Zielzeitladung: Keine passenden Forecast-Slots im Planungszeitraum!", 'warn');
-            $this->SetLadeleistung(0);
-            $this->SetLademodusStatus("Zielzeitladung: Keine passenden Forecast-Slots gefunden!");
-            return;
+    }
+
+    if ($ladeJetzt) {
+        $msg = "Zielzeitladung: Im günstigen Slot (" . number_format($aktuellerSlotPrice, 2, ',', '.') . " ct/kWh) – maximale Leistung {$maxWatt} W";
+        $this->SetLadeleistung($maxWatt);
+        $this->SetLademodusStatus($msg);
+        $this->Log($msg, 'info');
+    } else {
+        // PV-Überschuss laden, falls verfügbar
+        if ($hausverbrauch === null) {
+            $hausverbrauch = $this->BerechneHausverbrauch(); // fallback, falls noch nicht übergeben
         }
-    
-        // --- 5. Nach Preis sortieren & Ladeplan erstellen ---
-        usort($slots, fn($a, $b) => $a["price"] <=> $b["price"]);
-        $ladeSlots = array_slice($slots, 0, $ladezeitStunden);
-    
-        // --- Logging: Ladeplan ---
-        $ladeplanLog = implode(" | ", array_map(function($slot) {
-            $von = date('H:i', $slot["start"]);
-            $bis = date('H:i', $slot["end"]);
-            return "{$von}-{$bis}: " . number_format($slot["price"], 2, ',', '.') . " ct";
-        }, $ladeSlots));
-        $this->Log("Zielzeit-Ladeplan (günstigste Stunden): $ladeplanLog", 'info');
-    
-        // --- 6. Laden nur im günstigsten Slot, sonst PV-only ---
-        $ladeJetzt = false;
-        $aktuellerSlotPrice = null;
-        foreach ($ladeSlots as $slot) {
-            if ($now >= $slot["start"] && $now < $slot["end"]) {
-                $ladeJetzt = true;
-                $aktuellerSlotPrice = $slot["price"];
-                break;
-            }
-        }
-    
-        if ($ladeJetzt) {
-            $msg = "Zielzeitladung: Im günstigen Slot (" . number_format($aktuellerSlotPrice, 2, ',', '.') . " ct/kWh) – maximale Leistung {$maxWatt} W";
-            $this->SetLadeleistung($maxWatt);
+        $pvUeberschuss = $this->BerechnePVUeberschuss($hausverbrauch, 'standard');
+        if ($pvUeberschuss > 0) {
+            $msg = "Zielzeitladung: Nicht im Preisslot – PV-Überschuss laden ({$pvUeberschuss} W)";
+            $this->SetLadeleistung($pvUeberschuss);
             $this->SetLademodusStatus($msg);
             $this->Log($msg, 'info');
         } else {
-            // PV-Überschuss laden, falls verfügbar
-            if ($hausverbrauch === null) {
-                $hausverbrauch = $this->BerechneHausverbrauch(); // fallback, falls noch nicht übergeben
-            }
-            $pvUeberschuss = $this->BerechnePVUeberschuss($hausverbrauch, 'standard');
-            if ($pvUeberschuss > 0) {
-                $msg = "Zielzeitladung: Nicht im Preisslot – PV-Überschuss laden ({$pvUeberschuss} W)";
-                $this->SetLadeleistung($pvUeberschuss);
-                $this->SetLademodusStatus($msg);
-                $this->Log($msg, 'info');
-            } else {
-                $msg = "Zielzeitladung: Warten auf günstigen Strompreis oder PV-Überschuss.";
-                $this->SetLadeleistung(0);
-                $this->SetLademodusStatus($msg);
-                $this->Log($msg, 'info');
-            }
+            $msg = "Zielzeitladung: Warten auf günstigen Strompreis oder PV-Überschuss.";
+            $this->SetLadeleistung(0);
+            $this->SetLademodusStatus($msg);
+            $this->Log($msg, 'info');
         }
     }
+}
     
 // =====================================================================================================
     
