@@ -167,7 +167,10 @@ Für jede Variable separat aktivierbar, falls dein Messwert andersherum zählt.
 - 🛠️ Berücksichtigung der maximalen Fahrzeug-Ladeleistung bei Ladezeit- und Forecast-Berechnung.
 - 📊 Geplantes Ladefenster-Logging: Für jede Stunde geplante Ladeleistung und Strompreis transparent im Log sichtbar.
 - ⚡️ Maximale Fahrzeug-Ladeleistung (W)
-- ℹ️ Beim Netzladen keinen Dynamischen Puffer berrechnen. Ist nur beim PV-Überschussladen relevant 
+- ℹ️ Beim Netzladen keinen Dynamischen Puffer berrechnen. Ist nur beim PV-Überschussladen relevant
+- 🏠 Hausverbrauch im Modul selbst berechnen (gesamter Hausverbrauch - Wallboxleistung zum Fahrzeug) = Hausverbrauch
+- 📊 Awattar (und andere Preis-APIs) direkt integrieren
+- ❌ „Nur laden, wenn Fahrzeug verbunden“ – Berechnung komplett skippen
 
 ### 🔜 Geplant
 - 📨 Integration externer Fahrzeugdaten (z. B. via MQTT)
