@@ -722,7 +722,8 @@ class PVWallboxManager extends IPSModule
     $ladezeitStunden = ceil($fehlendeKWh / ($maxWatt / 1000));
 
     // 3. MarketPrices holen (immer up-to-date!)
-    $json = $this->GetLogValue('MarketPrices');
+    $varID = $this->GetIDForIdent('MarketPrices');
+    $json = ($varID > 0) ? GetValue($varID) : null;
     $preise = json_decode($json, true);
     if (!is_array($preise) || count($preise) < 1) {
         $this->Log("MarketPrices: Keine gültigen Preisdaten gefunden!", 'warn');
