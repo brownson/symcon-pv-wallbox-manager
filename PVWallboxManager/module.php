@@ -387,6 +387,13 @@ class PVWallboxManager extends IPSModule
     }
 
 // =====================================================================================================
+///// TEST-TEST-TEST
+    public function ResetLock()
+    {
+        $this->WriteAttributeBoolean('RunLock', false);
+        $this->Log('RunLock manuell zurückgesetzt!', 'info');
+    }
+// =====================================================================================================
 
     public function UpdateMarketPrices()
     {
