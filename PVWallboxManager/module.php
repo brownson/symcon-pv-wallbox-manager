@@ -273,21 +273,42 @@ class PVWallboxManager extends IPSModule
                         SetValue($this->GetIDForIdent($mod), false);
                     }
                 }
-                // Ladeleistung 0
-                $this->SetLadeleistung(0);
-                $this->SetFahrzeugStatus("⚠️ Kein Fahrzeug verbunden – bitte erst Fahrzeug anschließen.");
-                SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
-                $this->SetLademodusStatusByReason('no_vehicle');
-                $this->Log("Kein Fahrzeug verbunden – Abbruch der Berechnung", 'warn');
-                $this->UpdateWallboxStatusText();
-                return;
+            // Ladeleistung 0
+            $this->SetLadeleistung(0);
+            $this->SetFahrzeugStatus("⚠️ Kein Fahrzeug verbunden – bitte erst Fahrzeug anschließen.");
+            SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
+            $this->SetLademodusStatusByReason('no_vehicle');
+            $this->Log("Kein Fahrzeug verbunden – Abbruch der Berechnung", 'warn');
+            $this->UpdateWallboxStatusText();
+            return;
             }
     
             // === PV-Überschuss berechnen ===
             $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch);
             SetValue($this->GetIDForIdent('PV_Ueberschuss'), $pvUeberschussStandard);
             $this->Log("Standard-PV-Überschuss berechnet: {$pvUeberschussStandard} W", 'debug');
-    
+
+            // === Früher Abbruch: Fahrzeug angesteckt, aber kein Ladegrund ===
+        if ($this->ReadPropertyBoolean('NurMitFahrzeug') && in_array($status, [3, 4])) {
+            $ladefreigabe = false;
+
+            if (GetValue($this->GetIDForIdent('ManuellVollladen')) || GetValue($this->GetIDForIdent('ZielzeitladungModus')) || GetValue($this->GetIDForIdent('PV2CarModus'))) {
+                $ladefreigabe = true;
+            }
+
+            if ($pvUeberschussStandard >= 1400) {
+                $ladefreigabe = true;
+            }
+
+            if (!$ladefreigabe) {
+                $this->SetFahrzeugStatus("🚗 Fahrzeug verbunden, aber keine Ladefreigabe (Warten auf PV-Überschuss oder Modus aktiv)");
+                $this->SetLademodusStatusByReason('no_ladefreigabe');
+                $this->UpdateWallboxStatusText();
+                $this->Log("Fahrzeug verbunden, aber keine Ladefreigabe – Wallbox bleibt deaktiviert", 'info');
+                return;
+            }
+        }
+            
             // === Fahrzeugstatus-Logik ===
             if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
                 if ($status == 3) {
@@ -366,9 +387,8 @@ class PVWallboxManager extends IPSModule
             $this->UpdateFahrzeugStatusText();
             $this->WriteAttributeBoolean('RunLogFlag', false);
     
-        } catch (Throwable $e) {
+            } catch (Throwable $e) {
             $this->Log("UpdateCharging() Fehler: ".$e->getMessage(), 'error');
-            // Optional: Debug-Info
         } finally {
             $this->WriteAttributeBoolean('RunLock', false);
         }
