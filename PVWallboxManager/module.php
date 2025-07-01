@@ -758,22 +758,19 @@ private function LogikManuellVollladen()
 {
     $goeID = $this->ReadPropertyInteger('GOEChargerID');
 
-    // 3-phasig erzwingen, aber nur schalten wenn nötig
-    if (function_exists('GOeCharger_GetPhases') && function_exists('GOeCharger_SetPhases')) {
-        $aktuellePhasen = GOeCharger_GetPhases($goeID);
-        if ($aktuellePhasen != 3) {
-            GOeCharger_SetPhases($goeID, 3);
-            $this->Log("Manuell Vollladen: Auf 3-phasig umgeschaltet.", 'info');
-        }
+    // Auf 3-phasig schalten:
+    if (function_exists('GOeCharger_SetSinglePhaseCharging')) {
+        GOeCharger_SetSinglePhaseCharging($goeID, false); // false = 3-phasig
+        $this->Log("Manuell Vollladen: 3-phasiges Laden aktiviert.", 'info');
     } else {
-        $this->Log("GOeCharger_GetPhases/SetPhases nicht verfügbar.", 'warn');
+        $this->Log("GOeCharger_SetSinglePhaseCharging nicht verfügbar!", 'warn');
     }
 
     // Maximale Ladeleistung setzen
     $maxWatt = $this->GetMaxLadeleistung();
     $this->SetLadeleistung($maxWatt);
 
-    // Modus auf "Immer Laden" setzen (meist Mode 2, prüfen falls du anderen Modus nutzt!)
+    // Immer-Laden-Modus setzen
     if (function_exists('GOeCharger_SetMode')) {
         GOeCharger_SetMode($goeID, 2);
     }
