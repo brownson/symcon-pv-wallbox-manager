@@ -438,32 +438,33 @@ class PVWallboxManager extends IPSModule
         $ladeModusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
         $ladeModus = ($ladeModusID !== false && @IPS_VariableExists($ladeModusID)) ? GetValueInteger($ladeModusID) : 0;
     
+        // ====== Zentrale Initialisierung $ueberschuss ======
+        $ueberschuss = 0;
+    
         // === Überschuss nach Modus berechnen ===
         if ($modus === 'manuell') {
             $ueberschuss = $this->GetMaxLadeleistung();
             $this->Log("Manueller Volllademodus aktiv – setze Ladeleistung auf {$ueberschuss} W (laut Property oder automatisch berechnet).", 'info');
+        } else {
+            $ueberschuss = $this->BerechnePVUeberschuss($modus);
         }
-        
-        // === PV-Batterie-Prio: Bei Standardmodus erst Batterie voll machen ===
+    
+        // === PV-Batterie-Priorität im Standardmodus ===
         if ($modus === 'standard') {
-            // IDs und Zielwert aus den Moduleigenschaften (Propertys) lesen!
-            $hausakkuSOCID = $this->ReadPropertyInteger('HausakkuSOCID');
+            $hausakkuSOCID   = $this->ReadPropertyInteger('HausakkuSOCID');
             $hausakkuSOCVoll = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
-
-            // Batterie-Ladeleistung ist der Wert aus der BerechnePVUeberschuss (z.B. $batt = ...), ggf. dort als Property oder als Rückgabewert holen
-            $batt = $this->GetNormWert('BatterieladungID', 'BatterieladungEinheit', 'InvertBatterieladung', "Batterieladung");
-            
-            // Aktuellen Batterie-SOC auslesen, falls Variable existiert
-            $hausakkuSOC = ($hausakkuSOCID > 0 && @IPS_VariableExists($hausakkuSOCID)) ? GetValue($hausakkuSOCID) : 100;
-
+            $batt            = $this->GetNormWert('BatterieladungID', 'BatterieladungEinheit', 'InvertBatterieladung', "Batterieladung");
+            $hausakkuSOC     = ($hausakkuSOCID > 0 && @IPS_VariableExists($hausakkuSOCID)) ? GetValue($hausakkuSOCID) : 100;
+    
             if ($batt > 0 && $hausakkuSOC < $hausakkuSOCVoll) {
+                $ueberschuss = 0; // <-- Jetzt explizit auf 0 setzen!
                 $this->SetLadeleistung(0);
                 if (@IPS_InstanceExists($goeID)) {
                     GOeCharger_setMode($goeID, 1); // 1 = Bereit
                     $this->Log("🔋 Hausakku lädt ({$batt} W), SoC: {$hausakkuSOC}% < Ziel: {$hausakkuSOCVoll}% – Wallbox bleibt aus!", 'info');
                 }
                 $this->SetLademodusStatus("🔋 Hausakku lädt – Wallbox bleibt aus!");
-                return; // Keine weitere Logik
+                // Hier KEIN return! – Der Code läuft weiter, aber $ueberschuss bleibt 0.
             }
         }
     
@@ -546,7 +547,6 @@ class PVWallboxManager extends IPSModule
             $this->Log("Unbekannter Wallbox-Modus: {$ladeModus}", 'warn');
         }
     }
-
 
     // --- Zielzeitladung mit Preisoptimierung & PV-Überschuss ---
     private function LogikZielzeitladung()
