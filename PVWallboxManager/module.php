@@ -704,13 +704,8 @@ class PVWallboxManager extends IPSModule
 
     // 1. Zielzeit bestimmen (als Timestamp für heute oder ggf. morgen)
     $targetTimeVarID = $this->GetIDForIdent('TargetTime');
-    $targetTimeRaw = GetValue($targetTimeVarID); // Sekunden seit 00:00
+    $targetTime = GetValue($targetTimeVarID);
 
-
-    $today = new DateTime('today', new DateTimeZone('Europe/Vienna'));
-    $targetTime = $today->getTimestamp() + ($targetTimeRaw % 86400);
-    if ($targetTime < time()) $targetTime += 86400;
-    
     $this->Log("DEBUG: Zielzeit (lokal): $targetTime / " . date('d.m.Y H:i:s', $targetTime), 'debug');
 
     // 2. Ladebedarf (kWh)
