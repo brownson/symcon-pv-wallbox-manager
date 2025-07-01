@@ -216,7 +216,13 @@
         },
         {
           "type": "Label",
-          "label": "Der aktuelle Börsenpreis-Forecast wird automatisch in die Variable <b>MarketPrices</b> geschrieben."
+          "label": "Der aktuelle Börsenpreis-Forecast wird automatisch in die Variable 'MarketPrices' geschrieben."
+          "label": "Die Preise werden alle X Minuten aktualisiert und können in der Lade-Logik verwendet werden."
+        },
+        {
+          "type": "Label",
+          "name": "MarketPricesPreview",
+          "label": "{MarketPricesText}"
         }
       ]
     }
