@@ -177,6 +177,48 @@
         { "type": "Label", "caption": "Wenn aktiviert, wird das Fahrzeug nie über den Ziel-SOC geladen – egal ob bei PV-Überschuss, Zielzeitladung oder Strompreis." },
         { "type": "CheckBox", "name": "AlwaysUseTargetSOC", "caption": "🎯 Ziel-SOC immer berücksichtigen (auch bei PV-Überschussladung)", "default": false }
       ]
+    },
+    {
+      "type": "ExpansionPanel",
+      "caption": "📉 Strompreis-Börse / Forecast",
+      "items": [
+        {
+          "type": "CheckBox",
+          "name": "UseMarketPrices",
+          "caption": "Strompreisbörsenpreise aktivieren (Awattar, Tibber ...)"
+        },
+        {
+          "type": "Select",
+          "name": "MarketPriceProvider",
+          "caption": "Provider",
+          "options": [
+            { "caption": "Awattar Österreich", "value": "awattar_at" },
+            { "caption": "Awattar Deutschland", "value": "awattar_de" },
+            { "caption": "Tibber (Beta)", "value": "tibber" },
+            { "caption": "Custom API", "value": "custom" }
+          ],
+          "default": "awattar_at"
+        },
+        {
+          "type": "ValidationTextBox",
+          "name": "MarketPriceAPI",
+          "caption": "API-URL (nur für Custom/Experten)",
+          "default": "https://api.awattar.at/v1/marketdata"
+        },
+        {
+          "type": "NumberSpinner",
+          "name": "MarketPriceInterval",
+          "caption": "Abrufintervall in Minuten",
+          "suffix": "min",
+          "minimum": 10,
+          "maximum": 120,
+          "default": 30
+        },
+        {
+          "type": "Label",
+          "label": "Der aktuelle Börsenpreis-Forecast wird automatisch in die Variable <b>MarketPrices</b> geschrieben."
+        }
+      ]
     }
   ]
 }
