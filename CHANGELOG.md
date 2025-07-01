@@ -27,6 +27,9 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
   - Unnötige Fallback-Werte entfernt, konsistente Verwendung der Hilfsfunktion GetMaxLadeleistung() für maximale Ladeleistung implementiert.
   - Variablen-Initialisierung in der Hystereselogik. Alle Zustände sind jetzt robust gegen „Undefined variable“-Fehler, insbesondere beim Batterie-Prioritäts-Return.
   - Die Prio-Logik für PV-Batterie im Standardmodus setzt die Ladeleistung jetzt immer auf 0, ohne die Hystereselogik zu verlassen. Dadurch bleiben alle Status- und Lademodusmeldungen konsistent und Fehler werden vermieden.
+  - Codebereinigung: Doppelten Prüf- und Abbruch-Block für „Kein Fahrzeug verbunden“ entfernt, damit Status und Steuerung immer eindeutig sind.
+  - Wallbox wird nun bei fehlendem Fahrzeug immer zuverlässig auf Modus „Bereit“ (Standby) gestellt.
+  - Statusanzeige: Lademodus-Status wird auch bei abgestecktem Fahrzeug korrekt aktualisiert.
 
 ---
 
