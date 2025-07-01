@@ -263,6 +263,7 @@ class PVWallboxManager extends IPSModule
                 $this->SetFahrzeugStatus("⚠️ Kein Fahrzeug verbunden – bitte erst Fahrzeug anschließen.");
                 // PV-Überschuss und andere Werte ggf. auf 0 setzen
                 SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
+                $this->SetLademodusStatusByReason('no_vehicle');
                 $this->Log("Kein Fahrzeug verbunden – Abbruch der Berechnung", 'warn');
                 $this->UpdateWallboxStatusText();
                 return;
@@ -273,25 +274,6 @@ class PVWallboxManager extends IPSModule
             SetValue($this->GetIDForIdent('PV_Ueberschuss'), $pvUeberschussStandard);
             $this->Log("Standard-PV-Überschuss berechnet: {$pvUeberschussStandard} W", 'debug');
     
-            // === Fahrzeugstatus-Logik ===
-            if ($this->ReadPropertyBoolean('NurMitFahrzeug') && $status == 1) {
-                // Wenn kein Fahrzeug verbunden, alle Modi deaktivieren
-                foreach (['ManuellVollladen','PV2CarModus','ZielzeitladungModus'] as $mod) {
-                    if (GetValue($this->GetIDForIdent($mod))) {
-                        SetValue($this->GetIDForIdent($mod), false);
-                    }
-                }
-                // Wallbox auf "Bereit" setzen UND Ladeleistung 0 setzen
-                if (GOECharger_getMode($goeID) != 1) {
-                    GOECharger_setMode($goeID, 1);
-                }
-                $this->SetLadeleistung(0); // <--- Ladeleistung explizit auf 0
-                $this->SetFahrzeugStatus("⚠️ Kein Fahrzeug verbunden – bitte erst Fahrzeug anschließen.");
-                SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
-                $this->Log("Kein Fahrzeug verbunden – Abbruch der Berechnung", 'warn');
-                $this->UpdateWallboxStatusText();
-                return;
-            }
             // Status-Logik für weitere Fahrzeugstatus
             if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
                 if ($status == 3) {
