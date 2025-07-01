@@ -699,14 +699,20 @@ class PVWallboxManager extends IPSModule
 
     // --- Zielzeitladung mit Preisoptimierung & PV-Überschuss ---
     private function LogikZielzeitladung($hausverbrauch = null)
-{
+    {
     date_default_timezone_set('Europe/Vienna');
 
     // 1. Zielzeit bestimmen (als Timestamp für heute oder ggf. morgen)
     $targetTimeVarID = $this->GetIDForIdent('TargetTime');
-    $targetTime = GetValue($targetTimeVarID);
-
+    $offset = GetValue($targetTimeVarID); // z. B. 46800
+    
+    $today = new DateTime('today', new DateTimeZone('Europe/Vienna'));
+    $targetTime = $today->getTimestamp() + ($offset % 86400);
+    
+    if ($targetTime < time()) $targetTime += 86400;
+    
     $this->Log("DEBUG: Zielzeit (lokal): $targetTime / " . date('d.m.Y H:i:s', $targetTime), 'debug');
+
 
     // 2. Ladebedarf (kWh)
     $socID = $this->ReadPropertyInteger('CarSOCID');
