@@ -468,19 +468,17 @@ class PVWallboxManager extends IPSModule
     // --- Zielzeitladung mit Preisoptimierung & PV-Überschuss ---
     private function LogikZielzeitladung()
     {
-        // --- 1. Basisdaten ---
+        // --- 1. Zielzeit bestimmen (als Timestamp für heute oder ggf. morgen) ---
         $targetTimeVarID = $this->GetIDForIdent('TargetTime');
-        $targetTime = GetValue($targetTimeVarID);        // Lokale Zeit (Unix-Timestamp)
-        $now = time();                                   // Jetzt, lokal
-        if ($targetTime < $now) $targetTime += 86400;    // Nächster Tag, falls Zielzeit überschritten
+        $targetTimeRaw = GetValue($targetTimeVarID);
     
-        // Umrechnung in UTC
-        $offset = date('Z');
-        $targetTimeUTC = $targetTime - $offset;
-        $nowUTC = $now - $offset;
+        // Zielzeit-Variable enthält oft nur Sekunden seit Tagesbeginn
+        $heute = strtotime('today');
+        $targetTime = $heute + ($targetTimeRaw % 86400);
+        // Falls Zielzeit schon vorbei, dann auf morgen setzen
+        if ($targetTime < time()) $targetTime += 86400;
     
-        $this->Log("DEBUG: Zielzeit (lokal): $targetTime / UTC: $targetTimeUTC / " . date('d.m.Y H:i:s', $targetTimeUTC), 'debug');
-        $this->Log("DEBUG: Jetzt (lokal): $now / UTC: $nowUTC / " . date('d.m.Y H:i:s', $nowUTC), 'debug');
+        $this->Log("DEBUG: Zielzeit (lokal): $targetTime / " . date('d.m.Y H:i:s', $targetTime), 'debug');
     
         // --- 2. Ladebedarf (kWh) ---
         $socID = $this->ReadPropertyInteger('CarSOCID');
@@ -510,21 +508,25 @@ class PVWallboxManager extends IPSModule
             return;
         }
     
-        // --- 4. Slots bis Zielzeit filtern (alle Zeiten in UTC) ---
+        // --- 4. Nur Slots bis Zielzeit (und ab jetzt) filtern ---
+        $now = time();
         $slots = [];
         foreach ($forecast as $slot) {
-            if ($slot['end'] <= $targetTimeUTC) {
-                $slots[] = [
-                    "price" => floatval($slot['price']),
-                    "start" => $slot['start'],
-                    "end"   => $slot['end'],
-                ];
+            if (isset($slot['start']) && isset($slot['end'])) {
+                // Nur relevante Slots im Zeitraum zwischen jetzt und Zielzeit
+                if ($slot['end'] > $now && $slot['start'] < $targetTime) {
+                    $slots[] = [
+                        "price" => floatval($slot['price']),
+                        "start" => $slot['start'],
+                        "end"   => $slot['end'],
+                    ];
+                }
             }
         }
-        if (count($slots) === 0) {
+        if (count($slots) == 0) {
             $this->Log("Zielzeitladung: Keine passenden Forecast-Slots im Planungszeitraum!", 'warn');
             $this->SetLadeleistung(0);
-            $this->SetLademodusStatus("Keine passenden Forecast-Slots – kein Laden!");
+            $this->SetLademodusStatus("Zielzeitladung: Keine passenden Forecast-Slots gefunden!");
             return;
         }
     
@@ -544,7 +546,7 @@ class PVWallboxManager extends IPSModule
         $ladeJetzt = false;
         $aktuellerSlotPrice = null;
         foreach ($ladeSlots as $slot) {
-            if ($nowUTC >= $slot["start"] && $nowUTC < $slot["end"]) {
+            if ($now >= $slot["start"] && $now < $slot["end"]) {
                 $ladeJetzt = true;
                 $aktuellerSlotPrice = $slot["price"];
                 break;
