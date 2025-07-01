@@ -378,6 +378,9 @@ class PVWallboxManager extends IPSModule
             $this->UpdateFahrzeugStatusText();
             $this->WriteAttributeBoolean('RunLogFlag', false);
     
+        } catch (Throwable $e) {
+            $this->Log("UpdateCharging() Fehler: ".$e->getMessage(), 'error');
+            // Optional: Debug-Info
         } finally {
             $this->WriteAttributeBoolean('RunLock', false);
         }
