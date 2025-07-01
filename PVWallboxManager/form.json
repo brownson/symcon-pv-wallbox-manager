@@ -198,10 +198,12 @@
           ],
           "default": "awattar_at"
         },
+        { "type": "Label", "caption": "    " },
+        { "type": "Label", "label": "🔗 Die API-URL muss **nur** bei Auswahl von 'Custom API' ausgefüllt werden. Bei Awattar wird die URL automatisch gesetzt!"},
         {
           "type": "ValidationTextBox",
           "name": "MarketPriceAPI",
-          "caption": "API-URL Dieses Feld wird nur bei 'Custom API' verwendet",
+          "caption": "API-URL (nur für Experten/Custom)",
           "default": ""
         },
         {
