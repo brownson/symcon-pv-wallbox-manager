@@ -335,7 +335,6 @@ public function UpdateCharging()
         if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
             $this->LogikManuellVollladen();
             return; // Keine andere Logik mehr prüfen!
-        }
         } elseif (GetValue($this->GetIDForIdent('ZielzeitladungModus'))) {
             $this->Log("UpdateCharging(): Modus = Zielzeitladung.", 'info');
             $this->LogikZielzeitladung($hausverbrauch);
