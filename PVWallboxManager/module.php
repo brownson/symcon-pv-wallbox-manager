@@ -431,21 +431,23 @@ class PVWallboxManager extends IPSModule
         // === PV-Batterie-Prio: Bei Standardmodus erst Batterie voll machen ===
         if ($modus === 'standard') {
             // IDs und Zielwert aus den Moduleigenschaften (Propertys) lesen!
-            $battSOC_ID = $this->ReadPropertyInteger('BatterieSOCID');
-            $battSOCziel = $this->ReadPropertyInteger('BatterieSOCTarget');
-            // Aktuellen Batterie-SOC auslesen, falls Variable existiert
-            $battSOC = (IPS_VariableExists($battSOC_ID)) ? GetValue($battSOC_ID) : 100;
+            $hausakkuSOCID = $this->ReadPropertyInteger('HausakkuSOCID');
+            $hausakkuSOCVoll = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
+
             // Batterie-Ladeleistung ist der Wert aus der BerechnePVUeberschuss (z.B. $batt = ...), ggf. dort als Property oder als Rückgabewert holen
             $batt = $this->GetNormWert('BatterieladungID', 'BatterieladungEinheit', 'InvertBatterieladung', "Batterieladung");
-    
-            if ($batt > 0 && $battSOC < $battSOCziel) {
+            
+            // Aktuellen Batterie-SOC auslesen, falls Variable existiert
+            $hausakkuSOC = ($hausakkuSOCID > 0 && @IPS_VariableExists($hausakkuSOCID)) ? GetValue($hausakkuSOCID) : 100;
+
+            if ($batt > 0 && $hausakkuSOC < $hausakkuSOCVoll) {
                 $this->SetLadeleistung(0);
                 if (@IPS_InstanceExists($goeID)) {
                     GOeCharger_setMode($goeID, 1); // 1 = Bereit
-                    $this->Log("🔋 Batterie wird geladen ({$batt} W, SOC {$battSOC}% < Ziel {$battSOCziel}%) – Wallbox bleibt aus!", 'info');
+                    $this->Log("🔋 Hausakku lädt ({$batt} W), SoC: {$hausakkuSOC}% < Ziel: {$hausakkuSOCVoll}% – Wallbox bleibt aus!", 'info');
                 }
-                $this->SetLademodusStatus("🔋 Batterie wird geladen – Wallbox bleibt aus!");
-                return; // Keine weitere Logik ausführen!
+                $this->SetLademodusStatus("🔋 Hausakku lädt – Wallbox bleibt aus!");
+                return; // Keine weitere Logik
             }
         }
     
