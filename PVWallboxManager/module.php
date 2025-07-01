@@ -422,10 +422,8 @@ class PVWallboxManager extends IPSModule
     
         // === Überschuss nach Modus berechnen ===
         if ($modus === 'manuell') {
-            $ueberschuss = $this->ReadPropertyInteger('MaxLadeWatt');
-            $this->Log("Manueller Volllademodus aktiv – setze Ladeleistung auf {$ueberschuss} W.", 'info');
-        } else {
-            $ueberschuss = $this->BerechnePVUeberschuss($modus);
+            $ueberschuss = $this->GetMaxLadeleistung();
+            $this->Log("Manueller Volllademodus aktiv – setze Ladeleistung auf {$ueberschuss} W (laut Property oder automatisch berechnet).", 'info');
         }
         
         // === PV-Batterie-Prio: Bei Standardmodus erst Batterie voll machen ===
@@ -644,13 +642,15 @@ class PVWallboxManager extends IPSModule
 
     private function GetMaxLadeleistung(): int
     {
+        $hardLimit = $this->ReadPropertyInteger('MaxAutoWatt');
+        if ($hardLimit > 0) {
+            // Wenn MaxAutoWatt gesetzt ist, immer diesen Wert zurückgeben
+            return $hardLimit;
+        }
+        // Ansonsten berechnen
         $phasen = $this->ReadPropertyInteger('Phasen');
         $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
         $maxWatt = $phasen * 230 * $maxAmp;
-        $hardLimit = $this->ReadPropertyInteger('MaxAutoWatt');
-        if ($hardLimit > 0 && $maxWatt > $hardLimit) {
-            $maxWatt = $hardLimit;
-        }
         return $maxWatt;
     }
     
