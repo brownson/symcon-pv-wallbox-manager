@@ -91,18 +91,6 @@ class PVWallboxManager extends IPSModule
 
         // Zykluszeiten & Ladeplanung
         $this->RegisterPropertyInteger('RefreshInterval', 60); // Intervall für die Überschuss-Berechnung (Sekunden)
-        $this->RegisterPropertyInteger('TargetChargePreTime', 4); // Stunden vor Zielzeit aktiv laden
-
-        //Für die Berechnung der Ladeverluste
-        //$this->RegisterAttributeBoolean("ChargingActive", false);
-        //$this->RegisterAttributeFloat("ChargeSOCStart", 0);
-        //$this->RegisterAttributeFloat("ChargeEnergyStart", 0);
-        //$this->RegisterAttributeInteger("ChargeStartTime", 0);
-
-        $this->RegisterPropertyInteger("CurrentPriceID", 0);      // Aktueller Preis (ct/kWh, Float)
-        $this->RegisterPropertyInteger("ForecastPriceID", 0);     // 24h-Prognose (ct/kWh, String)
-        //$this->RegisterPropertyFloat("MinPrice", 0.000);       // Mindestpreis (ct/kWh)
-        //$this->RegisterPropertyFloat("MaxPrice", 30.000);      // Höchstpreis (ct/kWh)
 
         //Strompreis-Börse / Forecast
         $this->RegisterVariableString('MarketPrices', '🔢 Strompreis-Forecast', '', 21);
