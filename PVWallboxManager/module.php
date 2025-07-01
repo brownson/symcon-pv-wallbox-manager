@@ -407,10 +407,27 @@ class PVWallboxManager extends IPSModule
     {
         $minStart = $this->ReadPropertyInteger('MinLadeWatt');
         $minStop  = $this->ReadPropertyInteger('MinStopWatt');
-        $ueberschuss = $this->BerechnePVUeberschuss('standard'); // loggt bereits Puffer!
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
         $ladeModusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
         $ladeModus = ($ladeModusID !== false && @IPS_VariableExists($ladeModusID)) ? GetValueInteger($ladeModusID) : 0;
+    
+        // Modusflags auslesen
+        $pv2carAktiv    = GetValue($this->GetIDForIdent('PV2CarModus'));
+        $manuellAktiv   = GetValue($this->GetIDForIdent('ManuellVollladen'));
+        $zielzeitAktiv  = GetValue($this->GetIDForIdent('ZielzeitladungModus'));
+    
+        // === Überschuss nach Modus berechnen ===
+        if ($manuellAktiv) {
+            // Manueller Modus: Vollladen (hier ggf. eigene Logik, Beispiel: maximale Ladeleistung)
+            $ueberschuss = $this->ReadPropertyInteger('MaxLadeWatt'); // oder feste Leistung, je nach Wunsch
+            $this->Log("Manueller Volllademodus aktiv – setze Ladeleistung auf {$ueberschuss} W.", 'info');
+        } elseif ($pv2carAktiv) {
+            $ueberschuss = $this->BerechnePVUeberschuss('pv2car');
+        } elseif ($zielzeitAktiv) {
+            $ueberschuss = $this->BerechnePVUeberschuss('zielzeit'); // Falls Zielzeitmodus schon implementiert, sonst wie Standard behandeln
+        } else {
+            $ueberschuss = $this->BerechnePVUeberschuss('standard');
+        }
     
         // Initialisiere Counter, falls nicht gesetzt (Robustheit)
         $startCounter = $this->ReadAttributeInteger('StartHystereseCounter');
