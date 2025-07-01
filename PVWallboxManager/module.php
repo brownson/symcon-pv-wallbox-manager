@@ -123,21 +123,38 @@ class PVWallboxManager extends IPSModule
         $goeID    = $this->ReadPropertyInteger('GOEChargerID');
         $pvID     = $this->ReadPropertyInteger('PVErzeugungID');
     
-        // Timer nur aktivieren, wenn GO-e und PV-Erzeugung konfiguriert
+        // === Modul deaktiviert: Alles stoppen & zurücksetzen ===
         if (!$this->ReadPropertyBoolean('ModulAktiv')) {
-            // Deaktiviert: Timer aus
+            // Wallbox auf "Bereit" & Ladeleistung 0
+            if (@IPS_InstanceExists($goeID)) {
+                GOeCharger_setMode($goeID, 1);
+                GOeCharger_SetCurrentChargingWatt($goeID, 0);
+            }
+            // Alle Lademodi deaktivieren (Variablen auf false)
+            foreach (['ManuellVollladen', 'PV2CarModus', 'ZielzeitladungModus'] as $mod) {
+                if (@$this->GetIDForIdent($mod) && GetValue($this->GetIDForIdent($mod))) {
+                    SetValue($this->GetIDForIdent($mod), false);
+                }
+            }
+            // Statusvariablen zurücksetzen
+            $this->SetLademodusStatus("🛑 Modul deaktiviert – alle Vorgänge gestoppt.");
+            $this->SetFahrzeugStatus("🛑 Modul deaktiviert.");
+            if (@$this->GetIDForIdent('PV_Ueberschuss')) {
+                SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
+            }
+    
+            // Timer deaktivieren
             $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
-            $this->SetLademodusStatus("⚠️ Modul ist deaktiviert. Keine Aktionen.");
-            $this->Log('Modul ist deaktiviert – Timer gestoppt.', 'info');
+            $this->Log('Modul ist deaktiviert – alle Ladevorgänge gestoppt, Modi und Status zurückgesetzt, Timer aus.', 'info');
             return;
         }
     
-        // Timer nur aktivieren, wenn GO-e und PV-Erzeugung konfiguriert
+        // === Modul aktiv: Timer & Initialberechnung ===
         if ($goeID > 0 && $pvID > 0 && $interval > 0) {
             $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
             $this->Log("Timer aktiviert: Intervall PVUeberschuss_Berechnen={$interval}s", 'info');
     
-            // **Initialen Durchlauf direkt nach Aktivierung auslösen**
+            // Initialen Durchlauf direkt nach Aktivierung auslösen
             $this->Log('Modul wurde aktiviert – initialer Berechnungsdurchlauf gestartet.', 'info');
             $this->UpdateCharging();
         } else {
@@ -146,6 +163,7 @@ class PVWallboxManager extends IPSModule
         }
         $this->SetValue('AllowBatteryDischargeStatus', $this->ReadPropertyBoolean('AllowBatteryDischarge'));
     }
+
 
     public function RequestAction($ident, $value)
     {
