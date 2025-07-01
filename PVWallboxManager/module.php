@@ -246,7 +246,25 @@ class PVWallboxManager extends IPSModule
     
             $goeID = $this->ReadPropertyInteger('GOEChargerID');
             $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
-    
+
+            if ($this->ReadPropertyBoolean('NurMitFahrzeug') && $status == 1) {
+                // Fahrzeug nicht verbunden!
+                // Alle Lademodi deaktivieren
+                foreach (['ManuellVollladen','PV2CarModus','ZielzeitladungModus'] as $mod) {
+                    if (GetValue($this->GetIDForIdent($mod))) {
+                        SetValue($this->GetIDForIdent($mod), false);
+                    }
+                }
+                // Ladeleistung 0
+                $this->SetLadeleistung(0);
+                $this->SetFahrzeugStatus("⚠️ Kein Fahrzeug verbunden – bitte erst Fahrzeug anschließen.");
+                // PV-Überschuss und andere Werte ggf. auf 0 setzen
+                SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
+                $this->Log("Kein Fahrzeug verbunden – Abbruch der Berechnung", 'warn');
+                $this->UpdateWallboxStatusText();
+                return;
+            }
+            
             // Immer: PV-Überschuss (inkl. Batterieabzug) berechnen und anzeigen
             $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch); // <--- Hausverbrauch als Parameter!
             SetValue($this->GetIDForIdent('PV_Ueberschuss'), $pvUeberschussStandard);
