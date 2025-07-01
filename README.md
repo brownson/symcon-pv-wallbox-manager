@@ -171,6 +171,8 @@ Für jede Variable separat aktivierbar, falls dein Messwert andersherum zählt.
 - 🏠 Hausverbrauch im Modul selbst berechnen (gesamter Hausverbrauch - Wallboxleistung zum Fahrzeug) = Hausverbrauch
 - 📊 Awattar (und andere Preis-APIs) direkt integrieren
 - ❌ „Nur laden, wenn Fahrzeug verbunden“ – Berechnung komplett skippen
+- 🔃 Beim Mode Wechsel zu Fahrzeug verbunden soll auch initial das Modul durchlaufen
+
 
 ### 🔜 Geplant
 - 📨 Integration externer Fahrzeugdaten (z. B. via MQTT)
