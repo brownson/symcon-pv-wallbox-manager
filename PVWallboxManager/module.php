@@ -255,24 +255,22 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeBoolean('RunLogFlag', true); // Start eines neuen Durchlaufs
             $this->Log("Starte Berechnung (UpdateCharging)", 'debug');
     
-            // === Hausverbrauch berechnen, gleich zu Beginn! ===
-            $hausverbrauch = $this->BerechneHausverbrauch();
-            if ($hausverbrauch === false) {
-                $this->Log("Hausverbrauch konnte nicht berechnet werden – Abbruch UpdateCharging()", 'error');
-                return;
-            }
+        // === Hausverbrauch berechnen, gleich zu Beginn! ===
+        $hausverbrauch = $this->BerechneHausverbrauch();
+        if ($hausverbrauch === false) {
+            $this->Log("Hausverbrauch konnte nicht berechnet werden – Abbruch UpdateCharging()", 'error');
+            return;
+        }
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $status = GOECharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
     
-            $goeID = $this->ReadPropertyInteger('GOEChargerID');
-            $status = GOECharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
-    
-            // === Prüfen: Kein Fahrzeug verbunden? ===
-            if ($this->ReadPropertyBoolean('NurMitFahrzeug') && $status == 1) {
-                // Alle Lademodi deaktivieren
-                foreach (['ManuellVollladen','PV2CarModus','ZielzeitladungModus'] as $mod) {
-                    if (GetValue($this->GetIDForIdent($mod))) {
-                        SetValue($this->GetIDForIdent($mod), false);
-                    }
+        if ($this->ReadPropertyBoolean('NurMitFahrzeug') && $status == 1) {
+            // Alle Lademodi deaktivieren
+            foreach (['ManuellVollladen','PV2CarModus','ZielzeitladungModus'] as $mod) {
+                if (GetValue($this->GetIDForIdent($mod))) {
+                    SetValue($this->GetIDForIdent($mod), false);
                 }
+            }
             // Ladeleistung 0
             $this->SetLadeleistung(0);
             $this->SetFahrzeugStatus("⚠️ Kein Fahrzeug verbunden – bitte erst Fahrzeug anschließen.");
@@ -281,33 +279,45 @@ class PVWallboxManager extends IPSModule
             $this->Log("Kein Fahrzeug verbunden – Abbruch der Berechnung", 'warn');
             $this->UpdateWallboxStatusText();
             return;
-            }
+        }
     
             // === PV-Überschuss berechnen ===
             $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch);
             SetValue($this->GetIDForIdent('PV_Ueberschuss'), $pvUeberschussStandard);
             $this->Log("Standard-PV-Überschuss berechnet: {$pvUeberschussStandard} W", 'debug');
 
+            $minLadeWatt = $this->ReadPropertyInteger('MinLadeWatt');
+            
             // === Früher Abbruch: Fahrzeug angesteckt, aber kein Ladegrund ===
-        if ($this->ReadPropertyBoolean('NurMitFahrzeug') && in_array($status, [3, 4])) {
+            if ($this->ReadPropertyBoolean('NurMitFahrzeug') && in_array($status, [3, 4])) {
+                
+            // Prüfen ob Ladefreigabe vorliegt
             $ladefreigabe = false;
 
-            if (GetValue($this->GetIDForIdent('ManuellVollladen')) || GetValue($this->GetIDForIdent('ZielzeitladungModus')) || GetValue($this->GetIDForIdent('PV2CarModus'))) {
+            if (GetValue($this->GetIDForIdent('ManuellVollladen')) || 
+                GetValue($this->GetIDForIdent('ZielzeitladungModus')) || 
+                GetValue($this->GetIDForIdent('PV2CarModus'))) {
                 $ladefreigabe = true;
             }
 
-            if ($pvUeberschussStandard >= 1400) {
+            if ($pvUeberschussStandard >= $minLadeWatt) {
                 $ladefreigabe = true;
             }
 
             if (!$ladefreigabe) {
-                $this->SetFahrzeugStatus("🚗 Fahrzeug verbunden, aber keine Ladefreigabe (Warten auf PV-Überschuss oder Modus aktiv)");
-                $this->SetLademodusStatusByReason('no_ladefreigabe');
-                $this->UpdateWallboxStatusText();
-                $this->Log("Fahrzeug verbunden, aber keine Ladefreigabe – Wallbox bleibt deaktiviert", 'info');
-                return;
-            }
+            // Keine Freigabe → Nicht Laden
+            GOeCharger_SetMode($goeID, 1);
+            $this->SetFahrzeugStatus("🚗 Fahrzeug verbunden, aber keine Ladefreigabe (Warten auf PV-Überschuss oder Modus aktiv)");
+            $this->SetLademodusStatusByReason('no_ladefreigabe');
+            $this->UpdateWallboxStatusText();
+            $this->Log("Fahrzeug verbunden, aber keine Ladefreigabe – Wallbox auf 'Nicht Laden'", 'info');
+            return;
+        } else {
+            // Ladefreigabe → Laden aktivieren
+            GOeCharger_SetMode($goeID, 2);
+            $this->Log("Fahrzeug verbunden, Ladefreigabe erkannt – Wallbox auf 'Laden'", 'info');
         }
+    }
             
             // === Fahrzeugstatus-Logik ===
             if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
@@ -401,6 +411,7 @@ class PVWallboxManager extends IPSModule
         $this->WriteAttributeBoolean('RunLock', false);
         $this->Log('RunLock manuell zurückgesetzt!', 'info');
     }
+    
 // =====================================================================================================
 
     public function UpdateMarketPrices()
