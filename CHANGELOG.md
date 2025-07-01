@@ -11,10 +11,12 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
   - alte Variablen „Zielzeitladung PV-optimiert“ und „Strompreis-Modus aktiv“ löschen !!!
   - Zielzeitladung sucht jetzt bis zu dem Ziel-Zeit die anhand vom Forecast 24h den billigsten Strompreis und lädt in diesen Stunden - Forecast 24h über GitHub - symcon/Strompreis: Liest die aktuellen/vorhergesagten Strompreise von aWATTar, Tibber oder Epex Spot DE aus liefert mir nur werte von heute 0 - 24Uhr Ich möchte sie aber immer von jetzt +24h.
   - logging noch weiter ausgebaut
+    - Im PV2Car-Modus wird jetzt im Log immer der eingestellte Prozentanteil und die daraus berechnete Ladeleistung fürs Auto angezeigt.
   - Beim Aktivieren des Moduls erfolgt jetzt sofort ein Initialdurchlauf der Ladelogik – das System reagiert damit sofort und wartet nicht mehr auf das nächste Intervall.
 
 - **Bugfix:**
   - StrompreisModus Boolean wurde nicht angelegt
+  - Der aktuelle Lademodus („standard“, „manuell“, „pv2car“ oder „zielzeit“) wird nun als Variable gespeichert und bei jedem Moduswechsel korrekt gesetzt bzw. zurückgesetzt.
 
 ---
 
