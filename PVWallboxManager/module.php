@@ -271,7 +271,7 @@ class PVWallboxManager extends IPSModule
             $hausverbrauch = $this->BerechneHausverbrauch();
             if ($hausverbrauch === false) {
                 $this->Log("Hausverbrauch konnte nicht berechnet werden – Abbruch UpdateCharging()", 'error');
-                $this->WriteAttributeBoolean('RunLock', false);
+                //$this->WriteAttributeBoolean('RunLock', false);
                 return;
             }
     
