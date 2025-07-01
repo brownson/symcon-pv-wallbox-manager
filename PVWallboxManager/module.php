@@ -1033,7 +1033,7 @@ private function BerechneHausverbrauch()
 
     return $hausverbrauch;
 }
-
+    
 // =====================================================================================================
 
 private function Log(string $message, string $level)
