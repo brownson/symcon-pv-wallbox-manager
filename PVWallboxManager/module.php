@@ -122,14 +122,14 @@ class PVWallboxManager extends IPSModule
         $this->Log('Instanz-Config: ' . json_encode(IPS_GetConfiguration($this->InstanceID)), 'debug');
     
         $interval = $this->ReadPropertyInteger('RefreshInterval');
-        $goeID    = $this->ReadPropertyInteger('GOeChargerID');
+        $goeID    = $this->ReadPropertyInteger('GOEChargerID');
         $pvID     = $this->ReadPropertyInteger('PVErzeugungID');
     
         // === Modul deaktiviert: Alles stoppen & zurücksetzen ===
         if (!$this->ReadPropertyBoolean('ModulAktiv')) {
             if (@IPS_InstanceExists($goeID)) {
-                GOeCharger_setMode($goeID, 1);
-                GOeCharger_SetCurrentChargingWatt($goeID, 0);
+                GOECharger_setMode($goeID, 1);
+                GOECharger_SetCurrentChargingWatt($goeID, 0);
             }
             foreach (['ManuellVollladen', 'PV2CarModus', 'ZielzeitladungModus'] as $mod) {
                 if (@$this->GetIDForIdent($mod) && GetValue($this->GetIDForIdent($mod))) {
@@ -248,7 +248,7 @@ class PVWallboxManager extends IPSModule
             }
     
             $goeID = $this->ReadPropertyInteger('GOEChargerID');
-            $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
+            $status = GOECharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
 
             if ($this->ReadPropertyBoolean('NurMitFahrzeug') && $status == 1) {
                 // Fahrzeug nicht verbunden!
@@ -282,8 +282,8 @@ class PVWallboxManager extends IPSModule
                     }
                 }
                 // Wallbox auf "Bereit" setzen UND Ladeleistung 0 setzen
-                if (GOeCharger_getMode($goeID) != 1) {
-                    GOeCharger_setMode($goeID, 1);
+                if (GOECharger_getMode($goeID) != 1) {
+                    GOECharger_setMode($goeID, 1);
                 }
                 $this->SetLadeleistung(0); // <--- Ladeleistung explizit auf 0
                 $this->SetFahrzeugStatus("⚠️ Kein Fahrzeug verbunden – bitte erst Fahrzeug anschließen.");
@@ -377,7 +377,7 @@ class PVWallboxManager extends IPSModule
         $batt  = $this->GetNormWert('BatterieladungID', 'BatterieladungEinheit', 'InvertBatterieladung', "Batterieladung");
         $netz  = $this->GetNormWert('NetzeinspeisungID', 'NetzeinspeisungEinheit', 'InvertNetzeinspeisung', "Netzeinspeisung");
     
-        $ladeleistung = ($goeID > 0) ? GOeCharger_GetPowerToCar($goeID) : 0;
+        $ladeleistung = ($goeID > 0) ? GOECharger_GetPowerToCar($goeID) : 0;
     
         /// --- Unterscheidung nach Modus ---
         if ($modus == 'pv2car') {
@@ -403,7 +403,7 @@ class PVWallboxManager extends IPSModule
     
             // Ladeleistung an Wallbox übergeben
             if (isset($goeID) && $goeID > 0) {
-                GOeCharger_SetCurrentChargingWatt($goeID, $ladeSoll);
+                GOECharger_SetCurrentChargingWatt($goeID, $ladeSoll);
                 $this->Log("Ladeleistung an Wallbox übergeben: {$ladeSoll} W (PV2Car-Modus)", 'debug');
             }
         } else {
@@ -505,7 +505,7 @@ class PVWallboxManager extends IPSModule
                 $ueberschuss = 0; // <-- Jetzt explizit auf 0 setzen!
                 $this->SetLadeleistung(0);
                 if (@IPS_InstanceExists($goeID)) {
-                    GOeCharger_setMode($goeID, 1); // 1 = Bereit
+                    GOECharger_setMode($goeID, 1); // 1 = Bereit
                     $this->Log("🔋 Hausakku lädt ({$batt} W), SoC: {$hausakkuSOC}% < Ziel: {$hausakkuSOCVoll}% – Wallbox bleibt aus!", 'info');
                 }
                 $this->SetLademodusStatus("🔋 Hausakku lädt – Wallbox bleibt aus!");
@@ -528,7 +528,7 @@ class PVWallboxManager extends IPSModule
                 if ($stopCounter > $this->ReadPropertyInteger('StopHysterese')) {
                     $this->SetLadeleistung(0);
                     if (@IPS_InstanceExists($goeID)) {
-                        GOeCharger_setMode($goeID, 1); // 1 = Bereit
+                        GOECharger_setMode($goeID, 1); // 1 = Bereit
                         $this->Log("🔌 Wallbox-Modus auf 'Bereit' gestellt (1)", 'info');
                     }
                     $msg = "{$modusText}: Unter Stop-Schwelle ({$ueberschuss} W ≤ {$minStop} W) – Wallbox gestoppt";
@@ -543,7 +543,7 @@ class PVWallboxManager extends IPSModule
                 $this->SetLadeleistung($ueberschuss);
                 if ($ueberschuss > 0) {
                     if (@IPS_InstanceExists($goeID)) {
-                        GOeCharger_setMode($goeID, 2); // 2 = Laden erzwingen
+                        GOECharger_setMode($goeID, 2); // 2 = Laden erzwingen
                         $this->Log("⚡ Wallbox-Modus auf 'Laden' gestellt (2)", 'info');
                     }
                 }
@@ -564,7 +564,7 @@ class PVWallboxManager extends IPSModule
     
                     if ($ueberschuss > 0) {
                         if (@IPS_InstanceExists($goeID)) {
-                            GOeCharger_setMode($goeID, 2); // 2 = Laden erzwingen
+                            GOECharger_setMode($goeID, 2); // 2 = Laden erzwingen
                             $this->Log("⚡ Wallbox-Modus auf 'Laden' gestellt (2)", 'info');
                         }
                     }
@@ -579,7 +579,7 @@ class PVWallboxManager extends IPSModule
     
                 $this->SetLadeleistung(0);
                 if (@IPS_InstanceExists($goeID)) {
-                    GOeCharger_setMode($goeID, 1); // 1 = Bereit
+                    GOECharger_setMode($goeID, 1); // 1 = Bereit
                     $this->Log("🔌 Wallbox-Modus auf 'Bereit' gestellt (1)", 'info');
                 }
                 $msg = "{$modusText}: Zu niedrig ({$ueberschuss} W) – bleibt aus";
@@ -770,7 +770,7 @@ class PVWallboxManager extends IPSModule
                         }
                         if ($counter >= $this->ReadPropertyInteger('Phasen1Limit')) {
                             if (!$aktuell1phasig) {
-                                GOeCharger_SetSinglePhaseCharging($goeID, true);
+                                GOECharger_SetSinglePhaseCharging($goeID, true);
                                 $this->Log("🔁 Umschaltung auf 1-phasig ausgelöst", 'info');
                             }
                             $this->WriteAttributeInteger('Phasen1Counter', 0);
@@ -788,7 +788,7 @@ class PVWallboxManager extends IPSModule
                         }
                         if ($counter >= $this->ReadPropertyInteger('Phasen3Limit')) {
                             if ($aktuell1phasig) {
-                                GOeCharger_SetSinglePhaseCharging($goeID, false);
+                                GOECharger_SetSinglePhaseCharging($goeID, false);
                                 $this->Log("🔁 Umschaltung auf 3-phasig ausgelöst", 'info');
                             }
                             $this->WriteAttributeInteger('Phasen3Counter', 0);
@@ -821,16 +821,16 @@ class PVWallboxManager extends IPSModule
     
                 // Ladeleistung nur setzen, wenn Änderung > 50 W
                 if ($aktuelleLeistung < 0 || abs($aktuelleLeistung - $watt) > 50) {
-                    GOeCharger_SetCurrentChargingWatt($goeID, $watt);
+                    GOECharger_SetCurrentChargingWatt($goeID, $watt);
                     $this->Log("✅ Ladeleistung gesetzt: {$watt} W", 'info');
     
                     // Nach Setzen der Leistung Modus sicherheitshalber aktivieren:
                     if ($watt > 0 && $aktuellerModus != 2) {
-                        GOeCharger_setMode($goeID, 2); // 2 = Laden erzwingen
+                        GOECharger_setMode($goeID, 2); // 2 = Laden erzwingen
                         $this->Log("⚡ Modus auf 'Laden' gestellt (2)", 'info');
                     }
                     if ($watt == 0 && $aktuellerModus != 1) {
-                        GOeCharger_setMode($goeID, 1); // 1 = Bereit
+                        GOECharger_setMode($goeID, 1); // 1 = Bereit
                         $this->Log("🔌 Modus auf 'Bereit' gestellt (1)", 'info');
                     }
                 } else {
@@ -838,7 +838,7 @@ class PVWallboxManager extends IPSModule
                 }
     
                 // Hinweis, falls die Wallbox auf "Bereit" steht, aber geladen werden soll
-                $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
+                $status = GOECharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
                 if ($watt > 0 && $aktuellerModus == 1 && in_array($status, [3, 4])) {
                     $msg = "⚠️ Ladeleistung gesetzt, aber die Ladung startet nicht automatisch.<br>
                             Bitte Fahrzeug einmal ab- und wieder anstecken, um die Ladung zu aktivieren!";
@@ -897,7 +897,7 @@ class PVWallboxManager extends IPSModule
         if ($goeID == 0) {
             $text = '<span style="color:gray;">Keine GO-e Instanz gewählt</span>';
         } else {
-            $status = GOeCharger_GetStatus($goeID);
+            $status = GOECharger_GetStatus($goeID);
             switch ($status) {
                 case 1:
                     $text = '<span style="color: gray;">Ladestation bereit, kein Fahrzeug</span>';
@@ -924,7 +924,7 @@ class PVWallboxManager extends IPSModule
     private function UpdateFahrzeugStatusText()
     {
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
-        $status = GOeCharger_GetStatus($goeID);
+        $status = GOECharger_GetStatus($goeID);
         $modus = 'Kein Modus aktiv';
     
         if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
@@ -990,7 +990,7 @@ class PVWallboxManager extends IPSModule
         // Wallbox-Leistung abrufen
         $wallboxLeistung = 0;
         if (IPS_InstanceExists($goeID)) {
-            $wallboxLeistung = @GOeCharger_GetPowerToCar($goeID);
+            $wallboxLeistung = @GOECharger_GetPowerToCar($goeID);
             if ($wallboxLeistung === false) $wallboxLeistung = 0;
         }
     
