@@ -198,12 +198,13 @@
           ],
           "default": "awattar_at"
         },
+        { "type": "Label", "caption": "    " },
+        { "type": "Label", "label": "Dieses Feld wird nur bei 'Custom API' verwendet. Für Awattar ignoriert." },
         {
           "type": "ValidationTextBox",
           "name": "MarketPriceAPI",
           "caption": "API-URL (nur für Custom/Experten)",
-          "default": "",
-          "enable": "{MarketPriceProvider} == 'custom'"
+          "default": ""
         },
         {
           "type": "NumberSpinner",
