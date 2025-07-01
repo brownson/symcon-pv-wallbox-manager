@@ -6,8 +6,6 @@ class PVWallboxManager extends IPSModule
     {
         parent::Create();
 
-        $this->Log("Initialisiere Modulvariablen und Properties", 'debug');
-
         // Visualisierung berechneter Werte
         $this->RegisterVariableFloat('PV_Ueberschuss', 'PV-Überschuss (W)', '~Watt', 10);
 
@@ -99,7 +97,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('DebugLogging', false);
         $this->RegisterAttributeBoolean('RunLock', false);
 
-        $this->Log("Initialisierung abgeschlossen", 'debug');
     }
 
 // =====================================================================================================
@@ -1038,34 +1035,38 @@ private function BerechneHausverbrauch()
 
 private function Log(string $message, string $level)
 {
-    // Unterstützte Level: debug, info, warn, warning, error
     $prefix = "PVWM";
     $normalized = strtolower(trim($level));
 
-    // Nur nicht-leere Nachrichten loggen
     if (trim($message) === '') return;
+
+    // Sonderbehandlung für Create(): Wenn Properties noch nicht vollständig initialisiert
+    $debugAktiv = false;
+    if (method_exists($this, 'ReadPropertyBoolean')) {
+        try {
+            $debugAktiv = @$this->ReadPropertyBoolean('DebugLogging');
+        } catch (Throwable $e) {
+            $debugAktiv = false;
+        }
+    }
 
     switch ($normalized) {
         case 'debug':
-            if ($this->ReadPropertyBoolean('DebugLogging')) {
+            if ($debugAktiv) {
                 IPS_LogMessage("{$prefix} [DEBUG]", $message);
                 $this->SendDebug("DEBUG", $message, 0);
             }
             break;
-
         case 'info':
             IPS_LogMessage("{$prefix} [INFO]", $message);
             break;
-
         case 'warn':
         case 'warning':
             IPS_LogMessage("{$prefix} [WARN]", $message);
             break;
-
         case 'error':
             IPS_LogMessage("{$prefix} [ERROR]", $message);
             break;
-
         default:
             IPS_LogMessage("{$prefix} [INFO]", $message);
             break;
