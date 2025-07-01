@@ -26,7 +26,7 @@ Eine **ausführliche Schritt-für-Schritt-Anleitung, FAQ und viele Tipps** finde
 - 🔋 **PV-Überschussgesteuertes Laden:** PV – Hausverbrauch – (nur positive) Batterie-Leistung, inkl. Wallbox-Eigenverbrauch.
 - ⚙️ **Dynamische Ladeleistungsanpassung** mit konfigurierbarem Ampere-Bereich und Sicherheits-Puffer.
 - 🔁 **Automatische Phasenumschaltung (1-/3-phasig):** Mit konfigurierbaren Schwellwerten und Umschaltzähler, kein hektisches Umschalten.
-- 🧠 **Dynamischer Pufferfaktor:** Sorgt dafür, dass immer ein Sicherheitspuffer bleibt (Wirkungsgrad ≈80–93 %, je nach Überschuss).
+- 🧠 **Dynamischer Pufferfaktor:** Sorgt dafür, dass immer ein Sicherheitspuffer bleibt (Wirkungsgrad ≈80–93 %, je nach Überschuss). Kein Puffer bei Netzladen
 - 📉 **Live-Berechnung des PV-Überschusses:** Alle 60 s (einstellbar) – Bilanz aus PV-Erzeugung, Hausverbrauch, Batterie und Wallbox.
 - 🚗 **Fahrzeugstatusprüfung:** Laden nur, wenn ein Fahrzeug verbunden ist (optional).
 - ⏱️ **Intelligente Zielzeitladung (PV-optimiert):**
@@ -70,6 +70,8 @@ Für jede Variable separat aktivierbar, falls dein Messwert andersherum zählt.
 
 - **Dynamischer Puffer**:  
   Überschuss = (PV – Haus – Batterie) × Puffer (je nach Höhe, siehe Doku/Manual).
+  Kein Puffer bei Netzladen. Der dynamische Puffer wird nur beim PV-Überschussladen angewendet!
+  Bei Netzladen (z. B. Zielzeit- oder Strompreismodul) wird immer die volle Leistung genutzt – ohne Abzug oder Sicherheitsreserve.
 
 - **Start/Stop Hysterese:**  
   - Start: Überschuss ≥ `MinLadeWatt` – Hysterese: Wert muss mehrfach überschritten werden.
