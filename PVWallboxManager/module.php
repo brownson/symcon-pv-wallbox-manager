@@ -106,7 +106,8 @@ class PVWallboxManager extends IPSModule
 
         //Strompreis-Börse / Forecast
         $this->RegisterVariableString('MarketPrices', '🔢 Strompreis-Forecast', '', 21);
-        $this->RegisterVariableString('MarketPricesText', 'Preisvorschau', '', 22);
+        $this->RegisterVariableString('MarketPricesText', 'Strompreis Info', '', 99);
+
                 
         $this->RegisterPropertyBoolean('UseMarketPrices', false);
         $this->RegisterPropertyString('MarketPriceProvider', 'awattar_at');
@@ -437,7 +438,7 @@ class PVWallboxManager extends IPSModule
         $this->SetLogValue('MarketPrices', $jsonShort);
     
         // Optional: Textvorschau erzeugen für WebFront
-        $vorschau = "";
+        $vorschau = "Test" . date('H:i:s')";
         $count = 0;
         foreach ($preise36 as $p) {
             if ($count++ >= 6) break;
