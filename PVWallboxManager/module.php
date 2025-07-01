@@ -182,12 +182,14 @@ public function RequestAction($ident, $value)
     $this->Log("RequestAction(): Aufruf mit Ident={$ident}, Value=" . json_encode($value), 'debug');
 
     // --- Schalter & Buttons behandeln ---
-    switch ($ident) {
-        case 'ManuellVollladen':
-            SetValue($this->GetIDForIdent($ident), $value);
+    switch($ident) {
+        case "ManuellVollladen":
+            $this->SetValue("ManuellVollladen", $value);
             if ($value) {
-                SetValue($this->GetIDForIdent('PV2CarModus'), false);
-                SetValue($this->GetIDForIdent('ZielzeitladungModus'), false);
+                $this->LogikManuellVollladen();
+            } else {
+                // ggf. auf Standard-Modus zurück
+                $this->UpdateCharging();
             }
             break;
 
@@ -332,9 +334,9 @@ public function UpdateCharging()
 
         // --- Modus-Weiche ---
         if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
-            $this->SetLadeleistung($this->GetMaxLadeleistung());
-            $this->SetLademodusStatus("🔌 Manueller Volllademodus aktiv.");
-            $this->Log("UpdateCharging(): Modus = Manueller Volllademodus.", 'info');
+            $this->LogikManuellVollladen();
+            return; // Keine andere Logik mehr prüfen!
+        }
         } elseif (GetValue($this->GetIDForIdent('ZielzeitladungModus'))) {
             $this->Log("UpdateCharging(): Modus = Zielzeitladung.", 'info');
             $this->LogikZielzeitladung($hausverbrauch);
@@ -752,6 +754,36 @@ private function LogikZielzeitladung($hausverbrauch = null)
     }
 }
     
+// =====================================================================================================
+
+private function LogikManuellVollladen()
+{
+    $goeID = $this->ReadPropertyInteger('GOEChargerID');
+
+    // 3-phasig erzwingen, aber nur schalten wenn nötig
+    if (function_exists('GOeCharger_GetPhases') && function_exists('GOeCharger_SetPhases')) {
+        $aktuellePhasen = GOeCharger_GetPhases($goeID);
+        if ($aktuellePhasen != 3) {
+            GOeCharger_SetPhases($goeID, 3);
+            $this->Log("Manuell Vollladen: Auf 3-phasig umgeschaltet.", 'info');
+        }
+    } else {
+        $this->Log("GOeCharger_GetPhases/SetPhases nicht verfügbar.", 'warn');
+    }
+
+    // Maximale Ladeleistung setzen
+    $maxWatt = $this->GetMaxLadeleistung();
+    $this->SetLadeleistung($maxWatt);
+
+    // Modus auf "Immer Laden" setzen (meist Mode 2, prüfen falls du anderen Modus nutzt!)
+    if (function_exists('GOeCharger_SetMode')) {
+        GOeCharger_SetMode($goeID, 2);
+    }
+
+    $this->SetLademodusStatus("🔌 Manueller Volllademodus aktiv: 3-phasig, {$maxWatt} W");
+    $this->Log("UpdateCharging(): Manueller Volllademodus aktiv: 3-phasig, {$maxWatt} W", 'info');
+}
+
 // =====================================================================================================
     
 private function GetMaxLadeleistung(): int
