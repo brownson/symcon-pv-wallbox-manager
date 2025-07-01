@@ -333,19 +333,35 @@ class PVWallboxManager extends IPSModule
     
         /// --- Unterscheidung nach Modus ---
         if ($modus == 'pv2car') {
-            $ueberschuss = $pv - $haus;
-            $logModus = "PV2Car (Auto bekommt Anteil vom Überschuss, Rest Batterie)";
+        // Batterie nicht berücksichtigen!
+        $ueberschuss = $pv - $haus;
+        $logModus = "PV2Car (Auto bekommt Anteil vom Überschuss, Rest Batterie)";
     
-            // Anteil auslesen und berechnen
-            $prozent = $this->ReadPropertyInteger('PV2CarProzent');
-            $anteilWatt = intval($ueberschuss * $prozent / 100);
+        // Anteil auslesen und berechnen
+        $prozent = $this->ReadPropertyInteger('PV2CarProzent');
+        $anteilWatt = intval($ueberschuss * $prozent / 100);
     
-            // Log-Ausgabe Anteil für das Auto
-            $this->Log("PV2Car-Modus: Nutzer-Anteil = {$prozent}% → Ladeleistung für das Auto = {$anteilWatt} W (PV-Überschuss gesamt: {$ueberschuss} W)", 'info');
+        // Mindestladeleistung aus Property holen
+        $minWatt = $this->ReadPropertyInteger('MinLadeWatt');
+    
+        if ($anteilWatt > 0 && $anteilWatt < $minWatt) {
+            $this->Log("PV2Car-Modus: Anteil {$anteilWatt} W ist unterhalb der Mindestladeleistung ({$minWatt} W) – Wallbox startet nicht.", 'info');
+            $ladeSoll = 0; // Oder Wallbox auf Pause/Stop
         } else {
-            $ueberschuss = $pv - $haus - max(0, $batt);
-            $logModus = "Standard (Batterie hat Vorrang)";
+            $ladeSoll = $anteilWatt;
         }
+    
+        $this->Log("PV2Car-Modus: Nutzer-Anteil = {$prozent}% → Ladeleistung für das Auto = {$anteilWatt} W (PV-Überschuss gesamt: {$ueberschuss} W, gesetzt: {$ladeSoll} W)", 'info');
+    
+        // Ladeleistung an Wallbox übergeben
+        if (isset($goeID) && $goeID > 0) {
+            GOeCharger_SetCurrentChargingWatt($goeID, $ladeSoll);
+            $this->Log("Ladeleistung an Wallbox übergeben: {$ladeSoll} W (PV2Car-Modus)", 'debug');
+        }
+    } else {
+        $ueberschuss = $pv - $haus - max(0, $batt);
+        $logModus = "Standard (Batterie hat Vorrang)";
+    }
     
         // === Dynamischer Puffer NUR im Standard-Modus (PV-Überschussladen) ===
         $pufferProzent = 1.0;
