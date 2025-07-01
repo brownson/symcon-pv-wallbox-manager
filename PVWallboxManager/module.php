@@ -146,7 +146,7 @@ class PVWallboxManager extends IPSModule
     
             // **Initialen Durchlauf direkt nach Aktivierung auslösen**
             $this->Log('Modul wurde aktiviert – initialer Berechnungsdurchlauf gestartet.', 'info');
-            $this->PVUeberschuss_Berechnen();
+            $this->UpdateCharging();
         } else {
             $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
             $this->Log('Timer deaktiviert – GO-e Instanz oder PV-Erzeugung oder Intervall nicht konfiguriert.', 'warn');
