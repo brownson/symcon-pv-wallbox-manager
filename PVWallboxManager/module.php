@@ -1183,19 +1183,25 @@ private function SetLogValue(string $ident, $value)
     }
 
 // =====================================================================================================
+    
+// SetLogValue bleibt bestehen, wird aber etwas robuster:
+private function SetLogValue($ident, $value)
+{
+    $varID = $this->GetIDForIdent($ident);
+    if ($varID !== false && @IPS_VariableExists($varID)) {
+        $alt = GetValue($varID);
 
-    private function SetLogValue($ident, $value)
-    {
-        $varID = $this->GetIDForIdent($ident);
-        if ($varID !== false && @IPS_VariableExists($varID)) {
-            if (GetValue($varID) !== $value) {
-                SetValue($varID, $value);
-                // Logausgabe max. 100 Zeichen, sonst abgeschnitten
-                $short = is_string($value) ? mb_strimwidth($value, 0, 100, "...") : $value;
-                IPS_LogMessage("PVWM({$this->InstanceID})", "[$ident] = " . $short);
-            }
+        if (trim((string)$alt) !== trim((string)$value)) {
+            SetValue($varID, $value);
+            $short = is_string($value) ? mb_strimwidth($value, 0, 100, "...") : $value;
+            IPS_LogMessage("PVWM({$this->InstanceID})", "[$ident] = " . $short);
         }
     }
+}
+
+// Vorteil: Nur noch an EINER zentralen Stelle wird der Status gepflegt.
+// Dadurch weniger unnötige SetValue() Aufrufe und sauberere Logs.
+// Bei Bedarf kannst du den Status-Text in UpdateLademodus
     
 // =====================================================================================================
 
@@ -1288,24 +1294,33 @@ private function CreateStatusEvent($goeID)
 
 // =====================================================================================================
 
-    private function UpdateLademodusStatusAuto($status, $ladeleistung, $pvUeberschuss, $batt, $hausakkuSOC, $hausakkuSOCVoll, $soc, $targetSOC, $wartenAufTarif = false)
-    {
-        if ($status == 1) {
-            $this->SetLademodusStatusByReason('no_vehicle');
-        } elseif ($soc >= $targetSOC && $targetSOC > 0) {
-            $this->SetLademodusStatusByReason('soc_reached');
-        } elseif ($wartenAufTarif) {
-            $this->SetLademodusStatusByReason('waiting_tariff');
-        } elseif ($batt > 0 && $hausakkuSOC < $hausakkuSOCVoll) {
-            $this->SetLademodusStatusByReason('battery_charging');
-        } elseif ($ladeleistung > 0) {
-            $this->SetLademodusStatusByReason('active');
-        } elseif ($pvUeberschuss <= 0) {
-            $this->SetLademodusStatusByReason('pv_too_low');
-        } else {
-            $this->SetLademodusStatusByReason();
-        }
+// Umbau: Nur noch zentrale Statussteuerung über UpdateLademodusStatusAuto
+private function UpdateLademodusStatusAuto($status, $ladeleistung, $pvUeberschuss, $batt, $hausakkuSOC, $hausakkuSOCVoll, $soc, $targetSOC, $wartenAufTarif = false)
+{
+    $neuerText = '';
+
+    if ($status == 1) {
+        $neuerText = '🅿️ Kein Fahrzeug verbunden';
+    } elseif ($soc >= $targetSOC && $targetSOC > 0) {
+        $neuerText = '✅ Ziel-SOC erreicht – keine weitere Ladung';
+    } elseif ($wartenAufTarif) {
+        $neuerText = '⏳ Wartet auf günstigen Stromtarif';
+    } elseif ($batt > 0 && $hausakkuSOC < $hausakkuSOCVoll) {
+        $neuerText = '🔋 Hausakku lädt – Wallbox pausiert';
+    } elseif ($ladeleistung > 0) {
+        $neuerText = '⚡️ Ladung aktiv';
+    } elseif ($pvUeberschuss <= 0) {
+        $neuerText = '🌥️ Kein PV-Überschuss – wartet auf Sonne';
+    } else {
+        $neuerText = '⏸️ Keine Ladung aktiv';
     }
+
+    $this->SetLogValue('LademodusStatus', $neuerText);
+}
+
+// Alle bisherigen direkten Aufrufe von SetLademodusStatus("...Text...") im Modul entfernen.
+// Stattdessen am Ende von UpdateCharging() und anderen passenden Stellen NUR noch diesen Aufruf machen:
+// $this->UpdateLademodusStatusAuto(...);
     
 // =====================================================================================================
 
