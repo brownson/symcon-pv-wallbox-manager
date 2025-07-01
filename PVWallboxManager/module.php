@@ -143,6 +143,10 @@ class PVWallboxManager extends IPSModule
         if ($goeID > 0 && $pvID > 0 && $interval > 0) {
             $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
             $this->Log("Timer aktiviert: Intervall PVUeberschuss_Berechnen={$interval}s", 'info');
+    
+            // **Initialen Durchlauf direkt nach Aktivierung auslösen**
+            $this->Log('Modul wurde aktiviert – initialer Berechnungsdurchlauf gestartet.', 'info');
+            $this->PVUeberschuss_Berechnen();
         } else {
             $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
             $this->Log('Timer deaktiviert – GO-e Instanz oder PV-Erzeugung oder Intervall nicht konfiguriert.', 'warn');
