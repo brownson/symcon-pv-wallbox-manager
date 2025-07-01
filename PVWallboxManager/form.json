@@ -203,7 +203,7 @@
           "name": "MarketPriceAPI",
           "caption": "API-URL (nur für Custom/Experten)",
           "default": "",
-          "label": "Dieses Feld wird nur bei 'Custom API' verwendet. Für Awattar ignoriert." }
+          "label": "Dieses Feld wird nur bei 'Custom API' verwendet. Für Awattar ignoriert."
         },
         {
           "type": "NumberSpinner",
