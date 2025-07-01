@@ -884,23 +884,6 @@ private function SetLademodusStatus(string $text)
 
 // =====================================================================================================
 
-private function SetLogValue(string $ident, $value)
-{
-    $id = $this->GetIDForIdent($ident);
-
-    if ($id === false || !IPS_VariableExists($id)) {
-        $this->Log("SetLogValue: Variable {$ident} existiert nicht!", 'warn');
-        return;
-    }
-
-    if (GetValue($id) !== $value) {
-        SetValue($id, $value);
-        $this->Log("{$ident} geändert: {$value}", 'debug');
-    }
-}
-
-// =====================================================================================================
-
 private function GetNormWert(string $idProp, string $einheitProp, string $invertProp, string $name = ""): float
 {
     $wert = 0;
