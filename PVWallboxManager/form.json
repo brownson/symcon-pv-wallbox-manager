@@ -131,21 +131,6 @@
           { "type": "SelectVariable", "name": "HausakkuSOCID", "caption": "Hausakku SoC (%)", "visible": { "name": "PVVerteilenAktiv", "equals": true } },
           { "type": "Label", "caption": "    " },
           { "type": "NumberSpinner", "name": "HausakkuSOCVollSchwelle", "caption": "Voll-Schwelle Hausbatterie (%)", "suffix": "%", "minimum": 50, "maximum": 100, "visible": { "name": "PVVerteilenAktiv", "equals": true } }
-        ]},
-        { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "⏰ Zielzeit-Ladung: Definiert, wie viele Stunden vor der eingestellten Zielzeit (z. B. 06:00 Uhr) mit garantiertem Laden begonnen wird. Davor wird vorrangig nur mit PV-Überschuss geladen." },
-        { "type": "RowLayout", "items": [
-          { "type": "NumberSpinner", "name": "TargetChargePreTime", "caption": "⏱️ Umschaltzeit vor Zielzeit (h)", "suffix": "h", "minimum": 1, "maximum": 12 }
-        ]},
-        { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "💶 Strompreisbasiertes Laden (dynamische Tarife)" },
-        { "type": "Label", "label": "⚠️ Aktivierung nur über den '€ Strompreisladen aktiv' Button im WebFront! Lädt, wenn Strompreis ≤ Höchstpreis" },
-        { "type": "RowLayout", "items": [
-          { "type": "SelectVariable", "name": "CurrentPriceID", "caption": "Aktueller Strompreis (ct/kWh)", "validVariableTypes": [2] },
-          { "type": "Label", "caption": "    " },
-          { "type": "SelectVariable", "name": "ForecastPriceID", "caption": "24h-Preisprognose (ct/kWh, Array)", "validVariableTypes": [3], "optional": true },
-          { "type": "Label", "caption": "    " },
-          { "type": "NumberSpinner", "name": "MaxPrice", "caption": "Höchstpreis (ct/kWh)", "suffix": "ct/kWh", "digits": 3, "minimum": 0.000, "maximum": 999.999, "default": 0.000, "enabled": false }
         ]}
       ]
     },
