@@ -1142,34 +1142,33 @@ class PVWallboxManager extends IPSModule
 
     private function SetLademodusStatusByReason($grund = '')
     {
-        $text = '';
         switch ($grund) {
             case 'no_vehicle':
-                $text = '<span style="color:#888;">🅿️ Kein Fahrzeug verbunden</span>';
+                $text = '🅿️ Kein Fahrzeug verbunden';
                 break;
             case 'pv_too_low':
-                $text = '<span style="color:#e6b800;">🌥️ Kein PV-Überschuss – wartet auf Sonne</span>';
+                $text = '🌥️ Kein PV-Überschuss – wartet auf Sonne';
                 break;
             case 'waiting_tariff':
-                $text = '<span style="color:#2faaff;">⏳ Wartet auf günstigen Stromtarif</span>';
+                $text = '⏳ Wartet auf günstigen Stromtarif';
                 break;
             case 'battery_charging':
-                $text = '<span style="color:#ff7f50;">🔋 Hausakku lädt – Wallbox pausiert</span>';
+                $text = '🔋 Hausakku lädt – Wallbox pausiert';
                 break;
             case 'soc_reached':
-                $text = '<span style="color:#22bb33;">✅ Ziel-SOC erreicht – keine weitere Ladung</span>';
+                $text = '✅ Ziel-SOC erreicht – keine weitere Ladung';
                 break;
             case 'manual_pause':
-                $text = '<span style="color:#888;">⏸️ Manuell pausiert</span>';
+                $text = '⏸️ Manuell pausiert';
                 break;
             case 'active':
-                $text = '<span style="color:#4caf50;font-weight:bold;">⚡️ Ladung aktiv</span>';
+                $text = '⚡️ Ladung aktiv';
                 break;
             case 'pv_surplus':
-                $text = '<span style="color:#4caf50;">🌞 PV-Überschuss: Ladung läuft</span>';
+                $text = '🌞 PV-Überschuss: Ladung läuft';
                 break;
             default:
-                $text = '<span style="color:#888;">⏸️ Keine Ladung aktiv</span>';
+                $text = '⏸️ Keine Ladung aktiv';
         }
         $this->SetLogValue('LademodusStatus', $text);
     }
