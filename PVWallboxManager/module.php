@@ -1,4 +1,5 @@
 <?php
+
 class PVWallboxManager extends IPSModule
 {
     public function Create()
