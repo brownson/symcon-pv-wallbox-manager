@@ -6,7 +6,8 @@
       "items": [
         { "type": "CheckBox", "name": "ModulAktiv", "caption": "⚡ Modul aktiv (bei Deaktivierung werden keine Aktionen ausgeführt)"},
         { "type": "CheckBox", "name": "DebugLogging", "caption": "🐞 Debug-Logging aktivieren (Details zu allen Variablen und Werten ins IPS-Log)", "default": false },
-        { "type": "Button", "caption": "Lock zurücksetzen", "icon": "Unlock", "onClick": "ResetLock", "visible": true, "type": "Label", "label": "Nur verwenden, wenn das Modul 'hängt' (z. B. nach einer Fehlermeldung wie 'UpdateCharging() läuft bereits …')."}
+        { "type": "Button", "caption": "Lock zurücksetzen", "icon": "Unlock", "onClick": "ResetLock"},
+        { "type": "Label", "caption": "Verwenden Sie diesen Button nur, wenn das Modul nicht mehr automatisch arbeitet und wiederholt die Warnung 'UpdateCharging() läuft bereits – neuer Aufruf wird abgebrochen.' anzeigt.\nDer Button setzt den internen Schutzmechanismus (Lock) zurück, sodass das Modul wieder ausgeführt werden kann."}
       ]
     },
     {
