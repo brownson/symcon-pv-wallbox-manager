@@ -16,6 +16,9 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
   - Beim Aktivieren des Moduls erfolgt jetzt sofort ein Initialdurchlauf der Ladelogik – das System reagiert damit sofort und wartet nicht mehr auf das nächste Intervall.
   - Bei Deaktivierung alles sauber stoppen, zurücksetzen, Timer aus.
   - Manueller Volllademodus nutzt jetzt konsequent die Property MaxAutoWatt (falls gesetzt). Ist kein Wert hinterlegt, wird die Ladeleistung automatisch anhand Phasen und Ampere berechnet.
+  - Hausverbrach wird ab der Version 0.9.1b im Modul berechnet
+  - Beim Modewechsel zu Fahrzeug Verbunden soll auch initial das Modul durchlaufen
+  - KEINE Berechnung PV-Überschuss bei getrenntem Fahrzeug
 
 - **Bugfix:**
   - StrompreisModus Boolean wurde nicht angelegt
