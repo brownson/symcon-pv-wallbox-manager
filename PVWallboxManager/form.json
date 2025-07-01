@@ -220,8 +220,7 @@
         {"type": "Label", "label": "Die Preise werden alle X Minuten aktualisiert und können in der Lade-Logik verwendet werden."},
         {
         "type": "Label",
-        "name": "MarketPricesPreview",
-        "label": "{MarketPricesText}"
+        "label": "Die aktuelle Börsenpreis-Vorschau findest du im WebFront unter 'Preisvorschau'."
       }
       ]
     }
