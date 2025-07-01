@@ -271,15 +271,14 @@ class PVWallboxManager extends IPSModule
             $hausverbrauch = $this->BerechneHausverbrauch();
             if ($hausverbrauch === false) {
                 $this->Log("Hausverbrauch konnte nicht berechnet werden – Abbruch UpdateCharging()", 'error');
-                //$this->WriteAttributeBoolean('RunLock', false);
                 return;
             }
     
             $goeID = $this->ReadPropertyInteger('GOEChargerID');
             $status = GOECharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
-
+    
+            // === Prüfen: Kein Fahrzeug verbunden? ===
             if ($this->ReadPropertyBoolean('NurMitFahrzeug') && $status == 1) {
-                // Fahrzeug nicht verbunden!
                 // Alle Lademodi deaktivieren
                 foreach (['ManuellVollladen','PV2CarModus','ZielzeitladungModus'] as $mod) {
                     if (GetValue($this->GetIDForIdent($mod))) {
@@ -289,20 +288,19 @@ class PVWallboxManager extends IPSModule
                 // Ladeleistung 0
                 $this->SetLadeleistung(0);
                 $this->SetFahrzeugStatus("⚠️ Kein Fahrzeug verbunden – bitte erst Fahrzeug anschließen.");
-                // PV-Überschuss und andere Werte ggf. auf 0 setzen
                 SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
                 $this->SetLademodusStatusByReason('no_vehicle');
                 $this->Log("Kein Fahrzeug verbunden – Abbruch der Berechnung", 'warn');
                 $this->UpdateWallboxStatusText();
                 return;
             }
-            
-            // Immer: PV-Überschuss (inkl. Batterieabzug) berechnen und anzeigen
-            $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch); // <--- Hausverbrauch als Parameter!
+    
+            // === PV-Überschuss berechnen ===
+            $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch);
             SetValue($this->GetIDForIdent('PV_Ueberschuss'), $pvUeberschussStandard);
             $this->Log("Standard-PV-Überschuss berechnet: {$pvUeberschussStandard} W", 'debug');
     
-            // Status-Logik für weitere Fahrzeugstatus
+            // === Fahrzeugstatus-Logik ===
             if ($this->ReadPropertyBoolean('NurMitFahrzeug')) {
                 if ($status == 3) {
                     $this->SetFahrzeugStatus("🚗 Fahrzeug angeschlossen, wartet auf Freigabe (z.B. Tür öffnen oder am Fahrzeug 'Laden' aktivieren)");
@@ -314,13 +312,13 @@ class PVWallboxManager extends IPSModule
                 }
             }
     
-            // === Ziel-SOC immer berücksichtigen, wenn Option aktiv ===
+            // === Ziel-SOC berücksichtigen, wenn aktiv ===
             if ($this->ReadPropertyBoolean('AlwaysUseTargetSOC')) {
                 $socID = $this->ReadPropertyInteger('CarSOCID');
                 $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : $this->ReadPropertyFloat('CarSOCFallback');
                 $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
                 $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : $this->ReadPropertyFloat('CarTargetSOCFallback');
-                $capacity = $this->ReadPropertyFloat('CarBatteryCapacity'); // z.B. 52.0
+                $capacity = $this->ReadPropertyFloat('CarBatteryCapacity');
     
                 $fehlendeProzent = max(0, $targetSOC - $soc);
                 $fehlendeKWh = $capacity * $fehlendeProzent / 100.0;
@@ -336,14 +334,14 @@ class PVWallboxManager extends IPSModule
                 }
             }
     
-            // Modus-Weiche: NUR eine Logik pro Durchlauf!
+            // === Modus-Weiche: Nur eine Logik pro Durchlauf! ===
             if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
                 $this->SetLadeleistung($this->GetMaxLadeleistung());
                 $this->SetLademodusStatus("Manueller Volllademodus aktiv");
                 $this->Log("Modus: Manueller Volllademodus", 'info');
             } elseif (GetValue($this->GetIDForIdent('ZielzeitladungModus'))) {
                 $this->Log("Modus: Zielzeitladung aktiv", 'info');
-                $this->LogikZielzeitladung($hausverbrauch); // übergebe $hausverbrauch als Parameter
+                $this->LogikZielzeitladung($hausverbrauch);
             } elseif (GetValue($this->GetIDForIdent('PV2CarModus'))) {
                 $this->Log("Modus: PV2Car aktiv", 'info');
                 $this->LogikPVPureMitHysterese('pv2car', $hausverbrauch);
@@ -351,9 +349,9 @@ class PVWallboxManager extends IPSModule
                 $this->Log("Modus: PV-Überschuss (Standard)", 'info');
                 $this->LogikPVPureMitHysterese('standard', $hausverbrauch);
             }
-
-            // === Automatische Statusanzeige Lademodus (farbig mit Emoji) ===
-            $ladeleistung = ($goeID > 0) ? GOeCharger_GetPowerToCar($goeID) : 0;
+    
+            // === Automatische Statusanzeige Lademodus (Emojis, Vorschau usw.) ===
+            $ladeleistung = ($goeID > 0) ? GOECharger_GetPowerToCar($goeID) : 0;
             $batt = $this->GetNormWert('BatterieladungID', 'BatterieladungEinheit', 'InvertBatterieladung', "Batterieladung");
             $hausakkuSOCID = $this->ReadPropertyInteger('HausakkuSOCID');
             $hausakkuSOC = ($hausakkuSOCID > 0 && @IPS_VariableExists($hausakkuSOCID)) ? GetValue($hausakkuSOCID) : 100;
@@ -362,9 +360,8 @@ class PVWallboxManager extends IPSModule
             $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : 0;
             $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
             $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : 0;
-            // Falls du eine Tarifsteuerung hast (Forecast etc.):
-            $wartenAufTarif = false; // Setze auf true, wenn du im Zielzeit-Modus auf günstigen Tarif wartest
-            
+            $wartenAufTarif = false; // Später aus Forecast setzen?
+    
             $this->UpdateLademodusStatusAuto(
                 $status,
                 $ladeleistung,
@@ -376,15 +373,12 @@ class PVWallboxManager extends IPSModule
                 $targetSOC,
                 $wartenAufTarif
             );
-            
-            // Optional: WallboxStatusText für WebFront aktualisieren (nur einmal pro Zyklus)
+    
             $this->UpdateWallboxStatusText();
             $this->UpdateFahrzeugStatusText();
             $this->WriteAttributeBoolean('RunLogFlag', false);
-
-            
+    
         } finally {
-            // Sperre immer wieder freigeben!
             $this->WriteAttributeBoolean('RunLock', false);
         }
     }
