@@ -202,8 +202,8 @@
         {
           "type": "ValidationTextBox",
           "name": "MarketPriceAPI",
-          "caption": "API-URL (nur für Custom/Experten)",
-          "default": "https://api.awattar.at/v1/marketdata"
+          "caption": "API-URL (nur für Custom/Experten) bei Provider einfach Custom API auswählen",
+          "default": ""
         },
         {
           "type": "NumberSpinner",
