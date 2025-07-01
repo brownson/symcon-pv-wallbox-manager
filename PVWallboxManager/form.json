@@ -206,6 +206,7 @@
           "caption": "API-URL (nur für Experten/Custom)",
           "default": ""
         },
+        { "type": "Label", "caption": "    " },
         {
           "type": "NumberSpinner",
           "name": "MarketPriceInterval",
