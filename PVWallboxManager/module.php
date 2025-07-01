@@ -5,182 +5,168 @@ class PVWallboxManager extends IPSModule
     {
         parent::Create();
 
+        $this->Log("Initialisiere Modulvariablen und Properties", 'debug');
+
         // Visualisierung berechneter Werte
-        $this->RegisterVariableFloat('PV_Ueberschuss', 'PV-Überschuss (W)', '~Watt', 10); // Aktuell berechneter PV-Überschuss in Watt
+        $this->RegisterVariableFloat('PV_Ueberschuss', 'PV-Überschuss (W)', '~Watt', 10);
 
         // Energiequellen (Variablen-IDs für Berechnung)
-        $this->RegisterPropertyInteger('PVErzeugungID', 0); // PV-Erzeugung
+        $this->RegisterPropertyInteger('PVErzeugungID', 0);
         $this->RegisterPropertyString("PVErzeugungEinheit", "W");
-        
-        $this->RegisterPropertyInteger('HausverbrauchID', 0); // Hausverbrauch gesamt
+        $this->RegisterPropertyInteger('HausverbrauchID', 0);
         $this->RegisterPropertyBoolean("InvertHausverbrauch", false);
         $this->RegisterPropertyString("HausverbrauchEinheit", "W");
-        
-        $this->RegisterPropertyInteger('BatterieladungID', 0); // Batterie-Lade-/Entladeleistung
+        $this->RegisterPropertyInteger('BatterieladungID', 0);
         $this->RegisterPropertyBoolean("InvertBatterieladung", false);
         $this->RegisterPropertyString("BatterieladungEinheit", "W");
-        
-        $this->RegisterPropertyInteger('NetzeinspeisungID', 0); // Einspeisung/Bezug ins Netz (positiv/negativ)
+        $this->RegisterPropertyInteger('NetzeinspeisungID', 0);
         $this->RegisterPropertyBoolean("InvertNetzeinspeisung", false);
         $this->RegisterPropertyString("NetzeinspeisungEinheit", "W");
 
         // Wallbox-Einstellungen
-        $this->RegisterPropertyInteger('GOEChargerID', 0); // Instanz-ID des GO-e Chargers
-        $this->RegisterPropertyInteger('MinAmpere', 6); // Minimale Ladeleistung (Ampere)
-        $this->RegisterPropertyInteger('MaxAmpere', 16); // Maximale Ladeleistung (Ampere)
-        $this->RegisterPropertyInteger('Phasen', 3); // Anzahl aktiv verwendeter Ladephasen (1 oder 3)
+        $this->RegisterPropertyInteger('GOEChargerID', 0);
+        $this->RegisterPropertyInteger('MinAmpere', 6);
+        $this->RegisterPropertyInteger('MaxAmpere', 16);
+        $this->RegisterPropertyInteger('Phasen', 3);
 
         // Lade-Logik & Schwellenwerte
-        $this->RegisterPropertyInteger('MinLadeWatt', 1400); // Mindest-PV-Überschuss zum Starten (Watt)
-        $this->RegisterPropertyInteger('MinStopWatt', -300); // Schwelle zum Stoppen bei Defizit (Watt)
-        $this->RegisterPropertyInteger('Phasen1Schwelle', 1000); // Schwelle zum Umschalten auf 1-phasig (Watt)
-        $this->RegisterPropertyInteger('Phasen3Schwelle', 4200); // Schwelle zum Umschalten auf 3-phasig (Watt)
-        $this->RegisterPropertyInteger('Phasen1Limit', 3); // Messzyklen unterhalb Schwelle vor Umschalten auf 1-phasig
-        $this->RegisterPropertyInteger('Phasen3Limit', 3); // Messzyklen oberhalb Schwelle vor Umschalten auf 3-phasig
-        $this->RegisterPropertyBoolean('DynamischerPufferAktiv', true); // Dynamischer Sicherheitsabzug aktiv
+        $this->RegisterPropertyInteger('MinLadeWatt', 1400);
+        $this->RegisterPropertyInteger('MinStopWatt', -300);
+        $this->RegisterPropertyInteger('Phasen1Schwelle', 1000);
+        $this->RegisterPropertyInteger('Phasen3Schwelle', 4200);
+        $this->RegisterPropertyInteger('Phasen1Limit', 3);
+        $this->RegisterPropertyInteger('Phasen3Limit', 3);
+        $this->RegisterPropertyBoolean('DynamischerPufferAktiv', true);
 
         // Fahrzeug-Erkennung & Ziel-SOC
-        $this->RegisterPropertyBoolean('NurMitFahrzeug', true); // Ladung nur wenn Fahrzeug verbunden
-        $this->RegisterPropertyBoolean('AllowBatteryDischarge', true); // Erlaubt die Entladung der Hausbatterie zur Unterstützung des PV-Überschussladens
-        $this->RegisterPropertyBoolean('UseCarSOC', false); // Fahrzeug-SOC berücksichtigen
-        $this->RegisterPropertyInteger('CarSOCID', 0); // Variable für aktuellen SOC des Fahrzeugs
-        $this->RegisterPropertyFloat('CarSOCFallback', 20); // Fallback-SOC wenn keine Variable verfügbar
-        $this->RegisterPropertyInteger('CarTargetSOCID', 0); // Ziel-SOC Variable
-        $this->RegisterPropertyFloat('CarTargetSOCFallback', 80); // Fallback-Zielwert für SOC
-        $this->RegisterPropertyInteger('MaxAutoWatt', 11000); // / Standardwert: 11.000 W (typisch für 3-phasige Wallbox/Fahrzeug, bei Bedarf anpassen)
-        $this->RegisterPropertyFloat('CarBatteryCapacity', 52.0); // Batteriekapazität des Fahrzeugs in kWh
-        $this->RegisterPropertyBoolean('AlwaysUseTargetSOC', false); // Ziel-SOC immer berücksichtigen (auch bei PV-Überschussladung)
+        $this->RegisterPropertyBoolean('NurMitFahrzeug', true);
+        $this->RegisterPropertyBoolean('AllowBatteryDischarge', true);
+        $this->RegisterPropertyBoolean('UseCarSOC', false);
+        $this->RegisterPropertyInteger('CarSOCID', 0);
+        $this->RegisterPropertyFloat('CarSOCFallback', 20);
+        $this->RegisterPropertyInteger('CarTargetSOCID', 0);
+        $this->RegisterPropertyFloat('CarTargetSOCFallback', 80);
+        $this->RegisterPropertyInteger('MaxAutoWatt', 11000);
+        $this->RegisterPropertyFloat('CarBatteryCapacity', 52.0);
+        $this->RegisterPropertyBoolean('AlwaysUseTargetSOC', false);
 
-        // Interne Status-Zähler für Phasenumschaltung
+        // Status-Zähler für Phasenumschaltung
         $this->RegisterAttributeInteger('Phasen1Counter', 0);
         $this->RegisterAttributeInteger('Phasen3Counter', 0);
-
         $this->RegisterAttributeBoolean('RunLogFlag', true);
 
-        // Start/Stop-Hysterese
-        $this->RegisterPropertyInteger('StartHysterese', 0); // Anzahl Zyklen über Startschwelle bis gestartet wird
-        $this->RegisterPropertyInteger('StopHysterese', 0);  // Anzahl Zyklen unter Stoppschwelle bis gestoppt wird
-
+        // Hysterese
+        $this->RegisterPropertyInteger('StartHysterese', 0);
+        $this->RegisterPropertyInteger('StopHysterese', 0);
         $this->RegisterAttributeInteger('StartHystereseCounter', 0);
         $this->RegisterAttributeInteger('StopHystereseCounter', 0);
 
-        // Erweiterte Logik: PV-Verteilung Auto/Haus
-        $this->RegisterPropertyBoolean('PVVerteilenAktiv', false); // PV-Leistung anteilig zum Auto leiten
-        $this->RegisterPropertyInteger('PVAnteilAuto', 33); // Anteil für das Auto in Prozent
-        $this->RegisterPropertyInteger('HausakkuSOCID', 0); // SOC-Variable des Hausakkus
-        $this->RegisterPropertyInteger('HausakkuSOCVollSchwelle', 95); // Schwelle ab wann Akku voll gilt
+        // PV2Car Verteilung
+        $this->RegisterPropertyBoolean('PVVerteilenAktiv', false);
+        $this->RegisterPropertyInteger('PVAnteilAuto', 33);
+        $this->RegisterPropertyInteger('HausakkuSOCID', 0);
+        $this->RegisterPropertyInteger('HausakkuSOCVollSchwelle', 95);
 
-        // Visualisierung & WebFront-Buttons
+        // Visualisierung & WebFront
         $this->RegisterVariableBoolean('ManuellVollladen', '🔌 Manuell: Vollladen aktiv', '', 20);
         $this->EnableAction('ManuellVollladen');
-
         $this->RegisterVariableBoolean('PV2CarModus', '☀️ PV-Anteil fürs Auto aktiv', '', 30);
         $this->EnableAction('PV2CarModus');
-
         $this->RegisterVariableBoolean('ZielzeitladungModus', '⏱️ Zielzeitladung', '', 40);
         $this->EnableAction('ZielzeitladungModus');
-        
         $this->RegisterVariableBoolean('AllowBatteryDischargeStatus', 'PV-Batterieentladung zulassen', '', 98);
-
         $this->RegisterVariableString('FahrzeugStatusText', 'Fahrzeug Status', '', 70);
         $this->RegisterVariableString('LademodusStatus', 'Aktueller Lademodus', '', 80);
         $this->RegisterVariableString('WallboxStatusText', 'Wallbox Status', '~HTMLBox', 90);
-
         $this->RegisterVariableInteger('TargetTime', 'Ziel-Zeit (Uhr)', '~UnixTimestampTime', 60);
         $this->EnableAction('TargetTime');
 
-        // Zykluszeiten & Ladeplanung
-        $this->RegisterPropertyInteger('RefreshInterval', 60); // Intervall für die Überschuss-Berechnung (Sekunden)
-
-        //Strompreis-Börse / Forecast
+        // Zeit & Preis-Parameter
+        $this->RegisterPropertyInteger('RefreshInterval', 60);
         $this->RegisterVariableString('MarketPrices', '🔢 Strompreis-Forecast', '', 21);
         $this->RegisterVariableString('MarketPricesText', 'Preisvorschau', '', 22);
-                
         $this->RegisterPropertyBoolean('UseMarketPrices', false);
         $this->RegisterPropertyString('MarketPriceProvider', 'awattar_at');
         $this->RegisterPropertyString('MarketPriceAPI', '');
-        $this->RegisterPropertyInteger('MarketPriceInterval', 30); // Minuten
+        $this->RegisterPropertyInteger('MarketPriceInterval', 30);
 
-
-        // Timer für regelmäßige Berechnung
+        // Timer
         $this->RegisterTimer('PVUeberschuss_Berechnen', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
         $this->RegisterTimer('MarketPrice_Update', 0, 'PVWM_UpdateMarketPrices($_IPS[\'TARGET\']);');
 
-        
         $this->RegisterPropertyBoolean('ModulAktiv', true);
         $this->RegisterPropertyBoolean('DebugLogging', false);
         $this->RegisterAttributeBoolean('RunLock', false);
 
+        $this->Log("Initialisierung abgeschlossen", 'debug');
     }
 
 // =====================================================================================================
 
-public function ApplyChanges()
-{
-    parent::ApplyChanges();
+    public function ApplyChanges()
+    {
+        parent::ApplyChanges();
 
-    $this->Log('Instanz-Config: ' . json_encode(IPS_GetConfiguration($this->InstanceID)), 'debug');
+        $this->Log('ApplyChanges(): Konfiguration wird angewendet.', 'debug');
 
-    $interval = $this->ReadPropertyInteger('RefreshInterval');
-    $goeID = $this->ReadPropertyInteger('GOEChargerID');
-    $pvID = $this->ReadPropertyInteger('PVErzeugungID');
+        $interval = $this->ReadPropertyInteger('RefreshInterval');
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $pvID = $this->ReadPropertyInteger('PVErzeugungID');
 
-    // --- Timer für Börsenpreis-Aktualisierung ---
-    if ($this->ReadPropertyBoolean('UseMarketPrices')) {
-        $intervalMarket = $this->ReadPropertyInteger('MarketPriceInterval');
-        if ($intervalMarket > 0) {
-            $this->SetTimerInterval('MarketPrice_Update', $intervalMarket * 60 * 1000);
-            $this->Log("Timer MarketPrice_Update aktiviert: Intervall = {$intervalMarket} Minuten", 'info');
-            $this->UpdateMarketPrices();
+        if ($this->ReadPropertyBoolean('UseMarketPrices')) {
+            $intervalMarket = $this->ReadPropertyInteger('MarketPriceInterval');
+            if ($intervalMarket > 0) {
+                $this->SetTimerInterval('MarketPrice_Update', $intervalMarket * 60000);
+                $this->Log("Timer MarketPrice_Update aktiviert: Intervall = {$intervalMarket} Minuten", 'info');
+                $this->UpdateMarketPrices();
+            } else {
+                $this->SetTimerInterval('MarketPrice_Update', 0);
+                $this->Log("Timer MarketPrice_Update deaktiviert (Intervall = 0)", 'info');
+            }
         } else {
             $this->SetTimerInterval('MarketPrice_Update', 0);
-            $this->Log("Timer MarketPrice_Update deaktiviert (Intervall = 0)", 'info');
+            $this->Log("Timer MarketPrice_Update deaktiviert (UseMarketPrices = false)", 'info');
         }
-    } else {
-        $this->SetTimerInterval('MarketPrice_Update', 0);
-        $this->Log("Timer MarketPrice_Update deaktiviert (UseMarketPrices = false)", 'info');
-    }
-            
-    // === Modul deaktiviert ===
-    if (!$this->ReadPropertyBoolean('ModulAktiv')) {
-        if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
-            GOeCharger_setMode($goeID, 1);
-            GOeCharger_SetCurrentChargingWatt($goeID, 0);
-        }
-        foreach (['ManuellVollladen', 'PV2CarModus', 'ZielzeitladungModus'] as $mod) {
-            if (@$this->GetIDForIdent($mod) && GetValue($this->GetIDForIdent($mod))) {
-                SetValue($this->GetIDForIdent($mod), false);
+
+        if (!$this->ReadPropertyBoolean('ModulAktiv')) {
+            if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
+                GOeCharger_setMode($goeID, 1);
+                GOeCharger_SetCurrentChargingWatt($goeID, 0);
             }
+            foreach (['ManuellVollladen', 'PV2CarModus', 'ZielzeitladungModus'] as $mod) {
+                if (@$this->GetIDForIdent($mod) && GetValue($this->GetIDForIdent($mod))) {
+                    SetValue($this->GetIDForIdent($mod), false);
+                }
+            }
+            $this->SetLademodusStatus("🛑 Modul deaktiviert – alle Vorgänge gestoppt.");
+            $this->SetFahrzeugStatus("🛑 Modul deaktiviert.");
+            if (@$this->GetIDForIdent('PV_Ueberschuss')) {
+                SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
+            }
+            $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
+            $this->RemoveStatusEvent();
+            $this->Log('ApplyChanges(): Modul deaktiviert, Vorgänge gestoppt.', 'info');
+            return;
         }
-        $this->SetLademodusStatus("🛑 Modul deaktiviert – alle Vorgänge gestoppt.");
-        $this->SetFahrzeugStatus("🛑 Modul deaktiviert.");
-        if (@$this->GetIDForIdent('PV_Ueberschuss')) {
-            SetValue($this->GetIDForIdent('PV_Ueberschuss'), 0.0);
+
+        if ($goeID > 0) {
+            $this->CreateStatusEvent($goeID);
         }
-        $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
-        $this->RemoveStatusEvent();
-        $this->Log('Modul ist deaktiviert – alle Ladevorgänge gestoppt, Modi und Status zurückgesetzt, Timer aus.', 'info');
-        return;
-    }
 
-    // === Modul aktiv ===
-    if ($goeID > 0) {
-        $this->CreateStatusEvent($goeID);
-    }
+        if ($goeID > 0 && $pvID > 0 && $interval > 0) {
+            $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
+            $this->Log("Timer aktiviert: PVUeberschuss_Berechnen alle {$interval} Sekunden", 'info');
+            $this->Log('ApplyChanges(): Initialer Berechnungsdurchlauf wird gestartet.', 'info');
+            $this->UpdateCharging();
+        } else {
+            $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
+            $this->RemoveStatusEvent();
+            $this->Log('ApplyChanges(): Timer deaktiviert – GO-e oder PV oder Intervall fehlt.', 'warn');
+        }
 
-    if ($goeID > 0 && $pvID > 0 && $interval > 0) {
-        $this->SetTimerInterval('PVUeberschuss_Berechnen', $interval * 1000);
-        $this->Log("Timer aktiviert: Intervall PVUeberschuss_Berechnen={$interval}s", 'info');
-        $this->Log('Modul wurde aktiviert – initialer Berechnungsdurchlauf gestartet.', 'info');
-        $this->UpdateCharging();
-    } else {
-        $this->SetTimerInterval('PVUeberschuss_Berechnen', 0);
-        $this->RemoveStatusEvent();
-        $this->Log('Timer deaktiviert – GO-e Instanz oder PV-Erzeugung oder Intervall nicht konfiguriert.', 'warn');
+        $this->SetValue('AllowBatteryDischargeStatus', $this->ReadPropertyBoolean('AllowBatteryDischarge'));
+        $this->Log('ApplyChanges(): Konfiguration abgeschlossen.', 'debug');
     }
-
-    $this->SetValue('AllowBatteryDischargeStatus', $this->ReadPropertyBoolean('AllowBatteryDischarge'));
-}
 
 // =====================================================================================================
 
