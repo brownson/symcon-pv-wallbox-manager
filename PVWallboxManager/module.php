@@ -108,7 +108,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableString('MarketPrices', '🔢 Strompreis-Forecast', '', 21);
         $this->RegisterVariableString('MarketPricesText', 'Preisvorschau', '', 22);
         $this->RegisterVariableString('MarketPricesText', 'Strompreis Info', '', 99);
-        
+                
         $this->RegisterPropertyBoolean('UseMarketPrices', false);
         $this->RegisterPropertyString('MarketPriceProvider', 'awattar_at');
         $this->RegisterPropertyString('MarketPriceAPI', '');
@@ -445,8 +445,12 @@ class PVWallboxManager extends IPSModule
             $uhrzeit = date('d.m. H:i', $p['start']);
             $vorschau .= "{$uhrzeit}: " . number_format($p['price'], 2, ',', '.') . " ct/kWh\n";
         }
-        $this->SetLogValue('MarketPricesText', $vorschau);
-    
+        SetValue($this->GetIDForIdent('MarketPricesText'), $vorschau);
+        //$varID = $this->GetIDForIdent('MarketPricesText');
+        //    if ($varID > 0) {
+        //        SetValue($varID, $vorschau);
+        //    }
+
         $this->Log("Strompreisdaten erfolgreich aktualisiert ({$count} Slots, Provider: $provider)", 'info');
     }
 
