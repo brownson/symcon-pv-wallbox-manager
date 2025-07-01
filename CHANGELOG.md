@@ -16,7 +16,7 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 
 - **Bugfix:**
   - StrompreisModus Boolean wurde nicht angelegt
-  - Der aktuelle Lademodus („standard“, „manuell“, „pv2car“ oder „zielzeit“) wird nun als Variable gespeichert und bei jedem Moduswechsel korrekt gesetzt bzw. zurückgesetzt.
+  - Der aktuelle Lademodus („standard“, „manuell“, „pv2car“ oder „zielzeit“) wird nun als Variable gespeichert und bei jedem Moduswechsel korrekt gesetzt bzw. zurückgesetzt und berechnet.
 
 ---
 
