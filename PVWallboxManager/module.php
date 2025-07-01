@@ -333,20 +333,46 @@ class PVWallboxManager extends IPSModule
                 $this->Log("Modus: Manueller Volllademodus", 'info');
             } elseif (GetValue($this->GetIDForIdent('ZielzeitladungModus'))) {
                 $this->Log("Modus: Zielzeitladung aktiv", 'info');
-                $this->LogikZielzeitladung($hausverbrauch); // <<<<<< NEU: übergebe $hausverbrauch als Parameter
+                $this->LogikZielzeitladung($hausverbrauch); // übergebe $hausverbrauch als Parameter
             } elseif (GetValue($this->GetIDForIdent('PV2CarModus'))) {
                 $this->Log("Modus: PV2Car aktiv", 'info');
-                $this->LogikPVPureMitHysterese('pv2car', $hausverbrauch); // <<<<<< NEU
+                $this->LogikPVPureMitHysterese('pv2car', $hausverbrauch);
             } else {
                 $this->Log("Modus: PV-Überschuss (Standard)", 'info');
-                $this->LogikPVPureMitHysterese('standard', $hausverbrauch); // <<<<<< NEU
+                $this->LogikPVPureMitHysterese('standard', $hausverbrauch);
             }
-    
+
+            // === Automatische Statusanzeige Lademodus (farbig mit Emoji) ===
+            $ladeleistung = ($goeID > 0) ? GOeCharger_GetPowerToCar($goeID) : 0;
+            $batt = $this->GetNormWert('BatterieladungID', 'BatterieladungEinheit', 'InvertBatterieladung', "Batterieladung");
+            $hausakkuSOCID = $this->ReadPropertyInteger('HausakkuSOCID');
+            $hausakkuSOC = ($hausakkuSOCID > 0 && @IPS_VariableExists($hausakkuSOCID)) ? GetValue($hausakkuSOCID) : 100;
+            $hausakkuSOCVoll = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
+            $socID = $this->ReadPropertyInteger('CarSOCID');
+            $soc = (IPS_VariableExists($socID) && $socID > 0) ? GetValue($socID) : 0;
+            $targetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
+            $targetSOC = (IPS_VariableExists($targetSOCID) && $targetSOCID > 0) ? GetValue($targetSOCID) : 0;
+            // Falls du eine Tarifsteuerung hast (Forecast etc.):
+            $wartenAufTarif = false; // Setze auf true, wenn du im Zielzeit-Modus auf günstigen Tarif wartest
+            
+            $this->UpdateLademodusStatusAuto(
+                $status,
+                $ladeleistung,
+                $pvUeberschussStandard,
+                $batt,
+                $hausakkuSOC,
+                $hausakkuSOCVoll,
+                $soc,
+                $targetSOC,
+                $wartenAufTarif
+            );
+            
             // Optional: WallboxStatusText für WebFront aktualisieren (nur einmal pro Zyklus)
             $this->UpdateWallboxStatusText();
             $this->UpdateFahrzeugStatusText();
             $this->WriteAttributeBoolean('RunLogFlag', false);
-    
+
+            
         } finally {
             // Sperre immer wieder freigeben!
             $this->WriteAttributeBoolean('RunLock', false);
@@ -1109,6 +1135,63 @@ class PVWallboxManager extends IPSModule
         if ($eventID !== false) {
             IPS_DeleteEvent($eventID);
             $this->Log("Sofort-Trigger-Ereignis bei Statuswechsel wurde entfernt.", 'debug');
+        }
+    }
+    
+// =====================================================================================================
+
+    private function SetLademodusStatusByReason($grund = '')
+    {
+        $text = '';
+        switch ($grund) {
+            case 'no_vehicle':
+                $text = '<span style="color:#888;">🅿️ Kein Fahrzeug verbunden</span>';
+                break;
+            case 'pv_too_low':
+                $text = '<span style="color:#e6b800;">🌥️ Kein PV-Überschuss – wartet auf Sonne</span>';
+                break;
+            case 'waiting_tariff':
+                $text = '<span style="color:#2faaff;">⏳ Wartet auf günstigen Stromtarif</span>';
+                break;
+            case 'battery_charging':
+                $text = '<span style="color:#ff7f50;">🔋 Hausakku lädt – Wallbox pausiert</span>';
+                break;
+            case 'soc_reached':
+                $text = '<span style="color:#22bb33;">✅ Ziel-SOC erreicht – keine weitere Ladung</span>';
+                break;
+            case 'manual_pause':
+                $text = '<span style="color:#888;">⏸️ Manuell pausiert</span>';
+                break;
+            case 'active':
+                $text = '<span style="color:#4caf50;font-weight:bold;">⚡️ Ladung aktiv</span>';
+                break;
+            case 'pv_surplus':
+                $text = '<span style="color:#4caf50;">🌞 PV-Überschuss: Ladung läuft</span>';
+                break;
+            default:
+                $text = '<span style="color:#888;">⏸️ Keine Ladung aktiv</span>';
+        }
+        $this->SetLogValue('LademodusStatus', $text);
+    }
+
+// =====================================================================================================
+
+    private function UpdateLademodusStatusAuto($status, $ladeleistung, $pvUeberschuss, $batt, $hausakkuSOC, $hausakkuSOCVoll, $soc, $targetSOC, $wartenAufTarif = false)
+    {
+        if ($status == 1) {
+            $this->SetLademodusStatusByReason('no_vehicle');
+        } elseif ($soc >= $targetSOC && $targetSOC > 0) {
+            $this->SetLademodusStatusByReason('soc_reached');
+        } elseif ($wartenAufTarif) {
+            $this->SetLademodusStatusByReason('waiting_tariff');
+        } elseif ($batt > 0 && $hausakkuSOC < $hausakkuSOCVoll) {
+            $this->SetLademodusStatusByReason('battery_charging');
+        } elseif ($ladeleistung > 0) {
+            $this->SetLademodusStatusByReason('active');
+        } elseif ($pvUeberschuss <= 0) {
+            $this->SetLademodusStatusByReason('pv_too_low');
+        } else {
+            $this->SetLademodusStatusByReason();
         }
     }
     
