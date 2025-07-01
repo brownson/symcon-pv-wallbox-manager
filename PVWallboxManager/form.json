@@ -41,9 +41,9 @@
       "type": "ExpansionPanel",
       "caption": "🌞 Energiequellen",
       "items": [
-        { "type": "Label", "label": "🌅 PV-Erzeugung (Pflichtvariable): Leistung der PV-Anlage in Watt." },
+        { "type": "Label", "label": "🌅 PV-Erzeugung (Pflichtvariable): Leistung der PV-Anlage." },
         { "type": "RowLayout", "items": [
-          { "type": "SelectVariable", "name": "PVErzeugungID", "caption": "PV-Erzeugung (W)", "validVariableTypes": [2] },
+          { "type": "SelectVariable", "name": "PVErzeugungID", "caption": "PV-Erzeugung", "validVariableTypes": [2] },
           { "type": "Label", "caption": "    " },
           { "type": "Select", "name": "PVErzeugungEinheit", "caption": "Einheit", "options": [
             { "caption": "Watt (W)", "value": "W" },
@@ -59,9 +59,9 @@
           { "type": "Label", "caption": "         " },
           { "type": "CheckBox", "name": "InvertNetzeinspeisung", "caption": "Normal positiv. Falls dein Zähler negativ liefert, hier invertieren." }
         ]},
-        { "type": "Label", "label": "🏠 Hausverbrauch (Pflichtvariable): Aktueller Gesamtverbrauch in Watt." },
+        { "type": "Label", "label": "🏠 Hausverbrauch (Pflichtvariable): Aktueller Gesamtverbrauch." },
         { "type": "RowLayout", "items": [
-          { "type": "SelectVariable", "name": "HausverbrauchID", "caption": "Hausverbrauch (W) - Wallboxleistung zum Fahrzeug", "validVariableTypes": [2] },
+          { "type": "SelectVariable", "name": "HausverbrauchID", "caption": "Gesamter Hausverbrauch", "validVariableTypes": [2] },
           { "type": "Label", "caption": "    " },
           { "type": "Select", "name": "HausverbrauchEinheit", "caption": "Einheit", "options": [
             { "caption": "Watt (W)", "value": "W" },
@@ -69,9 +69,9 @@
           { "type": "Label", "caption": "         " },
           { "type": "CheckBox", "name": "InvertHausverbrauch", "caption": "Normal positiv. Falls dein Zähler negativ liefert, hier invertieren." }
         ]},
-        { "type": "Label", "label": "🔋 Batterieladung (optional): Lade- oder Entladeleistung der Hausbatterie in Watt.  Wenn keine Variable ausgewählt ist, wird 0 verwendet." },
+        { "type": "Label", "label": "🔋 Batterieladung (optional): Lade- oder Entladeleistung der Hausbatterie. Wenn keine Variable ausgewählt ist, wird 0 verwendet." },
         { "type": "RowLayout", "items": [
-          { "type": "SelectVariable", "name": "BatterieladungID", "caption": "Batterieladung (W)", "validVariableTypes": [2] },
+          { "type": "SelectVariable", "name": "BatterieladungID", "caption": "Batterieladung", "validVariableTypes": [2] },
           { "type": "Label", "caption": "    " },
           { "type": "Select", "name": "BatterieladungEinheit", "caption": "Einheit", "options": [
             { "caption": "Watt (W)", "value": "W" },
