@@ -330,7 +330,7 @@ class PVWallboxManager extends IPSModule
         $logModus = "PV2Car (Auto bekommt Anteil vom Überschuss, Rest Batterie)";
     
         // Anteil auslesen und berechnen
-        $prozent = $this->ReadPropertyInteger('PV2CarProzent');
+        $prozent = $this->ReadPropertyInteger('PVAnteilAuto');
         $anteilWatt = intval($ueberschuss * $prozent / 100);
     
         // Mindestladeleistung aus Property holen
