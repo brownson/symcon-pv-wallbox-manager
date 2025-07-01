@@ -5,6 +5,19 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 
 ---
 
+## 🐞 Bugfix und Update seit Version 0.9b
+
+- **Update:**
+  - alte Variablen „Zielzeitladung PV-optimiert“ und „Strompreis-Modus aktiv“ löschen !!!
+  - Zielzeitladung sucht jetzt bis zu dem Ziel-Zeit die anhand vom Forecast 24h den billigsten Strompreis und lädt in diesen Stunden - Forecast 24h über GitHub - symcon/Strompreis: Liest die aktuellen/vorhergesagten Strompreise von aWATTar, Tibber oder Epex Spot DE aus liefert mir nur werte von heute 0 - 24Uhr Ich möchte sie aber immer von jetzt +24h.
+  - logging noch weiter ausgebaut
+  - Beim Aktivieren des Moduls erfolgt jetzt sofort ein Initialdurchlauf der Ladelogik – das System reagiert damit sofort und wartet nicht mehr auf das nächste Intervall.
+
+- **Bugfix:**
+  - StrompreisModus Boolean wurde nicht angelegt
+
+---
+
 ## [0.9] – 2025-06-30
 
 ### 🚀 Neue Funktionen & Verbesserungen
