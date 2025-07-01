@@ -112,7 +112,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeBoolean('RunLock', false);
 
     }
-    
+
+// =====================================================================================================
+
     public function ApplyChanges()
     {
         parent::ApplyChanges();
@@ -164,6 +166,7 @@ class PVWallboxManager extends IPSModule
         $this->SetValue('AllowBatteryDischargeStatus', $this->ReadPropertyBoolean('AllowBatteryDischarge'));
     }
 
+// =====================================================================================================
 
     public function RequestAction($ident, $value)
     {
@@ -217,7 +220,9 @@ class PVWallboxManager extends IPSModule
         // Hauptlogik immer am Ende aufrufen!
         $this->UpdateCharging();
     }
-    
+
+// =====================================================================================================
+
     public function UpdateCharging()
     {
         // Schutz vor Überschneidung: Nur ein Durchlauf gleichzeitig!
@@ -231,11 +236,19 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeBoolean('RunLogFlag', true); // Start eines neuen Durchlaufs
             $this->Log("Starte Berechnung (UpdateCharging)", 'debug');
     
+            // === Hausverbrauch berechnen, gleich zu Beginn! ===
+            $hausverbrauch = $this->BerechneHausverbrauch();
+            if ($hausverbrauch === false) {
+                $this->Log("Hausverbrauch konnte nicht berechnet werden – Abbruch UpdateCharging()", 'error');
+                $this->WriteAttributeBoolean('RunLock', false);
+                return;
+            }
+    
             $goeID = $this->ReadPropertyInteger('GOEChargerID');
             $status = GOeCharger_GetStatus($goeID); // 1=bereit, 2=lädt, 3=warte, 4=beendet
     
             // Immer: PV-Überschuss (inkl. Batterieabzug) berechnen und anzeigen
-            $pvUeberschussStandard = $this->BerechnePVUeberschuss();
+            $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch); // <--- Hausverbrauch als Parameter!
             SetValue($this->GetIDForIdent('PV_Ueberschuss'), $pvUeberschussStandard);
             $this->Log("Standard-PV-Überschuss berechnet: {$pvUeberschussStandard} W", 'debug');
     
@@ -291,37 +304,39 @@ class PVWallboxManager extends IPSModule
                     return;
                 }
             }
-      
-        // Modus-Weiche: NUR eine Logik pro Durchlauf!
-        if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
-            $this->SetLadeleistung($this->GetMaxLadeleistung());
-            $this->SetLademodusStatus("Manueller Volllademodus aktiv");
-            $this->Log("Modus: Manueller Volllademodus", 'info');
-        } elseif (GetValue($this->GetIDForIdent('ZielzeitladungModus'))) {
-            $this->Log("Modus: Zielzeitladung aktiv", 'info');
-            $this->LogikZielzeitladung();
-        } elseif (GetValue($this->GetIDForIdent('PV2CarModus'))) {
-            $this->Log("Modus: PV2Car aktiv", 'info');
-            $this->LogikPVPureMitHysterese('pv2car'); // <-- HIER passiert endlich die PV2Car-Logik!
-        } else {
-            $this->Log("Modus: PV-Überschuss (Standard)", 'info');
-            $this->LogikPVPureMitHysterese('standard');
-        }
     
-        // Optional: WallboxStatusText für WebFront aktualisieren (nur einmal pro Zyklus)
-        $this->UpdateWallboxStatusText();
-        $this->UpdateFahrzeugStatusText();
-        $this->WriteAttributeBoolean('RunLogFlag', false);
-            
+            // Modus-Weiche: NUR eine Logik pro Durchlauf!
+            if (GetValue($this->GetIDForIdent('ManuellVollladen'))) {
+                $this->SetLadeleistung($this->GetMaxLadeleistung());
+                $this->SetLademodusStatus("Manueller Volllademodus aktiv");
+                $this->Log("Modus: Manueller Volllademodus", 'info');
+            } elseif (GetValue($this->GetIDForIdent('ZielzeitladungModus'))) {
+                $this->Log("Modus: Zielzeitladung aktiv", 'info');
+                $this->LogikZielzeitladung($hausverbrauch); // <<<<<< NEU: übergebe $hausverbrauch als Parameter
+            } elseif (GetValue($this->GetIDForIdent('PV2CarModus'))) {
+                $this->Log("Modus: PV2Car aktiv", 'info');
+                $this->LogikPVPureMitHysterese('pv2car', $hausverbrauch); // <<<<<< NEU
+            } else {
+                $this->Log("Modus: PV-Überschuss (Standard)", 'info');
+                $this->LogikPVPureMitHysterese('standard', $hausverbrauch); // <<<<<< NEU
+            }
+    
+            // Optional: WallboxStatusText für WebFront aktualisieren (nur einmal pro Zyklus)
+            $this->UpdateWallboxStatusText();
+            $this->UpdateFahrzeugStatusText();
+            $this->WriteAttributeBoolean('RunLogFlag', false);
+    
         } finally {
             // Sperre immer wieder freigeben!
             $this->WriteAttributeBoolean('RunLock', false);
         }
     }
-    
+
+// =====================================================================================================
+
     // --- Hilfsfunktion: PV-Überschuss berechnen ---
     // Modus kann 'standard' (bisher wie gehabt) oder 'pv2car' (neuer PV2Car-Modus) sein
-    private function BerechnePVUeberschuss(string $modus = 'standard'): float
+    private function BerechnePVUeberschuss(float $haus, string $modus = 'standard'): float
     {
         $goeID  = $this->ReadPropertyInteger("GOEChargerID");
     
@@ -334,8 +349,10 @@ class PVWallboxManager extends IPSModule
                 $pv *= 1000;
             }
         }
-        
-        $haus  = $this->GetNormWert('HausverbrauchID', 'HausverbrauchEinheit', 'InvertHausverbrauch', "Hausverbrauch");
+    
+        // Hausverbrauch wird JETZT per Funktionsparameter $haus verwendet!
+        // $haus = $this->GetNormWert(...) ENTFÄLLT
+    
         $batt  = $this->GetNormWert('BatterieladungID', 'BatterieladungEinheit', 'InvertBatterieladung', "Batterieladung");
         $netz  = $this->GetNormWert('NetzeinspeisungID', 'NetzeinspeisungEinheit', 'InvertNetzeinspeisung', "Netzeinspeisung");
     
@@ -343,35 +360,35 @@ class PVWallboxManager extends IPSModule
     
         /// --- Unterscheidung nach Modus ---
         if ($modus == 'pv2car') {
-        // Batterie nicht berücksichtigen!
-        $ueberschuss = $pv - $haus;
-        $logModus = "PV2Car (Auto bekommt Anteil vom Überschuss, Rest Batterie)";
+            // Batterie nicht berücksichtigen!
+            $ueberschuss = $pv - $haus;
+            $logModus = "PV2Car (Auto bekommt Anteil vom Überschuss, Rest Batterie)";
     
-        // Anteil auslesen und berechnen
-        $prozent = $this->ReadPropertyInteger('PVAnteilAuto');
-        $anteilWatt = intval($ueberschuss * $prozent / 100);
+            // Anteil auslesen und berechnen
+            $prozent = $this->ReadPropertyInteger('PVAnteilAuto');
+            $anteilWatt = intval($ueberschuss * $prozent / 100);
     
-        // Mindestladeleistung aus Property holen
-        $minWatt = $this->ReadPropertyInteger('MinLadeWatt');
+            // Mindestladeleistung aus Property holen
+            $minWatt = $this->ReadPropertyInteger('MinLadeWatt');
     
-        if ($anteilWatt > 0 && $anteilWatt < $minWatt) {
-            $this->Log("PV2Car-Modus: Anteil {$anteilWatt} W ist unterhalb der Mindestladeleistung ({$minWatt} W) – Wallbox startet nicht.", 'info');
-            $ladeSoll = 0; // Oder Wallbox auf Pause/Stop
+            if ($anteilWatt > 0 && $anteilWatt < $minWatt) {
+                $this->Log("PV2Car-Modus: Anteil {$anteilWatt} W ist unterhalb der Mindestladeleistung ({$minWatt} W) – Wallbox startet nicht.", 'info');
+                $ladeSoll = 0;
+            } else {
+                $ladeSoll = $anteilWatt;
+            }
+    
+            $this->Log("PV2Car-Modus: Nutzer-Anteil = {$prozent}% → Ladeleistung für das Auto = {$anteilWatt} W (PV-Überschuss gesamt: {$ueberschuss} W, gesetzt: {$ladeSoll} W)", 'info');
+    
+            // Ladeleistung an Wallbox übergeben
+            if (isset($goeID) && $goeID > 0) {
+                GOeCharger_SetCurrentChargingWatt($goeID, $ladeSoll);
+                $this->Log("Ladeleistung an Wallbox übergeben: {$ladeSoll} W (PV2Car-Modus)", 'debug');
+            }
         } else {
-            $ladeSoll = $anteilWatt;
+            $ueberschuss = $pv - $haus - max(0, $batt);
+            $logModus = "Standard (Batterie hat Vorrang)";
         }
-    
-        $this->Log("PV2Car-Modus: Nutzer-Anteil = {$prozent}% → Ladeleistung für das Auto = {$anteilWatt} W (PV-Überschuss gesamt: {$ueberschuss} W, gesetzt: {$ladeSoll} W)", 'info');
-    
-        // Ladeleistung an Wallbox übergeben
-        if (isset($goeID) && $goeID > 0) {
-            GOeCharger_SetCurrentChargingWatt($goeID, $ladeSoll);
-            $this->Log("Ladeleistung an Wallbox übergeben: {$ladeSoll} W (PV2Car-Modus)", 'debug');
-        }
-    } else {
-        $ueberschuss = $pv - $haus - max(0, $batt);
-        $logModus = "Standard (Batterie hat Vorrang)";
-    }
     
         // === Dynamischer Puffer NUR im Standard-Modus (PV-Überschussladen) ===
         $pufferProzent = 1.0;
@@ -412,8 +429,10 @@ class PVWallboxManager extends IPSModule
         return $ueberschuss;
     }
 
+// =====================================================================================================
+
     // --- Hysterese-Logik für Standardmodus ---
-    private function LogikPVPureMitHysterese($modus = 'standard')
+    private function LogikPVPureMitHysterese($modus = 'standard', $hausverbrauch = null)
     {
         $this->Log("LogikPVPureMitHysterese() gestartet mit Modus: $modus", 'debug');
     
@@ -446,7 +465,12 @@ class PVWallboxManager extends IPSModule
             $ueberschuss = $this->GetMaxLadeleistung();
             $this->Log("Manueller Volllademodus aktiv – setze Ladeleistung auf {$ueberschuss} W (laut Property oder automatisch berechnet).", 'info');
         } else {
-            $ueberschuss = $this->BerechnePVUeberschuss($modus);
+            // NEU: $hausverbrauch als Parameter weitergeben!
+            if ($hausverbrauch === null) {
+                // Fallback, falls Funktion noch aus älteren Stellen aufgerufen wird
+                $hausverbrauch = $this->BerechneHausverbrauch();
+            }
+            $ueberschuss = $this->BerechnePVUeberschuss($hausverbrauch, $modus);
         }
     
         // === PV-Batterie-Priorität im Standardmodus ===
@@ -548,17 +572,17 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+// =====================================================================================================
+
     // --- Zielzeitladung mit Preisoptimierung & PV-Überschuss ---
-    private function LogikZielzeitladung()
+    private function LogikZielzeitladung($hausverbrauch = null)
     {
         // --- 1. Zielzeit bestimmen (als Timestamp für heute oder ggf. morgen) ---
         $targetTimeVarID = $this->GetIDForIdent('TargetTime');
         $targetTimeRaw = GetValue($targetTimeVarID);
     
-        // Zielzeit-Variable enthält oft nur Sekunden seit Tagesbeginn
         $heute = strtotime('today');
         $targetTime = $heute + ($targetTimeRaw % 86400);
-        // Falls Zielzeit schon vorbei, dann auf morgen setzen
         if ($targetTime < time()) $targetTime += 86400;
     
         $this->Log("DEBUG: Zielzeit (lokal): $targetTime / " . date('d.m.Y H:i:s', $targetTime), 'debug');
@@ -596,7 +620,6 @@ class PVWallboxManager extends IPSModule
         $slots = [];
         foreach ($forecast as $slot) {
             if (isset($slot['start']) && isset($slot['end'])) {
-                // Nur relevante Slots im Zeitraum zwischen jetzt und Zielzeit
                 if ($slot['end'] > $now && $slot['start'] < $targetTime) {
                     $slots[] = [
                         "price" => floatval($slot['price']),
@@ -643,7 +666,10 @@ class PVWallboxManager extends IPSModule
             $this->Log($msg, 'info');
         } else {
             // PV-Überschuss laden, falls verfügbar
-            $pvUeberschuss = $this->BerechnePVUeberschuss();
+            if ($hausverbrauch === null) {
+                $hausverbrauch = $this->BerechneHausverbrauch(); // fallback, falls noch nicht übergeben
+            }
+            $pvUeberschuss = $this->BerechnePVUeberschuss($hausverbrauch, 'standard');
             if ($pvUeberschuss > 0) {
                 $msg = "Zielzeitladung: Nicht im Preisslot – PV-Überschuss laden ({$pvUeberschuss} W)";
                 $this->SetLadeleistung($pvUeberschuss);
@@ -658,6 +684,9 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+    
+// =====================================================================================================
+    
     private function GetMaxLadeleistung(): int
     {
         $hardLimit = $this->ReadPropertyInteger('MaxAutoWatt');
@@ -671,6 +700,8 @@ class PVWallboxManager extends IPSModule
         $maxWatt = $phasen * 230 * $maxAmp;
         return $maxWatt;
     }
+
+// =====================================================================================================
     
     private function SetLadeleistung(int $watt)
     {
@@ -800,17 +831,23 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+// =====================================================================================================
+
     private function SetFahrzeugStatus($text, $log = false)
     {
         $this->SetLogValue('FahrzeugStatusText', $text);
         if ($log) $this->Log("FahrzeugStatus: $text", 'info');
     }
 
+// =====================================================================================================
+
     private function SetLademodusStatus($text)
     {
         $this->SetLogValue('LademodusStatus', $text);
     }
-    
+
+// =====================================================================================================
+
     private function GetNormWert(string $idProp, string $einheitProp, string $invertProp, string $name = ""): float
     {
         $wert = 0;
@@ -830,6 +867,8 @@ class PVWallboxManager extends IPSModule
         }
         return $wert;
     }
+
+// =====================================================================================================
 
     private function UpdateWallboxStatusText()
     {
@@ -858,6 +897,8 @@ class PVWallboxManager extends IPSModule
         }
         $this->SetLogValue('WallboxStatusText', $text);
     }
+
+// =====================================================================================================
 
     private function UpdateFahrzeugStatusText()
     {
@@ -898,6 +939,57 @@ class PVWallboxManager extends IPSModule
         $this->Log("UpdateFahrzeugStatusText: GO-e Status={$status}, Modus='{$modus}', Statustext='$statusText'", 'debug');
     }
 
+// =====================================================================================================
+
+    private function BerechneHausverbrauch()
+    {
+        // Properties lesen
+        $hausverbrauchID      = $this->ReadPropertyInteger('HausverbrauchID');
+        $hausverbrauchEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
+        $invertHausverbrauch  = $this->ReadPropertyBoolean('InvertHausverbrauch');
+        $goeID                = $this->ReadPropertyInteger('GOeChargerID');
+    
+        // Gesamtverbrauch lesen
+        $gesamtverbrauch = @GetValueFloat($hausverbrauchID);
+        if ($gesamtverbrauch === false) {
+            $this->SendDebug('Hausverbrauch', "Fehler: Hausverbrauchs-Variable mit ID $hausverbrauchID konnte nicht gelesen werden!", 0);
+            return false; // Signalisiert Fehler
+        }
+    
+        // Einheit umrechnen
+        if ($hausverbrauchEinheit === 'kW') {
+            $gesamtverbrauch = $gesamtverbrauch * 1000;
+        }
+    
+        // Invertieren falls gewünscht
+        if ($invertHausverbrauch) {
+            $gesamtverbrauch = $gesamtverbrauch * -1;
+        }
+    
+        // Wallbox-Leistung abrufen
+        $wallboxLeistung = 0;
+        if (IPS_InstanceExists($goeID)) {
+            $wallboxLeistung = @GOeCharger_GetPowerToCar($goeID);
+            if ($wallboxLeistung === false) $wallboxLeistung = 0;
+        }
+    
+        // Hausverbrauch berechnen
+        $hausverbrauch = $gesamtverbrauch - $wallboxLeistung;
+        if ($hausverbrauch < 0) $hausverbrauch = 0;
+    
+        // Debug-Ausgabe
+        $this->SendDebug('Hausverbrauch', "Gesamt: {$gesamtverbrauch} W - Wallbox: {$wallboxLeistung} W = {$hausverbrauch} W", 0);
+    
+        // Optional: In Modul-Variable schreiben (falls vorhanden)
+        if (@$this->GetIDForIdent('Hausverbrauch') > 0) {
+            SetValue($this->GetIDForIdent('Hausverbrauch'), $hausverbrauch);
+        }
+    
+        return $hausverbrauch;
+    }
+
+// =====================================================================================================
+
     private function Log(string $message, string $level)
     {
         // Unterstützte Level: debug, info, warn, warning, error
@@ -928,6 +1020,8 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+// =====================================================================================================
+
     private function SetLogValue($ident, $value)
     {
         $varID = $this->GetIDForIdent($ident);
@@ -940,4 +1034,7 @@ class PVWallboxManager extends IPSModule
             }
         }
     }
+    
+// =====================================================================================================
+    
 }
