@@ -80,9 +80,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableBoolean('ZielzeitladungModus', '⏱️ Zielzeitladung', '', 40);
         $this->EnableAction('ZielzeitladungModus');
         
-        //$this->RegisterVariableBoolean('ZielzeitladungPVonly', '⏱️ Zielzeitladung PV-optimiert', '', 40);
-        //$this->EnableAction('ZielzeitladungPVonly');
-
         $this->RegisterVariableBoolean('AllowBatteryDischargeStatus', 'PV-Batterieentladung zulassen', '', 98);
 
         $this->RegisterVariableString('FahrzeugStatusText', 'Fahrzeug Status', '', 70);
@@ -102,10 +99,6 @@ class PVWallboxManager extends IPSModule
         //$this->RegisterAttributeFloat("ChargeEnergyStart", 0);
         //$this->RegisterAttributeInteger("ChargeStartTime", 0);
 
-        // Strompreis-Ladung (ab Version 0.9)
-      
-        //$this->RegisterVariableBoolean('StrompreisModus', '💰 Strompreis-Modus aktiv', '', 50);
-        //$this->EnableAction('StrompreisModus');
         $this->RegisterPropertyInteger("CurrentPriceID", 0);      // Aktueller Preis (ct/kWh, Float)
         $this->RegisterPropertyInteger("ForecastPriceID", 0);     // 24h-Prognose (ct/kWh, String)
         //$this->RegisterPropertyFloat("MinPrice", 0.000);       // Mindestpreis (ct/kWh)
