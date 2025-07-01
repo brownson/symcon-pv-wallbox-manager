@@ -707,12 +707,16 @@ class PVWallboxManager extends IPSModule
     $offset = GetValue($targetTimeVarID); // z. B. 46800
     
     $today = new DateTime('today', new DateTimeZone('Europe/Vienna'));
-    $targetTime = $today->getTimestamp() + ($offset % 86400);
+    $midnight = $today->getTimestamp();
+    
+    // Zeitzonen-Offset für heute (z. B. 2h im Sommer)
+    $tzOffset = (new DateTime('now', new DateTimeZone('Europe/Vienna')))->getOffset();
+    
+    $targetTime = $midnight + $offset + $tzOffset;
     
     if ($targetTime < time()) $targetTime += 86400;
     
     $this->Log("DEBUG: Zielzeit (lokal): $targetTime / " . date('d.m.Y H:i:s', $targetTime), 'debug');
-
 
     // 2. Ladebedarf (kWh)
     $socID = $this->ReadPropertyInteger('CarSOCID');
