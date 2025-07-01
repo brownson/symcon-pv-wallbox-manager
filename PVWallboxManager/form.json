@@ -6,7 +6,7 @@
       "items": [
         { "type": "CheckBox", "name": "ModulAktiv", "caption": "⚡ Modul aktiv (bei Deaktivierung werden keine Aktionen ausgeführt)"},
         { "type": "CheckBox", "name": "DebugLogging", "caption": "🐞 Debug-Logging aktivieren (Details zu allen Variablen und Werten ins IPS-Log)", "default": false },
-        { "type": "Button", "caption": "Reset Lock", "onClick": "ResetLock"}
+        { "type": "Button", "caption": "Lock zurücksetzen", "icon": "Unlock", "onClick": "ResetLock", "visible": true, "hint": "Nur verwenden, wenn das Modul 'hängt' (z. B. nach einer Fehlermeldung wie 'UpdateCharging() läuft bereits …')."}
       ]
     },
     {
