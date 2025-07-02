@@ -369,10 +369,10 @@ public function UpdateCharging()
         }
 
         // Berechnung des Hausverbrauchs (Hausverbrauch - WallboxLeistung)
-        $hausverbrauch = $hausverbrauch - $powerToCarTotal_W;
+        $Hausverbrauch = $Hausverbrauch - $powerToCarTotal_W;
 
         // --- PV-Überschuss berechnen ---
-        $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch);
+        $pvUeberschussStandard = $this->BerechnePVUeberschuss($Hausverbrauch);
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $pvUeberschussStandard);
         $this->Log("UpdateCharging(): Standard-PV-Überschuss = {$pvUeberschussStandard} W", 'debug');
 
@@ -438,13 +438,13 @@ public function UpdateCharging()
             $this->LogikManuellVollladen();
             return;
         } elseif (GetValue($this->GetIDForIdent('ZielzeitladungModus'))) {
-            $this->LogikZielzeitladung($hausverbrauch);
+            $this->LogikZielzeitladung($Hausverbrauch);
             return;
         } elseif (GetValue($this->GetIDForIdent('PVVerteilenAktiv'))) {
             $this->LogikPV2CarModus();
             return;
         } else {
-            $this->LogikPVPureMitHysterese('standard', $hausverbrauch);
+            $this->LogikPVPureMitHysterese('standard', $Hausverbrauch);
             return;
         }
 
@@ -649,7 +649,7 @@ private function BerechnePVUeberschuss(float $haus, string $modus = 'standard'):
 
 // =====================================================================================================
 
-private function LogikPVPureMitHysterese($modus = 'standard', $hausverbrauch = null)
+private function LogikPVPureMitHysterese($modus = 'standard', $Hausverbrauch = null)
 {
     $this->Log("LogikPVPureMitHysterese() gestartet – Modus: {$modus}", 'debug');
 
@@ -673,10 +673,10 @@ private function LogikPVPureMitHysterese($modus = 'standard', $hausverbrauch = n
         $ueberschuss = $this->GetMaxLadeleistung();
         $this->Log("Manueller Volllademodus aktiv – setze Ladeleistung auf {$ueberschuss} W", 'info');
     } else {
-        if ($hausverbrauch === null) {
-            $hausverbrauch = $this->BerechneHausverbrauch();
+        if ($Hausverbrauch === null) {
+            $Hausverbrauch = $this->BerechneHausverbrauch();
         }
-        $ueberschuss = $this->BerechnePVUeberschuss($hausverbrauch, $modus);
+        $ueberschuss = $this->BerechnePVUeberschuss($Hausverbrauch, $modus);
     }
 
     // PV-Batterie-Prio im Standardmodus
@@ -770,7 +770,7 @@ private function LogikPVPureMitHysterese($modus = 'standard', $hausverbrauch = n
 
 // =====================================================================================================
 
-private function LogikZielzeitladung($hausverbrauch = null)
+private function LogikZielzeitladung($Hausverbrauch = null)
 {
     // Annahme: TargetTime ist die Anzahl Sekunden seit Mitternacht (0 - 86399)
     $targetOffset = GetValue($this->GetIDForIdent('TargetTime'));
@@ -867,7 +867,7 @@ private function LogikZielzeitladung($hausverbrauch = null)
     } else {
         // HIER: Hysterese für den PV-Überschuss als Fallback (statt direkter Überschussladung)
         $this->Log("Zielzeitladung: Kein Preisslot aktiv – PV-Überschuss mit Hysterese als Fallback.", 'info');
-        $this->LogikPVPureMitHysterese('zielzeit', $hausverbrauch);
+        $this->LogikPVPureMitHysterese('zielzeit', $Hausverbrauch);
         // Logging etc. wird zentral in der Hysterese-Funktion behandelt.
     }
 }
@@ -945,8 +945,8 @@ private function LogikPV2CarModus()
     $hausakkuSOCVollSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
 
     // 5. PV-Überschuss berechnen (PV-Erzeugung - Hausverbrauch - Wallbox)
-    $hausverbrauch = GetValue($this->ReadPropertyInteger('HausverbrauchID')); // Hausverbrauch holen
-    $pvUeberschuss = $this->BerechnePVUeberschuss($hausverbrauch, 'pv2car'); // Berechnung des Überschusses im PV2Car-Modus
+    $Hausverbrauch = GetValue($this->ReadPropertyInteger('HausverbrauchID')); // Hausverbrauch holen
+    $pvUeberschuss = $this->BerechnePVUeberschuss($Hausverbrauch, 'pv2car'); // Berechnung des Überschusses im PV2Car-Modus
 
     // 6. Dynamischen Puffer zentral berücksichtigen
     if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
@@ -1305,20 +1305,20 @@ private function UpdateFahrzeugStatusText()
 
 private function BerechneHausverbrauch()
 {
-    $hausverbrauchID      = $this->ReadPropertyInteger('HausverbrauchID');
-    $hausverbrauchEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
+    $HausverbrauchID      = $this->ReadPropertyInteger('HausverbrauchID');
+    $HausverbrauchEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
     $invertHausverbrauch  = $this->ReadPropertyBoolean('InvertHausverbrauch');
     $goeID                = $this->ReadPropertyInteger('GOEChargerID');
 
-    if ($hausverbrauchID == 0 || !@IPS_VariableExists($hausverbrauchID)) {
+    if ($HausverbrauchID == 0 || !@IPS_VariableExists($HausverbrauchID)) {
         $this->Log("Hausverbrauch konnte nicht berechnet werden – keine gültige Variable konfiguriert!", 'warn');
         return 0;
     }
 
-    $gesamtverbrauch = GetValue($hausverbrauchID);
+    $gesamtverbrauch = GetValue($HausverbrauchID);
 
     // Einheit umrechnen
-    if ($hausverbrauchEinheit === 'kW') {
+    if ($HausverbrauchEinheit === 'kW') {
         $gesamtverbrauch *= 1000;
     }
 
@@ -1334,17 +1334,17 @@ private function BerechneHausverbrauch()
         if ($wallboxLeistung === false) $wallboxLeistung = 0;
     }
 
-    $hausverbrauch = $gesamtverbrauch - $wallboxLeistung;
-    if ($hausverbrauch < 0) $hausverbrauch = 0;
+    $Hausverbrauch = $gesamtverbrauch - $wallboxLeistung;
+    if ($Hausverbrauch < 0) $Hausverbrauch = 0;
 
-    $this->SendDebug('Hausverbrauch', "Gesamt: {$gesamtverbrauch} W - Wallbox: {$wallboxLeistung} W = {$hausverbrauch} W", 0);
-    $this->Log("Berechneter Hausverbrauch: {$hausverbrauch} W (inkl. Wallboxabzug)", 'debug');
+    $this->SendDebug('Hausverbrauch', "Gesamt: {$gesamtverbrauch} W - Wallbox: {$wallboxLeistung} W = {$Hausverbrauch} W", 0);
+    $this->Log("Berechneter Hausverbrauch: {$Hausverbrauch} W (inkl. Wallboxabzug)", 'debug');
 
     if (@$this->GetIDForIdent('Hausverbrauch') > 0) {
-        SetValue($this->GetIDForIdent('Hausverbrauch'), $hausverbrauch);
+        SetValue($this->GetIDForIdent('Hausverbrauch'), $Hausverbrauch);
     }
 
-    return $hausverbrauch;
+    return $Hausverbrauch;
 }
     
 // =====================================================================================================
