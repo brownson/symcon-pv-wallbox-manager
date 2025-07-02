@@ -923,7 +923,8 @@ private function LogikPV2CarModus()
     $hausakkuSOCVollSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
 
     // 5. PV-Überschuss berechnen (PV-Erzeugung - Hausverbrauch - Wallbox)
-    $pvUeberschuss = $this->BerechnePVUeberschuss();
+    $hausverbrauch = GetValue($this->ReadPropertyInteger('HausverbrauchID')); // Hausverbrauch holen
+    $pvUeberschuss = $this->BerechnePVUeberschuss($hausverbrauch, 'pv2car'); // Berechnung des Überschusses im PV2Car-Modus
 
     // 6. Dynamischen Puffer zentral berücksichtigen
     if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
@@ -962,7 +963,7 @@ private function LogikPV2CarModus()
         $msg = "PV2Car: Auto und Hausakku voll – Überschuss wird eingespeist.";
     } else {
         $ladeleistung = round($pvUeberschuss * $anteil);
-        $msg = "PV2Car: Anteil fürs Auto: {$ladeleistung} W (" . round($anteil * 100) . "% von {$pvUeberschuss} W, inkl. Puffer)";
+        $msg = "PV2Car: Anteil fürs Auto: {$ladeleistung} W ({$anteilProzent}% von {$pvUeberschuss} W, inkl. Puffer)";
     }
 
     // Log für die berechnete Ladeleistung hinzufügen
