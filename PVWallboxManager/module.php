@@ -7,7 +7,6 @@ public function Create()
     parent::Create();
 
     // Visualisierung berechneter Werte
-    $this->RegisterVariableFloat('PV_Ueberschuss', 'PV-Überschuss (W)', '~Watt', 10);
     $this->RegisterVariableFloat('PV_Ueberschuss', '☀️ PV-Überschuss (W)', '~Watt', 10);
     $this->RegisterVariableFloat('Hausverbrauch', '🏠 Hausverbrauch (W)', '~Watt', 11);
     $this->RegisterVariableFloat('WallboxLeistung', '🔌 Wallbox-Leistung (W)', '~Watt', 12);
@@ -357,6 +356,8 @@ public function UpdateCharging()
         // Überprüfen, ob die Wallbox-Leistung korrekt abgerufen wurde
         if ($powerToCarTotal_W !== false) {
             $this->Log("Aktuelle Wallbox-Leistung (powerToCarTotal): {$powerToCarTotal_W} W", 'debug');
+            // Wallbox-Leistung in eine IP-Symcon-Variable setzen
+            SetValue($this->GetIDForIdent('powerToCarTotal'), $powerToCarTotal_W);
         } else {
             $this->Log("Fehler beim Abrufen der Wallbox-Leistung.", 'error');
         }
@@ -471,7 +472,6 @@ public function UpdateCharging()
         $this->WriteAttributeBoolean('RunLock', false);
     }
 }
-
 
 // =====================================================================================================
 
