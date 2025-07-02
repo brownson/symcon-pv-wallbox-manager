@@ -934,7 +934,8 @@ private function LogikPV2CarModus()
 
     // 7. Anteil für Auto bestimmen (Variable!)
     $anteil = GetValue($this->GetIDForIdent('PVAnteilAuto')) / 100.0;
-    $this->Log("PV2Car: Anteil für Auto: {$anteil} (d.h. {$anteil * 100}% des Überschusses)", 'debug'); // Log hier hinzufügen
+    $anteilProzent = $anteil * 100;
+    $this->Log("PV2Car: Anteil für Auto: {$anteil} (d.h. {$anteilProzent}% des Überschusses)", 'debug');
 
     // 8. Hysterese Counter laden (zentral!)
     $startCounter = $this->ReadAttributeInteger('StartHystereseCounter');
