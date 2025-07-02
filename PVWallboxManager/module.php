@@ -24,7 +24,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('DebugLogging', false);
 
         // === 2. Wallbox-Konfiguration ===
-        $this->RegisterPropertyInteger('GOEChargerID', 0);
+        $this->RegisterPropertyInteger('GOeChargerID', 0);
         $this->RegisterPropertyInteger('MinAmpere', 6);
         $this->RegisterPropertyInteger('MaxAmpere', 16);
         $this->RegisterPropertyFloat('MinLadeWatt', 1400); // Standardwert nach Bedarf anpassen
@@ -121,7 +121,7 @@ class PVWallboxManager extends IPSModule
         $this->EnsureLademodusProfile();
 
         // GO-e Charger Instanz-ID holen
-        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $goeID = $this->ReadPropertyInteger('GOeChargerID');
 
         // Hysterese-Zähler initialisieren (nur beim ersten Mal)
         if ($this->GetBuffer('StartHystereseCounter') === false) {
@@ -145,11 +145,11 @@ class PVWallboxManager extends IPSModule
 
 public function UpdateCharging()
 {
-    $goeID = $this->ReadPropertyInteger('GOEChargerID');
+    $goeID = $this->ReadPropertyInteger('GOeChargerID');
 
     // Prüfe ob NUR MIT Fahrzeug geladen werden darf (Property)
     if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden()) {
-        @GOeCharger_setAccessStateV2($goeID, 1); // Blockieren
+        @GOeCharger_SetAccessStateV2($goeID, 1); // Blockieren
         $this->DeaktiviereLaden(); // Setzt auch ChargingWatt=0
         $status = "Warte auf Fahrzeug (Option 'Nur mit Fahrzeug' aktiv)";
         $this->SetLademodusStatus($status);
@@ -191,7 +191,7 @@ public function UpdateCharging()
 
     // =======>>> FAHRZEUGSTATUS PRÜFEN <<<=======
     if (!$this->IstFahrzeugVerbunden()) {
-        @GOeCharger_setAccessStateV2($goeID, 1); // IMMER blockieren!
+        @GOeCharger_SetAccessStateV2($goeID, 1); // IMMER blockieren!
         $this->DeaktiviereLaden();
         $status = "Warte auf Fahrzeug (kein Auto verbunden)";
         $this->SetLademodusStatus($status);
@@ -280,16 +280,16 @@ public function UpdateCharging()
     // 8. Jetzt ZENTRALE accessStateV2-Logik für alle Fälle:
     if ($this->IstFahrzeugVerbunden()) {
         if ($ladeleistung > 0) {
-            @GOeCharger_setAccessStateV2($goeID, 2); // Freigeben
+            @GOeCharger_SetAccessStateV2($goeID, 2); // Freigeben
             $this->SetzeLadeleistung($ladeleistung);
             $status = "Laden: ".round($ladeleistung)." W im Modus: ".$this->GetLademodusText($this->GetValue('AktiverLademodus'));
         } else {
-            @GOeCharger_setAccessStateV2($goeID, 1); // Nicht laden!
+            @GOeCharger_SetAccessStateV2($goeID, 1); // Nicht laden!
             $this->DeaktiviereLaden();
             $status = "Nicht laden (kein Überschuss/Modus)";
         }
     } else {
-        @GOeCharger_setAccessStateV2($goeID, 1); // Immer blockieren
+        @GOeCharger_SetAccessStateV2($goeID, 1); // Immer blockieren
         $this->DeaktiviereLaden();
         $status = "Nicht laden (kein Fahrzeug)";
     }
@@ -380,7 +380,7 @@ public function UpdateCharging()
     /** Holt die aktuelle Ladeleistung aus der GO-e Instanz */
     private function LeseWallboxLeistung()
     {
-        $id = $this->ReadPropertyInteger('GOEChargerID');
+        $id = $this->ReadPropertyInteger('GOeChargerID');
         if ($id > 0 && @IPS_InstanceExists($id)) {
             // Replace with actual method if needed (z. B. GOeCharger_GetPowerToCar)
             return (float) @GOeCharger_GetPowerToCar($id);
@@ -612,7 +612,7 @@ public function UpdateCharging()
     {
         // Ermittlung der aktuellen Phase
         $aktuellePhasen = $this->ReadPropertyInteger('Phasen');
-        $instanzID = $this->ReadPropertyInteger('GOEChargerID');
+        $instanzID = $this->ReadPropertyInteger('GOeChargerID');
 
         // Startbedingungen für Phasenumschaltung (z. B. bei Überschuss unter/über Schwellenwerten)
         if ($aktuellePhasen == 3) {
@@ -677,7 +677,7 @@ public function UpdateCharging()
      */
     private function IstFahrzeugVerbunden()
     {
-        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $goeID = $this->ReadPropertyInteger('GOeChargerID');
         // Prüfen, ob die Instanz-ID gesetzt und gültig ist
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
             $this->Log("Fahrzeugstatus kann nicht geprüft werden: GO-e Instanz fehlt oder ungültig.", 'warn');
@@ -767,11 +767,11 @@ public function UpdateCharging()
     /** Setzt die gewünschte Ladeleistung (Watt) */
     private function SetzeLadeleistung($leistung)
     {
-        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
             @GOeCharger_SetCurrentChargingWatt($goeID, (int)$leistung);
             if ((int)$leistung > 0) {
-                @GOeCharger_setAccessStateV2($goeID, 2); // Immer Ladefreigabe aktivieren!
+                @GOeCharger_SetAccessStateV2($goeID, 2); // Immer Ladefreigabe aktivieren!
             }
         }
     }
@@ -786,10 +786,10 @@ public function UpdateCharging()
     /** Deaktiviert die Ladung komplett */
     private function DeaktiviereLaden()
     {
-        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
             @GOeCharger_SetCurrentChargingWatt($goeID, 0);
-            @GOeCharger_setAccessStateV2($goeID, 1); // Laden blockieren!
+            @GOeCharger_SetAccessStateV2($goeID, 1); // Laden blockieren!
         }
     }
 

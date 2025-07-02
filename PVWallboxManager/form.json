@@ -17,7 +17,7 @@
       "items": [
         { "type": "Label", "label": "⚙️ Konfiguriere hier deine GO-e Wallbox und Ladeparameter & 🔌 Ladeströme." },
         { "type": "RowLayout", "items": [
-          { "type": "SelectInstance", "name": "GOEChargerID", "caption": "GO-e Instanz", "validClasses": ["GOeCharger"], "icon": "Plug" },
+          { "type": "SelectInstance", "name": "GOeChargerID", "caption": "GO-e Instanz", "validClasses": ["GOeCharger"], "icon": "Plug" },
           { "type": "Label", "caption": "    " },
           { "type": "NumberSpinner", "name": "MinAmpere", "caption": "Minimaler Ladestrom (A)", "icon": "Minus", "suffix": "A", "minimum": 6, "maximum": 16, "default": 6 },
           { "type": "Label", "caption": "    " },
