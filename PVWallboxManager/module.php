@@ -667,18 +667,24 @@ private function LogikPVPureMitHysterese($modus = 'standard', $hausverbrauch = n
 
 private function LogikZielzeitladung($hausverbrauch = null)
 {
-    date_default_timezone_set('Europe/Vienna');
+    // Annahme: TargetTime ist die Anzahl Sekunden seit Mitternacht (0 - 86399)
+    $targetOffset = GetValue($this->GetIDForIdent('TargetTime'));
 
-    // Zielzeit bestimmen (lokaler Timestamp)
-    $offset = GetValue($this->GetIDForIdent('TargetTime'));
-    $midnight = (new DateTime('today', new DateTimeZone('Europe/Vienna')))->getTimestamp();
-    $tzOffset = (new DateTime('now', new DateTimeZone('Europe/Vienna')))->getOffset();
-    $targetTime = $midnight + $offset + $tzOffset;
+    // Aktueller Tag, lokale Zeitzone
+    $today = new DateTime('today', new DateTimeZone('Europe/Vienna'));
+    $targetTime = clone $today;
+    $targetTime->modify("+$targetOffset seconds");
 
-    if ($targetTime < time()) {
-        $targetTime += 86400; // Morgen
+    // Falls Zielzeit schon vorbei ist, auf morgen legen
+    $now = new DateTime('now', new DateTimeZone('Europe/Vienna'));
+    if ($targetTime < $now) {
+        $targetTime->modify('+1 day');
     }
-    $this->Log("Zielzeitladung: Zielzeit lokal = " . date('d.m.Y H:i:s', $targetTime), 'debug');
+
+    $this->Log("Zielzeitladung: Zielzeit lokal = " . $targetTime->format('d.m.Y H:i:s'), 'debug');
+    $this->Log("Zielzeitladung: Uhrzeit eingestellt auf " . $targetTime->format('H:i'), 'debug');
+
+}
 
     // Ladebedarf berechnen
     $soc = $this->ReadPropertyFloat('CarSOCFallback');
