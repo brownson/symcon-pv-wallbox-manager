@@ -350,13 +350,7 @@ public function UpdateCharging()
 
         // Wallbox-Leistung abfragen
         $powerToCarTotal = GOeCharger_GetPowerToCar($goeID);
-        // Überprüfen, ob die Wallbox-Leistung korrekt abgerufen wurde
-        if ($powerToCarTotal !== false) {
-            $this->Log("Aktuelle Wallbox-Leistung (powerToCarTotal): {$powerToCarTotal} W", 'debug');
-        } else {
-            $this->Log("Fehler beim Abrufen der Wallbox-Leistung.", 'error');
-        }
-
+        $this->Log("Wallbox-Leistung abgerufen: {$powerToCarTotal} W", 'debug');
 
         // --- PV-Überschuss berechnen ---
         $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch);
