@@ -94,6 +94,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableFloat('Hausverbrauch_abz_Wallbox', '🏠 Hausverbrauch abzügl. Wallbox (W)', '~Watt', 15);
         IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_abz_Wallbox'), 'home');
 
+        $this->RegisterVariableString('AccessStateText', 'Wallbox Freigabe-Modus', '', 88);
+        IPS_SetIcon($this->GetIDForIdent('AccessStateText'), 'lock');
+
         $this->RegisterVariableString('Wallbox_Status', 'Wallbox Status', '', 20);
         IPS_SetIcon($this->GetIDForIdent('Wallbox_Status'), 'charging-station');
         $this->RegisterVariableInteger('CarChargeTargetTime', 'Ziel-Ladezeit', '~UnixTimestampTime', 42);
@@ -140,67 +143,67 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->SetTimerInterval('UpdateCharging', 0);
         }
+        $this->UpdateAccessStateText(); // <-- hier!
     }
 
 
 public function UpdateCharging()
 {
-    $goeID = $this->ReadPropertyInteger('GOeChargerID');
+    $goeID = $this->ReadPropertyInteger('GOEChargerID');
 
-    // Prüfe ob NUR MIT Fahrzeug geladen werden darf (Property)
+    // === 1. Prüfe: Darf NUR MIT Fahrzeug geladen werden? ===
     if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden()) {
-        @GOeCharger_SetAccessStateV2($goeID, 1); // Blockieren
+        @GOeCharger_SetAccessStateV2($goeID, 1); // Blockieren ("Nicht laden")
         $this->DeaktiviereLaden(); // Setzt auch ChargingWatt=0
         $status = "Warte auf Fahrzeug (Option 'Nur mit Fahrzeug' aktiv)";
         $this->SetLademodusStatus($status);
         $this->Log($status, 'info');
         $this->SetLademodusAutoReset();
+        $this->UpdateAccessStateText(); // <<---- AccessState für Anzeige aktualisieren
         return;
     }
 
-    // Modul aktiv? Sonst abbrechen!
+    // === 2. Modul aktiv? Sonst abbrechen! ===
     if (!$this->ReadPropertyBoolean('ModulAktiv')) {
         $this->Log("Modul ist deaktiviert. Keine Aktion.", 'warn');
         return;
     }
 
-    // 1. Energiewerte lesen
+    // === 3. Energiewerte lesen ===
     $pv          = $this->LesePVErzeugung();
     $haus        = $this->LeseHausverbrauch();
     $batt        = $this->LeseBatterieleistung();
     $wb_leistung = $this->LeseWallboxLeistung();
 
-    // 2. Rohwert berechnen
+    // === 4. Rohwert und Puffer berechnen ===
     $roh_ueberschuss = $this->BerechnePVUeberschuss($pv, $haus, $batt, $wb_leistung);
-
-    // 3. Pufferwert berechnen
     list($ueberschuss, $pufferFaktor) = $this->BerechnePVUeberschussMitPuffer($roh_ueberschuss);
 
-    // 4. Pufferfaktor fürs Logging berechnen
     $puffer_prozent = round($pufferFaktor * 100);
-    $puffer_diff = round($roh_ueberschuss - $ueberschuss);
+    $puffer_diff    = round($roh_ueberschuss - $ueberschuss);
 
-    // Werte schreiben
+    // === 5. Werte schreiben ===
     $this->SetValueSafe('PV_Ueberschuss', max(0, $ueberschuss), 1);
     $this->SetValueSafe('Hausverbrauch_W', $haus, 1);
     $haus_abz_wb = max(0, $haus - $wb_leistung);
     $this->SetValueSafe('Hausverbrauch_abz_Wallbox', $haus_abz_wb, 1);
 
-    // Aktiven Lademodus bestimmen
+    // === 6. Aktiven Lademodus bestimmen ===
     $modus = $this->ErmittleAktivenLademodus();
 
-    // =======>>> FAHRZEUGSTATUS PRÜFEN <<<=======
+    // === 7. Fahrzeugstatus PRÜFEN (falls nicht schon in Schritt 1 abgefangen) ===
     if (!$this->IstFahrzeugVerbunden()) {
-        @GOeCharger_SetAccessStateV2($goeID, 1); // IMMER blockieren!
+        @GOeCharger_SetAccessStateV2($goeID, 1); // Nicht laden!
         $this->DeaktiviereLaden();
         $status = "Warte auf Fahrzeug (kein Auto verbunden)";
         $this->SetLademodusStatus($status);
-        $this->Log("Kein Fahrzeug verbunden. Warte auf Anstecken...", 'info');
+        $this->Log($status, 'info');
         $this->SetLademodusAutoReset();
+        $this->UpdateAccessStateText();
         return;
     }
 
-    // 6. Ladeleistung ermitteln
+    // === 8. Ladeleistung ermitteln ===
     switch ($modus) {
         case 'manuell':
             $ladeleistung = $this->BerechneLadeleistungManuell();
@@ -274,13 +277,13 @@ public function UpdateCharging()
             break;
     }
 
-    // 7. Phasenumschaltung prüfen und ggf. umschalten
+    // === 9. Phasenumschaltung prüfen und ggf. umschalten ===
     $this->PruefePhasenumschaltung($ladeleistung);
 
-    // 8. Jetzt ZENTRALE accessStateV2-Logik für alle Fälle:
+    // === 10. accessStateV2 setzen und Wallbox steuern ===
     if ($this->IstFahrzeugVerbunden()) {
         if ($ladeleistung > 0) {
-            @GOeCharger_SetAccessStateV2($goeID, 2); // Freigeben
+            @GOeCharger_SetAccessStateV2($goeID, 2); // Freigeben (Laden erzwingen)
             $this->SetzeLadeleistung($ladeleistung);
             $status = "Laden: ".round($ladeleistung)." W im Modus: ".$this->GetLademodusText($this->GetValue('AktiverLademodus'));
         } else {
@@ -294,8 +297,9 @@ public function UpdateCharging()
         $status = "Nicht laden (kein Fahrzeug)";
     }
 
-    // 9. Statusvariable und Logging
+    // === 11. Statusvariable und Logging ===
     $this->SetLademodusStatus($status);
+    $this->UpdateAccessStateText(); // <<---- für WebFront anzeigen!
     $this->LogDebugData([
         'PV'          => $pv,
         'Haus'        => $haus,
@@ -1052,6 +1056,49 @@ public function UpdateCharging()
         $val = @$this->ReadAttribute($name);
         if ($val === null) return $default;
         return $val;
+    }
+
+    private function LogAccessStateV2()
+    {
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
+        if ($modusID && @IPS_VariableExists($modusID)) {
+            $current = GetValue($modusID);
+            switch ($current) {
+                case 0: $msg = "Neutral (Wallbox entscheidet selbst)"; break;
+                case 1: $msg = "Nicht laden (gesperrt)"; break;
+                case 2: $msg = "Laden (erzwungen)"; break;
+                default: $msg = "Unbekannter Modus ($current)";
+            }
+            $this->Log("accessStateV2 aktuell: $msg", 'debug');
+        } else {
+            $this->Log("accessStateV2 Variable nicht gefunden!", 'warn');
+        }
+    }
+
+    private function UpdateAccessStateText()
+    {
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
+
+        $text = "unbekannt";
+        if ($modusID && @IPS_VariableExists($modusID)) {
+            $val = GetValue($modusID);
+            switch ($val) {
+                case 0:
+                    $text = "Neutral (Wallbox entscheidet selbst)";
+                    break;
+                case 1:
+                    $text = "Nicht laden (gesperrt)";
+                    break;
+                case 2:
+                    $text = "Laden (erzwungen)";
+                    break;
+                default:
+                    $text = "Unbekannter Modus ($val)";
+            }
+        }
+        $this->SetValueSafe('AccessStateText', $text, 0);
     }
 
 }
