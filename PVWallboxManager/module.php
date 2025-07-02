@@ -1327,6 +1327,33 @@ private function BerechneHausverbrauch()
     
 // =====================================================================================================
 
+private function BerechneDynamischenPuffer(float $pvUeberschuss): float
+{
+    // Hier kannst du deine Logik für den dynamischen Puffer anpassen
+    // Beispiel für eine einfache Anpassung des Puffers basierend auf dem Überschuss:
+    
+    $pufferWatt = 0;
+
+    // Wenn der Überschuss unter einem bestimmten Wert liegt, setze den Puffer auf einen niedrigen Wert
+    if ($pvUeberschuss < 2000) {
+        $pufferWatt = $pvUeberschuss * 0.20; // 20% des Überschusses für den Puffer
+    } elseif ($pvUeberschuss < 4000) {
+        $pufferWatt = $pvUeberschuss * 0.30; // 30% des Überschusses für den Puffer
+    } elseif ($pvUeberschuss < 6000) {
+        $pufferWatt = $pvUeberschuss * 0.50; // 50% des Überschusses für den Puffer
+    } else {
+        $pufferWatt = $pvUeberschuss * 0.60; // 60% des Überschusses für den Puffer
+    }
+
+    // Optional: Loggen des berechneten Puffers für Debugging-Zwecke
+    $this->Log("Berechneter dynamischer Puffer: {$pufferWatt} W", 'debug');
+
+    return $pufferWatt;
+}
+
+// =====================================================================================================
+
+
 private function Log(string $message, string $level)
 {
     $prefix = "PVWM";
