@@ -953,8 +953,17 @@ private function LogikPV2CarModus()
     $hausakkuSOCVollSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
 
     // 5. PV-Überschuss berechnen (PV-Erzeugung - Hausverbrauch - Wallbox)
-    $Hausverbrauch = GetValue($this->ReadPropertyInteger('HausverbrauchID')); // Hausverbrauch holen
-    $pvUeberschuss = $this->BerechnePVUeberschuss($Hausverbrauch, 'pv2car'); // Berechnung des Überschusses im PV2Car-Modus
+    $goeID = $this->ReadPropertyInteger('GOEChargerID');
+    $powerToCarTotal_kW = GOeCharger_GetPowerToCar($goeID);
+    $powerToCarTotal_W  = $powerToCarTotal_kW * 1000;
+
+    $Hausverbrauch = GetValue($this->ReadPropertyInteger('HausverbrauchID'));
+    if ($this->ReadPropertyString("HausverbrauchEinheit") === "kW") {
+        $Hausverbrauch = $Hausverbrauch * 1000;
+    }
+    $HausverbrauchOhneWallbox = $Hausverbrauch - $powerToCarTotal_W;
+
+    $pvUeberschuss = $this->BerechnePVUeberschuss($HausverbrauchOhneWallbox, 'pv2car'); // jetzt korrekt!
 
     // 6. Dynamischen Puffer zentral berücksichtigen
     if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
