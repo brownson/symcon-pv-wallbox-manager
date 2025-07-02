@@ -669,7 +669,7 @@ class PVWallboxManager extends IPSModule
         // Beispiel für go-e Charger:
         $status = @GOeCharger_GetStatus($this->ReadPropertyInteger('GoeID'));
         // "car": 1 = nicht verbunden, 2 = verbunden, 3 = lädt, 4 = Fehler
-        if (isset($status['car']) && ($status['car'] == 2 || $status['car'] == 3)) {
+        if (isset($status['status']) && ($status['status'] == 2 || $status['status'] == 3)) {
             return true;
         }
         return false;
@@ -864,11 +864,11 @@ class PVWallboxManager extends IPSModule
         }
 
         // 'car' statt 'status'!
-        $carIdent = 'car';
+        $carIdent = 'status';
         $carVarID = @IPS_GetObjectIDByIdent($carIdent, $goeID);
 
         if ($carVarID === false) {
-            $this->Log("CreateCarStatusEvent: Keine 'car'-Variable in GO-e Instanz ($goeID) gefunden – Sofort-Trigger nicht angelegt!", 'warn');
+            $this->Log("CreateCarStatusEvent: Keine 'status'-Variable in GO-e Instanz ($goeID) gefunden – Sofort-Trigger nicht angelegt!", 'warn');
             return;
         }
 
@@ -890,7 +890,7 @@ class PVWallboxManager extends IPSModule
             IPS_SetEventScript($eventID, $code);
             IPS_SetEventActive($eventID, true);
 
-            $this->Log("Ereignis zum sofortigen Update bei Fahrzeugstatuswechsel ('car') wurde neu erstellt. (Event-ID: {$eventID})", 'info');
+            $this->Log("Ereignis zum sofortigen Update bei Fahrzeugstatuswechsel ('status') wurde neu erstellt. (Event-ID: {$eventID})", 'info');
         } else {
             // Existierendes Ereignis ggf. anpassen
             if (@IPS_GetEvent($eventID)['TriggerVariableID'] != $carVarID) {
