@@ -88,8 +88,6 @@ class PVWallboxManager extends IPSModule
 
         // Timer für Berechnungsintervall
         $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
-
-
     }
 
     public function ApplyChanges()
@@ -120,6 +118,9 @@ class PVWallboxManager extends IPSModule
         // 2. PV-Überschuss berechnen (mit/ohne Puffer)
         $roh_ueberschuss = $this->BerechnePVUeberschuss($pv, $haus, $batt, $wb_leistung);
         $ueberschuss     = $this->BerechnePVUeberschussMitPuffer($roh_ueberschuss);
+
+        // >>>>>>> Hier PV-Überschuss schreiben!
+        $this->SetValue('PV_Ueberschuss', $ueberschuss);
 
         // 3. Aktiven Lademodus bestimmen
         $modus = $this->ErmittleAktivenLademodus();
