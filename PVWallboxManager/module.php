@@ -328,7 +328,10 @@ public function UpdateCharging()
             return;
         }
 
+        // Wallbox-Instanz-ID abrufen
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
+
+        // Wallbox-Status abfragen
         $status = GOeCharger_GetStatus($goeID);  // 1=bereit, 2=lädt, 3=warte, 4=beendet
 
         // --- Kein Fahrzeug verbunden ---
@@ -347,7 +350,7 @@ public function UpdateCharging()
             return;
         }
 
-        // Wallbox-Leistung abfragen
+        // Wallbox-Leistung abfragen in kW
         $powerToCarTotal_kW = GOeCharger_GetPowerToCar($goeID);
        
         // Umrechnung von kW in W (1 kW = 1000 W)
