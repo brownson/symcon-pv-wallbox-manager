@@ -106,6 +106,27 @@ public function ApplyChanges()
     parent::ApplyChanges();
     $this->Log("ApplyChanges(): Konfiguration wird angewendet.", 'debug');
 
+    // --- Zielzeit-Profil (Stundenanzeige im WebFront) ---
+    $profil = 'TimeTarget_Seconds';
+    if (!IPS_VariableProfileExists($profil)) {
+        IPS_CreateVariableProfile($profil, 1); // 1 = Integer
+    }
+
+    // Schrittweite 1 Stunde (3600 Sekunden) → Anzeige als 00:00, 01:00, ..., 23:00
+    IPS_SetVariableProfileText($profil, '', '');
+    IPS_SetVariableProfileValues($profil, 0, 86399, 3600); // von 0 bis 23:59 Uhr, Schritt: 1 Stunde
+
+    // Assoziationen: jede volle Stunde mit Uhrzeit anzeigen
+    // (WebFront zeigt dann z.B. 00:00, 01:00, ... an)
+    IPS_SetVariableProfileAssociations($profil, []); // Vorher alle löschen (wichtig bei Updates)
+    for ($h = 0; $h < 24; $h++) {
+        $seconds = $h * 3600;
+        $label = sprintf('%02d:00', $h);
+        IPS_SetVariableProfileAssociation($profil, $seconds, $label, '', -1);
+    }
+
+    $this->RegisterVariableInteger('TargetTime', 'Zielzeit', $profil, 40);
+
     // --- Grundlegende Parameter lesen ---
     $interval = $this->ReadPropertyInteger('RefreshInterval');
     $goeID    = $this->ReadPropertyInteger('GOEChargerID');
@@ -186,6 +207,8 @@ public function RequestAction($ident, $value)
         case "ManuellVollladen":
             $this->SetValue("ManuellVollladen", $value);
             if ($value) {
+                SetValue($this->GetIDForIdent('PV2CarModus'), false);
+                SetValue($this->GetIDForIdent('ZielzeitladungModus'), false);
                 // Vollladen aktivieren
                 $this->UpdateCharging();
             } else {
@@ -218,6 +241,8 @@ public function RequestAction($ident, $value)
             break;
 
         case 'TargetTime':
+            // Begrenzung auf gültigen Wertebereich: 0–86399 (23:59:59)
+            $value = max(0, min($value, 86399));
             SetValue($this->GetIDForIdent($ident), $value);
             break;
 
@@ -670,6 +695,7 @@ private function LogikZielzeitladung($hausverbrauch = null)
 {
     // Annahme: TargetTime ist die Anzahl Sekunden seit Mitternacht (0 - 86399)
     $targetOffset = GetValue($this->GetIDForIdent('TargetTime'));
+    $targetOffset = max(0, min($targetOffset, 86399)); // Begrenzen
 
     // Aktueller Tag, lokale Zeitzone
     $today = new DateTime('today', new DateTimeZone('Europe/Vienna'));
