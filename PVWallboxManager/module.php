@@ -289,16 +289,15 @@ class PVWallboxManager extends IPSModule
             // Zähler erhöhen (z. B. in einer Variablen für Zyklen speichern)
             return true;
         }
-    } else {
-        // Beispiel: Für Stoppwert Unterschreiten muss 3 Zyklen
-        if ($ueberschuss <= $this->ReadPropertyFloat('MinStopWatt')) {
-            // Zähler erhöhen (z. B. in einer Variablen für Zyklen speichern)
-            return true;
+        } else {
+            // Beispiel: Für Stoppwert Unterschreiten muss 3 Zyklen
+            if ($ueberschuss <= $this->ReadPropertyFloat('MinStopWatt')) {
+                // Zähler erhöhen (z. B. in einer Variablen für Zyklen speichern)
+                return true;
+            }
         }
+        return false;
     }
-
-    return false;
-}
 
     // === 4. Modussteuerung ===
 
@@ -307,16 +306,26 @@ class PVWallboxManager extends IPSModule
     {
         $id = @$this->GetIDForIdent('AktiverLademodus');
         $modus = ($id > 0) ? GetValue($id) : 0;
-        return 'nurpv'; // Solange keine weiteren Modi implementiert sind, immer 'nurpv'
 
         // (Pseudologik – baue nach deinen Regeln aus)
         // Reihenfolge: Manuell > PV2Car > Zielzeit > NurPV > Strompreis
 
         // Beispiel: Prüfen, ob Volllademodus aktiviert ist (Variable oder Property)
-        if (/*...*/ false) return 'manuell';
-        if (/*...*/ false) return 'pv2car';
-        if (/*...*/ false) return 'zielzeit';
-        if (/*...*/ false) return 'strompreis';
+        if ($modus == 1) {
+            return 'manuell';  // Wenn manuell aktiviert
+        }
+        if ($modus == 2) {
+            return 'pv2car';   // Wenn PV2Car aktiviert
+        }
+        if ($modus == 3) {
+            return 'zielzeit'; // Wenn Zielzeit aktiviert
+        }
+        if ($modus == 4) {
+            return 'strompreis'; // Wenn Strompreis aktiviert
+        }
+
+        // Wenn keiner der obigen Modi aktiviert ist, Standardmodi 'nurpv'
+        return 'nurpv';
     }
 
     /** Manuell-Modus behandeln */
@@ -418,7 +427,7 @@ class PVWallboxManager extends IPSModule
     private function GetCurrentMarketPrice()
     {
          return 0;
-        }
+    }
     
     private function GetMaxAllowedPrice()
     {
