@@ -130,7 +130,7 @@ class PVWallboxManager extends IPSModule
 
         // 2. PV-Überschuss berechnen (mit/ohne Puffer)
         $roh_ueberschuss = $this->BerechnePVUeberschuss($pv, $haus, $batt, $wb_leistung);
-        $ueberschuss     = $this->BerechnePVUeberschussMitPuffer($roh_ueberschuss);
+        $ueberschuss     = $this->BerechneDynamischenPuffer($roh_ueberschuss);
 
         // PV-Überschuss niemals negativ!
         $ueberschuss = max(0, $ueberschuss);
@@ -169,7 +169,7 @@ class PVWallboxManager extends IPSModule
             case 'nurpv':
             default:
                 $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                $this->Log( "PV-Überschussladung: PV [{$pv} W] - Haus [{$haus} W] - Batterie [{$batt} W] + Wallbox [{$wb_leistung} W] = Überschuss [{$ueberschuss} W] → Ladeleistung [" . round($ladeleistung) . " W]", 'info' );
+                $this->Log( "PV-Überschuss: PV [{$pv} W] - Haus [{$haus} W] - Batterie [{$batt} W] + Wallbox [{$wb_leistung} W] - Dyn.Puffer: [{roh_ueberschuss} W] = Überschuss [{$ueberschuss} W] → Ladeleistung [" . round($ladeleistung) . " W]", 'info' );
                 break;
         }
 
@@ -292,11 +292,17 @@ class PVWallboxManager extends IPSModule
     private function BerechnePVUeberschussMitPuffer($rohwert)
     {
         if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
-            // Beispiel: Pufferwert um den Faktor 0.9 (Dämpfung)
-            $puffer = 0.9;
-            return $rohwert * $puffer;
+            return $rohwert;
         }
-        return $rohwert;
+        // Dynamische Staffelung
+        if ($rohwert < 3000) {
+            $pufferFaktor = 0.95;
+        } elseif ($rohwert < 6000) {
+            $pufferFaktor = 0.90;
+        } else {
+            $pufferFaktor = 0.85;
+        }
+        return $rohwert * $pufferFaktor;
     }
 
     /** Berechnet den PV-Überschuss unter Berücksichtigung der Hysterese für Start- und Stoppwerte.*/
