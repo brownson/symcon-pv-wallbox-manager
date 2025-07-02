@@ -306,6 +306,7 @@ class PVWallboxManager extends IPSModule
             // --- RunLock immer wieder freigeben! ---
             $this->WriteAttributeBoolean('RunLock', false);
         }
+    }
 
     private function EnsureLademodusProfile()
     {
