@@ -1514,6 +1514,9 @@ private function SetLademodusStatusByReason($grund = '')
         case 'pv_surplus':
             $text = '🌞 PV-Überschuss: Ladung läuft';
             break;
+        case 'no_ladefreigabe': // Beispiel für einen schöneren Ausdruck
+            $text = '⏸️ Ladefreigabe fehlt – Wallbox auf „Bereit“';
+            break;
         default:
             $text = '⏸️ Keine Ladung aktiv';
             $this->Log("SetLademodusStatusByReason: Unbekannter Grund '{$grund}' – Standardstatus gesetzt.", 'warn');
