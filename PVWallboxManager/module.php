@@ -72,6 +72,19 @@ class PVWallboxManager extends IPSModule
         // === Modul-Variablen für Visualisierung, Status, Lademodus etc. ===
         $this->RegisterVariableFloat('PV_Ueberschuss', '☀️ PV-Überschuss (W)', '~Watt', 10);
         IPS_SetIcon($this->GetIDForIdent('PV_Ueberschuss'), 'solar-panel');
+
+        // Hausverbrauch (W)
+        $this->RegisterVariableFloat('Hausverbrauch_W', '🏠 Hausverbrauch (W)', '~Watt', 12);
+        IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_W'), 'home');
+
+        // Wallbox-Leistung (W)
+        $this->RegisterVariableFloat('Wallbox_Leistung_W', '🔌Wallbox-Leistung (W)', '~Watt', 13);
+        IPS_SetIcon($this->GetIDForIdent('Wallbox_Leistung_W'), 'charging-station');
+
+        // Hausverbrauch abzügl. Wallbox (W) – wie vorher empfohlen
+        $this->RegisterVariableFloat('Hausverbrauch_abz_Wallbox', '🏠 Hausverbrauch abzügl. Wallbox (W)', '~Watt', 15);
+        IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_abz_Wallbox'), 'home');
+
         $this->RegisterVariableString('Wallbox_Status', 'Wallbox Status', '', 20);
         IPS_SetIcon($this->GetIDForIdent('Wallbox_Status'), 'charging-station');
         $this->RegisterVariableInteger('CarChargeTargetTime', 'Ziel-Ladezeit', '~UnixTimestampTime', 42);
@@ -119,8 +132,16 @@ class PVWallboxManager extends IPSModule
         $roh_ueberschuss = $this->BerechnePVUeberschuss($pv, $haus, $batt, $wb_leistung);
         $ueberschuss     = $this->BerechnePVUeberschussMitPuffer($roh_ueberschuss);
 
-        // >>>>>>> Hier PV-Überschuss schreiben!
+        // PV-Überschuss niemals negativ!
+        $ueberschuss = max(0, $ueberschuss);
+
+        // >>>>>>> Hier Werte schreiben!
         $this->SetValue('PV_Ueberschuss', $ueberschuss);
+        $this->SetValue('Hausverbrauch_W', $haus);
+        $this->SetValue('Wallbox_Leistung_W', $wb_leistung);
+        $haus_abz_wb = max(0, $haus - $wb_leistung);
+        $this->SetValue('Hausverbrauch_abz_Wallbox', $haus_abz_wb);
+
 
         // 3. Aktiven Lademodus bestimmen
         $modus = $this->ErmittleAktivenLademodus();
