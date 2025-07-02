@@ -153,7 +153,7 @@ public function UpdateCharging()
 
     // === 1. Prüfe: Darf NUR MIT Fahrzeug geladen werden? ===
     if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden()) {
-        @GOeCharger_SetAccessStateV2($goeID, 1); // Blockieren ("Nicht laden")
+        @GOeCharger_setAccessStateV2($goeID, 1); // Blockieren ("Nicht laden")
         $this->DeaktiviereLaden(); // Setzt auch ChargingWatt=0
         $status = "Warte auf Fahrzeug (Option 'Nur mit Fahrzeug' aktiv)";
         $this->SetLademodusStatus($status);
@@ -193,7 +193,7 @@ public function UpdateCharging()
 
     // === 7. Fahrzeugstatus PRÜFEN (falls nicht schon in Schritt 1 abgefangen) ===
     if (!$this->IstFahrzeugVerbunden()) {
-        @GOeCharger_SetAccessStateV2($goeID, 1); // Nicht laden!
+        @GOeCharger_setAccessStateV2($goeID, 1); // Nicht laden!
         $this->DeaktiviereLaden();
         $status = "Warte auf Fahrzeug (kein Auto verbunden)";
         $this->SetLademodusStatus($status);
@@ -283,16 +283,16 @@ public function UpdateCharging()
     // === 10. accessStateV2 setzen und Wallbox steuern ===
     if ($this->IstFahrzeugVerbunden()) {
         if ($ladeleistung > 0) {
-            @GOeCharger_SetAccessStateV2($goeID, 2); // Freigeben (Laden erzwingen)
+            @GOeCharger_setAccessStateV2($goeID, 2); // Freigeben (Laden erzwingen)
             $this->SetzeLadeleistung($ladeleistung);
             $status = "Laden: ".round($ladeleistung)." W im Modus: ".$this->GetLademodusText($this->GetValue('AktiverLademodus'));
         } else {
-            @GOeCharger_SetAccessStateV2($goeID, 1); // Nicht laden!
+            @GOeCharger_setAccessStateV2($goeID, 1); // Nicht laden!
             $this->DeaktiviereLaden();
             $status = "Nicht laden (kein Überschuss/Modus)";
         }
     } else {
-        @GOeCharger_SetAccessStateV2($goeID, 1); // Immer blockieren
+        @GOeCharger_setAccessStateV2($goeID, 1); // Immer blockieren
         $this->DeaktiviereLaden();
         $status = "Nicht laden (kein Fahrzeug)";
     }
@@ -775,7 +775,7 @@ public function UpdateCharging()
         if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
             @GOeCharger_SetCurrentChargingWatt($goeID, (int)$leistung);
             if ((int)$leistung > 0) {
-                @GOeCharger_SetAccessStateV2($goeID, 2); // Immer Ladefreigabe aktivieren!
+                @GOeCharger_setAccessStateV2($goeID, 2); // Immer Ladefreigabe aktivieren!
             }
         }
     }
@@ -793,7 +793,7 @@ public function UpdateCharging()
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
             @GOeCharger_SetCurrentChargingWatt($goeID, 0);
-            @GOeCharger_SetAccessStateV2($goeID, 1); // Laden blockieren!
+            @GOeCharger_setAccessStateV2($goeID, 1); // Laden blockieren!
         }
     }
 
