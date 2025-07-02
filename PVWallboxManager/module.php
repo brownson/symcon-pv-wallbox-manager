@@ -328,6 +328,11 @@ public function UpdateCharging()
         // Überprüfen, ob die Hausverbrauch-Variable existiert
         if ($hausverbrauchID > 0 && IPS_VariableExists($hausverbrauchID)) {
             $hausverbrauch = GetValue($hausverbrauchID); // Hausverbrauch aus der Variablen holen
+            // Einheitenkorrektur: kW → W
+            if ($this->ReadPropertyString("HausverbrauchEinheit") === "kW") {
+                $hausverbrauch = $hausverbrauch * 1000;
+                $this->Log("Einheit erkannt: kW, umgerechnet: {$hausverbrauch} W", 'debug');
+            }
             $this->Log("Aktueller Hausverbrauch (HausverbrauchID): {$hausverbrauch} W", 'debug');
         } else {
             $hausverbrauch = 0.0; // Falls keine gültige Variable vorhanden ist
@@ -358,33 +363,29 @@ public function UpdateCharging()
 
         // Wallbox-Leistung abfragen in kW
         $powerToCarTotal_kW = GOeCharger_GetPowerToCar($goeID);
-       
         // Umrechnung von kW in W (1 kW = 1000 W)
         $powerToCarTotal_W = $powerToCarTotal_kW * 1000;
         
         // Überprüfen, ob die Wallbox-Leistung korrekt abgerufen wurde
         if ($powerToCarTotal_W !== false) {
             $this->Log("Aktuelle Wallbox-Leistung (WallboxLeistung): {$powerToCarTotal_W} W", 'debug');
-
-            // Wallbox-Leistung in die vorhandene Variable setzen
             SetValue($this->GetIDForIdent('WallboxLeistung'), $powerToCarTotal_W);
         } else {
             $this->Log("Fehler beim Abrufen der Wallbox-Leistung.", 'error');
         }
 
         // Hausverbrauch berechnen: Hausverbrauch = HausverbrauchID - WallboxLeistung
-        $hausverbrauch = $hausverbrauch - $powerToCarTotal_W;
-
-        // Hausverbrauch in die Variable setzen
-        SetValue($this->GetIDForIdent('Hausverbrauch'), $hausverbrauch);
-        $this->Log("UpdateCharging(): Berechneter Hausverbrauch = {$hausverbrauch} W", 'debug');
+        $hausverbrauchOhneWB = $hausverbrauch - $powerToCarTotal_W;
+        SetValue($this->GetIDForIdent('Hausverbrauch'), $hausverbrauchOhneWB);
+        $this->Log("UpdateCharging(): Berechneter Hausverbrauch = {$hausverbrauchOhneWB} W", 'debug');
 
         // --- PV-Überschuss berechnen ---
-        $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch);
+        $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauchOhneWB);
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $pvUeberschussStandard);
         $this->Log("UpdateCharging(): Standard-PV-Überschuss = {$pvUeberschussStandard} W", 'debug');
 
         $minLadeWatt = $this->ReadPropertyInteger('MinLadeWatt');
+        
         // --- Fahrzeug verbunden, Ladefreigabe prüfen ---
         if ($this->ReadPropertyBoolean('NurMitFahrzeug') && in_array($status, [3, 4])) {
 
