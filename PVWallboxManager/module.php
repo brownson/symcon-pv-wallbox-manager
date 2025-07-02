@@ -10,7 +10,7 @@ class PVWallboxManager extends IPSModule
     // === 1. Initialisierung ===
 
     /** @inheritDoc */
-    public function Create()
+    public function Create();
     {
         parent::Create();
         // === 1. Modulsteuerung ===
@@ -101,7 +101,7 @@ class PVWallboxManager extends IPSModule
 
         // Timer-Intervall ggf. neu setzen, wenn RefreshInterval geändert wurde
         $this->SetTimerInterval('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000);
-       }
+    }
 
     public function UpdateCharging()
     {
