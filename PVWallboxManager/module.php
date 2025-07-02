@@ -149,7 +149,7 @@ class PVWallboxManager extends IPSModule
 
 public function UpdateCharging()
 {
-    $goeID = $this->ReadPropertyInteger('GOEChargerID');
+    $goeID = $this->ReadPropertyInteger('GOeChargerID');
 
     // === 1. Prüfe: Darf NUR MIT Fahrzeug geladen werden? ===
     if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden()) {
@@ -1060,7 +1060,7 @@ public function UpdateCharging()
 
     private function LogAccessStateV2()
     {
-        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $goeID = $this->ReadPropertyInteger('GOeChargerID');
         $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
         if ($modusID && @IPS_VariableExists($modusID)) {
             $current = GetValue($modusID);
@@ -1078,7 +1078,7 @@ public function UpdateCharging()
 
     private function UpdateAccessStateText()
     {
-        $goeID = $this->ReadPropertyInteger('GOEChargerID');
+        $goeID = $this->ReadPropertyInteger('GOeChargerID');
         $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
 
         $text = "unbekannt";
