@@ -933,6 +933,7 @@ private function LogikPV2CarModus()
 
     // 7. Anteil für Auto bestimmen (Variable!)
     $anteil = GetValue($this->GetIDForIdent('PVAnteilAuto')) / 100.0;
+    $this->Log("PV2Car: Anteil für Auto: {$anteil} (d.h. {$anteil * 100}% des Überschusses)", 'debug'); // Log hier hinzufügen
 
     // 8. Hysterese Counter laden (zentral!)
     $startCounter = $this->ReadAttributeInteger('StartHystereseCounter');
@@ -961,6 +962,9 @@ private function LogikPV2CarModus()
         $ladeleistung = round($pvUeberschuss * $anteil);
         $msg = "PV2Car: Anteil fürs Auto: {$ladeleistung} W (" . round($anteil * 100) . "% von {$pvUeberschuss} W, inkl. Puffer)";
     }
+
+    // Log für die berechnete Ladeleistung hinzufügen
+    $this->Log("PV2Car: Berechneter Überschuss: {$pvUeberschuss} W, Ladeleistung für das Auto: {$ladeleistung} W", 'debug'); // Log hier hinzufügen
 
     // 11. Hysterese-Umschaltung wie Standardmodus (zentraler Counter!)
     $ladeModusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
