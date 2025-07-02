@@ -21,7 +21,7 @@
           { "type": "Label", "caption": "    " },
           { "type": "NumberSpinner", "name": "MinAmpere", "caption": "Minimaler Ladestrom (A)", "icon": "Minus", "suffix": "A", "minimum": 6, "maximum": 16, "default": 6 },
           { "type": "Label", "caption": "    " },
-          { "type": "NumberSpinner", "name": "MaxAmpere", "caption": "Maximaler Ladestrom (A)", "icon": "Plus", "suffix": "A", "minimum": 6, "maximum": 16, "default": 16" }
+          { "type": "NumberSpinner", "name": "MaxAmpere", "caption": "Maximaler Ladestrom (A)", "icon": "Plus", "suffix": "A", "minimum": 6, "maximum": 16, "default": 16 }
         ]},
         { "type": "Label", "caption": "    " },
         { "type": "Label", "label": "🟢 Startwert: Ab diesem PV-Überschuss startet das Laden. Die Hysterese legt fest, wie oft der Wert überschritten sein muss." },
