@@ -130,7 +130,7 @@ public function ApplyChanges()
     }
 
     $this->RegisterVariableInteger('TargetTime', 'Zielzeit', $profil, 40);
-
+    }
     // --- Grundlegende Parameter lesen ---
     $interval = $this->ReadPropertyInteger('RefreshInterval');
     $goeID    = $this->ReadPropertyInteger('GOEChargerID');
