@@ -19,9 +19,9 @@
         { "type": "RowLayout", "items": [
           { "type": "SelectInstance", "name": "GOEChargerID", "caption": "GO-e Instanz", "validClasses": ["GOeCharger"], "icon": "Plug" },
           { "type": "Label", "caption": "    " },
-          { "type": "NumberSpinner", "name": "MinAmpere", "caption": "Minimaler Ladestrom (A)", "icon": "Minus" },
+          { "type": "NumberSpinner", "name": "MinAmpere", "caption": "Minimaler Ladestrom (A)", "icon": "Minus", "suffix": "A", "minimum": 6, "maximum": 16, "default": 6 },
           { "type": "Label", "caption": "    " },
-          { "type": "NumberSpinner", "name": "MaxAmpere", "caption": "Maximaler Ladestrom (A)", "icon": "Plus" }
+          { "type": "NumberSpinner", "name": "MaxAmpere", "caption": "Maximaler Ladestrom (A)", "icon": "Plus", "suffix": "A", "minimum": 6, "maximum": 16, "default": 16" }
         ]},
         { "type": "Label", "caption": "    " },
         { "type": "Label", "label": "🟢 Startwert: Ab diesem PV-Überschuss startet das Laden. Die Hysterese legt fest, wie oft der Wert überschritten sein muss." },
@@ -90,13 +90,13 @@
       "caption": "⚡ Phasenumschaltung",
       "items": [
         { "type": "Label", "label": "🔢 Anfangswert Anzahl aktiver Phasen (1 oder 3)." },
-        { "type": "NumberSpinner", "name": "Phasen", "caption": "Anzahl Phasen (Initialwert)" },
+        { "type": "NumberSpinner", "name": "Phasen", "caption": "Anzahl Phasen (Initialwert)", "suffix": "", "minimum": 1, "maximum": 3, "default": 3 },
         { "type": "Label", "caption": "    " },
         { "type": "Label", "label": "⬇️ Schwelle in Watt zum Umschalten auf 1-phasig & 🔢 Zählerlimit für stabile Umschaltung auf 1-phasig." },
          { "type": "RowLayout", "items": [
            { "type": "NumberSpinner", "name": "Phasen1Schwelle", "caption": "Schwelle auf 1-phasig (W)" },
            { "type": "Label", "caption": "    " },
-            { "type": "NumberSpinner", "name": "Phasen1Limit", "caption": "Zählerlimit 1-phasig" }
+            { "type": "NumberSpinner", "name": "Phasen1Limit", "caption": "Zählerlimit 1-phasig", }
         ]},
         { "type": "Label", "caption": "    " },
         { "type": "Label", "label": "⬆️ Schwelle in Watt zum Umschalten auf 3-phasig & 🔢 Zählerlimit für stabile Umschaltung auf 3-phasig." },
