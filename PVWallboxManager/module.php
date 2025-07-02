@@ -204,7 +204,15 @@ public function ApplyChanges()
 
 public function RequestAction($ident, $value)
 {
-    $this->Log("RequestAction(): Aufruf mit Ident={$ident}, Value=" . json_encode($value), 'debug');
+    //$this->Log("RequestAction(): Aufruf mit Ident={$ident}, Value=" . json_encode($value), 'debug');
+    if ($ident === "TargetTime") {
+        $stunden = floor($value / 3600);
+        $minuten = floor(($value % 3600) / 60);
+        $zeitString = sprintf("%02d:%02d", $stunden, $minuten);
+        $this->Log("RequestAction(): Aufruf mit Ident=TargetTime, Value={$value} ({$zeitString})", 'debug');
+    } else {
+        $this->Log("RequestAction(): Aufruf mit Ident={$ident}, Value=" . json_encode($value), 'debug');
+    }
 
     // --- Schalter & Buttons behandeln ---
     switch ($ident) {
