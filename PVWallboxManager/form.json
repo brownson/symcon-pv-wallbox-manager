@@ -122,15 +122,12 @@
         { "type": "Label", "label": "Kann extern über ein Skript gesteuert werden (z. B. für Passivmodus)." },
         { "type": "CheckBox", "name": "AllowBatteryDischarge", "caption": "PV-Batterieentladung zulassen", "default": true, "icon": "BatteryCharging"},
         { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "⚖️ PV-Leistung aufteilen zwischen Haus und Auto aufteilen.(PV2Car-Regelung)" },
+        { "type": "Label", "label": "⚖️ PV-Leistung zwischen Haus und Auto aufteilen (PV2Car-Regelung)." },
+        { "type": "Label", "label": "☀️ **Die Aktivierung und der Anteil fürs Fahrzeug werden direkt im WebFront gesteuert!**" },
         { "type": "RowLayout", "items": [
-          { "type": "CheckBox", "name": "PVVerteilenAktiv", "caption": "PV-Leistung aufteilen aktivieren" },
+          { "type": "SelectVariable", "name": "HausakkuSOCID", "caption": "Hausakku SoC (%)" },
           { "type": "Label", "caption": "    " },
-          { "type": "NumberSpinner", "name": "PVAnteilAuto", "caption": "Anteil fürs Fahrzeug (%)", "suffix": "%", "minimum": 10, "maximum": 100, "step": 1, "default": 50, "visible": { "name": "PVVerteilenAktiv", "equals": true } },
-          { "type": "Label", "caption": "    " },
-          { "type": "SelectVariable", "name": "HausakkuSOCID", "caption": "Hausakku SoC (%)", "visible": { "name": "PVVerteilenAktiv", "equals": true } },
-          { "type": "Label", "caption": "    " },
-          { "type": "NumberSpinner", "name": "HausakkuSOCVollSchwelle", "caption": "Voll-Schwelle Hausbatterie (%)", "suffix": "%", "minimum": 50, "maximum": 100, "visible": { "name": "PVVerteilenAktiv", "equals": true } }
+          { "type": "NumberSpinner", "name": "HausakkuSOCVollSchwelle", "caption": "Voll-Schwelle Hausbatterie (%)", "suffix": "%", "minimum": 50, "maximum": 100 }
         ]}
       ]
     },
@@ -141,27 +138,27 @@
         { "type": "Label", "label": "📊 Fahrzeugdaten für SoC-basierte Ladesteuerung verwenden (optional)." },
         { "type": "CheckBox", "name": "UseCarSOC", "caption": "Fahrzeugdaten berücksichtigen" },
         { "type": "Label", "caption": "    " },
-        { "type": "Label", "caption": "🔋 Aktueller SoC des Fahrzeugs (Einheit: %, positiv) & 🔋 Fallback SoC in %, wenn keine Variable angegeben ist (positiv)." },
+        { "type": "Label", "label": "🔋 Aktueller SoC des Fahrzeugs (Prozent, positiv):" },
         { "type": "RowLayout", "items": [
           { "type": "SelectVariable", "name": "CarSOCID", "caption": "Aktueller SoC (Variable)" },
           { "type": "Label", "caption": "    " },
           { "type": "NumberSpinner", "name": "CarSOCFallback", "caption": "Fallback SoC (%)", "suffix": "%" }
         ]},
         { "type": "Label", "caption": "    " },
-        { "type": "Label", "caption": "🎯 Ziel-SoC für das Fahrzeug (Einheit: %, positiv, z.B. 80) & 🎯 Fallback Ziel-SoC in %, wenn keine Variable angegeben ist (positiv, z.B. 80)." },
+        { "type": "Label", "label": "🎯 Ziel-SoC für das Fahrzeug (Prozent, positiv):" },
         { "type": "RowLayout", "items": [
-        { "type": "SelectVariable", "name": "CarTargetSOCID", "caption": "Ziel-SoC (Variable)" },
-        { "type": "Label", "caption": "    " },
-        { "type": "NumberSpinner", "name": "CarTargetSOCFallback", "caption": "Fallback Ziel-SoC (%)", "suffix": "%" }
+          { "type": "SelectVariable", "name": "CarTargetSOCID", "caption": "Ziel-SoC (Variable)" },
+          { "type": "Label", "caption": "    " },
+          { "type": "NumberSpinner", "name": "CarTargetSOCFallback", "caption": "Fallback Ziel-SoC (%)", "suffix": "%" }
         ]},
         { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "⚡️ Maximale Fahrzeug-Ladeleistung (W) 'minimum': 0 W, 'maximum': 22000 W " },
+        { "type": "Label", "label": "⚡️ Maximale Fahrzeug-Ladeleistung (Watt, z. B. 11000 für ID.3):" },
         { "type": "NumberSpinner", "name": "MaxAutoWatt", "caption": "Max. Ladeleistung Fahrzeug (W)", "suffix": "W", "minimum": 0, "maximum": 22000 },
         { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "🔋 Batteriekapazität des Fahrzeugs in kWh (z. B. 52 für ID.3 Pure)." },
+        { "type": "Label", "label": "🔋 Batteriekapazität des Fahrzeugs in kWh (z. B. 52 für ID.3 Pure):" },
         { "type": "NumberSpinner", "name": "CarBatteryCapacity", "caption": "Batteriekapazität (kWh)", "suffix": "kWh" },
         { "type": "Label", "caption": "    " },
-        { "type": "Label", "caption": "Wenn aktiviert, wird das Fahrzeug nie über den Ziel-SOC geladen – egal ob bei PV-Überschuss, Zielzeitladung oder Strompreis." },
+        { "type": "Label", "label": "Wenn aktiviert, wird das Fahrzeug nie über den Ziel-SOC geladen – egal ob bei PV-Überschuss, Zielzeitladung oder Strompreis." },
         { "type": "CheckBox", "name": "AlwaysUseTargetSOC", "caption": "🎯 Ziel-SOC immer berücksichtigen (auch bei PV-Überschussladung)", "default": false }
       ]
     },
