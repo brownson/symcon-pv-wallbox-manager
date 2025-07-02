@@ -146,7 +146,7 @@ class PVWallboxManager extends IPSModule
     public function UpdateCharging()
     {
         // --- RunLock: Schutz vor parallelen Durchläufen ---
-        if ($this->ReadAttributeBoolean('RunLock')) {
+        if ($this->GetAttributeOrDefault('RunLock', false)) {
             $this->Log("UpdateCharging() abgebrochen: RunLock ist aktiv!", 'warn');
             return;
         }
@@ -1049,4 +1049,12 @@ class PVWallboxManager extends IPSModule
         $this->WriteAttributeBoolean('RunLock', false);
         $this->Log("ResetLock(): RunLock wurde manuell zurückgesetzt.", 'info');
     }
+
+    private function GetAttributeOrDefault($name, $default)
+    {
+        $val = @$this->ReadAttribute($name);
+        if ($val === null) return $default;
+        return $val;
+    }
+
 }
