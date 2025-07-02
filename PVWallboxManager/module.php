@@ -98,6 +98,7 @@ class PVWallboxManager extends IPSModule
 
         // Weitere Variablen nach Bedarf!
         $this->RegisterVariableInteger('HystereseZaehler', 'Phasen-Hysteresezähler', '', 60);
+        $this->RegisterVariableInteger('AktuellePhasen', 'Aktuelle Phasen', '', 80);
 
         // Timer für Berechnungsintervall
         $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
@@ -499,7 +500,7 @@ class PVWallboxManager extends IPSModule
         if ($this->ReadPropertyInteger('Phasen') != 1) {
             // Wallbox auf 1-phasig umschalten
             GOeCharger_SetSinglePhaseCharging($instanzID, true);
-            $this->WritePropertyInteger('Phasen', 1);  // Phasen umschalten
+            $this->SetValue('AktuellePhasen', 1); // Phasenstatus intern speichern
         }
     }
 
@@ -510,7 +511,7 @@ class PVWallboxManager extends IPSModule
         if ($this->ReadPropertyInteger('Phasen') != 3) {
             // Wallbox auf 3-phasig umschalten
             GOeCharger_SetSinglePhaseCharging($instanzID, false);
-            $this->WritePropertyInteger('Phasen', 3);  // Phasen umschalten
+            $this->SetValue('AktuellePhasen', 3); // Phasenstatus intern speichern
         }
     }
 
