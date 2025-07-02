@@ -1,5 +1,4 @@
 <?php
-
 /**
  * PVWallboxManager
  * Modularer Blueprint – jede Funktion einzeln gekapselt
