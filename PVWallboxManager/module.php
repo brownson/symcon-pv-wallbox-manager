@@ -359,7 +359,8 @@ public function UpdateCharging()
         // Überprüfen, ob die Wallbox-Leistung korrekt abgerufen wurde
         if ($powerToCarTotal_W !== false) {
             $this->Log("Aktuelle Wallbox-Leistung (powerToCarTotal): {$powerToCarTotal_W} W", 'debug');
-            // Wallbox-Leistung in eine IP-Symcon-Variable setzen
+
+            // Wallbox-Leistung in die vorhandene Variable setzen
             SetValue($this->GetIDForIdent('powerToCarTotal'), $powerToCarTotal_W);
         } else {
             $this->Log("Fehler beim Abrufen der Wallbox-Leistung.", 'error');
