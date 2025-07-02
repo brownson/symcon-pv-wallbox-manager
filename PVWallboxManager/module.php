@@ -658,7 +658,13 @@ class PVWallboxManager extends IPSModule
     private function LogDebugData($daten)
     {
         if ($this->ReadPropertyBoolean('DebugLogging')) {
-            $this->Log('Debug-Daten: ' . json_encode($daten), 'debug');
+            $debug = [];
+            foreach ($daten as $key => $val) {
+                $debug[] = "{$key}={$val}";
+            }
+            // Trennzeichen ist jetzt |
+            $msg = 'Debug-Daten: ' . implode(' | ', $debug);
+            $this->Log($msg, 'debug');
         }
     }
 
