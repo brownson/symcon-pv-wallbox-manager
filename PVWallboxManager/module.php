@@ -92,17 +92,16 @@ class PVWallboxManager extends IPSModule
 
     }
 
-    public function Create()
-{
-    parent::Create();
+    public function ApplyChanges()
+    {
+        parent::ApplyChanges();
 
-    // Profil sicherstellen
-    $this->EnsureLademodusProfile();
+        // Profil sicherstellen
+        $this->EnsureLademodusProfile();
 
-    // Timer für Berechnungsintervall – nutzt IPS_RequestAction, wie im Legacy-Modul
-    $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
-}
-
+        // Timer-Intervall ggf. neu setzen, wenn RefreshInterval geändert wurde
+        $this->SetTimerInterval('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'PVWallboxManager_UpdateCharging');
+    }
 
     public function UpdateCharging()
     {
