@@ -322,11 +322,15 @@ public function UpdateCharging()
 
     try {
         // --- Hausverbrauch aus der Property lesen ---
-        $HausverbrauchID = $this->ReadPropertyInteger('HausverbrauchID');
-        if ($HausverbrauchID > 0 && IPS_VariableExists($HausverbrauchID)) {
-            $Hausverbrauch = GetValue($HausverbrauchID); // Hausverbrauch aus der Variablen holen
+        $hausverbrauchID = $this->ReadPropertyInteger('HausverbrauchID');
+        $this->Log("HausverbrauchID: {$hausverbrauchID}", 'debug'); // Debugging der HausverbrauchID
+
+        // Überprüfen, ob die Variable mit dieser ID existiert
+        if ($hausverbrauchID > 0 && IPS_VariableExists($hausverbrauchID)) {
+            $hausverbrauch = GetValue($hausverbrauchID); // Hausverbrauch aus der Variablen holen
+            $this->Log("Aktueller Hausverbrauch: {$hausverbrauch} W", 'debug');
         } else {
-            $Hausverbrauch = 0.0; // Falls keine gültige Variable vorhanden ist
+            $hausverbrauch = 0.0; // Falls keine gültige Variable vorhanden ist
             $this->Log("UpdateCharging(): Kein gültiger Hausverbrauch (HausverbrauchID) gefunden.", 'error');
         }
 
@@ -369,10 +373,10 @@ public function UpdateCharging()
         }
 
         // Berechnung des Hausverbrauchs (Hausverbrauch - WallboxLeistung)
-        $Hausverbrauch = $Hausverbrauch - $powerToCarTotal_W;
+        $hausverbrauch = $hausverbrauch - $powerToCarTotal_W;
 
         // --- PV-Überschuss berechnen ---
-        $pvUeberschussStandard = $this->BerechnePVUeberschuss($Hausverbrauch);
+        $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch);
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $pvUeberschussStandard);
         $this->Log("UpdateCharging(): Standard-PV-Überschuss = {$pvUeberschussStandard} W", 'debug');
 
