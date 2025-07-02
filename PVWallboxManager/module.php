@@ -153,7 +153,7 @@ public function UpdateCharging()
 
     // === 1. Prüfe: Darf NUR MIT Fahrzeug geladen werden? ===
     if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden()) {
-        @GOeCharger_setAccessStateV2($goeID, 1); // Blockieren ("Nicht laden")
+        @GOeCharger_SetMode($goeID, 1); // Blockieren ("Nicht laden")
         $this->DeaktiviereLaden(); // Setzt auch ChargingWatt=0
         $status = "Warte auf Fahrzeug (Option 'Nur mit Fahrzeug' aktiv)";
         $this->SetLademodusStatus($status);
@@ -193,7 +193,7 @@ public function UpdateCharging()
 
     // === 7. Fahrzeugstatus PRÜFEN (falls nicht schon in Schritt 1 abgefangen) ===
     if (!$this->IstFahrzeugVerbunden()) {
-        @GOeCharger_setAccessStateV2($goeID, 1); // Nicht laden!
+        @GOeCharger_SetMode($goeID, 1); // Nicht laden!
         $this->DeaktiviereLaden();
         $status = "Warte auf Fahrzeug (kein Auto verbunden)";
         $this->SetLademodusStatus($status);
@@ -776,7 +776,7 @@ public function UpdateCharging()
         if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
             @GOeCharger_SetMode($goeID, (int)$leistung);
             if ((int)$leistung > 0) {
-                @GOeCharger_setAccessStateV2($goeID, 2); // Immer Ladefreigabe aktivieren!
+                @GOeCharger_SetMode($goeID, 2); // Immer Ladefreigabe aktivieren!
             }
         }
     }
@@ -794,7 +794,7 @@ public function UpdateCharging()
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
             @GOeCharger_SetMode($goeID, 0);
-            @GOeCharger_setAccessStateV2($goeID, 1); // Laden blockieren!
+            @GOeCharger_SetMode($goeID, 1); // Laden blockieren!
         }
     }
 
@@ -869,8 +869,6 @@ public function UpdateCharging()
                 throw new Exception("Invalid ident: $ident");
         }
     }
-
-
 
     // === 11. Timer/Cron-Handling ===
 
