@@ -310,7 +310,7 @@ public function RequestAction($ident, $value)
 
 // =====================================================================================================
 
-ublic function UpdateCharging()
+public function UpdateCharging()
 {
     // --- Schutz vor Parallelaufrufen ---
     if ($this->ReadAttributeBoolean('RunLock')) {
