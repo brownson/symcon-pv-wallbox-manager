@@ -144,7 +144,17 @@ class PVWallboxManager extends IPSModule
 
 
     public function UpdateCharging()
-    {
+        {
+            if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden()) {
+            $this->DeaktiviereLaden(); // accessStateV2=1
+            $status = "Warte auf Fahrzeug (Option 'Nur mit Fahrzeug' aktiv)";
+            $this->SetLademodusStatus($status);
+            $this->Log($status, 'info');
+            // (Optional) alle Lademodi-Buttons zurücksetzen
+            $this->SetLademodusAutoReset();
+            return;
+        }
+
         // Modul aktiv? Sonst abbrechen!
         if (!$this->ReadPropertyBoolean('ModulAktiv')) {
             $this->Log("Modul ist deaktiviert. Keine Aktion.", 'warn');
@@ -759,6 +769,9 @@ class PVWallboxManager extends IPSModule
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
         if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
             @GOeCharger_SetCurrentChargingWatt($goeID, (int)$leistung);
+            if ((int)$leistung > 0) {
+                @GOeCharger_setAccessStateV2($goeID, 2); // Immer Ladefreigabe aktivieren!
+            }
         }
     }
 
@@ -775,6 +788,7 @@ class PVWallboxManager extends IPSModule
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
         if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
             @GOeCharger_SetCurrentChargingWatt($goeID, 0);
+            @GOeCharger_setAccessStateV2($goeID, 1); // Laden blockieren!
         }
     }
 
