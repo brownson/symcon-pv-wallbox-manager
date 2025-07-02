@@ -118,7 +118,11 @@ public function ApplyChanges()
 
     // Assoziationen: jede volle Stunde mit Uhrzeit anzeigen
     // (WebFront zeigt dann z.B. 00:00, 01:00, ... an)
-    IPS_SetVariableProfileAssociations($profil, []); // Vorher alle löschen (wichtig bei Updates)
+    if (IPS_VariableProfileExists($profil)) {
+    // 0 bis 86399 in der Schrittweite (z.B. 3600 für Stunden)
+    for ($v = 0; $v <= 86399; $v += 3600) {
+        IPS_SetVariableProfileAssociation($profil, $v, '', '', -1);
+    }
     for ($h = 0; $h < 24; $h++) {
         $seconds = $h * 3600;
         $label = sprintf('%02d:00', $h);
