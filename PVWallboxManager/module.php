@@ -169,7 +169,7 @@ class PVWallboxManager extends IPSModule
             case 'nurpv':
             default:
                 $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                $this->Log( "NurPV-Modus: PV={$pv} W - Haus={$haus} W - Batterie={$batt} W + WB-Leistung={$wb_leistung} W = Überschuss={$ueberschuss} W → Ladeleistung=" . round($ladeleistung) . " W", 'info' );
+                $this->Log( "NurPV-Modus: PV[{$pv} W] - Haus[{$haus} W] - Batterie[{$batt} W] + WB-Leistung[{$wb_leistung} W] = Überschuss[{$ueberschuss} W] → Ladeleistung[" . round($ladeleistung) . " W"], 'info' );
                 break;
         }
 
