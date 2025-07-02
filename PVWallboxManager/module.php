@@ -10,7 +10,7 @@ class PVWallboxManager extends IPSModule
     // === 1. Initialisierung ===
 
     /** @inheritDoc */
-    public function Create();
+    public function Create()
     {
         parent::Create();
         // === 1. Modulsteuerung ===
