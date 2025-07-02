@@ -596,51 +596,32 @@ private function BerechnePVUeberschuss(float $haus, string $modus = 'standard'):
     $batt = $this->GetNormWert('BatterieladungID', 'BatterieladungEinheit', 'InvertBatterieladung', "Batterieladung");
     $netz = $this->GetNormWert('NetzeinspeisungID', 'NetzeinspeisungEinheit', 'InvertNetzeinspeisung', "Netzeinspeisung");
 
-    $ladeleistung = ($goeID > 0) ? GOeCharger_GetPowerToCar($goeID) : 0;
-
     // === Modus-Weiche ===
-    $logModus = "";
-    $ueberschuss = 0;
-    $abgezogen = 0;
-    $pufferText = "Dynamischer Puffer ist deaktiviert. Kein Abzug.";
-
     if ($modus === 'pv2car') {
-        $ueberschuss = $pv - $haus;
+        $ueberschuss = $pv - $haus; // KEINE Batterie!
         $logModus = "PV2Car (Auto bekommt Anteil vom Überschuss, Rest Batterie)";
-
-        // Prozent aus WebFront-Variable
-        $prozentVarID = @$this->GetIDForIdent('PVAnteilAuto');
-        $prozent = ($prozentVarID > 0) ? GetValue($prozentVarID) : 50; // Fallback 50%
-
-        $anteilWatt = intval($ueberschuss * $prozent / 100);
-        $minWatt = $this->ReadPropertyInteger('MinLadeWatt');
-        $ladeSoll = 0;
-        if ($anteilWatt > 0 && $anteilWatt >= $minWatt) {
-            $ladeSoll = $anteilWatt;
-        }
-
-        $this->Log("PV2Car-Modus: Nutzer-Anteil = {$prozent}% → Ladeleistung für das Auto = {$anteilWatt} W (PV-Überschuss gesamt: {$ueberschuss} W, gesetzt: {$ladeSoll} W)", 'info');
-        // Die tatsächliche Steuerung erfolgt jetzt in LogikPV2CarModus().
-        // return $ladeSoll wäre auch möglich, wenn du explizit nur den Auto-Anteil brauchst.
-
     } else {
         $ueberschuss = $pv - $haus - max(0, $batt);
         $logModus = "Standard (Batterie hat Vorrang)";
+    }
 
-        if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
-            $pufferProzent = 1.0;
-            if ($ueberschuss < 2000) $pufferProzent = 0.80;
-            elseif ($ueberschuss < 4000) $pufferProzent = 0.85;
-            elseif ($ueberschuss < 6000) $pufferProzent = 0.90;
-            else $pufferProzent = 0.93;
+    // Dynamischer Puffer? (nur im Standard-Modus)
+    $abgezogen = 0;
+    $pufferText = "Dynamischer Puffer ist deaktiviert. Kein Abzug.";
 
-            $alterUeberschuss = $ueberschuss;
-            $ueberschuss *= $pufferProzent;
-            $abgezogen = round($alterUeberschuss - $ueberschuss);
-            $prozent = round((1 - $pufferProzent) * 100);
+    if ($this->ReadPropertyBoolean('DynamischerPufferAktiv') && $modus !== 'pv2car') {
+        $pufferProzent = 1.0;
+        if ($ueberschuss < 2000) $pufferProzent = 0.80;
+        elseif ($ueberschuss < 4000) $pufferProzent = 0.85;
+        elseif ($ueberschuss < 6000) $pufferProzent = 0.90;
+        else $pufferProzent = 0.93;
 
-            $pufferText = "Dynamischer Puffer: Abzug {$abgezogen} W ({$prozent}%), Faktor: {$pufferProzent}";
-        }
+        $alterUeberschuss = $ueberschuss;
+        $ueberschuss *= $pufferProzent;
+        $abgezogen = round($alterUeberschuss - $ueberschuss);
+        $prozent = round((1 - $pufferProzent) * 100);
+
+        $pufferText = "Dynamischer Puffer: Abzug {$abgezogen} W ({$prozent}%), Faktor: {$pufferProzent}";
     }
 
     $ueberschuss = max(0, round($ueberschuss));
@@ -935,11 +916,11 @@ private function LogikPV2CarModus()
         $this->SetLademodusStatus("PV2Car-Modus nicht möglich – kein SoC vom Auto vorhanden!");
         return;
     }
+    $carSOC = GetValue($carSOCID);
 
     // 3. Ziel-SoC vom Auto vorhanden?
     $carTargetSOCID = $this->ReadPropertyInteger('CarTargetSOCID');
     $carTargetSOC = ($carTargetSOCID > 0 && IPS_VariableExists($carTargetSOCID)) ? GetValue($carTargetSOCID) : 100;
-    $carSOC = GetValue($carSOCID);
 
     // 4. Hausakku-Variable vorhanden?
     $hausakkuSOCID = $this->ReadPropertyInteger('HausakkuSOCID');
@@ -952,7 +933,7 @@ private function LogikPV2CarModus()
     $hausakkuSOC = GetValue($hausakkuSOCID);
     $hausakkuSOCVollSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
 
-    // 5. PV-Überschuss berechnen (PV-Erzeugung - Hausverbrauch - Wallbox)
+    // 5. PV-Überschuss korrekt berechnen (bereinigter Hausverbrauch!)
     $goeID = $this->ReadPropertyInteger('GOEChargerID');
     $powerToCarTotal_kW = GOeCharger_GetPowerToCar($goeID);
     $powerToCarTotal_W  = $powerToCarTotal_kW * 1000;
@@ -963,34 +944,29 @@ private function LogikPV2CarModus()
     }
     $HausverbrauchOhneWallbox = $Hausverbrauch - $powerToCarTotal_W;
 
-    $pvUeberschuss = $this->BerechnePVUeberschuss($HausverbrauchOhneWallbox, 'pv2car'); // jetzt korrekt!
+    // PV-Überschuss OHNE Batterie berechnen!
+    $pvUeberschuss = $this->BerechnePVUeberschuss($HausverbrauchOhneWallbox, 'pv2car');
 
-    // 6. Dynamischen Puffer zentral berücksichtigen
-    if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
-        $pufferWatt = $this->BerechneDynamischenPuffer($pvUeberschuss);
-        $pvUeberschuss -= $pufferWatt;
-        $this->Log("PV2Car: Dynamischer Puffer abgezogen: {$pufferWatt} W → Restüberschuss: {$pvUeberschuss} W", 'debug');
-    }
-
-    // 7. Anteil für Auto bestimmen (Variable!)
+    // 6. Prozentualer Anteil fürs Auto (aus Variable, 0.0...1.0)
     $anteil = GetValue($this->GetIDForIdent('PVAnteilAuto')) / 100.0;
     $anteilProzent = $anteil * 100;
-    $this->Log("PV2Car: Anteil für Auto: {$anteil} (d.h. {$anteilProzent}% des Überschusses)", 'debug');
+    $ladeSoll = round($pvUeberschuss * $anteil);
 
-    // 8. Hysterese Counter laden (zentral!)
+    $this->Log("PV2Car: Berechneter Überschuss: {$pvUeberschuss} W, Nutzer-Anteil: {$anteilProzent}%, Ladeleistung für das Auto: {$ladeSoll} W", 'info');
+
+    // 7. Hysterese Counter laden
     $startCounter = $this->ReadAttributeInteger('StartHystereseCounter');
     $stopCounter  = $this->ReadAttributeInteger('StopHystereseCounter');
     $minStart = $this->ReadPropertyInteger('MinLadeWatt');
     $minStop  = $this->ReadPropertyInteger('MinStopWatt');
-    $goeID = $this->ReadPropertyInteger('GOEChargerID');
 
-    // 9. Umschaltlogik: SoC/Schwellen prüfen
+    // 8. Umschaltlogik: SoC/Schwellen prüfen
     $akkuVoll = ($hausakkuSOC >= $hausakkuSOCVollSchwelle);
     $autoVoll = ($carSOC >= $carTargetSOC);
 
-    // 10. Berechne Ziel-Ladeleistung
     $ladeleistung = 0;
     $msg = "";
+
     if ($akkuVoll && !$autoVoll) {
         $ladeleistung = $pvUeberschuss;
         $msg = "PV2Car: Hausakku voll – 100% PV-Überschuss ins Auto ({$ladeleistung} W)";
@@ -1001,14 +977,11 @@ private function LogikPV2CarModus()
         $ladeleistung = 0;
         $msg = "PV2Car: Auto und Hausakku voll – Überschuss wird eingespeist.";
     } else {
-        $ladeleistung = round($pvUeberschuss * $anteil);
-        $msg = "PV2Car: Anteil fürs Auto: {$ladeleistung} W ({$anteilProzent}% von {$pvUeberschuss} W, inkl. Puffer)";
+        $ladeleistung = $ladeSoll;
+        $msg = "PV2Car: Anteil fürs Auto: {$ladeleistung} W ({$anteilProzent}% von {$pvUeberschuss} W)";
     }
 
-    // Log für die berechnete Ladeleistung hinzufügen
-    $this->Log("PV2Car: Berechneter Überschuss: {$pvUeberschuss} W, Ladeleistung für das Auto: {$ladeleistung} W", 'debug'); // Log hier hinzufügen
-
-    // 11. Hysterese-Umschaltung wie Standardmodus (zentraler Counter!)
+    // 9. Hysterese-Umschaltung wie Standardmodus (zentraler Counter!)
     $ladeModusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
     $ladeModus = ($ladeModusID !== false && @IPS_VariableExists($ladeModusID)) ? GetValueInteger($ladeModusID) : 0;
 
