@@ -311,15 +311,6 @@ public function RequestAction($ident, $value)
 
 public function UpdateCharging()
 {
-    // --- Schutz vor Parallelaufrufen ---
-    if ($this->ReadAttributeBoolean('RunLock')) {
-        $this->Log("UpdateCharging(): Läuft bereits – Aufruf abgebrochen.", 'warn');
-        return;
-    }
-    $this->WriteAttributeBoolean('RunLock', true);
-    $this->Log("UpdateCharging(): Berechnung startet.", 'debug');
-
-    try {
         // --- Hausverbrauch aus der Property lesen ---
         $hausverbrauchID = $this->ReadPropertyInteger('HausverbrauchID');
         $this->Log("HausverbrauchID: {$hausverbrauchID}", 'debug'); // Debugging der HausverbrauchID
@@ -482,20 +473,15 @@ public function UpdateCharging()
         $this->UpdateWallboxStatusText();
         $this->UpdateFahrzeugStatusText();
 
-    } catch (Throwable $e) {
-        $this->Log("UpdateCharging(): Fehler – " . $e->getMessage(), 'error');
-    } finally {
-        $this->WriteAttributeBoolean('RunLock', false);
+        } catch (Throwable $e) {
+            $this->Log("UpdateCharging(): Fehler – " . $e->getMessage(), 'error');
+        }
     }
 }
 
 // =====================================================================================================
 
-public function ResetLock()
-{
-    $this->WriteAttributeBoolean('RunLock', false);
-    $this->Log("ResetLock(): RunLock wurde manuell zurückgesetzt.", 'info');
-}
+
     
 // =====================================================================================================
 
