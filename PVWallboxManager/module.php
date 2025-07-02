@@ -87,20 +87,22 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('HystereseZaehler', 'Phasen-Hysteresezähler', '', 60);
 
         // Timer für Berechnungsintervall
-        $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'PVWallboxManager_UpdateCharging($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
+
 
     }
 
-    public function ApplyChanges()
-    {
-        parent::ApplyChanges();
+    public function Create()
+{
+    parent::Create();
 
-        // Profil sicherstellen
-        $this->EnsureLademodusProfile();
+    // Profil sicherstellen
+    $this->EnsureLademodusProfile();
 
-        // Timer-Intervall ggf. neu setzen, wenn RefreshInterval geändert wurde
-        $this->SetTimerInterval('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000);
-    }
+    // Timer für Berechnungsintervall – nutzt IPS_RequestAction, wie im Legacy-Modul
+    $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
+}
+
 
     public function UpdateCharging()
     {
