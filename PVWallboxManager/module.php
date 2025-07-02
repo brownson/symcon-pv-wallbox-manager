@@ -143,11 +143,10 @@ class PVWallboxManager extends IPSModule
         $puffer_diff = round($roh_ueberschuss - $ueberschuss); // wieviel W abgezogen werden
 
         // >>>>>>> Hier Werte schreiben!
-        $this->SetValue('PV_Ueberschuss', max(0, $ueberschuss));
-        $this->SetValue('Hausverbrauch_W', $haus);
-        //$this->SetValue('Wallbox_Leistung_W', $wb_leistung);
+        $this->SetValueSafe('PV_Ueberschuss', max(0, $ueberschuss), 1);
+        $this->SetValueSafe('Hausverbrauch_W', $haus, 1);
         $haus_abz_wb = max(0, $haus - $wb_leistung);
-        $this->SetValue('Hausverbrauch_abz_Wallbox', $haus_abz_wb);
+        $this->SetValueSafe('Hausverbrauch_abz_Wallbox', $haus_abz_wb, 1);
 
         // 3. Aktiven Lademodus bestimmen
         $modus = $this->ErmittleAktivenLademodus();
@@ -176,8 +175,9 @@ class PVWallboxManager extends IPSModule
             case 'nurpv':
             default:
                 $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                $this->SetValue('WB_Ladeleistung_Soll', $ladeleistung);
-                $this->SetValue('WB_Ladeleistung_Ist', $this->LeseWallboxLeistung());
+                $this->SetValueSafe('WB_Ladeleistung_Soll', $ladeleistung, 1);
+                $this->SetValueSafe('WB_Ladeleistung_Ist', $this->LeseWallboxLeistung(), 1);
+
                 $this->Log(
                     "PV-Überschuss: PV [{$pv} W] - Haus [{$haus} W] - Batterie [{$batt} W] + Wallbox [{$wb_leistung} W] - Dyn.Puffer [{$puffer_diff} W | {$puffer_prozent}%] = Überschuss [{$ueberschuss} W]",
                     'info'
@@ -503,7 +503,8 @@ class PVWallboxManager extends IPSModule
         if ($this->ReadPropertyInteger('Phasen') != 1) {
             // Wallbox auf 1-phasig umschalten
             GOeCharger_SetSinglePhaseCharging($instanzID, true);
-            $this->SetValue('AktuellePhasen', 1); // Phasenstatus intern speichern
+            //$this->SetValue('AktuellePhasen', 1); // Phasenstatus intern speichern
+            $this->SetValueSafe('AktuellePhasen', 1); // Phasenstatus intern speichern
         }
     }
 
@@ -514,7 +515,8 @@ class PVWallboxManager extends IPSModule
         if ($this->ReadPropertyInteger('Phasen') != 3) {
             // Wallbox auf 3-phasig umschalten
             GOeCharger_SetSinglePhaseCharging($instanzID, false);
-            $this->SetValue('AktuellePhasen', 3); // Phasenstatus intern speichern
+            //$this->SetValue('AktuellePhasen', 3); // Phasenstatus intern speichern
+            $this->SetValueSafe('AktuellePhasen', 3); // Phasenstatus intern speichern
         }
     }
 
@@ -654,7 +656,8 @@ class PVWallboxManager extends IPSModule
     /** Setzt Statusanzeige im Modul (WebFront, Variablen, ...) */
     private function SetLademodusStatus($msg)
     {
-        $this->SetValue('Wallbox_Status', $msg);
+        //$this->SetValue('Wallbox_Status', $msg);
+        $this->SetValueSafe('Wallbox_Status', $msg, 1);
     }
 
     /** Loggt aktuelle Energiedaten für Debug */
@@ -678,7 +681,8 @@ class PVWallboxManager extends IPSModule
     {
         switch ($ident) {
             case 'AktiverLademodus':
-                $this->SetValue($ident, $value);
+                //$this->SetValue($ident, $value);
+                $this->SetValueSafe($ident, $value,1);
                 $this->Log("Lademodus umgeschaltet auf: ".$this->GetLademodusText($value), 'info');
                 $this->UpdateCharging(); // Nach jedem Wechsel berechnen
                 break;
@@ -736,5 +740,52 @@ class PVWallboxManager extends IPSModule
     private function WerteValidieren($daten)
     {
         // TODO
+    }
+
+    /**
+     * Setzt eine Variable nur, wenn sich ihr Wert wirklich geändert hat.
+     * Optional: Präzision für Floats (Standard: 2 Nachkommastellen).
+     * Erkennt und behandelt auch Integer, String und Bool sauber.
+     */
+    private function SetValueSafe($ident, $value, $precision = 2)
+    {
+        $current = $this->GetValue($ident);
+
+        // Float: mit Präzision vergleichen
+        if (is_float($value) || is_float($current)) {
+            if (round((float)$current, $precision) !== round((float)$value, $precision)) {
+                $this->SetValue($ident, $value);
+            }
+            return;
+        }
+
+        // Integer: strikt vergleichen
+        if (is_int($value) || is_int($current)) {
+            if ((int)$current !== (int)$value) {
+                $this->SetValue($ident, $value);
+            }
+            return;
+        }
+
+        // Boolean: direkt vergleichen
+        if (is_bool($value) || is_bool($current)) {
+            if ((bool)$current !== (bool)$value) {
+                $this->SetValue($ident, $value);
+            }
+            return;
+        }
+
+        // String: trim und vergleichen
+        if (is_string($value) || is_string($current)) {
+            if (trim((string)$current) !== trim((string)$value)) {
+                $this->SetValue($ident, $value);
+            }
+            return;
+        }
+
+        // Fallback für alle anderen Typen (notfalls trotzdem setzen)
+        if ($current !== $value) {
+            $this->SetValue($ident, $value);
+        }
     }
 }
