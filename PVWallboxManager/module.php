@@ -181,14 +181,22 @@ public function RequestAction($ident, $value)
     $this->Log("RequestAction(): Aufruf mit Ident={$ident}, Value=" . json_encode($value), 'debug');
 
     // --- Schalter & Buttons behandeln ---
-    switch($ident) {
+    switch ($ident) {
         case "ManuellVollladen":
             $this->SetValue("ManuellVollladen", $value);
             if ($value) {
-                $this->LogikManuellVollladen();
-            } else {
-                // ggf. auf Standard-Modus zurück
+                // Vollladen aktivieren
                 $this->UpdateCharging();
+            } else {
+                // Vollladen deaktiviert → sofort stoppen!
+                $goeID = $this->ReadPropertyInteger('GOEChargerID');
+                $this->SetLadeleistung(0);
+                if (function_exists('GOeCharger_SetMode')) {
+                    GOeCharger_SetMode($goeID, 1); // Standby/Bereit
+                }
+                $this->SetLademodusStatus("🔴 Manuelles Vollladen gestoppt (per Button)!");
+                $this->Log("Manuelles Vollladen wurde deaktiviert: Ladung sofort gestoppt.", 'info');
+                return; // Keine weitere Logik
             }
             break;
 
