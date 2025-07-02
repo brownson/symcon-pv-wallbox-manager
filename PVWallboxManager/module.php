@@ -685,8 +685,6 @@ private function LogikZielzeitladung($hausverbrauch = null)
     $this->Log("Zielzeitladung: Zielzeit lokal = " . $targetTime->format('d.m.Y H:i:s'), 'debug');
     $this->Log("Zielzeitladung: Uhrzeit eingestellt auf " . $targetTime->format('H:i'), 'debug');
 
-}
-
     // Ladebedarf berechnen
     $soc = $this->ReadPropertyFloat('CarSOCFallback');
     $targetSOC = $this->ReadPropertyFloat('CarTargetSOCFallback');
