@@ -121,7 +121,7 @@ class PVWallboxManager extends IPSModule
         $this->EnsureLademodusProfile();
 
         // GO-e Charger Instanz-ID holen
-        $goeID = $this->ReadPropertyInteger('GoeID');
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
 
         // Hysterese-Zähler initialisieren (nur beim ersten Mal)
         if ($this->GetBuffer('StartHystereseCounter') === false) {
