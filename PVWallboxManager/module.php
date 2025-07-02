@@ -321,11 +321,13 @@ public function UpdateCharging()
     $this->Log("UpdateCharging(): Berechnung startet.", 'debug');
 
     try {
-        // --- Hausverbrauch berechnen ---
-        $hausverbrauch = $this->BerechneHausverbrauch();
-        if ($hausverbrauch === false) {
-            $this->Log("UpdateCharging(): Hausverbrauch konnte nicht berechnet werden – Abbruch.", 'error');
-            return;
+        // --- Hausverbrauch aus der Property lesen ---
+        $hausverbrauchID = $this->ReadPropertyInteger('HausverbrauchID');
+        if ($hausverbrauchID > 0 && IPS_VariableExists($hausverbrauchID)) {
+            $hausverbrauch = GetValue($hausverbrauchID); // Hausverbrauch aus der Variablen holen
+        } else {
+            $hausverbrauch = 0.0; // Falls keine gültige Variable vorhanden ist
+            $this->Log("UpdateCharging(): Kein gültiger Hausverbrauch (HausverbrauchID) gefunden.", 'error');
         }
 
         // Wallbox-Instanz-ID abrufen
