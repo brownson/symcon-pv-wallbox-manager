@@ -752,6 +752,17 @@ private function LogikZielzeitladung($hausverbrauch = null)
     $now = time();
     $slots = array_values(array_filter($preise, fn($slot) => $slot['end'] > $now && $slot['start'] < $targetTime));
 
+    // >>> DEBUGBLOCK einfügen <<<
+    $this->Log("Debug: LadezeitStunden = {$ladezeitStunden}, gefundene Preisslots = " . count($slots), 'debug');
+    if (count($preise)) {
+        $lastSlotEnd = end($preise)['end'];
+        $this->Log("Letzter Preisslot endet am " . date('d.m. H:i', $lastSlotEnd), 'debug');
+    }
+    foreach ($slots as $s) {
+        $this->Log("Slot: " . date('d.m. H:i', $s['start']) . " - " . date('H:i', $s['end']) . " Preis: " . $s['price'], 'debug');
+    }
+    // <<< DEBUGBLOCK ende
+    
     if (count($slots) < $ladezeitStunden) {
         $this->Log("Zielzeitladung: Nicht genug Preisslots im Zeitraum – Abbruch", 'warn');
         $this->SetLadeleistung(0);
