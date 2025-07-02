@@ -283,19 +283,20 @@ public function UpdateCharging()
     // === 10. accessStateV2 setzen und Wallbox steuern ===
     if ($this->IstFahrzeugVerbunden()) {
         if ($ladeleistung > 0) {
-            @GOeCharger_setAccessStateV2($goeID, 2); // Freigeben (Laden erzwingen)
-            $this->SetzeLadeleistung($ladeleistung);
-            $status = "Laden: ".round($ladeleistung)." W im Modus: ".$this->GetLademodusText($this->GetValue('AktiverLademodus'));
-        } else {
-            @GOeCharger_setAccessStateV2($goeID, 1); // Nicht laden!
-            $this->DeaktiviereLaden();
-            $status = "Nicht laden (kein Überschuss/Modus)";
-        }
+        @GOeCharger_SetMode($goeID, 2); // Freigeben
+        $this->SetzeLadeleistung($ladeleistung);
+        $status = "Laden: ".round($ladeleistung)." W im Modus: ".$this->GetLademodusText($this->GetValue('AktiverLademodus'));
     } else {
-        @GOeCharger_setAccessStateV2($goeID, 1); // Immer blockieren
+        @GOeCharger_SetMode($goeID, 1); // Immer blockieren
+        $this->DeaktiviereLaden();
+        $status = "Nicht laden (kein Überschuss/Modus)";
+        }
+
+    } else {
+        @GOeCharger_SetMode($goeID, 1); // Immer blockieren
         $this->DeaktiviereLaden();
         $status = "Nicht laden (kein Fahrzeug)";
-    }
+        }
 
     // === 11. Statusvariable und Logging ===
     $this->SetLademodusStatus($status);
@@ -680,7 +681,7 @@ public function UpdateCharging()
      * Rückgabe: true = Fahrzeug erkannt, false = nichts gesteckt.
      */
     private function IstFahrzeugVerbunden()
-    {
+    {$status = GOeCharger_GetStatus($goeID);
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         // Prüfen, ob die Instanz-ID gesetzt und gültig ist
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
@@ -773,7 +774,7 @@ public function UpdateCharging()
     {
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
-            @GOeCharger_SetCurrentChargingWatt($goeID, (int)$leistung);
+            @GOeCharger_SetMode($goeID, (int)$leistung);
             if ((int)$leistung > 0) {
                 @GOeCharger_setAccessStateV2($goeID, 2); // Immer Ladefreigabe aktivieren!
             }
@@ -792,7 +793,7 @@ public function UpdateCharging()
     {
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
-            @GOeCharger_SetCurrentChargingWatt($goeID, 0);
+            @GOeCharger_SetMode($goeID, 0);
             @GOeCharger_setAccessStateV2($goeID, 1); // Laden blockieren!
         }
     }
