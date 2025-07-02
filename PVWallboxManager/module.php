@@ -328,16 +328,7 @@ public function UpdateCharging()
             return;
         }
 
-        // --- Wallbox Leistung abfragen ---
         $goeID = $this->ReadPropertyInteger('GOEChargerID');
-        $wallboxLeistung = 0;
-        if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
-            $wallboxLeistung = @GOeCharger_GetPowerToCar($goeID);
-            if ($wallboxLeistung === false) {
-                $wallboxLeistung = 0;
-            }
-        }
-
         $status = GOeCharger_GetStatus($goeID);  // 1=bereit, 2=lädt, 3=warte, 4=beendet
 
         // --- Kein Fahrzeug verbunden ---
@@ -466,6 +457,7 @@ public function UpdateCharging()
         $this->WriteAttributeBoolean('RunLock', false);
     }
 }
+
 
 // =====================================================================================================
 
