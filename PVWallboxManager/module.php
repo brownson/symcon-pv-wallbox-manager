@@ -71,7 +71,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('MarketPriceInterval', 30);
 
         // === Modul-Variablen für Visualisierung, Status, Lademodus etc. ===
-        $this->RegisterVariableFloat('PV_Ueberschuss', 'PV-Überschuss (W)', '~Watt', 10);
+        $this->RegisterVariableFloat('PV_Ueberschuss', '☀️ PV-Überschuss (W)', '~Watt', 10);
         IPS_SetIcon($this->GetIDForIdent('PV_Ueberschuss'), 'solar-panel');
         $this->RegisterVariableString('Wallbox_Status', 'Wallbox Status', '', 20);
         IPS_SetIcon($this->GetIDForIdent('Wallbox_Status'), 'charging-station');
