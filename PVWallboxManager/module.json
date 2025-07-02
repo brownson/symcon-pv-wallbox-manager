@@ -9,6 +9,43 @@
   ],
   "url": "https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager",
   "prefix": "PVWM",
+  "properties": [
+    {
+        "name": "GoeID",
+        "type": "integer",
+        "caption": "GO-e Charger Instanz"
+    },
+    {
+        "name": "ModulAktiv",
+        "type": "boolean",
+        "caption": "Modul aktiviert"
+    },
+    {
+        "name": "RefreshInterval",
+        "type": "integer",
+        "caption": "Aktualisierungsintervall (Sekunden)"
+    },
+    {
+        "name": "MinLadeWatt",
+        "type": "integer",
+        "caption": "Min. Ladeleistung für Start (Watt)"
+    },
+    {
+        "name": "MinStopWatt",
+        "type": "integer",
+        "caption": "Min. Ladeleistung für Stop (Watt)"
+    },
+    {
+        "name": "StartHysterese",
+        "type": "integer",
+        "caption": "Start-Hysterese (Zyklen)"
+    },
+    {
+        "name": "StopHysterese",
+        "type": "integer",
+        "caption": "Stop-Hysterese (Zyklen)"
+    }
+],
   "parentRequirements": [],
   "childRequirements": [],
   "implemented": []
