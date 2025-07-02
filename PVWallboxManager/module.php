@@ -87,7 +87,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('HystereseZaehler', 'Phasen-Hysteresezähler', '', 60);
 
         // Timer für Berechnungsintervall
-        $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'PVWallboxManager_UpdateCharging');
+        $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'PVWallboxManager_UpdateCharging($_IPS[\'TARGET\']);');
 
     }
 
