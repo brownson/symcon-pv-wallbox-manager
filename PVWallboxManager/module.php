@@ -78,9 +78,11 @@ class PVWallboxManager extends IPSModule
         IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_W'), 'home');
 
         // Wallbox-Leistung (W)
-        $this->RegisterVariableFloat('Wallbox_Leistung_W', '🔌Wallbox-Leistung (W)', '~Watt', 13);
-        IPS_SetIcon($this->GetIDForIdent('Wallbox_Leistung_W'), 'charging-station');
-
+        $this->RegisterVariableFloat('Ladeleistung_Soll', '🔌 Geplante Ladeleistung (W)', '~Watt', 24);
+        IPS_SetIcon($this->GetIDForIdent('Ladeleistung_Soll'), 'wand');
+        $this->RegisterVariableFloat('Ladeleistung_Ist', '🔌 Aktuelle Ladeleistung (W)', '~Watt', 25);
+        IPS_SetIcon($this->GetIDForIdent('Ladeleistung_Ist'), 'charging-station');
+ 
         // Hausverbrauch abzügl. Wallbox (W) – wie vorher empfohlen
         $this->RegisterVariableFloat('Hausverbrauch_abz_Wallbox', '🏠 Hausverbrauch abzügl. Wallbox (W)', '~Watt', 15);
         IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_abz_Wallbox'), 'home');
@@ -174,7 +176,8 @@ class PVWallboxManager extends IPSModule
             case 'nurpv':
             default:
                 $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                //$this->Log( "PV-Überschuss: PV [{$pv} W] - Haus [{$haus} W] - Batterie [{$batt} W] + Wallbox [{$wb_leistung} W] - Dyn.Puffer: [{roh_ueberschuss} W] = Überschuss [{$ueberschuss} W] → Ladeleistung [" . round($ladeleistung) . " W]", 'info' );
+                $this->SetValue('Ladeleistung_Soll', $ladeleistung);
+                $this->SetValue('Ladeleistung_Ist', $this->LeseWallboxLeistung());
                 $this->Log(
                     "PV-Überschuss: PV [{$pv} W] - Haus [{$haus} W] - Batterie [{$batt} W] + Wallbox [{$wb_leistung} W] - Dyn.Puffer [{$puffer_diff} W | {$puffer_prozent}%] = Überschuss [{$ueberschuss} W]",
                     'info'
