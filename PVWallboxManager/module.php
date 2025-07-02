@@ -666,7 +666,7 @@ class PVWallboxManager extends IPSModule
      */
     private function IstFahrzeugVerbunden()
     {
-        $goeID = $this->ReadPropertyInteger('GoeID');
+        $goeID = $this->ReadPropertyInteger('GOEChargerID');
         // Prüfen, ob die Instanz-ID gesetzt und gültig ist
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
             $this->Log("Fahrzeugstatus kann nicht geprüft werden: GO-e Instanz fehlt oder ungültig.", 'warn');
