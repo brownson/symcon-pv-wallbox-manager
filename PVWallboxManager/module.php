@@ -349,9 +349,18 @@ public function UpdateCharging()
         }
 
         // Wallbox-Leistung abfragen
-        $powerToCarTotal = GOeCharger_GetPowerToCar($goeID);
-        $this->Log("Wallbox-Leistung abgerufen: {$powerToCarTotal} W", 'debug');
-
+        $powerToCarTotal_kW = GOeCharger_GetPowerToCar($goeID);
+       
+        // Umrechnung von kW in W (1 kW = 1000 W)
+        $powerToCarTotal_W = $powerToCarTotal_kW * 1000;
+        
+        // Überprüfen, ob die Wallbox-Leistung korrekt abgerufen wurde
+        if ($powerToCarTotal_W !== false) {
+            $this->Log("Aktuelle Wallbox-Leistung (powerToCarTotal): {$powerToCarTotal_W} W", 'debug');
+        } else {
+            $this->Log("Fehler beim Abrufen der Wallbox-Leistung.", 'error');
+        }
+        
         // --- PV-Überschuss berechnen ---
         $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch);
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $pvUeberschussStandard);
