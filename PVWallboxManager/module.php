@@ -438,12 +438,11 @@ class PVWallboxManager extends IPSModule
         $minWatt = $minA * $spannung * $phasen;
         $maxWatt = $maxA * $spannung * $phasen;
 
-        $ladeleistung = min(max($ueberschuss, $minWatt), $maxWatt);
-
-        if ($ladeleistung < $minWatt) {
-            $ladeleistung = 0;
+        // Nur laden, wenn Überschuss >= Mindestleistung
+        if ($ueberschuss < $minWatt) {
+        return 0;
         }
-        return $ladeleistung;
+        return min($ueberschuss, $maxWatt);
     }
 
     /** Strompreis-Modus: Ladeleistung, wenn Preis <= maxPreis, sonst 0 */
