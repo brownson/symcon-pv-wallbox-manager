@@ -126,7 +126,7 @@
         { "type": "RowLayout", "items": [
           { "type": "CheckBox", "name": "PVVerteilenAktiv", "caption": "PV-Leistung aufteilen aktivieren" },
           { "type": "Label", "caption": "    " },
-          { "type": "NumberSpinner", "name": "PVAnteilAuto", "caption": "Anteil fürs Fahrzeug (%)", "suffix": "%", "visible": { "name": "PVVerteilenAktiv", "equals": true } },
+          { "type": "NumberSpinner", "name": "PVAnteilAuto", "caption": "Anteil fürs Fahrzeug (%)", "suffix": "%", "minimum": 10, "maximum": 100, "step": 1, "default": 50, "visible": { "name": "PVVerteilenAktiv", "equals": true } },
           { "type": "Label", "caption": "    " },
           { "type": "SelectVariable", "name": "HausakkuSOCID", "caption": "Hausakku SoC (%)", "visible": { "name": "PVVerteilenAktiv", "equals": true } },
           { "type": "Label", "caption": "    " },
