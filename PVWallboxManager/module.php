@@ -753,8 +753,13 @@ class PVWallboxManager extends IPSModule
 
         // Float: mit Präzision vergleichen
         if (is_float($value) || is_float($current)) {
-            if (round((float)$current, $precision) !== round((float)$value, $precision)) {
+            $cur = round((float)$current, $precision);
+            $neu = round((float)$value, $precision);
+            if ($cur !== $neu) {
+                $this->Log("{$ident}: Wert geändert von {$cur} auf {$neu}", 'debug');
                 $this->SetValue($ident, $value);
+            } else {
+                $this->Log("{$ident}: Keine Änderung ({$cur})", 'debug');
             }
             return;
         }
@@ -762,7 +767,10 @@ class PVWallboxManager extends IPSModule
         // Integer: strikt vergleichen
         if (is_int($value) || is_int($current)) {
             if ((int)$current !== (int)$value) {
+                $this->Log("{$ident}: Wert geändert von {$current} auf {$value}", 'debug');
                 $this->SetValue($ident, $value);
+            } else {
+                $this->Log("{$ident}: Keine Änderung ({$current})", 'debug');
             }
             return;
         }
@@ -770,22 +778,33 @@ class PVWallboxManager extends IPSModule
         // Boolean: direkt vergleichen
         if (is_bool($value) || is_bool($current)) {
             if ((bool)$current !== (bool)$value) {
+                $this->Log("{$ident}: Wert geändert von " . ($current ? 'true' : 'false') . " auf " . ($value ? 'true' : 'false'), 'debug');
                 $this->SetValue($ident, $value);
+            } else {
+                $this->Log("{$ident}: Keine Änderung (" . ($current ? 'true' : 'false') . ")", 'debug');
             }
             return;
         }
 
         // String: trim und vergleichen
         if (is_string($value) || is_string($current)) {
-            if (trim((string)$current) !== trim((string)$value)) {
+            $cur = trim((string)$current);
+            $neu = trim((string)$value);
+            if ($cur !== $neu) {
+                $this->Log("{$ident}: Wert geändert von '{$cur}' auf '{$neu}'", 'debug');
                 $this->SetValue($ident, $value);
+            } else {
+                $this->Log("{$ident}: Keine Änderung ('{$cur}')", 'debug');
             }
             return;
         }
 
         // Fallback für alle anderen Typen (notfalls trotzdem setzen)
         if ($current !== $value) {
+            $this->Log("{$ident}: Wert geändert von {$current} auf {$value}", 'debug');
             $this->SetValue($ident, $value);
+        } else {
+            $this->Log("{$ident}: Keine Änderung ({$current})", 'debug');
         }
     }
 }
