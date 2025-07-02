@@ -99,8 +99,8 @@ class PVWallboxManager extends IPSModule
         // Profil sicherstellen
         $this->EnsureLademodusProfile();
 
-        // Timer-Intervall ggf. neu setzen, wenn RefreshInterval geändert wurde
-        $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
+        // Nur Intervall setzen!
+         $this->SetTimerInterval('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000);
     }
 
     public function UpdateCharging()
