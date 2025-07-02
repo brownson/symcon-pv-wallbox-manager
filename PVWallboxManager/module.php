@@ -805,8 +805,8 @@ class PVWallboxManager extends IPSModule
     /** Setzt Statusanzeige im Modul (WebFront, Variablen, ...) */
     private function SetLademodusStatus($msg)
     {
-        //$this->SetValue('Wallbox_Status', $msg);
-        $this->SetValueSafe('Wallbox_Status', $msg);
+        $this->SetValue('Wallbox_Status', $msg);
+        //$this->SetValueSafe('Wallbox_Status', $msg);
     }
 
     /** Loggt aktuelle Energiedaten für Debug */
