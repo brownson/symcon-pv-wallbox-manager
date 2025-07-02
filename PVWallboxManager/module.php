@@ -78,10 +78,10 @@ class PVWallboxManager extends IPSModule
         IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_W'), 'home');
 
         // Wallbox-Leistung (W)
-        $this->RegisterVariableFloat('Ladeleistung_Soll', '🔌 Geplante Ladeleistung (W)', '~Watt', 24);
-        IPS_SetIcon($this->GetIDForIdent('Ladeleistung_Soll'), 'wand');
-        $this->RegisterVariableFloat('Ladeleistung_Ist', '🔌 Aktuelle Ladeleistung (W)', '~Watt', 25);
-        IPS_SetIcon($this->GetIDForIdent('Ladeleistung_Ist'), 'charging-station');
+        $this->RegisterVariableFloat('WB_Ladeleistung_Soll', '🔌 WB geplante Ladeleistung (W)', '~Watt', 24);
+        IPS_SetIcon($this->GetIDForIdent('WB_Ladeleistung_Soll'), 'wand');
+        $this->RegisterVariableFloat('WB_Ladeleistung_Ist', '🔌 WB aktuelle Leistung zum Fahrzeug (W)', '~Watt', 25);
+        IPS_SetIcon($this->GetIDForIdent('WB_Ladeleistung_Ist'), 'charging-station');
  
         // Hausverbrauch abzügl. Wallbox (W) – wie vorher empfohlen
         $this->RegisterVariableFloat('Hausverbrauch_abz_Wallbox', '🏠 Hausverbrauch abzügl. Wallbox (W)', '~Watt', 15);
@@ -145,7 +145,7 @@ class PVWallboxManager extends IPSModule
         // >>>>>>> Hier Werte schreiben!
         $this->SetValue('PV_Ueberschuss', max(0, $ueberschuss));
         $this->SetValue('Hausverbrauch_W', $haus);
-        $this->SetValue('Wallbox_Leistung_W', $wb_leistung);
+        //$this->SetValue('Wallbox_Leistung_W', $wb_leistung);
         $haus_abz_wb = max(0, $haus - $wb_leistung);
         $this->SetValue('Hausverbrauch_abz_Wallbox', $haus_abz_wb);
 
@@ -176,8 +176,8 @@ class PVWallboxManager extends IPSModule
             case 'nurpv':
             default:
                 $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                $this->SetValue('Ladeleistung_Soll', $ladeleistung);
-                $this->SetValue('Ladeleistung_Ist', $this->LeseWallboxLeistung());
+                $this->SetValue('WB_Ladeleistung_Soll', $ladeleistung);
+                $this->SetValue('WB_Ladeleistung_Ist', $this->LeseWallboxLeistung());
                 $this->Log(
                     "PV-Überschuss: PV [{$pv} W] - Haus [{$haus} W] - Batterie [{$batt} W] + Wallbox [{$wb_leistung} W] - Dyn.Puffer [{$puffer_diff} W | {$puffer_prozent}%] = Überschuss [{$ueberschuss} W]",
                     'info'
