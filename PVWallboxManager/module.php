@@ -310,7 +310,7 @@ public function RequestAction($ident, $value)
 
 // =====================================================================================================
 
-public function UpdateCharging()
+ublic function UpdateCharging()
 {
     // --- Schutz vor Parallelaufrufen ---
     if ($this->ReadAttributeBoolean('RunLock')) {
@@ -325,10 +325,10 @@ public function UpdateCharging()
         $hausverbrauchID = $this->ReadPropertyInteger('HausverbrauchID');
         $this->Log("HausverbrauchID: {$hausverbrauchID}", 'debug'); // Debugging der HausverbrauchID
 
-        // Überprüfen, ob die Variable mit dieser ID existiert
+        // Überprüfen, ob die Hausverbrauch-Variable existiert
         if ($hausverbrauchID > 0 && IPS_VariableExists($hausverbrauchID)) {
             $hausverbrauch = GetValue($hausverbrauchID); // Hausverbrauch aus der Variablen holen
-            $this->Log("Aktueller Hausverbrauch: {$hausverbrauch} W", 'debug');
+            $this->Log("Aktueller Hausverbrauch (HausverbrauchID): {$hausverbrauch} W", 'debug');
         } else {
             $hausverbrauch = 0.0; // Falls keine gültige Variable vorhanden ist
             $this->Log("UpdateCharging(): Kein gültiger Hausverbrauch (HausverbrauchID) gefunden.", 'error');
@@ -372,8 +372,12 @@ public function UpdateCharging()
             $this->Log("Fehler beim Abrufen der Wallbox-Leistung.", 'error');
         }
 
-        // Berechnung des Hausverbrauchs (Hausverbrauch - WallboxLeistung)
+        // Hausverbrauch berechnen: Hausverbrauch = HausverbrauchID - WallboxLeistung
         $hausverbrauch = $hausverbrauch - $powerToCarTotal_W;
+
+        // Hausverbrauch in die Variable setzen
+        SetValue($this->GetIDForIdent('Hausverbrauch'), $hausverbrauch);
+        $this->Log("UpdateCharging(): Berechneter Hausverbrauch = {$hausverbrauch} W", 'debug');
 
         // --- PV-Überschuss berechnen ---
         $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch);
@@ -381,7 +385,6 @@ public function UpdateCharging()
         $this->Log("UpdateCharging(): Standard-PV-Überschuss = {$pvUeberschussStandard} W", 'debug');
 
         $minLadeWatt = $this->ReadPropertyInteger('MinLadeWatt');
-
         // --- Fahrzeug verbunden, Ladefreigabe prüfen ---
         if ($this->ReadPropertyBoolean('NurMitFahrzeug') && in_array($status, [3, 4])) {
 
