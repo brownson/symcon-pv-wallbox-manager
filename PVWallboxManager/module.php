@@ -142,7 +142,6 @@ class PVWallboxManager extends IPSModule
         $haus_abz_wb = max(0, $haus - $wb_leistung);
         $this->SetValue('Hausverbrauch_abz_Wallbox', $haus_abz_wb);
 
-
         // 3. Aktiven Lademodus bestimmen
         $modus = $this->ErmittleAktivenLademodus();
 
@@ -170,6 +169,7 @@ class PVWallboxManager extends IPSModule
             case 'nurpv':
             default:
                 $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
+                $this->Log( "NurPV-Modus: PV={$pv} W - Haus={$haus} W - Batterie={$batt} W + WB-Leistung={$wb_leistung} W = Überschuss={$ueberschuss} W → Ladeleistung=" . round($ladeleistung) . " W", 'info' );
                 break;
         }
 
