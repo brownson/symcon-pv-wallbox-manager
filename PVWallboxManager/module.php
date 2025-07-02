@@ -145,6 +145,14 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateCharging()
     {
+        // --- RunLock: Schutz vor parallelen Durchläufen ---
+        if ($this->ReadAttributeBoolean('RunLock')) {
+            $this->Log("UpdateCharging() abgebrochen: RunLock ist aktiv!", 'warn');
+            return;
+        }
+        $this->WriteAttributeBoolean('RunLock', true);
+
+        try {
         // Modul aktiv? Sonst abbrechen!
         if (!$this->ReadPropertyBoolean('ModulAktiv')) {
             $this->Log("Modul ist deaktiviert. Keine Aktion.", 'warn');
@@ -294,7 +302,10 @@ class PVWallboxManager extends IPSModule
             'Modus'       => $modus,
             'Ladeleistung'=> $ladeleistung
         ]);
-    }
+        } finally {
+            // --- RunLock immer wieder freigeben! ---
+            $this->WriteAttributeBoolean('RunLock', false);
+        }
 
     private function EnsureLademodusProfile()
     {
@@ -839,11 +850,18 @@ class PVWallboxManager extends IPSModule
             case 'UpdateCharging':
                 $this->UpdateCharging(); // <- Hier wird die Methode wirklich ausgeführt!
                 break;
-            // ... weitere Variablen/Button-Handler
+            case 'LockReset':
+                if ($value) {
+                    $this->ResetLock();
+                    $this->SetValue('LockReset', false); // Button sofort zurücksetzen
+                }
+                break;
             default:
                 throw new Exception("Invalid ident: $ident");
         }
     }
+
+
 
     // === 11. Timer/Cron-Handling ===
 
@@ -1023,5 +1041,11 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->Log("{$ident}: Keine Änderung ({$current})", 'debug');
         }
+    }
+
+    public function ResetLock()
+    {
+        $this->WriteAttributeBoolean('RunLock', false);
+        $this->Log("ResetLock(): RunLock wurde manuell zurückgesetzt.", 'info');
     }
 }
