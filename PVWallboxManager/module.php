@@ -128,15 +128,19 @@ class PVWallboxManager extends IPSModule
         $batt        = $this->LeseBatterieleistung();
         $wb_leistung = $this->LeseWallboxLeistung();
 
-        // 2. PV-Überschuss berechnen (mit/ohne Puffer)
+        // 2. Rohwert berechnen
         $roh_ueberschuss = $this->BerechnePVUeberschuss($pv, $haus, $batt, $wb_leistung);
-        $ueberschuss     = $this->BerechneDynamischenPuffer($roh_ueberschuss);
+        //$ueberschuss     = $this->BerechneDynamischenPuffer($roh_ueberschuss);
 
-        // PV-Überschuss niemals negativ!
-        $ueberschuss = max(0, $ueberschuss);
+        // 3. Pufferwert berechnen
+        list($ueberschuss, $pufferFaktor) = $this->BerechnePVUeberschussMitPuffer($roh_ueberschuss);
+
+        // 4. Pufferfaktor fürs Logging berechnen (optional, wenn du ihn loggen willst)
+        $puffer_prozent = round($pufferFaktor * 100); // z.B. 95
+        $puffer_diff = round($roh_ueberschuss - $ueberschuss); // wieviel W abgezogen werden
 
         // >>>>>>> Hier Werte schreiben!
-        $this->SetValue('PV_Ueberschuss', $ueberschuss);
+        $this->SetValue('PV_Ueberschuss', max(0, $ueberschuss));
         $this->SetValue('Hausverbrauch_W', $haus);
         $this->SetValue('Wallbox_Leistung_W', $wb_leistung);
         $haus_abz_wb = max(0, $haus - $wb_leistung);
@@ -169,7 +173,11 @@ class PVWallboxManager extends IPSModule
             case 'nurpv':
             default:
                 $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                $this->Log( "PV-Überschuss: PV [{$pv} W] - Haus [{$haus} W] - Batterie [{$batt} W] + Wallbox [{$wb_leistung} W] - Dyn.Puffer: [{roh_ueberschuss} W] = Überschuss [{$ueberschuss} W] → Ladeleistung [" . round($ladeleistung) . " W]", 'info' );
+                //$this->Log( "PV-Überschuss: PV [{$pv} W] - Haus [{$haus} W] - Batterie [{$batt} W] + Wallbox [{$wb_leistung} W] - Dyn.Puffer: [{roh_ueberschuss} W] = Überschuss [{$ueberschuss} W] → Ladeleistung [" . round($ladeleistung) . " W]", 'info' );
+                $this->Log(
+                    "PV-Überschuss: PV [{$pv} W] - Haus [{$haus} W] - Batterie [{$batt} W] + Wallbox [{$wb_leistung} W] - Dyn.Puffer [{$puffer_diff} W | {$puffer_prozent}%] = Überschuss [{$ueberschuss} W]",
+                    'info'
+                );
                 break;
         }
 
@@ -291,18 +299,18 @@ class PVWallboxManager extends IPSModule
     /** Überschuss ggf. mit dynamischem Puffer/Hysterese berechnen */
     private function BerechnePVUeberschussMitPuffer($rohwert)
     {
+        $pufferFaktor = 1.0;
         if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
-            return $rohwert;
+            if ($rohwert < 3000) {
+                $pufferFaktor = 0.95;
+            } elseif ($rohwert < 6000) {
+                $pufferFaktor = 0.90;
+            } else {
+                $pufferFaktor = 0.85;
+            }
         }
-        // Dynamische Staffelung
-        if ($rohwert < 3000) {
-            $pufferFaktor = 0.95;
-        } elseif ($rohwert < 6000) {
-            $pufferFaktor = 0.90;
-        } else {
-            $pufferFaktor = 0.85;
-        }
-        return $rohwert * $pufferFaktor;
+        $PVUeberschussMitPuffer = $rohwert * $pufferFaktor;
+        return [$PVUeberschussMitPuffer, $pufferFaktor];
     }
 
     /** Berechnet den PV-Überschuss unter Berücksichtigung der Hysterese für Start- und Stoppwerte.*/
