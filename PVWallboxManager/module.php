@@ -367,7 +367,10 @@ public function UpdateCharging()
         } else {
             $this->Log("Fehler beim Abrufen der Wallbox-Leistung.", 'error');
         }
-        
+
+        // Berechnung des Hausverbrauchs (Hausverbrauch - WallboxLeistung)
+        $hausverbrauch = $hausverbrauch - $powerToCarTotal_W;
+
         // --- PV-Überschuss berechnen ---
         $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch);
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $pvUeberschussStandard);
