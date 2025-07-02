@@ -77,23 +77,27 @@ class PVWallboxManager extends IPSModule
         IPS_SetIcon($this->GetIDForIdent('Wallbox_Status'), 'charging-station');
         $this->RegisterVariableInteger('CarChargeTargetTime', 'Ziel-Ladezeit', '~UnixTimestampTime', 42);
         IPS_SetIcon($this->GetIDForIdent('CarChargeTargetTime'), 'clock');
-        $this->EnsureLademodusProfile();
-        $this->RegisterVariableInteger('AktiverLademodus', 'Aktiver Lademodus', 'PVWM.Lademodus', 50);
 
+        // Profil für Modus sicherstellen
+        $this->EnsureLademodusProfile();
+        
+        // Aktiver Lademodus - Modus mit Profil 'PVWM.Lademodus'
+        $this->RegisterVariableInteger('AktiverLademodus', 'Aktiver Lademodus', 'PVWM.Lademodus', 50);
         IPS_SetIcon($this->GetIDForIdent('AktiverLademodus'), 'lightbulb');
 
         // Weitere Variablen nach Bedarf!
         $this->RegisterVariableInteger('HystereseZaehler', 'Phasen-Hysteresezähler', '', 60);
 
         // Timer für Berechnungsintervall
-        $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'PVWBM_UpdateCharging($_IPS[\'TARGET\']);');
-
+        $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'PVWallboxManager_UpdateCharging($_IPS[\'TARGET\']);');
     }
 
-    /** @inheritDoc */
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+
+        // Sicherstellen, dass das Profil existiert (und ggf. neu anlegen)
+        $this->EnsureLademodusProfile();
 
         // Timer-Intervall ggf. neu setzen, wenn RefreshInterval geändert wurde
         $this->SetTimerInterval('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000);
