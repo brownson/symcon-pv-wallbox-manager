@@ -348,6 +348,12 @@ public function UpdateCharging()
             return;
         }
 
+        // Wallbox-Leistung abfragen
+        $powerToCarTotal = GetValue($this->GetIDForIdent('powerToCarTotal'));
+
+        // Sicherstellen, dass der Wert korrekt abgerufen wurde
+        $this->Log("Aktuelle Wallbox-Leistung (powerToCarTotal): {$powerToCarTotal} W", 'debug');
+        
         // --- PV-Überschuss berechnen ---
         $pvUeberschussStandard = $this->BerechnePVUeberschuss($hausverbrauch);
         SetValue($this->GetIDForIdent('PV_Ueberschuss'), $pvUeberschussStandard);
