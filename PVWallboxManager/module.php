@@ -637,6 +637,9 @@ class PVWallboxManager extends IPSModule
                 $this->Log("Lademodus umgeschaltet auf: ".$this->GetLademodusText($value), 'info');
                 $this->UpdateCharging(); // Nach jedem Wechsel berechnen
                 break;
+            case 'UpdateCharging':
+                $this->UpdateCharging(); // <- Hier wird die Methode wirklich ausgeführt!
+                break;
             // ... weitere Variablen/Button-Handler
             default:
                 throw new Exception("Invalid ident: $ident");
