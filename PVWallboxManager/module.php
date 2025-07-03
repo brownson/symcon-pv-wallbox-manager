@@ -694,15 +694,13 @@ public function UpdateCharging()
         }
         $status = @GOeCharger_GetStatus($goeID);
 
-        if (!is_array($status)) {
-            // Nur wenn die Abfrage wirklich fehlschlägt, loggen!
-            //$this->LogTemplate('warn', "Wallbox nicht erreichbar.", "Abfrage der GO-e Wallbox ist fehlgeschlagen.");
+        if (!is_int($status)) {
             $this->LogTemplate('warn', "Wallbox nicht erreichbar.", "Abfrage der GO-e Wallbox ist fehlgeschlagen. Rückgabewert: ".print_r($status, true));
             return false;
         }
 
-        // KEINE Logmeldung, wenn nur kein Auto verbunden ist!
-        return (isset($status['status']) && ($status['status'] == 2 || $status['status'] == 3));
+        // 2 = Fahrzeug lädt, 3 = Warte auf Fahrzeug (Fahrzeug angesteckt)
+        return ($status == 2 || $status == 3);
     }
 
     /**
