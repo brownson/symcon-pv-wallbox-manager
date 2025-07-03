@@ -409,18 +409,20 @@ public function UpdateCharging()
     /** Überschuss ggf. mit dynamischem Puffer/Hysterese berechnen */
     private function BerechnePVUeberschussMitPuffer($rohwert)
     {
-        $pufferFaktor = 1.0;
-        if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
-            if ($rohwert < 3000) {
-                $pufferFaktor = 0.95;
-            } elseif ($rohwert < 6000) {
-                $pufferFaktor = 0.90;
-            } else {
-                $pufferFaktor = 0.85;
-            }
+    $pufferFaktor = 1.0;
+    if ($this->ReadPropertyBoolean('DynamischerPufferAktiv')) {
+        if ($rohwert < 2000) {
+            $pufferFaktor = 0.80;
+        } elseif ($rohwert < 4000) {
+            $pufferFaktor = 0.85;
+        } elseif ($rohwert < 6000) {
+            $pufferFaktor = 0.90;
+        } else {
+            $pufferFaktor = 0.93;
         }
-        $PVUeberschussMitPuffer = $rohwert * $pufferFaktor;
-        return [$PVUeberschussMitPuffer, $pufferFaktor];
+    }
+    $PVUeberschussMitPuffer = $rohwert * $pufferFaktor;
+    return [$PVUeberschussMitPuffer, $pufferFaktor];
     }
 
     /** Berechnet den PV-Überschuss unter Berücksichtigung der Hysterese für Start- und Stoppwerte.*/
