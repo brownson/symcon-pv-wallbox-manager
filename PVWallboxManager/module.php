@@ -767,10 +767,12 @@ class PVWallboxManager extends IPSModule
     {
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
-            @GOeCharger_SetMode($goeID, (int)$leistung);
-            if ((int)$leistung > 0) {
-                @GOeCharger_SetMode($goeID, 2); // Immer Ladefreigabe aktivieren!
-            }
+            // Setze NUR die Ladeleistung, KEINEN Modus!
+            @GOeCharger_SetCurrentChargingWatt($goeID, (int)$leistung); // Falls das Modul das so unterstützt
+            // @GOeCharger_SetMode($goeID, (int)$leistung);
+            //if ((int)$leistung > 0) {
+            //    @GOeCharger_SetMode($goeID, 2); // Immer Ladefreigabe aktivieren!
+            //}
         }
     }
 
