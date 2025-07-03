@@ -187,10 +187,10 @@ class PVWallboxManager extends IPSModule
         $puffer_diff    = round($roh_ueberschuss - $ueberschuss);
 
         // Werte schreiben
-        $this->SetValueSafe('PV_Ueberschuss', max(0, $ueberschuss), 1);
-        $this->SetValueSafe('Hausverbrauch_W', $haus, 1);
+        $this->SetValueSafe('PV_Ueberschuss', max(0, $ueberschuss), 1 , 'W',);
+        $this->SetValueSafe('Hausverbrauch_W', $haus, 1, 'W');
         $haus_abz_wb = max(0, $haus - $wb_leistung);
-        $this->SetValueSafe('Hausverbrauch_abz_Wallbox', $haus_abz_wb, 1);
+        $this->SetValueSafe('Hausverbrauch_abz_Wallbox', $haus_abz_wb, 1, 'W');
 
         // Aktiven Lademodus bestimmen
         $modus = $this->ErmittleAktivenLademodus();
@@ -1001,7 +1001,8 @@ private function DeaktiviereLaden()
      * Optional: Präzision für Floats (Standard: 2 Nachkommastellen).
      * Erkennt und behandelt auch Integer, String und Bool sauber.
      */
-    private function SetValueSafe($ident, $value, $precision = 2)
+    private function SetValueSafe($ident, $value, $precision = 2, $unit = '')
+
     {
         $current = $this->GetValue($ident);
 
@@ -1010,10 +1011,10 @@ private function DeaktiviereLaden()
             $cur = round((float)$current, $precision);
             $neu = round((float)$value, $precision);
             if ($cur !== $neu) {
-                $this->LogTemplate('debug', "{$ident}: Wert geändert von {$cur} => {$neu}");
+                $this->LogTemplate('debug', "{$ident}: Wert geändert von {$cur} {$einheit} => {$neu} {$einheit}");
                 $this->SetValue($ident, $value);
             } else {
-                $this->LogTemplate('debug', "{$ident}: Keine Änderung ({$cur})");
+                $this->LogTemplate('debug', "{$ident}: Keine Änderung ({$cur} {$einheit})");
             }
             return;
         }
