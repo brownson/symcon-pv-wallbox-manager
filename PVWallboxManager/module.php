@@ -694,14 +694,16 @@ public function UpdateCharging()
         }
         $status = @GOeCharger_GetStatus($goeID);
 
-        if (!is_int($status)) {
-            $this->LogTemplate('warn', "Wallbox nicht erreichbar.", "Abfrage der GO-e Wallbox ist fehlgeschlagen. Rückgabewert: ".print_r($status, true));
+        if ($status === false || $status === null) {
+            $this->LogTemplate('warn', "Wallbox nicht erreichbar.", "Abfrage der GO-e Wallbox ist fehlgeschlagen.");
             return false;
         }
 
+        // KEINE Logmeldung mehr hier!
         // 2 = Fahrzeug lädt, 3 = Warte auf Fahrzeug (Fahrzeug angesteckt)
-        return ($status == 2 || $status == 3);
+        return ($status == 2 || $status == 3 || $status == 4);
     }
+
 
     /**
      * Setzt alle Lademodi-Buttons auf "aus" (gegenseitiger Ausschluss bei Fahrzeugwechsel).
