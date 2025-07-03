@@ -803,7 +803,7 @@ public function UpdateCharging()
     /** Loggt eine Nachricht mit Level (info, warn, error, debug) */
     private function Log($msg, $level = 'info')
     {
-        $prefix = "[PVWallboxManager]";
+        $prefix = "[PVWM]";
         switch ($level) {
             case 'warn':
             case 'warning':
