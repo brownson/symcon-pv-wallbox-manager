@@ -195,10 +195,8 @@ class PVWallboxManager extends IPSModule
         // Aktiven Lademodus bestimmen
         $modus = $this->ErmittleAktivenLademodus();
 
-        // Fahrzeugstatus PRÜFEN (falls nicht schon in Schritt 1 abgefangen)==========================================================================================
         if (!$this->IstFahrzeugVerbunden()) {
-            @GOeCharger_SetMode($goeID, 1); // Nicht laden!
-            $this->DeaktiviereLaden();
+            $this->DeaktiviereLaden(); // ← korrigierte Funktion, die nur noch Mode 1 setzt!
             $status = "Die Wallbox wartet auf ein angestecktes Auto.";
             $this->SetLademodusStatus($status);
             $this->LogTemplate('info', "Kein Fahrzeug verbunden.", $status);
@@ -784,7 +782,6 @@ class PVWallboxManager extends IPSModule
     {
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
-            @GOeCharger_SetMode($goeID, 0);
             @GOeCharger_SetMode($goeID, 1); // Laden blockieren!
         }
     }
