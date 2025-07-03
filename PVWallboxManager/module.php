@@ -1103,7 +1103,7 @@ private function DeaktiviereLaden()
     {
         $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
         $aktuellerModus = ($modusID && @IPS_VariableExists($modusID)) ? GetValue($modusID) : null;
-
+        $this->LogTemplate('debug', "Vorher: accessStateV2 = $aktuellerModus, Ziel: $neuerModus");/**================================================ */
         if ($aktuellerModus !== $neuerModus) {
             @GOeCharger_SetMode($goeID, $neuerModus);
             $this->LogTemplate('debug', "accessStateV2 geändert: $aktuellerModus → $neuerModus");
