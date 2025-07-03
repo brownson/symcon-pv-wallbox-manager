@@ -179,8 +179,10 @@ Für jede Variable separat aktivierbar, falls dein Messwert andersherum zählt.
 - 📈 Erweiterte Statistiken und Auswertungen
 - ❄️ Umschalten auf Winterbetrieb aktiv andere Standardlademodi, da im Winter weniger bis gar kein PV-Überschuss
 - ⚠️ Minimale Leistung + PV Überschuss Modus wie bei EVCC
+- ⚡️ Maximale Ladeleistung berücksichtigen (zb.: Bei leistungsgemessene Netzkosten)
 
----
+### 📋 ToDo
+- 💬 Meldungen überarbeiten / vereinheitlichen
 
 ### 😄 Idee, wenn mal so richtig faad ist…
 - 🌍 Unterstützung für andere Wallboxen, falls Nachfrage wirklich riesig ist (aktuell Fokus: GO-e)
