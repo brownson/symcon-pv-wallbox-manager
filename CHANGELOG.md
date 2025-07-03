@@ -125,7 +125,7 @@ Nach Update bitte einmal alle Modul-Properties kontrollieren (vor allem Variable
   - <2000 W → 80 %  
   - <4000 W → 85 %  
   - <6000 W → 90 %  
-  - >6000 W → 93 %
+  - ab 6000 W → 93 %
 - Neu: Statusvariable und WebFront-Anzeige für aktuellen Lademodus.
 - Alle Buttons (Manuell, PV2Car, Zielzeitladung) schließen sich jetzt gegenseitig aus.
 - Modus-Status und PV-Überschuss werden bei Inaktivität zurückgesetzt.
