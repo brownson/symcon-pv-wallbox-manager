@@ -283,23 +283,20 @@ public function UpdateCharging()
     // === 9. Phasenumschaltung prüfen und ggf. umschalten ===
     $this->PruefePhasenumschaltung($ladeleistung);
 
-    // === 10. accessStateV2 setzen und Wallbox steuern ===
+        // === 10. accessStateV2 setzen und Wallbox steuern ===
     if ($this->IstFahrzeugVerbunden()) {
         if ($ladeleistung > 0) {
-            $this->SetzeAccessStateV2WennNoetig($goeID, 2); // Freigeben
+            $this->SetzeAccessStateV2WennNoetig($goeID, 2); // Laden erzwingen
             $this->SetzeLadeleistung($ladeleistung);
             $status = "Laden: ".round($ladeleistung)." W im Modus: ".$this->GetLademodusText($this->GetValue('AktiverLademodus'));
         } else {
-            $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Nicht laden!
-            $this->DeaktiviereLaden();
+            $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Nicht laden
             $status = "Nicht laden (kein Überschuss/Modus)";
         }
     } else {
-        $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Immer blockieren
-        $this->DeaktiviereLaden();
+        $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Nicht laden (immer blockieren)
         $status = "Nicht laden (kein Fahrzeug)";
     }
-
 
     // === 11. Statusvariable und Logging ===
     $this->SetLademodusStatus($status);
@@ -313,7 +310,7 @@ public function UpdateCharging()
         'Modus'       => $modus,
         'Ladeleistung'=> $ladeleistung
     ]);
-}
+
 
     private function EnsureLademodusProfile()
     {
@@ -600,20 +597,20 @@ public function UpdateCharging()
         return 0; 
     }
 
-    private function GetPV2CarProzent()
+    /** private function GetPV2CarProzent()
     {
         return 0;
-    }
+    }*/
 
-    private function GetCurrentMarketPrice()
+    /** private function GetCurrentMarketPrice()
     {
          return 0;
-    }
+    } */
     
-    private function GetMaxAllowedPrice()
+    /** private function GetMaxAllowedPrice()
     {
         return 0;
-    }
+    } */
 
     // === 6. Phasenumschaltung / Hysterese ===
 
