@@ -151,7 +151,7 @@ public function UpdateCharging()
 {
     $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
-            $this->LogTemplate('warn', "Ungültige GOeChargerID: Keine oder fehlerhafte Instanz-ID gesetzt!");
+            $this->LogTemplate('warn', "Keine Wallbox-Instanz ausgewählt oder ID ungültig.", "Bitte GO-e Charger im Modul konfigurieren.");
             $this->SetLademodusStatus("Wallbox nicht konfiguriert!");
             return;
         }
@@ -159,9 +159,9 @@ public function UpdateCharging()
     if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden()) {
         @GOeCharger_SetMode($goeID, 1); // Blockieren ("Nicht laden")
         $this->DeaktiviereLaden(); // Setzt auch ChargingWatt=0
-        $status = "Warte auf Fahrzeug";
+        $status = "Bitte das Fahrzeug mit der Wallbox verbinden.";
         $this->SetLademodusStatus($status);
-        $this->LogTemplate('info', $status);
+        $this->LogTemplate('info', "Warte auf Fahrzeug.", $status);
         $this->SetLademodusAutoReset();
         $this->UpdateAccessStateText(); // <<---- AccessState für Anzeige aktualisieren
         return;
@@ -169,7 +169,8 @@ public function UpdateCharging()
 
     // === 2. Modul aktiv? Sonst abbrechen! ===
     if (!$this->ReadPropertyBoolean('ModulAktiv')) {
-        $this->LogTemplate('warn', "Modul ist deaktiviert. Keine Aktion.");
+        $this->LogTemplate('warn', "PVWallbox-Manager ist deaktiviert.", "Automatische Steuerung aktuell ausgesetzt.");
+
         return;
     }
 
@@ -199,9 +200,9 @@ public function UpdateCharging()
     if (!$this->IstFahrzeugVerbunden()) {
         @GOeCharger_SetMode($goeID, 1); // Nicht laden!
         $this->DeaktiviereLaden();
-        $status = "Warte auf Fahrzeug (kein Auto verbunden)";
+        $status = "Die Wallbox wartet auf ein angestecktes Auto.";
         $this->SetLademodusStatus($status);
-        $this->LogTemplate('info', $status);
+        $this->LogTemplate('info', "Kein Fahrzeug verbunden.", $status);
         $this->SetLademodusAutoReset();
         $this->UpdateAccessStateText();
         return;
@@ -274,8 +275,8 @@ public function UpdateCharging()
             $this->SetValueSafe('WB_Ladeleistung_Soll', $ladeleistung, 1);
             $this->SetValueSafe('WB_Ladeleistung_Ist', $this->LeseWallboxLeistung(), 1);
 
-            $this->LogTemplate('info', 
-                "PV-Überschuss: PV [{$pv} W] - Haus [{$haus} W] - Batterie [{$batt} W] + Wallbox [{$wb_leistung} W] - Dyn.Puffer [{$puffer_diff} W | {$puffer_prozent}%] = Überschuss [{$ueberschuss} W] | StartHyst: {$startCounter}/{$startHysterese} StopHyst: {$stopCounter}/{$stopHysterese}");
+            $this->LogTemplate('debug', 
+                "PV-Überschuss-Berechnung: PV {$pv} W, Haus {$haus} W, Batterie {$batt} W, Wallbox {$wb_leistung} W, Puffer {$puffer_diff} W ({$puffer_prozent}%), Überschuss {$ueberschuss} W, StartHyst: {$startCounter}/{$startHysterese}, StopHyst: {$stopCounter}/{$stopHysterese}");
             break;
     }
 
@@ -688,7 +689,7 @@ public function UpdateCharging()
     {
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
-            $this->LogTemplate('warn', "Wallbox nicht gefunden.", "Bitte GO-e Instanz konfigurieren.");
+            $this->LogTemplate('warn', "Wallbox nicht erreichbar.", "Bitte GO-e Instanz in den Modul-Einstellungen prüfen.");
             return false;
         }
         $status = @GOeCharger_GetStatus($goeID);
@@ -878,7 +879,7 @@ public function UpdateCharging()
         switch ($ident) {
             case 'AktiverLademodus':
                 $this->SetValueSafe($ident, $value);
-                $this->LogTemplate('info', "Lademodus umgeschaltet auf: ".$this->GetLademodusText($value));
+                $this->LogTemplate('info', "Lademodus geändert.", "Neuer Modus: ".$this->GetLademodusText($value));
                 $this->ladeStartZaehler = 0; // Hysterese-Zähler zurücksetzen!
                 $this->ladeStopZaehler = 0;  // Hysterese-Zähler zurücksetzen!
                 $this->UpdateCharging(); // Nach jedem Wechsel berechnen
@@ -904,7 +905,7 @@ public function UpdateCharging()
         // Status 2 = verbunden, 3 = lädt (go-e Standard)
         if ($neuerStatus == 2 || $neuerStatus == 3) {
             // Initialisierungen ausführen:
-            $this->LogTemplate('info', "Fahrzeug angesteckt – Initial-Check läuft...");
+            $this->LogTemplate('info', "Fahrzeug verbunden.", "Starte Initial-Check für Lademanager.");
 
             // Alle relevanten Variablen/Lademodi zurücksetzen
             $this->SetLademodusAutoReset();
@@ -923,7 +924,7 @@ public function UpdateCharging()
     private function CreateCarStatusEvent($goeID)
     {
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
-            $this->LogTemplate('warn', "CreateCarStatusEvent: Ungültige oder fehlende GO-e Instanz ($goeID) – Vorgang abgebrochen.");
+            $this->LogTemplate('warn', "Ereignis-Setup fehlgeschlagen.", "Keine gültige GO-e Instanz hinterlegt (ID: $goeID).");
             return;
         }
 
@@ -932,7 +933,7 @@ public function UpdateCharging()
         $carVarID = @IPS_GetObjectIDByIdent($carIdent, $goeID);
 
         if ($carVarID === false) {
-            $this->LogTemplate('warn', "CreateCarStatusEvent: Keine 'status'-Variable in GO-e Instanz ($goeID) gefunden – Sofort-Trigger nicht angelegt!");
+            $this->LogTemplate('warn', "Fahrzeugstatus-Variable nicht gefunden.", "Kein 'status'-Wert in der GO-e Instanz (ID: $goeID).");
             return;
         }
 
@@ -954,7 +955,7 @@ public function UpdateCharging()
             IPS_SetEventScript($eventID, $code);
             IPS_SetEventActive($eventID, true);
 
-            $this->LogTemplate('info', "Ereignis zum sofortigen Update bei Fahrzeugstatuswechsel ('status') wurde neu erstellt. (Event-ID: {$eventID})");
+            $this->LogTemplate('info', "Ereignis für Fahrzeugstatus erstellt.", "Event-ID: {$eventID}");
         } else {
             // Existierendes Ereignis ggf. anpassen
             if (@IPS_GetEvent($eventID)['TriggerVariableID'] != $carVarID) {
@@ -1098,7 +1099,8 @@ public function UpdateCharging()
             }
             $this->LogTemplate('debug', "accessStateV2 aktuell: $msg");
         } else {
-            $this->LogTemplate('warn', "accessStateV2 Variable nicht gefunden!");
+            $this->LogTemplate('warn', "Wallbox-Freigabestatus nicht verfügbar.", "Zugriffs-Status (accessStateV2) fehlt in der GO-e Instanz.");
+
         }
     }
 
