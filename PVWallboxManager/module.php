@@ -147,170 +147,164 @@ class PVWallboxManager extends IPSModule
     }
 
 
-public function UpdateCharging()
-{
-    $goeID = $this->ReadPropertyInteger('GOeChargerID');
+    public function UpdateCharging()
+    {
+        $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
             $this->LogTemplate('warn', "Keine Wallbox-Instanz ausgewählt oder ID ungültig.", "Bitte GO-e Charger im Modul konfigurieren.");
             $this->SetLademodusStatus("Wallbox nicht konfiguriert!");
             return;
         }
-    // === 1. Prüfe: Darf NUR MIT Fahrzeug geladen werden? ===
-    if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden()) {
-        @GOeCharger_SetMode($goeID, 1); // Blockieren ("Nicht laden")
-        $this->DeaktiviereLaden(); // Setzt auch ChargingWatt=0
-        $status = "Bitte das Fahrzeug mit der Wallbox verbinden.";
-        $this->SetLademodusStatus($status);
-        $this->LogTemplate('info', "Warte auf Fahrzeug.", $status);
-        $this->SetLademodusAutoReset();
-        $this->UpdateAccessStateText(); // <<---- AccessState für Anzeige aktualisieren
-        return;
-    }
 
-    // === 2. Modul aktiv? Sonst abbrechen! ===
-    if (!$this->ReadPropertyBoolean('ModulAktiv')) {
-        $this->LogTemplate('warn', "PVWallbox-Manager ist deaktiviert.", "Automatische Steuerung aktuell ausgesetzt.");
-
-        return;
-    }
-
-    // === 3. Energiewerte lesen ===
-    $pv          = $this->LesePVErzeugung();
-    $haus        = $this->LeseHausverbrauch();
-    $batt        = $this->LeseBatterieleistung();
-    $wb_leistung = $this->LeseWallboxLeistung();
-
-    // === 4. Rohwert und Puffer berechnen ===
-    $roh_ueberschuss = $this->BerechnePVUeberschuss($pv, $haus, $batt, $wb_leistung);
-    list($ueberschuss, $pufferFaktor) = $this->BerechnePVUeberschussMitPuffer($roh_ueberschuss);
-
-    $puffer_prozent = round($pufferFaktor * 100);
-    $puffer_diff    = round($roh_ueberschuss - $ueberschuss);
-
-    // === 5. Werte schreiben ===
-    $this->SetValueSafe('PV_Ueberschuss', max(0, $ueberschuss), 1);
-    $this->SetValueSafe('Hausverbrauch_W', $haus, 1);
-    $haus_abz_wb = max(0, $haus - $wb_leistung);
-    $this->SetValueSafe('Hausverbrauch_abz_Wallbox', $haus_abz_wb, 1);
-
-    // === 6. Aktiven Lademodus bestimmen ===
-    $modus = $this->ErmittleAktivenLademodus();
-
-    // === 7. Fahrzeugstatus PRÜFEN (falls nicht schon in Schritt 1 abgefangen) ===
-    if (!$this->IstFahrzeugVerbunden()) {
-        @GOeCharger_SetMode($goeID, 1); // Nicht laden!
-        $this->DeaktiviereLaden();
-        $status = "Die Wallbox wartet auf ein angestecktes Auto.";
-        $this->SetLademodusStatus($status);
-        $this->LogTemplate('info', "Kein Fahrzeug verbunden.", $status);
-        $this->SetLademodusAutoReset();
-        $this->UpdateAccessStateText();
-        return;
-    }
-
-    // === 8. Ladeleistung ermitteln ===
-    switch ($modus) {
-        case 'manuell':
-            $ladeleistung = $this->BerechneLadeleistungManuell();
-            break;
-        case 'pv2car':
-            $prozent = $this->GetPV2CarProzent();
-            $ladeleistung = $this->BerechneLadeleistungPV2Car($ueberschuss, $prozent);
-            break;
-        case 'zielzeit':
-            $istSOC = $this->LeseFahrzeugSOC();
-            $zielSOC = $this->LeseZielSOC();
-            $zielzeit = $this->LeseZielzeit();
-            $maxLeistung = $this->ReadPropertyInteger('MaxAutoWatt');
-            $ladeleistung = $this->BerechneLadeleistungZielzeit($zielSOC, $istSOC, $zielzeit, $maxLeistung);
-            break;
-        case 'strompreis':
-            $preis = $this->GetCurrentMarketPrice();
-            $maxPreis = $this->GetMaxAllowedPrice();
-            $ladeleistung = $this->BerechneLadeleistungStrompreis($preis, $maxPreis);
-            break;
-        case 'nurpv':
-        default:
-            $minLadeWatt     = $this->ReadPropertyInteger('MinLadeWatt');
-            $minStopWatt     = $this->ReadPropertyInteger('MinStopWatt');
-            $startHysterese  = $this->ReadPropertyInteger('StartHysterese');
-            $stopHysterese   = $this->ReadPropertyInteger('StopHysterese');
-            $istAmLaden = $this->GetValue('WallboxAktiv');
-            $startCounter = (int)$this->GetBuffer('StartHystereseCounter');
-            $stopCounter  = (int)$this->GetBuffer('StopHystereseCounter');
-
-            if (!$istAmLaden) {
-                if ($ueberschuss >= $minLadeWatt) {
-                    $startCounter++;
-                    if ($startCounter >= $startHysterese) {
-                        $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                        $startCounter = 0;
-                        $stopCounter  = 0;
-                    } else {
-                        $ladeleistung = 0;
-                    }
-                } else {
-                    $startCounter = 0;
-                    $ladeleistung = 0;
-                }
-            } else {
-                if ($ueberschuss <= $minStopWatt) {
-                    $stopCounter++;
-                    if ($stopCounter >= $stopHysterese) {
-                        $ladeleistung = 0;
-                        $stopCounter  = 0;
-                        $startCounter = 0;
-                    } else {
-                        $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                    }
-                } else {
-                    $stopCounter = 0;
-                    $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                }
-            }
-
-            $this->SetBuffer('StartHystereseCounter', $startCounter);
-            $this->SetBuffer('StopHystereseCounter', $stopCounter);
-
-            $this->SetValueSafe('WB_Ladeleistung_Soll', $ladeleistung, 1);
-            $this->SetValueSafe('WB_Ladeleistung_Ist', $this->LeseWallboxLeistung(), 1);
-
-            $this->LogTemplate('debug', 
-                "PV-Überschuss-Berechnung: PV {$pv} W, Haus {$haus} W, Batterie {$batt} W, Wallbox {$wb_leistung} W, Puffer {$puffer_diff} W ({$puffer_prozent}%), Überschuss {$ueberschuss} W, StartHyst: {$startCounter}/{$startHysterese}, StopHyst: {$stopCounter}/{$stopHysterese}");
-            break;
-    }
-
-    // === 9. Phasenumschaltung prüfen und ggf. umschalten ===
-    $this->PruefePhasenumschaltung($ladeleistung);
-
-        // === 10. accessStateV2 setzen und Wallbox steuern ===
-    if ($this->IstFahrzeugVerbunden()) {
-        if ($ladeleistung > 0) {
-            $this->SetzeAccessStateV2WennNoetig($goeID, 2); // Laden erzwingen
-            $this->SetzeLadeleistung($ladeleistung);
-            $status = "Laden: ".round($ladeleistung)." W im Modus: ".$this->GetLademodusText($this->GetValue('AktiverLademodus'));
-        } else {
-            $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Nicht laden
-            $status = "Nicht laden (kein Überschuss/Modus)";
+        // Prüfe: Nur laden, wenn Fahrzeug verbunden
+        if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden()) {
+            $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Gesperrt
+            $status = "Bitte das Fahrzeug mit der Wallbox verbinden.";
+            $this->SetLademodusStatus($status);
+            $this->LogTemplate('info', "Warte auf Fahrzeug.", $status);
+            $this->SetLademodusAutoReset();
+            $this->UpdateAccessStateText();
+            return;
         }
+
+        // Modul aktiv?
+        if (!$this->ReadPropertyBoolean('ModulAktiv')) {
+            $this->LogTemplate('warn', "PVWallbox-Manager ist deaktiviert.", "Automatische Steuerung aktuell ausgesetzt.");
+            return;
+        }
+
+        // Energiewerte lesen
+        $pv          = $this->LesePVErzeugung();
+        $haus        = $this->LeseHausverbrauch();
+        $batt        = $this->LeseBatterieleistung();
+        $wb_leistung = $this->LeseWallboxLeistung();
+
+        // Rohwert und Puffer berechnen
+        $roh_ueberschuss = $this->BerechnePVUeberschuss($pv, $haus, $batt, $wb_leistung);
+        list($ueberschuss, $pufferFaktor) = $this->BerechnePVUeberschussMitPuffer($roh_ueberschuss);
+
+        $puffer_prozent = round($pufferFaktor * 100);
+        $puffer_diff    = round($roh_ueberschuss - $ueberschuss);
+
+        // Werte schreiben
+        $this->SetValueSafe('PV_Ueberschuss', max(0, $ueberschuss), 1);
+        $this->SetValueSafe('Hausverbrauch_W', $haus, 1);
+        $haus_abz_wb = max(0, $haus - $wb_leistung);
+        $this->SetValueSafe('Hausverbrauch_abz_Wallbox', $haus_abz_wb, 1);
+
+        // Aktiven Lademodus bestimmen
+        $modus = $this->ErmittleAktivenLademodus();
+
+        // Fahrzeugstatus PRÜFEN (falls nicht schon in Schritt 1 abgefangen)==========================================================================================
+        if (!$this->IstFahrzeugVerbunden()) {
+            @GOeCharger_SetMode($goeID, 1); // Nicht laden!
+            $this->DeaktiviereLaden();
+            $status = "Die Wallbox wartet auf ein angestecktes Auto.";
+            $this->SetLademodusStatus($status);
+            $this->LogTemplate('info', "Kein Fahrzeug verbunden.", $status);
+            $this->SetLademodusAutoReset();
+            $this->UpdateAccessStateText();
+            return;
+        }
+
+        // Ladeleistung ermitteln
+        switch ($modus) {
+            case 'manuell':
+                $ladeleistung = $this->BerechneLadeleistungManuell();
+                break;
+            case 'pv2car':
+                $prozent = $this->GetPV2CarProzent();
+                $ladeleistung = $this->BerechneLadeleistungPV2Car($ueberschuss, $prozent);
+                break;
+            case 'zielzeit':
+                $istSOC = $this->LeseFahrzeugSOC();
+                $zielSOC = $this->LeseZielSOC();
+                $zielzeit = $this->LeseZielzeit();
+                $maxLeistung = $this->ReadPropertyInteger('MaxAutoWatt');
+                $ladeleistung = $this->BerechneLadeleistungZielzeit($zielSOC, $istSOC, $zielzeit, $maxLeistung);
+                break;
+            case 'strompreis':
+                $preis = $this->GetCurrentMarketPrice();
+                $maxPreis = $this->GetMaxAllowedPrice();
+                $ladeleistung = $this->BerechneLadeleistungStrompreis($preis, $maxPreis);
+                break;
+            case 'nurpv':
+            default:
+                $minLadeWatt     = $this->ReadPropertyInteger('MinLadeWatt');
+                $minStopWatt     = $this->ReadPropertyInteger('MinStopWatt');
+                $startHysterese  = $this->ReadPropertyInteger('StartHysterese');
+                $stopHysterese   = $this->ReadPropertyInteger('StopHysterese');
+                $istAmLaden = $this->GetValue('WallboxAktiv');
+                $startCounter = (int)$this->GetBuffer('StartHystereseCounter');
+                $stopCounter  = (int)$this->GetBuffer('StopHystereseCounter');
+
+                if (!$istAmLaden) {
+                    if ($ueberschuss >= $minLadeWatt) {
+                        $startCounter++;
+                        if ($startCounter >= $startHysterese) {
+                            $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
+                            $startCounter = 0;
+                            $stopCounter  = 0;
+                        } else {
+                            $ladeleistung = 0;
+                        }
+                    } else {
+                        $startCounter = 0;
+                        $ladeleistung = 0;
+                    }
+                } else {
+                    if ($ueberschuss <= $minStopWatt) {
+                        $stopCounter++;
+                        if ($stopCounter >= $stopHysterese) {
+                            $ladeleistung = 0;
+                            $stopCounter  = 0;
+                            $startCounter = 0;
+                        } else {
+                            $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
+                        }
+                    } else {
+                        $stopCounter = 0;
+                        $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
+                    }
+                }
+
+                $this->SetBuffer('StartHystereseCounter', $startCounter);
+                $this->SetBuffer('StopHystereseCounter', $stopCounter);
+
+                $this->SetValueSafe('WB_Ladeleistung_Soll', $ladeleistung, 1);
+                $this->SetValueSafe('WB_Ladeleistung_Ist', $this->LeseWallboxLeistung(), 1);
+
+                $this->LogTemplate('debug', 
+                    "PV-Überschuss-Berechnung: PV {$pv} W, Haus {$haus} W, Batterie {$batt} W, Wallbox {$wb_leistung} W, Puffer {$puffer_diff} W ({$puffer_prozent}%), Überschuss {$ueberschuss} W, StartHyst: {$startCounter}/{$startHysterese}, StopHyst: {$stopCounter}/{$stopHysterese}");
+                break;
+        }
+
+        // Phasenumschaltung prüfen und ggf. umschalten
+        $this->PruefePhasenumschaltung($ladeleistung);
+
+    // Ladefreigabe setzen
+    if ($ladeleistung > 0) {
+        $this->SetzeAccessStateV2WennNoetig($goeID, 2); // Laden erzwingen
+        $this->SetzeLadeleistung($ladeleistung); // Ladeleistung, KEIN SetMode!
+        $status = "Laden: ".round($ladeleistung)." W im Modus: ".$this->GetLademodusText($this->GetValue('AktiverLademodus'));
     } else {
-        $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Nicht laden (immer blockieren)
-        $status = "Nicht laden (kein Fahrzeug)";
+        $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Gesperrt
+        $status = "Nicht laden (kein Überschuss/Modus)";
     }
 
-    // === 11. Statusvariable und Logging ===
-    $this->SetLademodusStatus($status);
-    $this->UpdateAccessStateText(); // <<---- für WebFront anzeigen!
-    $this->LogDebugData([
-        'PV'          => $pv,
-        'Haus'        => $haus,
-        'Batterie'    => $batt,
-        'WB-Leistung' => $wb_leistung,
-        'Überschuss'  => $ueberschuss,
-        'Modus'       => $modus,
-        'Ladeleistung'=> $ladeleistung
-    ]);
-
+    // Status und Logging
+        $this->SetLademodusStatus($status);
+        $this->UpdateAccessStateText();
+        $this->LogDebugData([
+            'PV'          => $pv,
+            'Haus'        => $haus,
+            'Batterie'    => $batt,
+            'WB-Leistung' => $wb_leistung,
+            'Überschuss'  => $ueberschuss,
+            'Modus'       => $modus,
+            'Ladeleistung'=> $ladeleistung
+        ]);
+    }
 
     private function EnsureLademodusProfile()
     {
