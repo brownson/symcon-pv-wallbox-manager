@@ -696,7 +696,8 @@ public function UpdateCharging()
 
         if (!is_array($status)) {
             // Nur wenn die Abfrage wirklich fehlschlägt, loggen!
-            $this->LogTemplate('warn', "Wallbox nicht erreichbar.", "Abfrage der GO-e Wallbox ist fehlgeschlagen.");
+            //$this->LogTemplate('warn', "Wallbox nicht erreichbar.", "Abfrage der GO-e Wallbox ist fehlgeschlagen.");
+            $this->LogTemplate('warn', "Wallbox nicht erreichbar.", "Abfrage der GO-e Wallbox ist fehlgeschlagen. Rückgabewert: ".print_r($status, true));
             return false;
         }
 
