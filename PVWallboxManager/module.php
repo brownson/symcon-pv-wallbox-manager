@@ -1005,16 +1005,17 @@ private function DeaktiviereLaden()
 
     {
         $current = $this->GetValue($ident);
+        $einheit = $unit ? " $unit" : ''; // Leerzeichen für Trennung
 
         // Float: mit Präzision vergleichen
         if (is_float($value) || is_float($current)) {
             $cur = round((float)$current, $precision);
             $neu = round((float)$value, $precision);
             if ($cur !== $neu) {
-                $this->LogTemplate('debug', "{$ident}: Wert geändert von {$cur} {$einheit} => {$neu} {$einheit}");
+                $this->LogTemplate('debug', "{$ident}: Wert geändert von {$cur}{$einheit} => {$neu}{$einheit}");
                 $this->SetValue($ident, $value);
             } else {
-                $this->LogTemplate('debug', "{$ident}: Keine Änderung ({$cur} {$einheit})");
+                $this->LogTemplate('debug', "{$ident}: Keine Änderung ({$cur}{$einheit})");
             }
             return;
         }
