@@ -286,20 +286,20 @@ public function UpdateCharging()
     // === 10. accessStateV2 setzen und Wallbox steuern ===
     if ($this->IstFahrzeugVerbunden()) {
         if ($ladeleistung > 0) {
-        @GOeCharger_SetMode($goeID, 2); // Freigeben
-        $this->SetzeLadeleistung($ladeleistung);
-        $status = "Laden: ".round($ladeleistung)." W im Modus: ".$this->GetLademodusText($this->GetValue('AktiverLademodus'));
-    } else {
-        @GOeCharger_SetMode($goeID, 1); // Immer blockieren
-        $this->DeaktiviereLaden();
-        $status = "Nicht laden (kein Überschuss/Modus)";
+            $this->SetzeAccessStateV2WennNoetig($goeID, 2); // Freigeben
+            $this->SetzeLadeleistung($ladeleistung);
+            $status = "Laden: ".round($ladeleistung)." W im Modus: ".$this->GetLademodusText($this->GetValue('AktiverLademodus'));
+        } else {
+            $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Nicht laden!
+            $this->DeaktiviereLaden();
+            $status = "Nicht laden (kein Überschuss/Modus)";
         }
-
     } else {
-        @GOeCharger_SetMode($goeID, 1); // Immer blockieren
+        $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Immer blockieren
         $this->DeaktiviereLaden();
         $status = "Nicht laden (kein Fahrzeug)";
-        }
+    }
+
 
     // === 11. Statusvariable und Logging ===
     $this->SetLademodusStatus($status);
@@ -901,7 +901,7 @@ public function UpdateCharging()
 
     // === 11. Timer/Cron-Handling ===
 
-    public function OnFahrzeugStatusChange($neuerStatus)
+    public function OnFahrzeugStatusChange(int $neuerStatus)
     {
         // Status 2 = verbunden, 3 = lädt (go-e Standard)
         if ($neuerStatus == 2 || $neuerStatus == 3) {
@@ -1090,18 +1090,13 @@ public function UpdateCharging()
     {
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
+
         if ($modusID && @IPS_VariableExists($modusID)) {
             $current = GetValue($modusID);
-            switch ($current) {
-                case 0: $msg = "Neutral (Wallbox entscheidet selbst)"; break;
-                case 1: $msg = "Nicht laden (gesperrt)"; break;
-                case 2: $msg = "Laden (erzwungen)"; break;
-                default: $msg = "Unbekannter Modus ($current)";
-            }
+            $msg = $this->GetAccessStateV2Text($current);
             $this->LogTemplate('debug', "accessStateV2 aktuell: $msg");
         } else {
             $this->LogTemplate('warn', "Wallbox-Freigabestatus nicht verfügbar.", "Zugriffs-Status (accessStateV2) fehlt in der GO-e Instanz.");
-
         }
     }
 
@@ -1113,21 +1108,33 @@ public function UpdateCharging()
         $text = "unbekannt";
         if ($modusID && @IPS_VariableExists($modusID)) {
             $val = GetValue($modusID);
-            switch ($val) {
-                case 0:
-                    $text = "Neutral (Wallbox entscheidet selbst)";
-                    break;
-                case 1:
-                    $text = "Nicht laden (gesperrt)";
-                    break;
-                case 2:
-                    $text = "Laden (erzwungen)";
-                    break;
-                default:
-                    $text = "Unbekannter Modus ($val)";
-            }
+            $text = $this->GetAccessStateV2Text($val);
         }
         $this->SetValueSafe('AccessStateText', $text, 0);
+    }
+
+    /** Setzt accessStateV2 (GOeCharger_SetMode) nur, wenn sich der Wert wirklich ändert.*/
+    private function SetzeAccessStateV2WennNoetig($goeID, $neuerModus)
+    {
+        $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
+        $aktuellerModus = ($modusID && @IPS_VariableExists($modusID)) ? GetValue($modusID) : null;
+
+        if ($aktuellerModus !== $neuerModus) {
+            @GOeCharger_SetMode($goeID, $neuerModus);
+            $this->LogTemplate('debug', "accessStateV2 geändert: $aktuellerModus → $neuerModus");
+        } else {
+            $this->LogTemplate('debug', "accessStateV2 unverändert: $aktuellerModus (kein Setzen nötig)");
+        }
+    }
+
+    private function GetAccessStateV2Text($val)
+    {
+        switch ($val) {
+            case 0:  return "⚪ Neutral (Wallbox entscheidet selbst)";
+            case 1:  return "🚫 Nicht laden (gesperrt)";
+            case 2:  return "⚡ Laden (erzwungen)";
+            default: return "❔ Unbekannter Modus ($val)";
+        }
     }
 
 }
