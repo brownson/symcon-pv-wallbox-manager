@@ -687,25 +687,19 @@ public function UpdateCharging()
      * Rückgabe: true = Fahrzeug erkannt, false = nichts gesteckt.
      */
     private function IstFahrzeugVerbunden()
-    {$status = GOeCharger_GetStatus($goeID);
+    {
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
-        // Prüfen, ob die Instanz-ID gesetzt und gültig ist
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
             $this->Log("Fahrzeugstatus kann nicht geprüft werden: GO-e Instanz fehlt oder ungültig.", 'warn');
             return false;
         }
-
         $status = @GOeCharger_GetStatus($goeID);
         if (!is_array($status)) {
             $this->Log("Fahrzeugstatus konnte nicht ausgelesen werden.", 'warn');
             return false;
         }
-
-        // "status": 1 = nicht verbunden, 2 = verbunden, 3 = lädt, 4 = Fehler
-        if (isset($status['status']) && ($status['status'] == 2 || $status['status'] == 3)) {
-            return true;
-        }
-        return false;
+        // status: 1=nicht verbunden, 2=verbunden, 3=ladevorgang
+        return (isset($status['status']) && ($status['status'] == 2 || $status['status'] == 3));
     }
 
 
