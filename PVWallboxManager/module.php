@@ -159,7 +159,7 @@ public function UpdateCharging()
     if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden()) {
         @GOeCharger_SetMode($goeID, 1); // Blockieren ("Nicht laden")
         $this->DeaktiviereLaden(); // Setzt auch ChargingWatt=0
-        $status = "Warte auf Fahrzeug (Option 'Nur mit Fahrzeug' aktiv)";
+        $status = "Warte auf Fahrzeug";
         $this->SetLademodusStatus($status);
         $this->LogTemplate('info', $status);
         $this->SetLademodusAutoReset();
@@ -688,15 +688,18 @@ public function UpdateCharging()
     {
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
-            $this->LogTemplate('warn', "Fahrzeugstatus kann nicht geprüft werden: GO-e Instanz fehlt oder ungültig.");
+            $this->LogTemplate('warn', "Wallbox nicht gefunden.", "Bitte GO-e Instanz konfigurieren.");
             return false;
         }
         $status = @GOeCharger_GetStatus($goeID);
+
         if (!is_array($status)) {
-            $this->LogTemplate('warn', "⚠️  Fahrzeugstatus nicht lesbar!");
+            // Nur wenn die Abfrage wirklich fehlschlägt, loggen!
+            $this->LogTemplate('warn', "Wallbox nicht erreichbar.", "Abfrage der GO-e Wallbox ist fehlgeschlagen.");
             return false;
         }
-        // status: 1=nicht verbunden, 2=verbunden, 3=ladevorgang
+
+        // KEINE Logmeldung, wenn nur kein Auto verbunden ist!
         return (isset($status['status']) && ($status['status'] == 2 || $status['status'] == 3));
     }
 
