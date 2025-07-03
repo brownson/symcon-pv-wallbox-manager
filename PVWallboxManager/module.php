@@ -777,13 +777,10 @@ class PVWallboxManager extends IPSModule
         // Bei go-e gibt's dafür oft keine extra Methode – Status könnte aber über Variable o. Ä. gesetzt werden.
     }
 
-    /** Deaktiviert die Ladung komplett */
-    private function DeaktiviereLaden()
+/** Deaktiviert die Ladung komplett */
+private function DeaktiviereLaden()
     {
-        $goeID = $this->ReadPropertyInteger('GOeChargerID');
-        if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
-            @GOeCharger_SetMode($goeID, 1); // Laden blockieren!
-        }
+        $this->SetzeLadeleistung(0);
     }
 
     // === 9. Logging / Statusmeldungen ===
@@ -838,10 +835,10 @@ class PVWallboxManager extends IPSModule
 
 
     /** Setzt Statusanzeige im Modul (WebFront, Variablen, ...) */
+
     private function SetLademodusStatus($msg)
     {
-        $this->SetValue('Wallbox_Status', $msg);
-        //$this->SetValueSafe('Wallbox_Status', $msg);
+        $this->SetValueSafe('Wallbox_Status', $msg);
     }
 
     /** Loggt aktuelle Energiedaten für Debug */
