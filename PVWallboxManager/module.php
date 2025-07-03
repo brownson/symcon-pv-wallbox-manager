@@ -151,7 +151,7 @@ public function UpdateCharging()
 {
     $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
-            $this->Log("Ungültige GOeChargerID: Keine oder fehlerhafte Instanz-ID gesetzt!", 'warn');
+            $this->LogTemplate('warn', "Ungültige GOeChargerID: Keine oder fehlerhafte Instanz-ID gesetzt!");
             $this->SetLademodusStatus("Wallbox nicht konfiguriert!");
             return;
         }
@@ -161,7 +161,7 @@ public function UpdateCharging()
         $this->DeaktiviereLaden(); // Setzt auch ChargingWatt=0
         $status = "Warte auf Fahrzeug (Option 'Nur mit Fahrzeug' aktiv)";
         $this->SetLademodusStatus($status);
-        $this->Log($status, 'info');
+        $this->LogTemplate('info', $status);
         $this->SetLademodusAutoReset();
         $this->UpdateAccessStateText(); // <<---- AccessState für Anzeige aktualisieren
         return;
@@ -169,7 +169,7 @@ public function UpdateCharging()
 
     // === 2. Modul aktiv? Sonst abbrechen! ===
     if (!$this->ReadPropertyBoolean('ModulAktiv')) {
-        $this->Log("Modul ist deaktiviert. Keine Aktion.", 'warn');
+        $this->LogTemplate('warn', "Modul ist deaktiviert. Keine Aktion.");
         return;
     }
 
@@ -201,7 +201,7 @@ public function UpdateCharging()
         $this->DeaktiviereLaden();
         $status = "Warte auf Fahrzeug (kein Auto verbunden)";
         $this->SetLademodusStatus($status);
-        $this->Log($status, 'info');
+        $this->LogTemplate('info', $status);
         $this->SetLademodusAutoReset();
         $this->UpdateAccessStateText();
         return;
@@ -274,10 +274,8 @@ public function UpdateCharging()
             $this->SetValueSafe('WB_Ladeleistung_Soll', $ladeleistung, 1);
             $this->SetValueSafe('WB_Ladeleistung_Ist', $this->LeseWallboxLeistung(), 1);
 
-            $this->Log(
-                "PV-Überschuss: PV [{$pv} W] - Haus [{$haus} W] - Batterie [{$batt} W] + Wallbox [{$wb_leistung} W] - Dyn.Puffer [{$puffer_diff} W | {$puffer_prozent}%] = Überschuss [{$ueberschuss} W] | StartHyst: {$startCounter}/{$startHysterese} StopHyst: {$stopCounter}/{$stopHysterese}",
-                'info'
-            );
+            $this->LogTemplate('info', 
+                "PV-Überschuss: PV [{$pv} W] - Haus [{$haus} W] - Batterie [{$batt} W] + Wallbox [{$wb_leistung} W] - Dyn.Puffer [{$puffer_diff} W | {$puffer_prozent}%] = Überschuss [{$ueberschuss} W] | StartHyst: {$startCounter}/{$startHysterese} StopHyst: {$stopCounter}/{$stopHysterese}");
             break;
     }
 
@@ -458,7 +456,7 @@ public function UpdateCharging()
         if ($ueberschuss >= $startSchwelle) {
             $this->ladeStartZaehler++;
             $this->ladeStopZaehler = 0;
-            $this->Log("Lade-Hysterese (volatile): Start-Zähler {$this->ladeStartZaehler}/$startHysterese (Schwelle: {$startSchwelle} W, Überschuss: {$ueberschuss} W)", 'debug');
+            $this->LogTemplate('debug', "Lade-Hysterese (volatile): Start-Zähler {$this->ladeStartZaehler}/$startHysterese (Schwelle: {$startSchwelle} W, Überschuss: {$ueberschuss} W)");
             if ($this->ladeStartZaehler >= $startHysterese) {
                 return true;
             }
@@ -467,7 +465,7 @@ public function UpdateCharging()
         elseif ($ueberschuss <= $stopSchwelle) {
             $this->ladeStopZaehler++;
             $this->ladeStartZaehler = 0;
-            $this->Log("Lade-Hysterese (volatile): Stop-Zähler {$this->ladeStopZaehler}/$stopHysterese (Schwelle: {$stopSchwelle} W, Überschuss: {$ueberschuss} W)", 'debug');
+            $this->LogTemplate('debug', "Lade-Hysterese (volatile): Stop-Zähler {$this->ladeStopZaehler}/$stopHysterese (Schwelle: {$stopSchwelle} W, Überschuss: {$ueberschuss} W)");
             if ($this->ladeStopZaehler >= $stopHysterese) {
                 return false;
             }
@@ -690,18 +688,17 @@ public function UpdateCharging()
     {
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
-            $this->Log("Fahrzeugstatus kann nicht geprüft werden: GO-e Instanz fehlt oder ungültig.", 'warn');
+            $this->LogTemplate('warn', "Fahrzeugstatus kann nicht geprüft werden: GO-e Instanz fehlt oder ungültig.");
             return false;
         }
         $status = @GOeCharger_GetStatus($goeID);
         if (!is_array($status)) {
-            $this->Log("Fahrzeugstatus konnte nicht ausgelesen werden.", 'warn');
+            $this->LogTemplate('warn', "⚠️  Fahrzeugstatus nicht lesbar!");
             return false;
         }
         // status: 1=nicht verbunden, 2=verbunden, 3=ladevorgang
         return (isset($status['status']) && ($status['status'] == 2 || $status['status'] == 3));
     }
-
 
     /**
      * Setzt alle Lademodi-Buttons auf "aus" (gegenseitiger Ausschluss bei Fahrzeugwechsel).
@@ -801,7 +798,7 @@ public function UpdateCharging()
     // === 9. Logging / Statusmeldungen ===
 
     /** Loggt eine Nachricht mit Level (info, warn, error, debug) */
-    private function Log($msg, $level = 'info')
+    /**private function Log($msg, $level = 'info')
     {
         $prefix = "[PVWM]";
         switch ($level) {
@@ -820,7 +817,34 @@ public function UpdateCharging()
             default:
                 IPS_LogMessage($prefix, $msg);
         }
+    }*/
+
+    /**
+     * Strukturierte Status-/Log-Meldungen mit Emojis
+     * @param string $type   info, warn, error, ok, debug
+     * @param string $short  Kurztext
+     * @param string $detail Optional: Detailtext
+     */
+    private function LogTemplate($type, $short, $detail = '')
+    {
+        $emojis = [
+            'info'  => 'ℹ️',
+            'warn'  => '⚠️',
+            'error' => '❌',
+            'ok'    => '✅',
+            'debug' => '🐞'
+        ];
+        $icon = isset($emojis[$type]) ? $emojis[$type] : 'ℹ️';
+        $msg = $icon . ' ' . $short;
+        if ($detail !== '') {
+            $msg .= "\n➡️ " . $detail;
+        }
+        if ($type === 'debug' && !$this->ReadPropertyBoolean('DebugLogging')) {
+            return; // Kein Debug, wenn nicht aktiviert
+        }
+        IPS_LogMessage('[PVWM]', $msg);
     }
+
 
     /** Setzt Statusanzeige im Modul (WebFront, Variablen, ...) */
     private function SetLademodusStatus($msg)
@@ -839,7 +863,7 @@ public function UpdateCharging()
             }
             // Trennzeichen ist jetzt |
             $msg = 'Debug-Daten: ' . implode(' | ', $debug);
-            $this->Log($msg, 'debug');
+            $this->LogTemplate('debug', $msg);
         }
     }
 
@@ -851,7 +875,7 @@ public function UpdateCharging()
         switch ($ident) {
             case 'AktiverLademodus':
                 $this->SetValueSafe($ident, $value);
-                $this->Log("Lademodus umgeschaltet auf: ".$this->GetLademodusText($value), 'info');
+                $this->LogTemplate('info', "Lademodus umgeschaltet auf: ".$this->GetLademodusText($value));
                 $this->ladeStartZaehler = 0; // Hysterese-Zähler zurücksetzen!
                 $this->ladeStopZaehler = 0;  // Hysterese-Zähler zurücksetzen!
                 $this->UpdateCharging(); // Nach jedem Wechsel berechnen
@@ -877,7 +901,7 @@ public function UpdateCharging()
         // Status 2 = verbunden, 3 = lädt (go-e Standard)
         if ($neuerStatus == 2 || $neuerStatus == 3) {
             // Initialisierungen ausführen:
-            $this->Log("Fahrzeug angesteckt – Initial-Check läuft...", 'info');
+            $this->LogTemplate('info', "Fahrzeug angesteckt – Initial-Check läuft...");
 
             // Alle relevanten Variablen/Lademodi zurücksetzen
             $this->SetLademodusAutoReset();
@@ -896,7 +920,7 @@ public function UpdateCharging()
     private function CreateCarStatusEvent($goeID)
     {
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
-            $this->Log("CreateCarStatusEvent: Ungültige oder fehlende GO-e Instanz ($goeID) – Vorgang abgebrochen.", 'warn');
+            $this->LogTemplate('warn', "CreateCarStatusEvent: Ungültige oder fehlende GO-e Instanz ($goeID) – Vorgang abgebrochen.");
             return;
         }
 
@@ -905,7 +929,7 @@ public function UpdateCharging()
         $carVarID = @IPS_GetObjectIDByIdent($carIdent, $goeID);
 
         if ($carVarID === false) {
-            $this->Log("CreateCarStatusEvent: Keine 'status'-Variable in GO-e Instanz ($goeID) gefunden – Sofort-Trigger nicht angelegt!", 'warn');
+            $this->LogTemplate('warn', "CreateCarStatusEvent: Keine 'status'-Variable in GO-e Instanz ($goeID) gefunden – Sofort-Trigger nicht angelegt!");
             return;
         }
 
@@ -927,15 +951,15 @@ public function UpdateCharging()
             IPS_SetEventScript($eventID, $code);
             IPS_SetEventActive($eventID, true);
 
-            $this->Log("Ereignis zum sofortigen Update bei Fahrzeugstatuswechsel ('status') wurde neu erstellt. (Event-ID: {$eventID})", 'info');
+            $this->LogTemplate('info', "Ereignis zum sofortigen Update bei Fahrzeugstatuswechsel ('status') wurde neu erstellt. (Event-ID: {$eventID})");
         } else {
             // Existierendes Ereignis ggf. anpassen
             if (@IPS_GetEvent($eventID)['TriggerVariableID'] != $carVarID) {
                 IPS_SetEventTrigger($eventID, 1, $carVarID);
-                $this->Log("Trigger-Variable im Ereignis aktualisiert. (Event-ID: {$eventID})", 'debug');
+                $this->LogTemplate('debug', "Trigger-Variable im Ereignis aktualisiert. (Event-ID: {$eventID})");
             }
             IPS_SetEventActive($eventID, true);
-            $this->Log("Ereignis zum sofortigen Update geprüft und reaktiviert. (Event-ID: {$eventID})", 'debug');
+            $this->LogTemplate('debug', "Ereignis zum sofortigen Update geprüft und reaktiviert. (Event-ID: {$eventID})");
         }
     }
 
@@ -998,10 +1022,10 @@ public function UpdateCharging()
             $cur = round((float)$current, $precision);
             $neu = round((float)$value, $precision);
             if ($cur !== $neu) {
-                $this->Log("{$ident}: Wert geändert von {$cur} => {$neu}", 'debug');
+                $this->LogTemplate('debug', "{$ident}: Wert geändert von {$cur} => {$neu}");
                 $this->SetValue($ident, $value);
             } else {
-                $this->Log("{$ident}: Keine Änderung ({$cur})", 'debug');
+                $this->LogTemplate('debug', "{$ident}: Keine Änderung ({$cur})");
             }
             return;
         }
@@ -1009,10 +1033,10 @@ public function UpdateCharging()
         // Integer: strikt vergleichen
         if (is_int($value) || is_int($current)) {
             if ((int)$current !== (int)$value) {
-                $this->Log("{$ident}: Wert geändert von {$current} => {$value}", 'debug');
+                $this->LogTemplate('debug', "{$ident}: Wert geändert von {$current} => {$value}");
                 $this->SetValue($ident, $value);
             } else {
-                $this->Log("{$ident}: Keine Änderung ({$current})", 'debug');
+                $this->LogTemplate('debug', "{$ident}: Keine Änderung ({$current})");
             }
             return;
         }
@@ -1020,10 +1044,10 @@ public function UpdateCharging()
         // Boolean: direkt vergleichen
         if (is_bool($value) || is_bool($current)) {
             if ((bool)$current !== (bool)$value) {
-                $this->Log("{$ident}: Wert geändert von " . ($current ? 'true' : 'false') . " => " . ($value ? 'true' : 'false'), 'debug');
+                $this->LogTemplate('debug', "{$ident}: Wert geändert von " . ($current ? 'true' : 'false') . " => " . ($value ? 'true' : 'false'));
                 $this->SetValue($ident, $value);
             } else {
-                $this->Log("{$ident}: Keine Änderung (" . ($current ? 'true' : 'false') . ")", 'debug');
+                $this->LogTemplate('debug', "{$ident}: Keine Änderung (" . ($current ? 'true' : 'false') . ")");
             }
             return;
         }
@@ -1033,20 +1057,20 @@ public function UpdateCharging()
             $cur = trim((string)$current);
             $neu = trim((string)$value);
             if ($cur !== $neu) {
-                $this->Log("{$ident}: Wert geändert von '{$cur}' => '{$neu}'", 'debug');
+                $this->LogTemplate('debug', "{$ident}: Wert geändert von '{$cur}' => '{$neu}'");
                 $this->SetValue($ident, $value);
             } else {
-                $this->Log("{$ident}: Keine Änderung ('{$cur}')", 'debug');
+                $this->LogTemplate('debug', "{$ident}: Keine Änderung ('{$cur}')");
             }
             return;
         }
 
         // Fallback für alle anderen Typen (notfalls trotzdem setzen)
         if ($current !== $value) {
-            $this->Log("{$ident}: Wert geändert von {$current} => {$value}", 'debug');
+            $this->LogTemplate('debug', "{$ident}: Wert geändert von {$current} => {$value}");
             $this->SetValue($ident, $value);
         } else {
-            $this->Log("{$ident}: Keine Änderung ({$current})", 'debug');
+            $this->LogTemplate('debug', "{$ident}: Keine Änderung ({$current})");
         }
     }
 
@@ -1069,9 +1093,9 @@ public function UpdateCharging()
                 case 2: $msg = "Laden (erzwungen)"; break;
                 default: $msg = "Unbekannter Modus ($current)";
             }
-            $this->Log("accessStateV2 aktuell: $msg", 'debug');
+            $this->LogTemplate('debug', "accessStateV2 aktuell: $msg");
         } else {
-            $this->Log("accessStateV2 Variable nicht gefunden!", 'warn');
+            $this->LogTemplate('warn', "accessStateV2 Variable nicht gefunden!");
         }
     }
 
