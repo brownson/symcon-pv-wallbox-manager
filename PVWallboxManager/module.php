@@ -150,7 +150,11 @@ class PVWallboxManager extends IPSModule
 public function UpdateCharging()
 {
     $goeID = $this->ReadPropertyInteger('GOeChargerID');
-
+        if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
+            $this->Log("Ungültige GOeChargerID: Keine oder fehlerhafte Instanz-ID gesetzt!", 'warn');
+            $this->SetLademodusStatus("Wallbox nicht konfiguriert!");
+            return;
+        }
     // === 1. Prüfe: Darf NUR MIT Fahrzeug geladen werden? ===
     if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden()) {
         @GOeCharger_SetMode($goeID, 1); // Blockieren ("Nicht laden")
