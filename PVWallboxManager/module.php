@@ -151,6 +151,13 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateCharging()
     {
+        // Wallbox Werte direkt abfragen ohne zusäzliches Instanz
+        $wallboxWerte = $this->HoleGoEWallboxDaten();
+        if (!is_array($wallboxWerte)) {
+            // Fehlerhandling, ggf. sofort abbrechen oder Fallback
+            return;
+        }
+
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
             $this->LogTemplate('warn', "Keine Wallbox-Instanz ausgewählt oder ID ungültig.", "Bitte GO-e Charger im Modul konfigurieren.");
@@ -1025,6 +1032,7 @@ private function DeaktiviereLaden()
         foreach ($werte as $name => $wert) {
             $this->LogTemplate('info', "$name: ".var_export($wert, true));
         }
+        return $werte;
     }
 
     // === 12. Hilfsfunktionen ===
