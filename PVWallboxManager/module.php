@@ -1041,7 +1041,7 @@ private function DeaktiviereLaden()
 
         // Ausgabe im Log (zum Testen)
         foreach ($werte as $name => $wert) {
-            $this->LogTemplate('info', "$name: ".var_export($wert, true));
+            $this->LogTemplate('debug', "$name: ".var_export($wert, true));
         }
         return $werte;
     }
