@@ -4,6 +4,8 @@
       "type": "ExpansionPanel",
       "caption": "🛑 Modulsteuerung",
       "items": [
+        { "type": "ValidationTextBox", "name": "WallboxIP", "🌐 caption": "Wallbox-IP"},
+        { "type": "PasswordTextBox", "name": "WallboxAPIKey", "🔑 caption": "API-Key (optional)"}
         { "type": "CheckBox", "name": "ModulAktiv", "caption": "⚡ Modul aktiv (bei Deaktivierung werden keine Aktionen ausgeführt)"},
         { "type": "CheckBox", "name": "DebugLogging", "caption": "🐞 Debug-Logging aktivieren (Details zu allen Variablen und Werten ins IPS-Log)", "default": false },
         { "type": "Button", "caption": "Lock zurücksetzen", "icon": "Unlock", "onClick": "ResetLock"},

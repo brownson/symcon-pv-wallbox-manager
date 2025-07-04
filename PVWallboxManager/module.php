@@ -24,6 +24,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('DebugLogging', false);
 
         // === 2. Wallbox-Konfiguration ===
+        $this->RegisterPropertyString('WallboxIP', '');
+        $this->RegisterPropertyString('WallboxAPIKey', '');
         $this->RegisterPropertyInteger('GOeChargerID', 0);
         $this->RegisterPropertyInteger('MinAmpere', 6);
         $this->RegisterPropertyInteger('MaxAmpere', 16);
@@ -976,6 +978,53 @@ private function DeaktiviereLaden()
     private function StoppeRegelmaessigeBerechnung()
     {
         $this->SetTimerInterval('UpdateCharging', 0);
+    }
+
+    private function HoleGoEWallboxDaten()
+    {
+        $ip    = $this->ReadPropertyString('WallboxIP');
+        $key   = trim($this->ReadPropertyString('WallboxAPIKey'));
+        $url   = "http://$ip/api/status"; // APIv2: alles in einem JSON
+
+        // Optional: Auth als Header
+        $opts = [
+            "http" => [
+                "method" => "GET",
+                "header" => $key ? "X-API-KEY: $key\r\n" : "",
+                "timeout" => 3
+            ]
+        ];
+        $context = stream_context_create($opts);
+
+        $json = @file_get_contents($url, false, $context);
+        if ($json === false) {
+            $this->LogTemplate('error', "Wallbox unter $ip nicht erreichbar.");
+            return;
+        }
+
+        $data = json_decode($json, true);
+        if (!is_array($data)) {
+            $this->LogTemplate('error', "Fehler beim Parsen der Wallbox-API-Antwort.");
+            return;
+        }
+
+        // === Relevante Werte extrahieren (anpassen je nach Bedarf) ===
+        $werte = [
+            'Ladeleistung_W'    => $data['nrg'][11] ?? null,
+            'Status'            => $data['car'] ?? null,      // 1: bereit, 2: lädt, 3: angesteckt
+            'Phasen'            => $data['pha'] ?? null,      // 1 oder 3
+            'Ampere'            => $data['amp'] ?? null,
+            'Ladefreigabe'      => $data['alw'] ?? null,
+            'Firmware'          => $data['fwv'] ?? null,
+            'Fehlercode'        => $data['err'] ?? null,
+            'SOC_BMS'           => $data['bcs'] ?? null,      // nur, wenn BMS am Fahrzeug
+            // ... ergänze beliebige weitere, die du willst!
+        ];
+
+        // Ausgabe im Log (zum Testen)
+        foreach ($werte as $name => $wert) {
+            $this->LogTemplate('info', "$name: ".var_export($wert, true));
+        }
     }
 
     // === 12. Hilfsfunktionen ===
