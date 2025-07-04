@@ -111,7 +111,7 @@ class PVWallboxManager extends IPSModule
         IPS_SetIcon($this->GetIDForIdent('AktiverLademodus'), 'lightbulb');
 
         // Weitere Variablen nach Bedarf!
-        $this->RegisterVariableInteger('HystereseZaehler', 'Phasen-Hysteresezähler', '', 60);
+        //$this->RegisterVariableInteger('HystereseZaehler', 'Phasen-Hysteresezähler', '', 60);
         $this->RegisterVariableInteger('AktuellePhasen', 'Aktuelle Phasen', '', 80);
 
         // Timer für Berechnungsintervall
@@ -660,22 +660,41 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    /** Zählt Hysterese-Schwellwerte hoch/runter */
-    private function VerwalteHystereseZaehler($richtung, $schwellwert)
+    /** Erhöht den Start-Hysterese-Zähler */
+    private function InkrementiereStartHysterese($max)
     {
-        $zaehler = $this->GetValue('HystereseZaehler');
-        if ($richtung == 'hoch') {
-            if ($zaehler < $schwellwert) {
-                $zaehler++;
-            }
-        } elseif ($richtung == 'runter') {
-            if ($zaehler > 0) {
-                $zaehler--;
-            }
+        if ($this->ladeStartZaehler < $max) {
+            $this->ladeStartZaehler++;
         }
-        // Speichern des Zählers
-        $this->SetValue('HystereseZaehler', $zaehler);
+        $this->ladeStopZaehler = 0; // Reset des Gegen-Zählers
+        $this->LogTemplate('debug', "Inkrementiere StartHysterese: {$this->ladeStartZaehler}/{$max}");
+        return $this->ladeStartZaehler;
     }
+
+    /** Erhöht den Stop-Hysterese-Zähler */
+    private function InkrementiereStopHysterese($max)
+    {
+        if ($this->ladeStopZaehler < $max) {
+            $this->ladeStopZaehler++;
+        }
+        $this->ladeStartZaehler = 0; // Reset des Gegen-Zählers
+        $this->LogTemplate('debug', "Inkrementiere StopHysterese: {$this->ladeStopZaehler}/{$max}");
+        return $this->ladeStopZaehler;
+    }
+
+    /** Setzt beide Hysterese-Zähler zurück */
+    private function ResetHystereseZaehler()
+    {
+        $this->ladeStartZaehler = 0;
+        $this->ladeStopZaehler = 0;
+    }
+
+    private function ResetHystereseZaehler()
+    {
+        $this->ladeStartZaehler = 0;
+        $this->ladeStopZaehler = 0;
+    }
+
 
     // === 7. Fahrzeugstatus/SOC/Zielzeit ===
 
