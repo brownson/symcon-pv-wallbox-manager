@@ -151,12 +151,11 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateCharging()
     {
-        // Wallbox Werte direkt abfragen ohne zusäzliches Instanz
-        $wallboxWerte = $this->HoleGoEWallboxDaten();
-        if (!is_array($wallboxWerte)) {
-            // Fehlerhandling, ggf. sofort abbrechen oder Fallback
-            return;
-        }
+    $wb = $this->HoleGoEWallboxDaten();
+    if (!is_array($wb)) {
+        $this->LogTemplate('error', "Wallbox-Daten konnten nicht abgerufen werden, Update abgebrochen.");
+        return;
+    }
 
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
@@ -186,7 +185,9 @@ class PVWallboxManager extends IPSModule
         $pv          = $this->LesePVErzeugung();
         $haus        = $this->LeseHausverbrauch();
         $batt        = $this->LeseBatterieleistung();
-        $wb_leistung = $this->LeseWallboxLeistung();
+        //$wb_leistung = $this->LeseWallboxLeistung();
+        $wb_leistung = (float)($wb['WB_Ladeleistung_W'] ?? 0);
+
 
         // Rohwert und Puffer berechnen
         $roh_ueberschuss = $this->BerechnePVUeberschuss($pv, $haus, $batt, $wb_leistung);
@@ -279,8 +280,9 @@ class PVWallboxManager extends IPSModule
                 $this->SetBuffer('StopHystereseCounter', $stopCounter);
 
                 $this->SetValueSafe('WB_Ladeleistung_Soll', $ladeleistung, 1);
-                $this->SetValueSafe('WB_Ladeleistung_Ist', $this->LeseWallboxLeistung(), 1);
-
+                $this->SetValueSafe('WB_Ladeleistung_Ist', $wb_leistung, 1);
+                //$this->SetValueSafe('WB_Ladeleistung_Ist', $this->LeseWallboxLeistung(), 1);
+                
                 $this->LogTemplate('debug', 
                     "PV-Überschuss-Berechnung: PV {$pv} W, Haus {$haus} W, Batterie {$batt} W, Wallbox {$wb_leistung} W, Puffer {$puffer_diff} W ({$puffer_prozent}%), Überschuss {$ueberschuss} W, StartHyst: {$startCounter}/{$startHysterese}, StopHyst: {$stopCounter}/{$stopHysterese}");
                 break;
@@ -384,14 +386,10 @@ class PVWallboxManager extends IPSModule
     }
 
     /** Holt die aktuelle Ladeleistung aus der GO-e Instanz */
-    private function LeseWallboxLeistung()
+    private function LeseWallboxLeistung($wb = null)
     {
-        $id = $this->ReadPropertyInteger('GOeChargerID');
-        if ($id > 0 && @IPS_InstanceExists($id)) {
-            // Replace with actual method if needed (z. B. GOeCharger_GetPowerToCar)
-            return (float) @GOeCharger_GetPowerToCar($id);
-        }
-        return 0.0;
+        if ($wb === null) $wb = $this->HoleGoEWallboxDaten();
+        return (float)($wb['WB_Ladeleistung_W'] ?? 0.0);
     }
 
     // === 3. Überschuss-Berechnung ===
@@ -695,25 +693,12 @@ class PVWallboxManager extends IPSModule
      * Prüft, ob das Fahrzeug verbunden ist (z. B. über go-e Charger Status).
      * Rückgabe: true = Fahrzeug erkannt, false = nichts gesteckt.
      */
-    private function IstFahrzeugVerbunden()
+    private function IstFahrzeugVerbunden($wb = null)
     {
-        $goeID = $this->ReadPropertyInteger('GOeChargerID');
-        if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
-            $this->LogTemplate('warn', "Wallbox nicht erreichbar.", "Bitte GO-e Instanz in den Modul-Einstellungen prüfen.");
-            return false;
-        }
-        $status = @GOeCharger_GetStatus($goeID);
-
-        if ($status === false || $status === null) {
-            $this->LogTemplate('warn', "Wallbox nicht erreichbar.", "Abfrage der GO-e Wallbox ist fehlgeschlagen.");
-            return false;
-        }
-
-        // KEINE Logmeldung mehr hier!
-        // 2 = Fahrzeug lädt, 3 = Warte auf Fahrzeug (Fahrzeug angesteckt)
+        if ($wb === null) $wb = $this->HoleGoEWallboxDaten();
+        $status = $wb['WB_Status'] ?? 0;
         return ($status == 2 || $status == 3 || $status == 4);
     }
-
 
     /**
      * Setzt alle Lademodi-Buttons auf "aus" (gegenseitiger Ausschluss bei Fahrzeugwechsel).
