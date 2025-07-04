@@ -1024,7 +1024,7 @@ private function DeaktiviereLaden()
             'Ladefreigabe'      => $data['alw'] ?? null,
             'Firmware'          => $data['fwv'] ?? null,
             'Fehlercode'        => $data['err'] ?? null,
-            'SOC_BMS'           => $data['bcs'] ?? null,      // nur, wenn BMS am Fahrzeug
+            // 'SOC_BMS'           => $data['bcs'] ?? null,      // nur, wenn BMS am Fahrzeug
             // ... ergänze beliebige weitere, die du willst!
         ];
 
