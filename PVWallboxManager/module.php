@@ -1015,17 +1015,28 @@ private function DeaktiviereLaden()
             return;
         }
 
-        // === Relevante Werte extrahieren (anpassen je nach Bedarf) ===
+        // --- Phasen auswerten: numerisch 1 oder 3 ---
+        $phasen = 0;
+        if (isset($data['pha']) && is_array($data['pha'])) {
+            $aktivePhasen = 0;
+            // Bei go-e: pha[3],[4],[5] → true, wenn Phase aktiv
+            foreach ([3,4,5] as $idx) {
+                if (!empty($data['pha'][$idx])) $aktivePhasen++;
+            }
+            if ($aktivePhasen == 1 || $aktivePhasen == 3) {
+                $phasen = $aktivePhasen;
+            }
+        }
+
         $werte = [
-            'Ladeleistung_W'    => $data['nrg'][11] ?? null,
-            'Status'            => $data['car'] ?? null,      // 1: bereit, 2: lädt, 3: angesteckt
-            'Phasen'            => $data['pha'] ?? null,      // 1 oder 3
-            'Ampere'            => $data['amp'] ?? null,
-            'Ladefreigabe'      => $data['alw'] ?? null,
-            'Firmware'          => $data['fwv'] ?? null,
-            'Fehlercode'        => $data['err'] ?? null,
-            // 'SOC_BMS'           => $data['bcs'] ?? null,      // nur, wenn BMS am Fahrzeug
-            // ... ergänze beliebige weitere, die du willst!
+            'WB_Ladeleistung_W'    => $data['nrg'][11] ?? null,   // Aktuelle Ladeleistung am Ladepunkt in Watt (W)
+            'WB_Status'            => $data['car'] ?? null,       // Status des Fahrzeugs: 1 = bereit, 2 = lädt, 3 = angesteckt (wartet auf Ladung)
+            'WB_Phasen'            => $phasen,                    // 1 oder 3 Phasen aktiv (numerisch)
+            'WB_Ampere'            => $data['amp'] ?? null,       // Maximal erlaubter Ladestrom (Ampere)
+            'WB_Ladefreigabe'      => $data['alw'] ?? null,       // Ladefreigabe: 1 = freigegeben, 0 = gesperrt
+            'WB_Firmware'          => $data['fwv'] ?? null,       // Firmware-Version (z.B. "040.0")
+            'WB_Fehlercode'        => $data['err'] ?? null,       // Fehlercode laut API (siehe Doku)
+            // 'WB_SOC_BMS'        => $data['bcs'] ?? null,       // State of Charge BMS (%), nur wenn vom Fahrzeug geliefert
         ];
 
         // Ausgabe im Log (zum Testen)
@@ -1034,6 +1045,7 @@ private function DeaktiviereLaden()
         }
         return $werte;
     }
+
 
     // === 12. Hilfsfunktionen ===
 
