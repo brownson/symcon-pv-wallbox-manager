@@ -695,7 +695,6 @@ class PVWallboxManager extends IPSModule
         $this->ladeStopZaehler = 0;
     }
 
-
     // === 7. Fahrzeugstatus/SOC/Zielzeit ===
 
     /**
