@@ -689,12 +689,6 @@ class PVWallboxManager extends IPSModule
         $this->ladeStopZaehler = 0;
     }
 
-    private function ResetHystereseZaehler()
-    {
-        $this->ladeStartZaehler = 0;
-        $this->ladeStopZaehler = 0;
-    }
-
     // === 7. Fahrzeugstatus/SOC/Zielzeit ===
 
     /**
