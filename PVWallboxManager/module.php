@@ -288,7 +288,7 @@ class PVWallboxManager extends IPSModule
         }
 
         // Phasenumschaltung prüfen und ggf. umschalten
-        $this->PruefePhasenumschaltung($ladeleistung);
+        $this->PruefePhasenumschaltung($ladeleistung, $wb);
 
         // Ladefreigabe setzen
         if ($ladeleistung > 0) {
@@ -617,24 +617,25 @@ class PVWallboxManager extends IPSModule
     // === 6. Phasenumschaltung / Hysterese ===
 
     /** Prüfe, ob Phasenumschaltung nötig ist (inkl. Hysterese) */
-    private function PruefePhasenumschaltung($ladeleistung)
+    private function PruefePhasenumschaltung($ladeleistung, $wb)
     {
-        // Ermittlung der aktuellen Phase
-        $aktuellePhasen = $this->ReadPropertyInteger('Phasen');
-        $instanzID = $this->ReadPropertyInteger('GOeChargerID');
+        // Ist-Zustand der Wallbox abfragen (1 oder 3 Phasen)
+        $phasen_ist = $wb['WB_Phasen'] ?? 1;
+        $goeID = $this->ReadPropertyInteger('GOeChargerID');
 
-        // Startbedingungen für Phasenumschaltung (z. B. bei Überschuss unter/über Schwellenwerten)
-        if ($aktuellePhasen == 3) {
-            // Wenn die Leistung unter die 1-phasige Schwelle fällt, und Hysterese erfüllt ist
-            if ($ladeleistung < $this->ReadPropertyFloat('Phasen1Schwelle')) {
-                $this->UmschaltenAuf1Phasig($instanzID);
-            }
-        } else {
-            // Wenn die Leistung über die 3-phasige Schwelle steigt, und Hysterese erfüllt ist
-            if ($ladeleistung > $this->ReadPropertyFloat('Phasen3Schwelle')) {
-                $this->UmschaltenAuf3Phasig($instanzID);
-            }
+        // Umschaltung auf 3-phasig
+        if ($phasen_ist == 1 && $ladeleistung > $this->ReadPropertyFloat('Phasen3Schwelle')) {
+            $this->UmschaltenAuf3Phasig($goeID);
+            $this->SetValueSafe('AktuellePhasen', 3);
+            $this->LogTemplate('info', 'Umschaltung auf 3-phasig ausgelöst.', "Leistung: $ladeleistung W");
         }
+        // Umschaltung auf 1-phasig
+        elseif ($phasen_ist == 3 && $ladeleistung < $this->ReadPropertyFloat('Phasen1Schwelle')) {
+            $this->UmschaltenAuf1Phasig($goeID);
+            $this->SetValueSafe('AktuellePhasen', 1);
+            $this->LogTemplate('info', 'Umschaltung auf 1-phasig ausgelöst.', "Leistung: $ladeleistung W");
+        }
+        // Sonst nichts tun!
     }
 
     /** Schalte auf 1-phasig */
