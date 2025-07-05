@@ -145,7 +145,8 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->SetTimerInterval('UpdateCharging', 0);
         }
-        $this->UpdateAccessStateText(); // <-- hier!
+        $this->UpdateAccessStateText();
+        $this->CheckSchwellenwerte();
     }
 
 
@@ -295,10 +296,14 @@ class PVWallboxManager extends IPSModule
     if ($ladeleistung > 0) {
         $this->SetzeAccessStateV2WennNoetig($goeID, 2); // Laden erzwingen
         $this->SetzeLadeleistung($ladeleistung); // Ladeleistung, KEIN SetMode!
-        $status = "Laden: ".round($ladeleistung)." W im Modus: ".$this->GetLademodusText($this->GetValue('AktiverLademodus'));
+        $status = "Laden: ".round($ladeleistung)." W im Modus: Nur PV";
     } else {
         $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Gesperrt
-        $status = "Nicht laden (kein Überschuss/Modus)";
+        if ($ueberschuss <= 0) {
+            $status = "Nicht laden (kein PV-Überschuss im Nur-PV-Modus)";
+        } else {
+            $status = "Nicht laden (Bedingungen im Nur-PV-Modus nicht erfüllt)";
+        }
     }
 
     // Status und Logging
@@ -1074,6 +1079,47 @@ private function DeaktiviereLaden()
     private function WerteValidieren($daten)
     {
         // TODO
+    }
+
+        private function CheckSchwellenwerte()
+    {
+        $minA = $this->ReadPropertyInteger('MinAmpere');
+        $phasen = $this->ReadPropertyInteger('Phasen');
+
+        // Technisches Minimum: 1-phasig
+        $min1Watt = $minA * 230 * 1;
+        // Technisches Minimum: 3-phasig
+        $min3Watt = $minA * 230 * 3;
+
+        $schwelle1 = $this->ReadPropertyFloat('Phasen1Schwelle');
+        $schwelle3 = $this->ReadPropertyFloat('Phasen3Schwelle');
+
+        // Prüfen auf Plausibilität
+        if ($schwelle3 < $min3Watt) {
+            $this->LogTemplate(
+                'warn',
+                "Die Schwelle für 3-phasig ($schwelle3 W) liegt **unter** dem technischen Minimum ($min3Watt W).",
+                "Bitte stelle die Schwelle für 3-phasig mindestens auf $min3Watt W oder etwas darüber ein!"
+            );
+        } else {
+            $this->LogTemplate(
+                'ok',
+                "Schwelle 3-phasig plausibel ($schwelle3 W ≥ $min3Watt W)."
+            );
+        }
+
+        if ($schwelle1 < $min1Watt) {
+            $this->LogTemplate(
+                'warn',
+                "Die Schwelle für 1-phasig ($schwelle1 W) liegt **unter** dem technischen Minimum ($min1Watt W).",
+                "Bitte stelle die Schwelle für 1-phasig mindestens auf $min1Watt W oder etwas darüber ein!"
+            );
+        } else {
+            $this->LogTemplate(
+                'ok',
+                "Schwelle 1-phasig plausibel ($schwelle1 W ≥ $min1Watt W)."
+            );
+        }
     }
 
     /**
