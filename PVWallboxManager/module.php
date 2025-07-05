@@ -284,9 +284,15 @@ class PVWallboxManager extends IPSModule
                 $phasen_ist = $wb['WB_Phasen'] ?? 1;
                 $this->SetValueSafe('AktuellePhasen', $phasen_ist);
                 
-                $this->LogTemplate('debug', 
-                    "PV-Überschuss-Berechnung: PV {$pv} W, Haus {$haus} W, Batterie {$batt} W, Wallbox {$wb_leistung} W, Puffer {$puffer_diff} W ({$puffer_prozent}%), Überschuss {$ueberschuss} W, StartHyst: {$startCounter}/{$startHysterese}, StopHyst: {$stopCounter}/{$stopHysterese}");
-                break;
+                $this->LogTemplate('debug',
+                    sprintf(
+                        "PV: %.0f W | Haus: %.0f W | Batt: %.0f W | WB: %.0f W | Puffer: %d W (%d%%) | Überschuss: %.0f W | Hyst: %d/%d",
+                        $pv, $haus, $batt, $wb_leistung,
+                        round($puffer_diff), $puffer_prozent,
+                        $ueberschuss, $startCounter, $stopCounter
+                    )
+                );
+            break;
         }
     }
 
