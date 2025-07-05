@@ -149,7 +149,6 @@ class PVWallboxManager extends IPSModule
         $this->CheckSchwellenwerte();
     }
 
-
     public function UpdateCharging()
     {
         $wb = $this->HoleGoEWallboxDaten();
@@ -286,21 +285,22 @@ class PVWallboxManager extends IPSModule
                     "PV-Überschuss-Berechnung: PV {$pv} W, Haus {$haus} W, Batterie {$batt} W, Wallbox {$wb_leistung} W, Puffer {$puffer_diff} W ({$puffer_prozent}%), Überschuss {$ueberschuss} W, StartHyst: {$startCounter}/{$startHysterese}, StopHyst: {$stopCounter}/{$stopHysterese}");
                 break;
         }
-
-    private function EnsureLademodusProfile()
-    {
-        $profil = 'PVWM.Lademodus';
-        if (!IPS_VariableProfileExists($profil)) {
-            IPS_CreateVariableProfile($profil, 1); // 1 = Integer
-            IPS_SetVariableProfileIcon($profil, 'ElectricCar');
-            IPS_SetVariableProfileValues($profil, 0, 4, 1);
-            IPS_SetVariableProfileAssociation($profil, 0, 'Nur PV', '', -1);
-            IPS_SetVariableProfileAssociation($profil, 1, 'Manuell', 'lightbulb', -1);
-            IPS_SetVariableProfileAssociation($profil, 2, 'PV2Car', 'solar-panel', -1);
-            IPS_SetVariableProfileAssociation($profil, 3, 'Zielzeit', 'clock', -1);
-            IPS_SetVariableProfileAssociation($profil, 4, 'Strompreis', 'euro', -1);
-        }
     }
+
+        private function EnsureLademodusProfile()
+        {
+            $profil = 'PVWM.Lademodus';
+            if (!IPS_VariableProfileExists($profil)) {
+                IPS_CreateVariableProfile($profil, 1); // 1 = Integer
+                IPS_SetVariableProfileIcon($profil, 'ElectricCar');
+                IPS_SetVariableProfileValues($profil, 0, 4, 1);
+                IPS_SetVariableProfileAssociation($profil, 0, 'Nur PV', '', -1);
+                IPS_SetVariableProfileAssociation($profil, 1, 'Manuell', 'lightbulb', -1);
+                IPS_SetVariableProfileAssociation($profil, 2, 'PV2Car', 'solar-panel', -1);
+                IPS_SetVariableProfileAssociation($profil, 3, 'Zielzeit', 'clock', -1);
+                IPS_SetVariableProfileAssociation($profil, 4, 'Strompreis', 'euro', -1);
+            }
+        }
 
     private function LeseEnergiewert($id, $einheit = 'W', $invert = false)
     {
