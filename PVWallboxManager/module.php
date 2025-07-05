@@ -186,6 +186,15 @@ class PVWallboxManager extends IPSModule
         $haus        = $this->LeseHausverbrauch();
         $batt        = $this->LeseBatterieleistung();
         $wb_leistung = $this->LeseWallboxLeistung($wb);
+        $battSOC     = 0;
+        $hausakkuSOCID = $this->ReadPropertyInteger('HausakkuSOCID');
+        
+        if ($hausakkuSOCID > 0 && @IPS_VariableExists($hausakkuSOCID)) {
+            $battSOC = (float)GetValue($hausakkuSOCID);
+        }
+        $hausakkuVollSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle'); // z.B. 90
+        $autoAngesteckt = $this->IstFahrzeugVerbunden($wb);
+
 
         // Rohwert und Puffer berechnen
         $roh_ueberschuss = $this->BerechnePVUeberschuss($pv, $haus, $batt, $wb_leistung);
@@ -237,6 +246,27 @@ class PVWallboxManager extends IPSModule
                 break;
             case 'nurpv':
             default:
+                // Eigenverbrauchs-Priorisierung
+                $battSOC = 0;
+                $hausakkuSOCID = $this->ReadPropertyInteger('HausakkuSOCID');
+                if ($hausakkuSOCID > 0 && @IPS_VariableExists($hausakkuSOCID)) {
+                    $battSOC = (float)GetValue($hausakkuSOCID);
+                }
+                $hausakkuVollSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle'); // z.B. 90
+                $autoAngesteckt = $this->IstFahrzeugVerbunden($wb);
+
+                list($ladeleistungAuto, $ladeleistungHausakku) = $this->PriorisiereEigenverbrauch(
+                    $pv, $haus, $battSOC, $hausakkuVollSchwelle, $autoAngesteckt
+                );
+                $this->LogTemplate('debug',
+                    sprintf("Priorisierung: Auto %.0f W, Hausakku %.0f W (SOC: %.1f%%, Schwelle: %d%%, Überschuss: %.0f W)",
+                        $ladeleistungAuto, $ladeleistungHausakku, $battSOC, $hausakkuVollSchwelle, $pv - $haus)
+                );
+
+                // Nur das, was für's Auto übrig ist, kommt weiter
+                $ueberschuss = $ladeleistungAuto;
+
+                // ... ab hier wie gehabt ...
                 $minLadeWatt     = $this->ReadPropertyFloat('MinLadeWatt');
                 $minStopWatt     = $this->ReadPropertyFloat('MinStopWatt');
                 $startHysterese  = $this->ReadPropertyInteger('StartHysterese');
@@ -1235,6 +1265,30 @@ private function DeaktiviereLaden()
             case 2:  return "⚡ Laden (erzwungen)";
             default: return "❔ Unbekannter Modus ($val)";
         }
+    }
+
+    /**
+     * PV-Eigenverbrauchspriorisierung: Haus -> Hausbatterie -> Auto -> Netz
+     * Liefert [AutoLadeleistung, HausakkuLadeleistung]
+     */
+    private function PriorisiereEigenverbrauch($pv, $haus, $battSOC, $hausakkuVollSchwelle, $autoAngesteckt)
+    {
+        $battMax = $hausakkuVollSchwelle; // z.B. 90 %
+        $ueberschuss = $pv - $haus;
+
+        if ($ueberschuss <= 0) {
+            return [0, 0];
+        }
+        // Hausbatterie nicht voll?
+        if ($battSOC < $battMax) {
+            return [0, $ueberschuss];
+        }
+        // Hausbatterie voll, Auto angesteckt?
+        if ($autoAngesteckt) {
+            return [$ueberschuss, 0];
+        }
+        // Hausbatterie voll, kein Auto
+        return [0, 0];
     }
 
 }
