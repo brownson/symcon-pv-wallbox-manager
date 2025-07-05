@@ -596,7 +596,6 @@ class PVWallboxManager extends IPSModule
             IPS_Sleep(1500); // Zeit für die Umschaltung geben
             $wbNeu = $this->HoleGoEWallboxDaten();
             $phasen_ist = $wbNeu['WB_Phasen'] ?? 3;
-            $this->SetValueSafe('AktuellePhasen', $phasen_ist);
             $this->LogTemplate('info', 'Umschaltung auf 3-phasig ausgelöst.', "Leistung: $ladeleistung W | ECHTE Phasen: $phasen_ist");
         }
         // Umschaltung auf 1-phasig
@@ -605,10 +604,10 @@ class PVWallboxManager extends IPSModule
             IPS_Sleep(1500);
             $wbNeu = $this->HoleGoEWallboxDaten();
             $phasen_ist = $wbNeu['WB_Phasen'] ?? 1;
-            $this->SetValueSafe('AktuellePhasen', $phasen_ist);
             $this->LogTemplate('info', 'Umschaltung auf 1-phasig ausgelöst.', "Leistung: $ladeleistung W | ECHTE Phasen: $phasen_ist");
         }
-        // Sonst nichts tun!
+        // Egal was passiert ist: Immer aktuellen Phasenwert setzen!
+        $this->SetValueSafe('AktuellePhasen', $phasen_ist);
     }
 
     private function UmschaltenAuf1Phasig($instanzID) 
