@@ -152,11 +152,11 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateCharging()
     {
-    $wb = $this->HoleGoEWallboxDaten();
-    if (!is_array($wb)) {
-        $this->LogTemplate('error', "Wallbox-Daten konnten nicht abgerufen werden, Update abgebrochen.");
-        return;
-    }
+        $wb = $this->HoleGoEWallboxDaten();
+        if (!is_array($wb)) {
+            $this->LogTemplate('error', "Wallbox-Daten konnten nicht abgerufen werden, Update abgebrochen.");
+            return;
+        }
 
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
         if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
@@ -166,7 +166,7 @@ class PVWallboxManager extends IPSModule
         }
 
         // Prüfe: Nur laden, wenn Fahrzeug verbunden
-        if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden()) {
+        if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden($wb)) {
             $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Gesperrt
             $status = "Bitte das Fahrzeug mit der Wallbox verbinden.";
             $this->SetLademodusStatus($status);
@@ -186,9 +186,7 @@ class PVWallboxManager extends IPSModule
         $pv          = $this->LesePVErzeugung();
         $haus        = $this->LeseHausverbrauch();
         $batt        = $this->LeseBatterieleistung();
-        //$wb_leistung = $this->LeseWallboxLeistung();
-        $wb_leistung = (float)($wb['WB_Ladeleistung_W'] ?? 0);
-
+        $wb_leistung = $this->LeseWallboxLeistung($wb);
 
         // Rohwert und Puffer berechnen
         $roh_ueberschuss = $this->BerechnePVUeberschuss($pv, $haus, $batt, $wb_leistung);
@@ -198,7 +196,7 @@ class PVWallboxManager extends IPSModule
         $puffer_diff    = round($roh_ueberschuss - $ueberschuss);
 
         // Werte schreiben
-        $this->SetValueSafe('PV_Ueberschuss', max(0, $ueberschuss), 1 , 'W',);
+        $this->SetValueSafe('PV_Ueberschuss', max(0, $ueberschuss), 1 , 'W');
         $this->SetValueSafe('Hausverbrauch_W', $haus, 1, 'W');
         $haus_abz_wb = max(0, $haus - $wb_leistung);
         $this->SetValueSafe('Hausverbrauch_abz_Wallbox', $haus_abz_wb, 1, 'W');
@@ -206,8 +204,9 @@ class PVWallboxManager extends IPSModule
         // Aktiven Lademodus bestimmen
         $modus = $this->ErmittleAktivenLademodus();
 
-        if (!$this->IstFahrzeugVerbunden()) {
-            $this->DeaktiviereLaden(); // ← korrigierte Funktion, die nur noch Mode 1 setzt!
+        // --- Hier $wb übergeben! ---
+        if (!$this->IstFahrzeugVerbunden($wb)) {
+            $this->DeaktiviereLaden();
             $status = "Die Wallbox wartet auf ein angestecktes Auto.";
             $this->SetLademodusStatus($status);
             $this->LogTemplate('info', "Kein Fahrzeug verbunden.", $status);
@@ -243,7 +242,6 @@ class PVWallboxManager extends IPSModule
                 $minStopWatt     = $this->ReadPropertyFloat('MinStopWatt');
                 $startHysterese  = $this->ReadPropertyInteger('StartHysterese');
                 $stopHysterese   = $this->ReadPropertyInteger('StopHysterese');
-                //$istAmLaden = $this->GetValue('WallboxAktiv');
                 $istAmLaden = ($wb['WB_Status'] ?? 0) == 2; // 2 = lädt
                 $startCounter = (int)$this->GetBuffer('StartHystereseCounter');
                 $stopCounter  = (int)$this->GetBuffer('StopHystereseCounter');
@@ -283,8 +281,7 @@ class PVWallboxManager extends IPSModule
 
                 $this->SetValueSafe('WB_Ladeleistung_Soll', $ladeleistung, 1);
                 $this->SetValueSafe('WB_Ladeleistung_Ist', $wb_leistung, 1);
-                //$this->SetValueSafe('WB_Ladeleistung_Ist', $this->LeseWallboxLeistung(), 1);
-                
+
                 $this->LogTemplate('debug', 
                     "PV-Überschuss-Berechnung: PV {$pv} W, Haus {$haus} W, Batterie {$batt} W, Wallbox {$wb_leistung} W, Puffer {$puffer_diff} W ({$puffer_prozent}%), Überschuss {$ueberschuss} W, StartHyst: {$startCounter}/{$startHysterese}, StopHyst: {$stopCounter}/{$stopHysterese}");
                 break;
@@ -293,21 +290,21 @@ class PVWallboxManager extends IPSModule
         // Phasenumschaltung prüfen und ggf. umschalten
         $this->PruefePhasenumschaltung($ladeleistung);
 
-    // Ladefreigabe setzen
-    if ($ladeleistung > 0) {
-        $this->SetzeAccessStateV2WennNoetig($goeID, 2); // Laden erzwingen
-        $this->SetzeLadeleistung($ladeleistung); // Ladeleistung, KEIN SetMode!
-        $status = "Laden: ".round($ladeleistung)." W im Modus: Nur PV";
-    } else {
-        $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Gesperrt
-        if ($ueberschuss <= 0) {
-            $status = "Nicht laden (kein PV-Überschuss im Nur-PV-Modus)";
+        // Ladefreigabe setzen
+        if ($ladeleistung > 0) {
+            $this->SetzeAccessStateV2WennNoetig($goeID, 2); // Laden erzwingen
+            $this->SetzeLadeleistung($ladeleistung); // Ladeleistung, KEIN SetMode!
+            $status = "Laden: ".round($ladeleistung)." W im Modus: Nur PV";
         } else {
-            $status = "Nicht laden (Bedingungen im Nur-PV-Modus nicht erfüllt)";
+            $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Gesperrt
+            if ($ueberschuss <= 0) {
+                $status = "Nicht laden (kein PV-Überschuss im Nur-PV-Modus)";
+            } else {
+                $status = "Nicht laden (Bedingungen im Nur-PV-Modus nicht erfüllt)";
+            }
         }
-    }
 
-    // Status und Logging
+        // Status und Logging
         $this->SetLademodusStatus($status);
         $this->UpdateAccessStateText();
         $this->LogDebugData([
@@ -320,6 +317,7 @@ class PVWallboxManager extends IPSModule
             'Ladeleistung'=> $ladeleistung
         ]);
     }
+
 
     private function EnsureLademodusProfile()
     {
@@ -392,9 +390,8 @@ class PVWallboxManager extends IPSModule
     }
 
     /** Holt die aktuelle Ladeleistung aus der GO-e Instanz */
-    private function LeseWallboxLeistung($wb = null)
+    private function LeseWallboxLeistung($wb)
     {
-        if ($wb === null) $wb = $this->HoleGoEWallboxDaten();
         return (float)($wb['WB_Ladeleistung_W'] ?? 0.0);
     }
 
@@ -699,9 +696,8 @@ class PVWallboxManager extends IPSModule
      * Prüft, ob das Fahrzeug verbunden ist (z. B. über go-e Charger Status).
      * Rückgabe: true = Fahrzeug erkannt, false = nichts gesteckt.
      */
-    private function IstFahrzeugVerbunden($wb = null)
+    private function IstFahrzeugVerbunden($wb)
     {
-        if ($wb === null) $wb = $this->HoleGoEWallboxDaten();
         $status = $wb['WB_Status'] ?? 0;
         return ($status == 2 || $status == 3 || $status == 4);
     }
