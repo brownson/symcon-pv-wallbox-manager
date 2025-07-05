@@ -637,29 +637,55 @@ class PVWallboxManager extends IPSModule
         }
         // Sonst nichts tun!
     }
-
-    /** Schalte auf 1-phasig */
-    private function UmschaltenAuf1Phasig($instanzID)
+    private function UmschaltenAuf1Phasig($instanzID) 
     {
         // Prüfe, ob wir wirklich auf 1-phasig umschalten müssen
-        if ($this->ReadPropertyInteger('Phasen') != 1) {
-            // Wallbox auf 1-phasig umschalten
-            GOeCharger_SetSinglePhaseCharging($instanzID, true);
-            //$this->SetValue('AktuellePhasen', 1); // Phasenstatus intern speichern
-            $this->SetValueSafe('AktuellePhasen', 1); // Phasenstatus intern speichern
+        $phasenVar = $this->GetValue('AktuellePhasen');
+        if ($phasenVar == 1) {
+            $this->LogTemplate('debug', 'Umschalten auf 1-phasig nicht nötig, bereits 1-phasig aktiv.');
+            return;
         }
+
+        // 1. Ladung stoppen
+        GOeCharger_SetMode($instanzID, 1); // Gesperrt
+        IPS_Sleep(1200);
+
+        // 2. Umschalten auf 1-phasig
+        GOeCharger_SetSinglePhaseCharging($instanzID, true);
+        IPS_Sleep(1200);
+
+        // 3. Ladung wieder freigeben (falls weiterhin Bedingungen erfüllt)
+        GOeCharger_SetMode($instanzID, 2); // Laden erzwingen
+
+        // 4. Status aktualisieren
+        $this->SetValueSafe('AktuellePhasen', 1);
+        $this->LogTemplate('info', 'Phasenumschaltung auf 1-phasig abgeschlossen.');
     }
 
     /** Schalte auf 3-phasig */
     private function UmschaltenAuf3Phasig($instanzID)
     {
-        /// Prüfe, ob wir wirklich auf 3-phasig umschalten müssen
-        if ($this->ReadPropertyInteger('Phasen') != 3) {
-            // Wallbox auf 3-phasig umschalten
-            GOeCharger_SetSinglePhaseCharging($instanzID, false);
-            //$this->SetValue('AktuellePhasen', 3); // Phasenstatus intern speichern
-            $this->SetValueSafe('AktuellePhasen', 3); // Phasenstatus intern speichern
+        // Prüfe, ob wir wirklich auf 3-phasig umschalten müssen
+        $phasenVar = $this->GetValue('AktuellePhasen');
+        if ($phasenVar == 3) {
+            $this->LogTemplate('debug', 'Umschalten auf 3-phasig nicht nötig, bereits 3-phasig aktiv.');
+            return;
         }
+
+        // 1. Ladung stoppen
+        GOeCharger_SetMode($instanzID, 1); // Gesperrt
+        IPS_Sleep(1200);
+
+        // 2. Umschalten auf 3-phasig
+        GOeCharger_SetSinglePhaseCharging($instanzID, false);
+        IPS_Sleep(1200);
+
+        // 3. Ladung wieder freigeben
+        GOeCharger_SetMode($instanzID, 2); // Laden erzwingen
+
+        // 4. Status aktualisieren
+        $this->SetValueSafe('AktuellePhasen', 3);
+        $this->LogTemplate('info', 'Phasenumschaltung auf 3-phasig abgeschlossen.');
     }
 
     /** Erhöht den Start-Hysterese-Zähler */
