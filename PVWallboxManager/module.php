@@ -31,7 +31,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('MaxAmpere', 16);
         $this->RegisterPropertyFloat('MinLadeWatt', 1400); // Standardwert nach Bedarf anpassen
         $this->RegisterPropertyInteger('StartHysterese', 0);
-        $this->RegisterPropertyFloat('MinStopWatt', -300);
+        $this->RegisterPropertyFloat('MinStopWatt', 1200);
         $this->RegisterPropertyInteger('StopHysterese', 0);
 
         // === 3. Energiequellen ===
@@ -50,7 +50,7 @@ class PVWallboxManager extends IPSModule
 
         // === 4. Phasenumschaltung ===
         $this->RegisterPropertyInteger('Phasen', 3);
-        $this->RegisterPropertyFloat('Phasen1Schwelle', 1000);
+        $this->RegisterPropertyFloat('Phasen1Schwelle', 3400);
         $this->RegisterPropertyInteger('Phasen1Limit', 3);
         $this->RegisterPropertyFloat('Phasen3Schwelle', 4200);
         $this->RegisterPropertyInteger('Phasen3Limit', 3);
@@ -239,11 +239,12 @@ class PVWallboxManager extends IPSModule
                 break;
             case 'nurpv':
             default:
-                $minLadeWatt     = $this->ReadPropertyInteger('MinLadeWatt');
-                $minStopWatt     = $this->ReadPropertyInteger('MinStopWatt');
+                $minLadeWatt     = $this->ReadPropertyFloat('MinLadeWatt');
+                $minStopWatt     = $this->ReadPropertyFloat('MinStopWatt');
                 $startHysterese  = $this->ReadPropertyInteger('StartHysterese');
                 $stopHysterese   = $this->ReadPropertyInteger('StopHysterese');
-                $istAmLaden = $this->GetValue('WallboxAktiv');
+                //$istAmLaden = $this->GetValue('WallboxAktiv');
+                $istAmLaden = ($wb['WB_Status'] ?? 0) == 2; // 2 = lädt
                 $startCounter = (int)$this->GetBuffer('StartHystereseCounter');
                 $stopCounter  = (int)$this->GetBuffer('StopHystereseCounter');
 
