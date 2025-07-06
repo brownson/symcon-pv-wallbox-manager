@@ -276,7 +276,7 @@ class PVWallboxManager extends IPSModule
                 );
 
                 // Ladeleistung für Auto ist der relevante Überschuss
-                $ueberschuss = $ladeleistungAuto;
+                //$ueberschuss = $ladeleistungAuto;
 
                 // Counter laden
                 $startCounter = (int)$this->GetBuffer('StartHystereseCounter');
@@ -666,21 +666,33 @@ class PVWallboxManager extends IPSModule
 
     private function UmschaltenAuf1Phasig()
     {
-        $this->SetGoEParameter(['alw' => 0]);
+        // Ladung stoppen (alw=0 immer über neue zentrale Funktion)
+        $this->SetGoEChargingActive(false);
         IPS_Sleep(1200);
+
+        // 1-phasig umschalten
         $this->SetGoEParameter(['fsp' => 1]); // 1-phasig
         IPS_Sleep(1200);
-        $this->SetGoEParameter(['alw' => 1]);
+
+        // Ladung wieder freigeben
+        $this->SetGoEChargingActive(true);
+
         $this->LogTemplate('info', 'Phasenumschaltung auf 1-phasig abgeschlossen.');
     }
 
     private function UmschaltenAuf3Phasig()
     {
-        $this->SetGoEParameter(['alw' => 0]);
+        // Ladung stoppen (alw=0 immer über neue zentrale Funktion)
+        $this->SetGoEChargingActive(false);
         IPS_Sleep(1200);
+
+        // 3-phasig umschalten
         $this->SetGoEParameter(['fsp' => 0]); // 3-phasig
         IPS_Sleep(1200);
-        $this->SetGoEParameter(['alw' => 1]);
+
+        // Ladung wieder freigeben
+        $this->SetGoEChargingActive(true);
+
         $this->LogTemplate('info', 'Phasenumschaltung auf 3-phasig abgeschlossen.');
     }
 
@@ -809,16 +821,14 @@ class PVWallboxManager extends IPSModule
 
         // Falls Leistung unter Minimum (also unter minAmp*Phasen*Spannung): abschalten
         if ($leistung < ($minAmp * $phasen * $spannung)) {
-            $this->SetGoEParameter(['alw' => 0]);
+            $this->SetGoEChargingActive(false);
             $this->LogTemplate('info', "Ladung deaktiviert (Leistung zu gering, alw=0).");
             return;
         }
 
         // Freigabe und Ampere setzen
-        $this->SetGoEParameter([
-            'alw' => 1,
-            'amp' => $ampere
-        ]);
+        $this->SetGoEChargingActive(true);
+        $this->SetGoEParameter(['amp' => $ampere]);
         $this->LogTemplate('info', "Ladung aktiviert: alw=1, amp=$ampere (für $leistung W, $phasen Phasen)");
     }
 
@@ -1105,6 +1115,41 @@ private function DeaktiviereLaden()
         return $result;
     }
 
+    /**
+     * Setzt die Ladefreigabe ("alw") an der go-e Wallbox
+     * - Kompatibel zu V2/V3/V4
+     * - Führt bei neueren Wallboxen vorab /api/set?dwo=0 aus (Pflicht ab FW 50+)
+     *
+     * @param bool $active TRUE = Laden freigeben, FALSE = sperren
+     * @return bool Erfolg
+     */
+    private function SetGoEChargingActive($active)
+    {
+        $ip = trim($this->ReadPropertyString('GoEIPAddress'));
+        if (empty($ip) || $ip == "0.0.0.0") {
+            $this->LogTemplate('error', 'Keine gültige IP für die Wallbox eingetragen!');
+            return false;
+        }
+
+        // Schritt 1: dwo=0 zurücksetzen (für neuere HW/FW Pflicht)
+        $resetUrl = "http://$ip/api/set?dwo=0";
+        @file_get_contents($resetUrl); // Fehler ignorieren (bei alten HWs nicht tragisch)
+
+        // Schritt 2: Ladefreigabe setzen (alw)
+        $alwValue = $active ? 1 : 0;
+        $alwUrl = "http://$ip/mqtt?payload=alw=$alwValue";
+        $result = @file_get_contents($alwUrl);
+
+        // Erfolg prüfen (optionaler Check, je nach Wunsch)
+        if ($result === false) {
+            $this->LogTemplate('error', "Fehler beim Setzen von alw=$alwValue an $ip!");
+            return false;
+        }
+        $this->LogTemplate('info', "Ladefreigabe gesetzt: alw=$alwValue an $ip");
+
+        return true;
+    }
+
     // === 12. Hilfsfunktionen ===
 
     /** Hilfsfunktion: Text zum Moduswert */
@@ -1288,9 +1333,13 @@ private function DeaktiviereLaden()
         $this->LogTemplate('debug', "Vorher: accessStateV2 = $aktuellerModus, Ziel: $neuerModus");
 
         if ($aktuellerModus !== $neuerModus) {
-            // ---- NEU: API-Call via SetGoEParameter ----
-            $this->SetGoEParameter(['alw' => (int)$neuerModus]);
-            $this->LogTemplate('debug', "accessStateV2 geändert: $aktuellerModus → $neuerModus (per API gesetzt)");
+            // ---- NEU: API-Call via SetGoEChargingActive ----
+            $success = $this->SetGoEChargingActive((int)$neuerModus);
+            if ($success) {
+                $this->LogTemplate('debug', "accessStateV2 geändert: $aktuellerModus → $neuerModus (per API gesetzt)");
+            } else {
+                $this->LogTemplate('error', "Fehler beim Setzen von accessStateV2 auf $neuerModus!");
+            }
         } else {
             $this->LogTemplate('debug', "accessStateV2 unverändert: $aktuellerModus (kein Setzen nötig)");
         }
