@@ -1125,28 +1125,25 @@ private function DeaktiviereLaden()
      */
     private function SetGoEChargingActive($active)
     {
-        $ip = trim($this->ReadPropertyString('GoEIPAddress'));
+        $ip = trim($this->ReadPropertyString('WallboxIP'));
         if (empty($ip) || $ip == "0.0.0.0") {
             $this->LogTemplate('error', 'Keine gültige IP für die Wallbox eingetragen!');
             return false;
         }
-
         // Schritt 1: dwo=0 zurücksetzen (für neuere HW/FW Pflicht)
         $resetUrl = "http://$ip/api/set?dwo=0";
-        @file_get_contents($resetUrl); // Fehler ignorieren (bei alten HWs nicht tragisch)
+        @file_get_contents($resetUrl); // Fehler ignorieren
 
         // Schritt 2: Ladefreigabe setzen (alw)
         $alwValue = $active ? 1 : 0;
         $alwUrl = "http://$ip/mqtt?payload=alw=$alwValue";
         $result = @file_get_contents($alwUrl);
 
-        // Erfolg prüfen (optionaler Check, je nach Wunsch)
         if ($result === false) {
             $this->LogTemplate('error', "Fehler beim Setzen von alw=$alwValue an $ip!");
             return false;
         }
         $this->LogTemplate('info', "Ladefreigabe gesetzt: alw=$alwValue an $ip");
-
         return true;
     }
 
