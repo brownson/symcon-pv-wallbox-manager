@@ -125,6 +125,7 @@ class PVWallboxManager extends IPSModule
 
         // Variablenprofil für Lademodus sicherstellen
         $this->EnsureLademodusProfile();
+        $this->EnsurePhasenCounterAttributes();
 
         // GO-e Charger Instanz-ID holen
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
