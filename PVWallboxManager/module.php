@@ -277,10 +277,14 @@ class PVWallboxManager extends IPSModule
                 list($ladeleistungAuto, $ladeleistungHausakku) = $this->PriorisiereEigenverbrauch(
                     $pv, $haus, $battSOC, $hausakkuVollSchwelle, $autoAngesteckt
                 );
-                $this->LogTemplate('debug',
-                    sprintf("Priorisierung: Auto %.0f W, Hausakku %.0f W (SOC: %.1f%%, Schwelle: %d%%, Überschuss: %.0f W)",
-                        $ladeleistungAuto, $ladeleistungHausakku, $battSOC, $hausakkuVollSchwelle, $pv - $haus)
-                );
+            $this->LogTemplate('debug',
+            sprintf(
+                "PV: %.0f W | Haus: %.0f W | Batt: %.0f W | WB: %.0f W | Puffer: %d W (%d%%) | Überschuss: %.0f W | Hyst: %d/%d",
+                $pv, $haus, $batt, $wb_leistung,
+                round($puffer_diff), $puffer_prozent,
+                $ueberschuss, $startCounter, $stopCounter
+            )
+        );
 
                 // Nur das, was für's Auto übrig ist, kommt weiter
                 $ueberschuss = $ladeleistungAuto;
