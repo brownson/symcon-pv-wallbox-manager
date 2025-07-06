@@ -799,10 +799,13 @@ class PVWallboxManager extends IPSModule
 
     private function EnsurePhasenCounterAttributes()
     {
-        $this->WriteAttributeInteger('PhasenDownCounter', (int)$this->ReadAttributeInteger('PhasenDownCounter'));
-        $this->WriteAttributeInteger('PhasenUpCounter', (int)$this->ReadAttributeInteger('PhasenUpCounter'));
+        if (!array_key_exists('PhasenDownCounter', $this->GetAttributes())) {
+            $this->WriteAttributeInteger('PhasenDownCounter', 0);
+        }
+        if (!array_key_exists('PhasenUpCounter', $this->GetAttributes())) {
+            $this->WriteAttributeInteger('PhasenUpCounter', 0);
+        }
     }
-
 
 
     /** Erhöht den Start-Hysterese-Zähler */
