@@ -246,6 +246,22 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
+        // --- Nach dem Fahrzeug-Check: Statusanzeige setzen, wenn verbunden! ---
+        $statusNum = $wb['WB_Status'] ?? 0;
+        switch ($statusNum) {
+            case 1:
+                $this->SetLademodusStatus("Fahrzeug bereit – warte auf Freigabe.");
+                break;
+            case 2:
+                $this->SetLademodusStatus("Fahrzeug lädt.");
+                break;
+            case 3:
+                $this->SetLademodusStatus("Fahrzeug angesteckt – warte auf Start.");
+                break;
+            default:
+                $this->SetLademodusStatus("Status unbekannt.");
+        }
+
         // Ladeleistung ermitteln
         switch ($modus) {
             case 'manuell':
