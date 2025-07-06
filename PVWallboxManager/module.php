@@ -176,8 +176,8 @@ class PVWallboxManager extends IPSModule
              // Werte sauber zurücksetzen!
             $this->SetValueSafe('WB_Ladeleistung_Soll', 0, 1, 'W');
             $this->SetValueSafe('WB_Ladeleistung_Ist', 0, 1, 'W');
-            $this->SetValueSafe('AktuellePhasen', 0);
-            $this->SetValueSafe('Ziel-Ladezeit', 0);
+            //$this->SetValueSafe('AktuellePhasen', 1);
+            //$this->SetValueSafe('Ziel-Ladezeit', 0);
             $this->SetValueSafe('PV_Ueberschuss', 0, 1, 'W');
 
             return;
