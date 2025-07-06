@@ -164,6 +164,10 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
+        // Debug: Welcher Wert steht tatsächlich im WB_Status?
+        $status = $wb['WB_Status'] ?? null;
+        $this->LogTemplate('info', "Check: \$status = " . var_export($status, true) . ", verbunden? " . ($this->IstFahrzeugVerbunden($wb) ? 'JA' : 'NEIN'));
+
         // Prüfe: Nur laden, wenn Fahrzeug verbunden
         if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden($wb)) {
             $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Gesperrt
