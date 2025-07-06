@@ -236,12 +236,24 @@ class PVWallboxManager extends IPSModule
         switch ($modus) {
             case 'manuell':
                 $ladeleistung = $this->BerechneLadeleistungManuell();
+                $this->PruefePhasenumschaltung($ladeleistung, $wb);
+                $this->LogTemplate('debug', sprintf(
+                    "Hysteresecounter: Down=%d | Up=%d",
+                    $this->ReadAttributeInteger('PhasenDownCounter'),
+                    $this->ReadAttributeInteger('PhasenUpCounter')
+                ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
 
             case 'pv2car':
                 $prozent = $this->GetPV2CarProzent();
                 $ladeleistung = $this->BerechneLadeleistungPV2Car($ueberschuss, $prozent);
+                $this->PruefePhasenumschaltung($ladeleistung, $wb);
+                $this->LogTemplate('debug', sprintf(
+                    "Hysteresecounter: Down=%d | Up=%d",
+                    $this->ReadAttributeInteger('PhasenDownCounter'),
+                    $this->ReadAttributeInteger('PhasenUpCounter')
+                ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
 
@@ -251,6 +263,12 @@ class PVWallboxManager extends IPSModule
                 $zielzeit = $this->LeseZielzeit();
                 $maxLeistung = $this->ReadPropertyInteger('MaxAutoWatt');
                 $ladeleistung = $this->BerechneLadeleistungZielzeit($zielSOC, $istSOC, $zielzeit, $maxLeistung);
+                $this->PruefePhasenumschaltung($ladeleistung, $wb);
+                $this->LogTemplate('debug', sprintf(
+                    "Hysteresecounter: Down=%d | Up=%d",
+                    $this->ReadAttributeInteger('PhasenDownCounter'),
+                    $this->ReadAttributeInteger('PhasenUpCounter')
+                ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
 
@@ -258,6 +276,12 @@ class PVWallboxManager extends IPSModule
                 $preis = $this->GetCurrentMarketPrice();
                 $maxPreis = $this->GetMaxAllowedPrice();
                 $ladeleistung = $this->BerechneLadeleistungStrompreis($preis, $maxPreis);
+                $this->PruefePhasenumschaltung($ladeleistung, $wb);
+                $this->LogTemplate('debug', sprintf(
+                    "Hysteresecounter: Down=%d | Up=%d",
+                    $this->ReadAttributeInteger('PhasenDownCounter'),
+                    $this->ReadAttributeInteger('PhasenUpCounter')
+                ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
 
@@ -290,6 +314,14 @@ class PVWallboxManager extends IPSModule
                 $startHysterese = $this->ReadPropertyInteger('StartHysterese');
                 $stopHysterese  = $this->ReadPropertyInteger('StopHysterese');
                 $istAmLaden     = ($wb['WB_Status'] ?? 0) == 2;
+
+                // Phasenumschaltung/Hysterese prüfen vor dem Ladeentscheid!
+                $this->PruefePhasenumschaltung($ueberschuss, $wb);
+                $this->LogTemplate('debug', sprintf(
+                    "Hysteresecounter: Down=%d | Up=%d",
+                    $this->ReadAttributeInteger('PhasenDownCounter'),
+                    $this->ReadAttributeInteger('PhasenUpCounter')
+                ));
 
                 if (!$istAmLaden) {
                     if ($ueberschuss >= $minLadeWatt) {
@@ -342,20 +374,21 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-        private function EnsureLademodusProfile()
-        {
-            $profil = 'PVWM.Lademodus';
-            if (!IPS_VariableProfileExists($profil)) {
-                IPS_CreateVariableProfile($profil, 1); // 1 = Integer
-                IPS_SetVariableProfileIcon($profil, 'ElectricCar');
-                IPS_SetVariableProfileValues($profil, 0, 4, 1);
-                IPS_SetVariableProfileAssociation($profil, 0, 'Nur PV', '', -1);
-                IPS_SetVariableProfileAssociation($profil, 1, 'Manuell', 'lightbulb', -1);
-                IPS_SetVariableProfileAssociation($profil, 2, 'PV2Car', 'solar-panel', -1);
-                IPS_SetVariableProfileAssociation($profil, 3, 'Zielzeit', 'clock', -1);
-                IPS_SetVariableProfileAssociation($profil, 4, 'Strompreis', 'euro', -1);
-            }
+
+    private function EnsureLademodusProfile()
+    {
+        $profil = 'PVWM.Lademodus';
+        if (!IPS_VariableProfileExists($profil)) {
+            IPS_CreateVariableProfile($profil, 1); // 1 = Integer
+            IPS_SetVariableProfileIcon($profil, 'ElectricCar');
+            IPS_SetVariableProfileValues($profil, 0, 4, 1);
+            IPS_SetVariableProfileAssociation($profil, 0, 'Nur PV', '', -1);
+            IPS_SetVariableProfileAssociation($profil, 1, 'Manuell', 'lightbulb', -1);
+            IPS_SetVariableProfileAssociation($profil, 2, 'PV2Car', 'solar-panel', -1);
+            IPS_SetVariableProfileAssociation($profil, 3, 'Zielzeit', 'clock', -1);
+            IPS_SetVariableProfileAssociation($profil, 4, 'Strompreis', 'euro', -1);
         }
+    }
 
     private function LeseEnergiewert($id, $einheit = 'W', $invert = false)
     {
