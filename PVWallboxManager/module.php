@@ -791,14 +791,20 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('info', 'Phasenumschaltung auf 3-phasig abgeschlossen.');
     }
 
-    private function EnsurePhasenCounterAttributes() {
-        if ($this->ReadAttribute('PhasenDownCounter') === null) {
+    private function EnsurePhasenCounterAttributes()
+    {
+        // DownCounter initialisieren, falls nicht vorhanden oder nicht integer
+        $valDown = @$this->ReadAttributeInteger('PhasenDownCounter');
+        if (!is_int($valDown)) {
             $this->WriteAttributeInteger('PhasenDownCounter', 0);
         }
-        if ($this->ReadAttribute('PhasenUpCounter') === null) {
+        // UpCounter initialisieren, falls nicht vorhanden oder nicht integer
+        $valUp = @$this->ReadAttributeInteger('PhasenUpCounter');
+        if (!is_int($valUp)) {
             $this->WriteAttributeInteger('PhasenUpCounter', 0);
         }
     }
+
 
     /** Erhöht den Start-Hysterese-Zähler */
     private function InkrementiereStartHysterese($max)
