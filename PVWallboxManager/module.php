@@ -271,6 +271,7 @@ class PVWallboxManager extends IPSModule
             case 'nurpv':
             default:
                 // Eigenverbrauchs-Priorisierung
+                $ladeleistung = 0;
                 $battSOC = 0;
                 $hausakkuSOCID = $this->ReadPropertyInteger('HausakkuSOCID');
                 if ($hausakkuSOCID > 0 && @IPS_VariableExists($hausakkuSOCID)) {
@@ -289,6 +290,7 @@ class PVWallboxManager extends IPSModule
                 // Counter laden
                 $startCounter = (int)$this->GetBuffer('StartHystereseCounter');
                 $stopCounter  = (int)$this->GetBuffer('StopHystereseCounter');
+                $ladeleistung = 0;
 
                 // Debug-Log (vor der eigentlichen Schaltlogik)
                 //$this->LogTemplate(
@@ -309,32 +311,35 @@ class PVWallboxManager extends IPSModule
                 $istAmLaden     = ($wb['WB_Status'] ?? 0) == 2; // 2 = lädt
 
                 if (!$istAmLaden) {
+                    // Noch nicht am Laden, prüfen ob Start-Hysterese überschritten
                     if ($ueberschuss >= $minLadeWatt) {
                         $startCounter++;
                         $stopCounter = 0;
                         if ($startCounter >= $startHysterese) {
                             $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                            $this->SetzeLadeleistung($ladeleistung); // <-- HIER nur freigeben!
+                            $this->SetzeLadeleistung($ladeleistung); // Nur HIER setzen!
                             $startCounter = 0;
                         }
                     } else {
                         $startCounter = 0;
                     }
-                } else { // Ladevorgang läuft!
+                } else {
+                    // Am Laden, prüfen ob Stop-Hysterese überschritten
                     if ($ueberschuss <= $minStopWatt) {
                         $stopCounter++;
                         $startCounter = 0;
                         if ($stopCounter >= $stopHysterese) {
                             $ladeleistung = 0;
-                            $this->SetzeLadeleistung($ladeleistung); // <-- HIER stoppen!
+                            $this->SetzeLadeleistung($ladeleistung); // Nur HIER stoppen!
                             $stopCounter = 0;
                         }
                     } else {
                         $stopCounter = 0;
                         $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                        $this->SetzeLadeleistung($ladeleistung); // <-- Nachregeln falls mehr Überschuss
+                        $this->SetzeLadeleistung($ladeleistung); // Nur bei "mehr Überschuss" nachregeln!
                     }
                 }
+
 
                 // Buffer sichern
                 $this->SetBuffer('StartHystereseCounter', $startCounter);
