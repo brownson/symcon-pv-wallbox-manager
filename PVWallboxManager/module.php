@@ -114,6 +114,7 @@ class PVWallboxManager extends IPSModule
         // Weitere Variablen nach Bedarf!
         //$this->RegisterVariableInteger('HystereseZaehler', 'Phasen-Hysteresezähler', '', 60);
         $this->RegisterVariableInteger('AktuellePhasen', 'Aktuelle Phasen', '', 80);
+        $this->EnsurePhasenCounterAttributes();
 
         // Timer für Berechnungsintervall
         $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
@@ -685,6 +686,7 @@ class PVWallboxManager extends IPSModule
     /** Prüfe, ob Phasenumschaltung nötig ist (inkl. Hysterese) */
     private function PruefePhasenumschaltung($ladeleistung, $wb)
     {
+        $this->EnsurePhasenCounterAttributes();
         $phasen_ist = $wb['WB_Phasen'] ?? 1;
 
         // Attribute werden in IP-Symcon automatisch auf 0 initialisiert, keine manuelle Prüfung nötig!
@@ -794,17 +796,10 @@ class PVWallboxManager extends IPSModule
 
     private function EnsurePhasenCounterAttributes()
     {
-        // DownCounter initialisieren, falls nicht vorhanden oder nicht integer
-        $valDown = @$this->GetOrInitAttributeInteger('PhasenDownCounter');
-        if (!is_int($valDown)) {
-            $this->WriteAttributeInteger('PhasenDownCounter', 0);
-        }
-        // UpCounter initialisieren, falls nicht vorhanden oder nicht integer
-        $valUp = @$this->GetOrInitAttributeInteger('PhasenUpCounter');
-        if (!is_int($valUp)) {
-            $this->WriteAttributeInteger('PhasenUpCounter', 0);
-        }
+        $this->WriteAttributeInteger('PhasenDownCounter', (int)$this->ReadAttributeInteger('PhasenDownCounter'));
+        $this->WriteAttributeInteger('PhasenUpCounter', (int)$this->ReadAttributeInteger('PhasenUpCounter'));
     }
+
 
 
     /** Erhöht den Start-Hysterese-Zähler */
@@ -1507,15 +1502,15 @@ private function DeaktiviereLaden()
         return [0, 0];
     }
 
-    private function GetOrInitAttributeInteger($name, $default = 0) {
-        // Prüfen, ob Attribut existiert (indem wir mit GetArray prüfen)
-        $array = $this->GetAttributes();
-        if (!array_key_exists($name, $array)) {
+    private function GetOrInitAttributeInteger($name, $default = 0)
+    {
+        if (!@$this->ReadAttributeInteger($name) && $this->ReadAttributeInteger($name) !== 0) {
             $this->WriteAttributeInteger($name, $default);
             return $default;
         }
         return $this->ReadAttributeInteger($name);
     }
+
 
     // Gibt alle Attribute als Array zurück (Hack: so kommt man ran)
     private function GetAttributes() {
