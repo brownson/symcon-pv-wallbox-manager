@@ -125,7 +125,7 @@ class PVWallboxManager extends IPSModule
 
         // Variablenprofil für Lademodus sicherstellen
         $this->EnsureLademodusProfile();
-        $this->EnsurePhasenCounterAttributes();
+        //$this->EnsurePhasenCounterAttributes();
 
         // GO-e Charger Instanz-ID holen
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
@@ -236,7 +236,7 @@ class PVWallboxManager extends IPSModule
         // Ladeleistung ermitteln
         switch ($modus) {
             case 'manuell':
-                $this->EnsurePhasenCounterAttributes();
+                //$this->EnsurePhasenCounterAttributes();
                 $ladeleistung = $this->BerechneLadeleistungManuell();
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
@@ -727,7 +727,7 @@ class PVWallboxManager extends IPSModule
 
     private function PruefeHystereseDown($ladeleistung)
     {
-        $this->EnsurePhasenCounterAttributes();
+        //$this->EnsurePhasenCounterAttributes();
         $phasen1Schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');    // z.B. 3400 W
         $phasen1Limit    = $this->ReadPropertyInteger('Phasen1Limit');      // z.B. 3
         $counter = $this->GetOrInitAttributeInteger('PhasenDownCounter');
@@ -747,7 +747,7 @@ class PVWallboxManager extends IPSModule
 
     private function PruefeHystereseUp($ladeleistung)
     {
-        $this->EnsurePhasenCounterAttributes();
+        //$this->EnsurePhasenCounterAttributes();
         $phasen3Schwelle = $this->ReadPropertyFloat('Phasen3Schwelle');    // z.B. 4200 W
         $phasen3Limit    = $this->ReadPropertyInteger('Phasen3Limit');      // z.B. 3
         $counter = $this->GetOrInitAttributeInteger('PhasenUpCounter');
