@@ -328,7 +328,7 @@ class PVWallboxManager extends IPSModule
                         $startCounter++;
                         $stopCounter = 0;
                         if ($startCounter >= $startHysterese) {
-                            $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
+                            $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss, $wb);
                             $this->SetzeLadeleistung($ladeleistung);
                             $startCounter = 0;
                         }
@@ -346,7 +346,7 @@ class PVWallboxManager extends IPSModule
                         }
                     } else {
                         $stopCounter = 0;
-                        $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
+                        $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss, $wb);
                         $this->SetzeLadeleistung($ladeleistung);
                     }
                 }
@@ -629,22 +629,30 @@ class PVWallboxManager extends IPSModule
     }
 
     /** NurPV: Ladeleistung entspricht ausschließlich dem verfügbaren Überschuss */
-    private function BerechneLadeleistungNurPV($ueberschuss)
+    private function BerechneLadeleistungNurPV($ueberschuss, $wb = null)
     {
         $minA = $this->ReadPropertyInteger('MinAmpere');
         $maxA = $this->ReadPropertyInteger('MaxAmpere');
-        $phasen = $this->ReadPropertyInteger('Phasen');
         $spannung = 230;
         
+        // Hole aktuelle Phasenanzahl aus der Wallbox, falls verfügbar
+        $phasen = 1; // Default
+        if (is_array($wb) && isset($wb['WB_Phasen'])) {
+            $phasen = max(1, (int)$wb['WB_Phasen']);
+        } else {
+            $phasen = max(1, (int)$this->ReadPropertyInteger('Phasen'));
+        }
+
         $minWatt = $minA * $spannung * $phasen;
         $maxWatt = $maxA * $spannung * $phasen;
 
         // Nur laden, wenn Überschuss >= Mindestleistung
         if ($ueberschuss < $minWatt) {
-        return 0;
+            return 0;
         }
         return min($ueberschuss, $maxWatt);
     }
+
 
     /** Strompreis-Modus: Ladeleistung, wenn Preis <= maxPreis, sonst 0 */
     private function BerechneLadeleistungStrompreis($preis, $maxPreis)
