@@ -643,7 +643,6 @@ class PVWallboxManager extends IPSModule
     private function PruefePhasenumschaltung($ladeleistung, $wb)
     {
         $phasen_ist = $wb['WB_Phasen'] ?? 1;
-        $goeID = $this->ReadPropertyInteger('GOeChargerID');
 
         // Initialisierung der Attribute falls nicht vorhanden
         if (!IPS_GetAttributeID($this->InstanceID, 'PhasenDownCounter')) {
@@ -653,6 +652,8 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeInteger('PhasenUpCounter', 0);
         }
 
+        $umschaltung = false;
+
         // Umschaltung auf 1-phasig prüfen (nur wenn aktuell 3-phasig)
         if ($phasen_ist == 3 && $this->PruefeHystereseDown($ladeleistung)) {
             $this->UmschaltenAuf1Phasig();
@@ -660,6 +661,7 @@ class PVWallboxManager extends IPSModule
             $wbNeu = $this->HoleGoEWallboxDaten();
             $phasen_ist = $wbNeu['WB_Phasen'] ?? 1;
             $this->LogTemplate('info', 'Umschaltung auf 1-phasig ausgelöst.', "Leistung: $ladeleistung W | ECHTE Phasen: $phasen_ist");
+            $umschaltung = true;
         }
         // Umschaltung auf 3-phasig prüfen (nur wenn aktuell 1-phasig)
         elseif ($phasen_ist == 1 && $this->PruefeHystereseUp($ladeleistung)) {
@@ -668,30 +670,42 @@ class PVWallboxManager extends IPSModule
             $wbNeu = $this->HoleGoEWallboxDaten();
             $phasen_ist = $wbNeu['WB_Phasen'] ?? 3;
             $this->LogTemplate('info', 'Umschaltung auf 3-phasig ausgelöst.', "Leistung: $ladeleistung W | ECHTE Phasen: $phasen_ist");
+            $umschaltung = true;
         }
 
-        // Optional: Immer aktuellen Phasenwert speichern/anzeigen
+        // Debuglog Hysterese-Zähler immer anzeigen (hilft beim Nachvollziehen im Log)
+        $this->LogTemplate('debug', sprintf(
+            "Hysteresecounter: Down=%d | Up=%d", 
+            $this->ReadAttributeInteger('PhasenDownCounter'), 
+            $this->ReadAttributeInteger('PhasenUpCounter')
+        ));
+
+        if (!$umschaltung) {
+            $this->LogTemplate('debug', "Keine Phasenumschaltung nötig. (Phasen: $phasen_ist, Leistung: $ladeleistung W)");
+        }
+
+        // Optional: Aktuellen Phasenwert speichern/anzeigen
         // $this->SetValueSafe('AktuellePhasen', $phasen_ist);
     }
 
     private function PruefeHystereseDown($ladeleistung)
-{
-    $phasen1Schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');    // z.B. 3400 W
-    $phasen1Limit    = $this->ReadPropertyInteger('Phasen1Limit');      // z.B. 3
-    $counter = $this->ReadAttributeInteger('PhasenDownCounter');
-    if ($ladeleistung < $phasen1Schwelle) {
-        $counter++;
-        $this->LogTemplate('debug', "Phasen-Hysterese-Down: $counter x < $phasen1Schwelle W");
-    } else {
-        $counter = 0;
+    {
+        $phasen1Schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');    // z.B. 3400 W
+        $phasen1Limit    = $this->ReadPropertyInteger('Phasen1Limit');      // z.B. 3
+        $counter = $this->ReadAttributeInteger('PhasenDownCounter');
+        if ($ladeleistung < $phasen1Schwelle) {
+            $counter++;
+            $this->LogTemplate('debug', "Phasen-Hysterese-Down: $counter x < $phasen1Schwelle W");
+        } else {
+            $counter = 0;
+        }
+        $this->WriteAttributeInteger('PhasenDownCounter', $counter);
+        if ($counter >= $phasen1Limit) {
+            $this->WriteAttributeInteger('PhasenDownCounter', 0);
+            return true;
+        }
+        return false;
     }
-    $this->WriteAttributeInteger('PhasenDownCounter', $counter);
-    if ($counter >= $phasen1Limit) {
-        $this->WriteAttributeInteger('PhasenDownCounter', 0);
-        return true;
-    }
-    return false;
-}
 
     private function PruefeHystereseUp($ladeleistung)
     {
