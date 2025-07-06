@@ -235,6 +235,7 @@ class PVWallboxManager extends IPSModule
         // Ladeleistung ermitteln
         switch ($modus) {
             case 'manuell':
+                $this->EnsurePhasenCounterAttributes();
                 $ladeleistung = $this->BerechneLadeleistungManuell();
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
@@ -725,6 +726,7 @@ class PVWallboxManager extends IPSModule
 
     private function PruefeHystereseDown($ladeleistung)
     {
+        $this->EnsurePhasenCounterAttributes();
         $phasen1Schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');    // z.B. 3400 W
         $phasen1Limit    = $this->ReadPropertyInteger('Phasen1Limit');      // z.B. 3
         $counter = $this->ReadAttributeInteger('PhasenDownCounter');
@@ -744,6 +746,7 @@ class PVWallboxManager extends IPSModule
 
     private function PruefeHystereseUp($ladeleistung)
     {
+        $this->EnsurePhasenCounterAttributes();
         $phasen3Schwelle = $this->ReadPropertyFloat('Phasen3Schwelle');    // z.B. 4200 W
         $phasen3Limit    = $this->ReadPropertyInteger('Phasen3Limit');      // z.B. 3
         $counter = $this->ReadAttributeInteger('PhasenUpCounter');
@@ -786,6 +789,15 @@ class PVWallboxManager extends IPSModule
         $this->SetGoEChargingActive(true);
 
         $this->LogTemplate('info', 'Phasenumschaltung auf 3-phasig abgeschlossen.');
+    }
+
+    private function EnsurePhasenCounterAttributes() {
+        if ($this->ReadAttribute('PhasenDownCounter') === null) {
+            $this->WriteAttributeInteger('PhasenDownCounter', 0);
+        }
+        if ($this->ReadAttribute('PhasenUpCounter') === null) {
+            $this->WriteAttributeInteger('PhasenUpCounter', 0);
+        }
     }
 
     /** Erhöht den Start-Hysterese-Zähler */
