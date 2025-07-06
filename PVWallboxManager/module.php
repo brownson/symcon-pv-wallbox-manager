@@ -1083,13 +1083,18 @@ private function DeaktiviereLaden()
             // 'WB_SOC_BMS'        => $data['bcs'] ?? null,       // State of Charge BMS (%), nur wenn vom Fahrzeug geliefert
         ];
 
+        $this->LogTemplate(
+            'info',
+            "Wallbox-Status laut API (car): " . var_export($werte['WB_Status'], true),
+            "Erklärung: 0=keins, 1=bereit, 2=lade, 3=angesteckt"
+        );
+
         // Ausgabe im Log (zum Testen)
         foreach ($werte as $name => $wert) {
             $this->LogTemplate('debug', "$name: ".var_export($wert, true));
         }
         return $werte;
     }
-
 
     // === 12. Hilfsfunktionen ===
 
