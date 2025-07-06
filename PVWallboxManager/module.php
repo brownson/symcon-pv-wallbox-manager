@@ -848,7 +848,6 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('info', "Ladung aktiviert: alw=1, amp=$ampere (für $leistung W, $phasen Phasen)");
     }
 
-    */
     /** Setzt den Wallbox-Modus (optional: z. B. für Phasenumschaltung/Status) */
     private function SetzeWallboxModus($modus)
     {
