@@ -1130,12 +1130,31 @@ private function DeaktiviereLaden()
             $this->LogTemplate('error', 'Keine gültige IP für die Wallbox eingetragen!');
             return false;
         }
-        // Schritt 1: dwo=0 zurücksetzen (für neuere HW/FW Pflicht)
-        $resetUrl = "http://$ip/api/set?dwo=0";
-        @file_get_contents($resetUrl); // Fehler ignorieren
 
-        // Schritt 2: Ladefreigabe setzen (alw)
+        // 1. Aktuellen alw-Wert direkt abfragen
+        $statusUrl = "http://$ip/api/status?filter=alw";
+        $statusData = @file_get_contents($statusUrl);
+        $alwCurrent = null;
+        if ($statusData !== false) {
+            $statusJson = @json_decode($statusData, true);
+            if (isset($statusJson['alw'])) {
+                $alwCurrent = intval($statusJson['alw']);
+            }
+        }
+
         $alwValue = $active ? 1 : 0;
+
+        // 2. Nur setzen, wenn Änderung nötig
+        if ($alwCurrent !== null && $alwCurrent === $alwValue) {
+            $this->LogTemplate('debug', "Ladefreigabe bleibt unverändert (alw=$alwCurrent an $ip)");
+            return true;
+        }
+
+        // 3. dwo=0 zurücksetzen (für neuere HW/FW Pflicht)
+        $resetUrl = "http://$ip/api/set?dwo=0";
+        @file_get_contents($resetUrl);
+
+        // 4. Ladefreigabe setzen (alw)
         $alwUrl = "http://$ip/mqtt?payload=alw=$alwValue";
         $result = @file_get_contents($alwUrl);
 
@@ -1146,6 +1165,7 @@ private function DeaktiviereLaden()
         $this->LogTemplate('info', "Ladefreigabe gesetzt: alw=$alwValue an $ip");
         return true;
     }
+
 
     // === 12. Hilfsfunktionen ===
 
