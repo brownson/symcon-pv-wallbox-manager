@@ -967,8 +967,7 @@ private function DeaktiviereLaden()
             return;
         }
 
-        // 'car' statt 'status'!
-        $carIdent = 'status';
+        $carIdent = 'status'; // go-e Instanz: Variable 'status' gibt den Fahrzeugstatus
         $carVarID = @IPS_GetObjectIDByIdent($carIdent, $goeID);
 
         if ($carVarID === false) {
@@ -983,15 +982,13 @@ private function DeaktiviereLaden()
             $eventID = IPS_CreateEvent(0); // Trigger bei Wertänderung
             IPS_SetParent($eventID, $this->InstanceID);
             IPS_SetIdent($eventID, $eventIdent);
-            IPS_SetName($eventID, "Trigger: UpdateCharging bei Fahrzeugstatus (car=2/3)");
-            IPS_SetEventTrigger($eventID, 1, $carVarID); // Wertänderung
+            IPS_SetName($eventID, "Trigger: UpdateCharging bei Fahrzeugstatus-Änderung");
+            IPS_SetEventTrigger($eventID, 1, $carVarID);
 
-            // Hier: Auf Status 2 oder 3 prüfen (Fahrzeug angesteckt oder lädt)
-            $code = 'if ($_IPS["VALUE"] == 2 || $_IPS["VALUE"] == 3) {'
-                . ' IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", true);'
-                . '}';
-
+            // <<< HIER PATCH >>>
+            $code = 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);';
             IPS_SetEventScript($eventID, $code);
+            // <<< PATCH ENDE >>>
             IPS_SetEventActive($eventID, true);
 
             $this->LogTemplate('info', "Ereignis für Fahrzeugstatus erstellt.", "Event-ID: {$eventID}");
@@ -1002,6 +999,9 @@ private function DeaktiviereLaden()
                 $this->LogTemplate('debug', "Trigger-Variable im Ereignis aktualisiert. (Event-ID: {$eventID})");
             }
             IPS_SetEventActive($eventID, true);
+            // PATCH AUCH HIER SICHERSTELLEN:
+            $code = 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);';
+            IPS_SetEventScript($eventID, $code);
             $this->LogTemplate('debug', "Ereignis zum sofortigen Update geprüft und reaktiviert. (Event-ID: {$eventID})");
         }
     }
