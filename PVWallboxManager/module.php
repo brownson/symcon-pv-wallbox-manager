@@ -422,8 +422,8 @@ class PVWallboxManager extends IPSModule
     /** Berechnet den aktuellen PV-Überschuss. */
     private function BerechnePVUeberschuss($pv, $verbrauch, $batterie, $wallbox = 0)
     {
-        $batt = max(0, $batterie); // Nur wenn >0
-        return $pv - $verbrauch - $batt + $wallbox;
+        //$batt = max(0, $batterie); // Nur wenn >0
+        return $pv - $verbrauch - $batterie + $wallbox;
     }
 
     /** Überschuss ggf. mit dynamischem Puffer/Hysterese berechnen */
