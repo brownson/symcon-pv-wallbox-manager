@@ -13,6 +13,7 @@ class PVWallboxManager extends IPSModule
     private $StopHystereseCounter = 0;
 
 
+
     // === 1. Initialisierung ===
 
     /** @inheritDoc */
@@ -644,37 +645,82 @@ class PVWallboxManager extends IPSModule
         $phasen_ist = $wb['WB_Phasen'] ?? 1;
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
 
-        // Umschaltung auf 3-phasig
-        if ($phasen_ist == 1 && $ladeleistung > $this->ReadPropertyFloat('Phasen3Schwelle')) {
-            $this->UmschaltenAuf3Phasig($goeID);
-            IPS_Sleep(1500); // Zeit für die Umschaltung geben
-            $wbNeu = $this->HoleGoEWallboxDaten();
-            $phasen_ist = $wbNeu['WB_Phasen'] ?? 3;
-            $this->LogTemplate('info', 'Umschaltung auf 3-phasig ausgelöst.', "Leistung: $ladeleistung W | ECHTE Phasen: $phasen_ist");
+        // Initialisierung der Attribute falls nicht vorhanden
+        if (!IPS_GetAttributeID($this->InstanceID, 'PhasenDownCounter')) {
+            $this->WriteAttributeInteger('PhasenDownCounter', 0);
         }
-        // Umschaltung auf 1-phasig
-        elseif ($phasen_ist == 3 && $ladeleistung < $this->ReadPropertyFloat('Phasen1Schwelle')) {
-            $this->UmschaltenAuf1Phasig($goeID);
+        if (!IPS_GetAttributeID($this->InstanceID, 'PhasenUpCounter')) {
+            $this->WriteAttributeInteger('PhasenUpCounter', 0);
+        }
+
+        // Umschaltung auf 1-phasig prüfen (nur wenn aktuell 3-phasig)
+        if ($phasen_ist == 3 && $this->PruefeHystereseDown($ladeleistung)) {
+            $this->UmschaltenAuf1Phasig();
             IPS_Sleep(1500);
             $wbNeu = $this->HoleGoEWallboxDaten();
             $phasen_ist = $wbNeu['WB_Phasen'] ?? 1;
             $this->LogTemplate('info', 'Umschaltung auf 1-phasig ausgelöst.', "Leistung: $ladeleistung W | ECHTE Phasen: $phasen_ist");
         }
-        // Egal was passiert ist: Immer aktuellen Phasenwert setzen!
-        //$this->SetValueSafe('AktuellePhasen', $phasen_ist);
+        // Umschaltung auf 3-phasig prüfen (nur wenn aktuell 1-phasig)
+        elseif ($phasen_ist == 1 && $this->PruefeHystereseUp($ladeleistung)) {
+            $this->UmschaltenAuf3Phasig();
+            IPS_Sleep(1500);
+            $wbNeu = $this->HoleGoEWallboxDaten();
+            $phasen_ist = $wbNeu['WB_Phasen'] ?? 3;
+            $this->LogTemplate('info', 'Umschaltung auf 3-phasig ausgelöst.', "Leistung: $ladeleistung W | ECHTE Phasen: $phasen_ist");
+        }
+
+        // Optional: Immer aktuellen Phasenwert speichern/anzeigen
+        // $this->SetValueSafe('AktuellePhasen', $phasen_ist);
     }
 
+    private function PruefeHystereseDown($ladeleistung)
+{
+    $phasen1Schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');    // z.B. 3400 W
+    $phasen1Limit    = $this->ReadPropertyInteger('Phasen1Limit');      // z.B. 3
+    $counter = $this->ReadAttributeInteger('PhasenDownCounter');
+    if ($ladeleistung < $phasen1Schwelle) {
+        $counter++;
+        $this->LogTemplate('debug', "Phasen-Hysterese-Down: $counter x < $phasen1Schwelle W");
+    } else {
+        $counter = 0;
+    }
+    $this->WriteAttributeInteger('PhasenDownCounter', $counter);
+    if ($counter >= $phasen1Limit) {
+        $this->WriteAttributeInteger('PhasenDownCounter', 0);
+        return true;
+    }
+    return false;
+}
+
+    private function PruefeHystereseUp($ladeleistung)
+    {
+        $phasen3Schwelle = $this->ReadPropertyFloat('Phasen3Schwelle');    // z.B. 4200 W
+        $phasen3Limit    = $this->ReadPropertyInteger('Phasen3Limit');      // z.B. 3
+        $counter = $this->ReadAttributeInteger('PhasenUpCounter');
+        if ($ladeleistung > $phasen3Schwelle) {
+            $counter++;
+            $this->LogTemplate('debug', "Phasen-Hysterese-Up: $counter x > $phasen3Schwelle W");
+        } else {
+            $counter = 0;
+        }
+        $this->WriteAttributeInteger('PhasenUpCounter', $counter);
+        if ($counter >= $phasen3Limit) {
+            $this->WriteAttributeInteger('PhasenUpCounter', 0);
+            return true;
+        }
+        return false;
+    }
+
+    // Umschaltfunktionen bleiben wie gehabt
     private function UmschaltenAuf1Phasig()
     {
-        // Ladung stoppen (alw=0 immer über neue zentrale Funktion)
         $this->SetGoEChargingActive(false);
         IPS_Sleep(1200);
 
-        // 1-phasig umschalten
         $this->SetGoEParameter(['fsp' => 1]); // 1-phasig
         IPS_Sleep(1200);
 
-        // Ladung wieder freigeben
         $this->SetGoEChargingActive(true);
 
         $this->LogTemplate('info', 'Phasenumschaltung auf 1-phasig abgeschlossen.');
@@ -682,15 +728,12 @@ class PVWallboxManager extends IPSModule
 
     private function UmschaltenAuf3Phasig()
     {
-        // Ladung stoppen (alw=0 immer über neue zentrale Funktion)
         $this->SetGoEChargingActive(false);
         IPS_Sleep(1200);
 
-        // 3-phasig umschalten
         $this->SetGoEParameter(['fsp' => 0]); // 3-phasig
         IPS_Sleep(1200);
 
-        // Ladung wieder freigeben
         $this->SetGoEChargingActive(true);
 
         $this->LogTemplate('info', 'Phasenumschaltung auf 3-phasig abgeschlossen.');
