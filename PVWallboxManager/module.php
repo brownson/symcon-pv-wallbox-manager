@@ -314,40 +314,25 @@ class PVWallboxManager extends IPSModule
                         $stopCounter = 0;
                         if ($startCounter >= $startHysterese) {
                             $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                            $this->LogTemplate('info', "Hysterese erfüllt, Ladeleistung wird aktiviert: {$ladeleistung} W");
-                            $this->SetzeLadeleistung($ladeleistung); // <-- API-Befehl!
-                            $this->SetValueSafe('WB_Ladeleistung_Soll', $ladeleistung, 1);
+                            $this->SetzeLadeleistung($ladeleistung); // <-- HIER nur freigeben!
                             $startCounter = 0;
-                        } else {
-                            $ladeleistung = 0;
-                            $this->SetzeLadeleistung($ladeleistung); // <-- Wallbox sperren!
-                            $this->SetValueSafe('WB_Ladeleistung_Soll', $ladeleistung, 1);
                         }
                     } else {
                         $startCounter = 0;
-                        $ladeleistung = 0;
-                        $this->SetzeLadeleistung($ladeleistung); // <-- Wallbox sperren!
-                        $this->SetValueSafe('WB_Ladeleistung_Soll', $ladeleistung, 1);
                     }
-                } else {
+                } else { // Ladevorgang läuft!
                     if ($ueberschuss <= $minStopWatt) {
                         $stopCounter++;
                         $startCounter = 0;
                         if ($stopCounter >= $stopHysterese) {
                             $ladeleistung = 0;
-                            $this->SetzeLadeleistung($ladeleistung); // <-- Wallbox sperren!
-                            $this->SetValueSafe('WB_Ladeleistung_Soll', $ladeleistung, 1);
+                            $this->SetzeLadeleistung($ladeleistung); // <-- HIER stoppen!
                             $stopCounter = 0;
-                        } else {
-                            $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                            $this->SetzeLadeleistung($ladeleistung); // <-- Wallbox läuft weiter
-                            $this->SetValueSafe('WB_Ladeleistung_Soll', $ladeleistung, 1);
                         }
                     } else {
                         $stopCounter = 0;
                         $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
-                        $this->SetzeLadeleistung($ladeleistung); // <-- Wallbox läuft weiter
-                        $this->SetValueSafe('WB_Ladeleistung_Soll', $ladeleistung, 1);
+                        $this->SetzeLadeleistung($ladeleistung); // <-- Nachregeln falls mehr Überschuss
                     }
                 }
 
