@@ -842,6 +842,8 @@ class PVWallboxManager extends IPSModule
         $ampere = round($leistung / ($phasen * $spannung));
         $ampere = max($minAmp, min($maxAmp, $ampere)); // Clamp zwischen Min/Max
 
+        $this->LogTemplate('debug', "SetzeLadeleistung: Gefordert $leistung W, Minimum erlaubt: ".($minAmp * $phasen * $spannung)." W");
+
         // Falls Leistung unter Minimum (also unter minAmp*Phasen*Spannung): abschalten
         if ($leistung < ($minAmp * $phasen * $spannung)) {
             $this->SetGoEParameter(['alw' => 0]);
