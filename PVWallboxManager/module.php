@@ -309,7 +309,6 @@ class PVWallboxManager extends IPSModule
                 // Nur das, was für's Auto übrig ist, kommt weiter
                 $ueberschuss = $ladeleistungAuto;
 
-                // ... ab hier wie gehabt ...
                 $minLadeWatt     = $this->ReadPropertyFloat('MinLadeWatt');
                 $minStopWatt     = $this->ReadPropertyFloat('MinStopWatt');
                 $startHysterese  = $this->ReadPropertyInteger('StartHysterese');
@@ -321,10 +320,12 @@ class PVWallboxManager extends IPSModule
                 if (!$istAmLaden) {
                     if ($ueberschuss >= $minLadeWatt) {
                         $startCounter++;
+                        $stopCounter = 0; // Stop-Zähler nur beim Start-Fall zurücksetzen!
+                        $this->LogTemplate('debug', "... Hyst: $startCounter/$startHysterese");
                         if ($startCounter >= $startHysterese) {
                             $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
                             $startCounter = 0;
-                            $stopCounter  = 0;
+                            //$stopCounter  = 0;
                         } else {
                             $ladeleistung = 0;
                         }
@@ -335,10 +336,12 @@ class PVWallboxManager extends IPSModule
                 } else {
                     if ($ueberschuss <= $minStopWatt) {
                         $stopCounter++;
+                        $startCounter = 0; // Start-Zähler nur beim Stop-Fall zurücksetzen!
+                        $this->LogTemplate('debug', "... Hyst: $stopCounter/$stopHysterese");
                         if ($stopCounter >= $stopHysterese) {
                             $ladeleistung = 0;
                             $stopCounter  = 0;
-                            $startCounter = 0;
+                            //$startCounter = 0;
                         } else {
                             $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
                         }
