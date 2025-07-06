@@ -177,17 +177,13 @@ class PVWallboxManager extends IPSModule
 
         // Modul aktiv?
         if (!$this->ReadPropertyBoolean('ModulAktiv')) {
-            // Neu: Alles stoppen und Variablen zurücksetzen!
+            $this->LogTemplate('warn', "PVWallbox-Manager ist deaktiviert.", "Automatische Steuerung aktuell ausgesetzt.");
+            // Werte zurücksetzen:
             $this->DeaktiviereLaden();
-
-            $this->SetValueSafe('WB_Ladeleistung_Soll', 0, 1);
-            $this->SetValueSafe('WB_Ladeleistung_Ist', 0, 1);
-            $this->SetValueSafe('AktuellePhasen', 0, 0);
-
-            $status = "Das Modul ist deaktiviert – automatische Steuerung ausgesetzt.";
-            $this->SetLademodusStatus($status);
-            $this->LogTemplate('warn', "PVWallbox-Manager ist deaktiviert.", $status);
-
+            $this->SetValueSafe('WB_Ladeleistung_Soll', 0, 1, 'W');
+            $this->SetValueSafe('WB_Ladeleistung_Ist', 0, 1, 'W');
+            $this->SetValueSafe('AktuellePhasen', 0);
+            $this->SetValueSafe('Ziel-Ladezeit', 0);
             return;
         }
 
@@ -225,16 +221,13 @@ class PVWallboxManager extends IPSModule
         // --- Hier $wb übergeben! ---
         if (!$this->IstFahrzeugVerbunden($wb)) {
             $this->DeaktiviereLaden();
-
-            // Neu: ALLE Lade-bezogenen Werte sofort auf 0 oder neutral setzen!
-            $this->SetValueSafe('WB_Ladeleistung_Soll', 0, 1);
-            $this->SetValueSafe('WB_Ladeleistung_Ist', 0, 1);
-            $this->SetValueSafe('AktuellePhasen', 0, 0);
-            // Optional: Lademodus auf Standard „Nur PV“ zurück (sofern sinnvoll)
-            $this->SetValueSafe('AktiverLademodus', 0, 0);
-
             $status = "Die Wallbox wartet auf ein angestecktes Auto.";
             $this->SetLademodusStatus($status);
+            $this->SetValueSafe('WB_Ladeleistung_Soll', 0, 1, 'W');
+            $this->SetValueSafe('WB_Ladeleistung_Ist', 0, 1, 'W');
+            $this->SetValueSafe('AktuellePhasen', 0);
+            $this->SetValueSafe('Ziel-Ladezeit', 0);
+            // ... ggf. weitere zurücksetzen ...
             $this->LogTemplate('info', "Kein Fahrzeug verbunden.", $status);
             $this->SetLademodusAutoReset();
             $this->UpdateAccessStateText();
