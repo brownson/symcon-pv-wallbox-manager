@@ -282,6 +282,9 @@ class PVWallboxManager extends IPSModule
                 list($ladeleistungAuto, $ladeleistungHausakku) = $this->PriorisiereEigenverbrauch(
                     $pv, $haus, $battSOC, $hausakkuVollSchwelle, $autoAngesteckt
                 );
+                $startCounter = (int)$this->GetBuffer('StartHystereseCounter');
+                $stopCounter  = (int)$this->GetBuffer('StopHystereseCounter');
+
                 $this->LogTemplate('debug',
                     sprintf(
                         "PV: %.0f W | Haus: %.0f W | Batt: %.0f W | WB: %.0f W | Puffer: %d W (%d%%) | Überschuss: %.0f W | Hyst: %d/%d",
@@ -299,8 +302,8 @@ class PVWallboxManager extends IPSModule
                 $startHysterese  = $this->ReadPropertyInteger('StartHysterese');
                 $stopHysterese   = $this->ReadPropertyInteger('StopHysterese');
                 $istAmLaden = ($wb['WB_Status'] ?? 0) == 2; // 2 = lädt
-                $startCounter = (int)$this->GetBuffer('StartHystereseCounter');
-                $stopCounter  = (int)$this->GetBuffer('StopHystereseCounter');
+                //$startCounter = (int)$this->GetBuffer('StartHystereseCounter');
+                //$stopCounter  = (int)$this->GetBuffer('StopHystereseCounter');
 
                 if (!$istAmLaden) {
                     if ($ueberschuss >= $minLadeWatt) {
