@@ -685,13 +685,7 @@ class PVWallboxManager extends IPSModule
     {
         $phasen_ist = $wb['WB_Phasen'] ?? 1;
 
-        // Initialisierung der Attribute falls nicht vorhanden
-        if (!IPS_GetAttributeID($this->InstanceID, 'PhasenDownCounter')) {
-            $this->WriteAttributeInteger('PhasenDownCounter', 0);
-        }
-        if (!IPS_GetAttributeID($this->InstanceID, 'PhasenUpCounter')) {
-            $this->WriteAttributeInteger('PhasenUpCounter', 0);
-        }
+        // Attribute werden in IP-Symcon automatisch auf 0 initialisiert, keine manuelle Prüfung nötig!
 
         $umschaltung = false;
 
