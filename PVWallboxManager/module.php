@@ -151,6 +151,8 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateCharging()
     {
+        $this->LogTemplate('debug', "=== UpdateCharging Durchlauf Start === ".date('H:i:s'));
+
         $wb = $this->HoleGoEWallboxDaten();
         if (!is_array($wb)) {
             $this->LogTemplate('error', "Wallbox-Daten konnten nicht abgerufen werden, Update abgebrochen.");
@@ -168,7 +170,7 @@ class PVWallboxManager extends IPSModule
         $status = $wb['WB_Status'] ?? null;
         $this->LogTemplate('info', "Check: \$status = " . var_export($status, true) . ", verbunden? " . ($this->IstFahrzeugVerbunden($wb) ? 'JA' : 'NEIN'));
 
-        // Prüfe: Nur laden, wenn Fahrzeug verbunden
+        // Prüfe: Nur laden, wenn Fahrzeug verbunden (diese Prüfung reicht!)
         if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden($wb)) {
             $this->SetzeAccessStateV2WennNoetig($goeID, 1); // Gesperrt
             $status = "Bitte das Fahrzeug mit der Wallbox verbinden.";
@@ -177,7 +179,7 @@ class PVWallboxManager extends IPSModule
             $this->SetLademodusAutoReset();
             $this->UpdateAccessStateText();
 
-             // Werte sauber zurücksetzen!
+            // Werte sauber zurücksetzen!
             $this->SetValueSafe('WB_Ladeleistung_Soll', 0, 1, 'W');
             $this->SetValueSafe('WB_Ladeleistung_Ist', 0, 1, 'W');
             //$this->SetValueSafe('AktuellePhasen', 1);
@@ -213,7 +215,6 @@ class PVWallboxManager extends IPSModule
         $hausakkuVollSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle'); // z.B. 90
         $autoAngesteckt = $this->IstFahrzeugVerbunden($wb);
 
-
         // Rohwert und Puffer berechnen
         $roh_ueberschuss = $this->BerechnePVUeberschuss($pv, $haus, $batt, $wb_leistung);
         list($ueberschuss, $pufferFaktor) = $this->BerechnePVUeberschussMitPuffer($roh_ueberschuss);
@@ -230,23 +231,7 @@ class PVWallboxManager extends IPSModule
         // Aktiven Lademodus bestimmen
         $modus = $this->ErmittleAktivenLademodus();
 
-        // --- Hier $wb übergeben! ---
-        if (!$this->IstFahrzeugVerbunden($wb)) {
-            $this->DeaktiviereLaden();
-            $status = "Die Wallbox wartet auf ein angestecktes Auto.";
-            $this->SetLademodusStatus($status);
-            $this->SetValueSafe('WB_Ladeleistung_Soll', 0, 1, 'W');
-            $this->SetValueSafe('WB_Ladeleistung_Ist', 0, 1, 'W');
-            $this->SetValueSafe('AktuellePhasen', 0);
-            $this->SetValueSafe('Ziel-Ladezeit', 0);
-            // ... ggf. weitere zurücksetzen ...
-            $this->LogTemplate('info', "Kein Fahrzeug verbunden.", $status);
-            $this->SetLademodusAutoReset();
-            $this->UpdateAccessStateText();
-            return;
-        }
-
-        // --- Nach dem Fahrzeug-Check: Statusanzeige setzen, wenn verbunden! ---
+        // --- Statusanzeige im WebFront: Status setzen ---
         $statusNum = $wb['WB_Status'] ?? 0;
         switch ($statusNum) {
             case 1:
@@ -297,14 +282,14 @@ class PVWallboxManager extends IPSModule
                 list($ladeleistungAuto, $ladeleistungHausakku) = $this->PriorisiereEigenverbrauch(
                     $pv, $haus, $battSOC, $hausakkuVollSchwelle, $autoAngesteckt
                 );
-            $this->LogTemplate('debug',
-            sprintf(
-                "PV: %.0f W | Haus: %.0f W | Batt: %.0f W | WB: %.0f W | Puffer: %d W (%d%%) | Überschuss: %.0f W | Hyst: %d/%d",
-                $pv, $haus, $batt, $wb_leistung,
-                round($puffer_diff), $puffer_prozent,
-                $ueberschuss, $startCounter, $stopCounter
-            )
-        );
+                $this->LogTemplate('debug',
+                    sprintf(
+                        "PV: %.0f W | Haus: %.0f W | Batt: %.0f W | WB: %.0f W | Puffer: %d W (%d%%) | Überschuss: %.0f W | Hyst: %d/%d",
+                        $pv, $haus, $batt, $wb_leistung,
+                        round($puffer_diff), $puffer_prozent,
+                        $ueberschuss, $startCounter, $stopCounter
+                    )
+                );
 
                 // Nur das, was für's Auto übrig ist, kommt weiter
                 $ueberschuss = $ladeleistungAuto;
@@ -320,12 +305,10 @@ class PVWallboxManager extends IPSModule
                 if (!$istAmLaden) {
                     if ($ueberschuss >= $minLadeWatt) {
                         $startCounter++;
-                        $stopCounter = 0; // Stop-Zähler nur beim Start-Fall zurücksetzen!
-                        $this->LogTemplate('debug', "... Hyst: $startCounter/$startHysterese");
+                        $stopCounter = 0;
                         if ($startCounter >= $startHysterese) {
                             $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
                             $startCounter = 0;
-                            //$stopCounter  = 0;
                         } else {
                             $ladeleistung = 0;
                         }
@@ -336,12 +319,10 @@ class PVWallboxManager extends IPSModule
                 } else {
                     if ($ueberschuss <= $minStopWatt) {
                         $stopCounter++;
-                        $startCounter = 0; // Start-Zähler nur beim Stop-Fall zurücksetzen!
-                        $this->LogTemplate('debug', "... Hyst: $stopCounter/$stopHysterese");
+                        $startCounter = 0;
                         if ($stopCounter >= $stopHysterese) {
                             $ladeleistung = 0;
-                            $stopCounter  = 0;
-                            //$startCounter = 0;
+                            $stopCounter = 0;
                         } else {
                             $ladeleistung = $this->BerechneLadeleistungNurPV($ueberschuss);
                         }
@@ -371,6 +352,7 @@ class PVWallboxManager extends IPSModule
             break;
         }
     }
+
 
         private function EnsureLademodusProfile()
         {
