@@ -115,6 +115,9 @@ class PVWallboxManager extends IPSModule
         //$this->RegisterVariableInteger('HystereseZaehler', 'Phasen-Hysteresezähler', '', 60);
         $this->RegisterVariableInteger('AktuellePhasen', 'Aktuelle Phasen', '', 80);
         $this->EnsurePhasenCounterAttributes();
+        $this->RegisterAttributeInteger('PhasenDownCounter', 0);
+        $this->RegisterAttributeInteger('PhasenUpCounter', 0);
+
 
         // Timer für Berechnungsintervall
         $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
@@ -1504,10 +1507,6 @@ private function DeaktiviereLaden()
 
     private function GetOrInitAttributeInteger($name, $default = 0)
     {
-        if (!@$this->ReadAttributeInteger($name) && $this->ReadAttributeInteger($name) !== 0) {
-            $this->WriteAttributeInteger($name, $default);
-            return $default;
-        }
         return $this->ReadAttributeInteger($name);
     }
 
