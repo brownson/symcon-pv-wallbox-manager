@@ -291,15 +291,15 @@ class PVWallboxManager extends IPSModule
                 $stopCounter  = (int)$this->GetBuffer('StopHystereseCounter');
 
                 // Debug-Log (vor der eigentlichen Schaltlogik)
-                $this->LogTemplate(
-                    'debug',
-                    sprintf(
-                        "PV: %.0f W | Haus: %.0f W | Batt: %.0f W | WB: %.0f W | Puffer: %d W (%d%%) | Überschuss: %.0f W | Hyst: %d/%d",
-                        $pv, $haus, $batt, $wb_leistung,
-                        round($puffer_diff), $puffer_prozent,
-                        $ueberschuss, $startCounter, $stopCounter
-                    )
-                );
+                //$this->LogTemplate(
+                //    'debug',
+                //    sprintf(
+                //        "PV: %.0f W | Haus: %.0f W | Batt: %.0f W | WB: %.0f W | Puffer: %d W (%d%%) | Überschuss: %.0f W | Hyst: %d/%d",
+                //        $pv, $haus, $batt, $wb_leistung,
+                //       round($puffer_diff), $puffer_prozent,
+                //        $ueberschuss, $startCounter, $stopCounter
+                //    )
+                //);
 
                 // Schwellwerte und Hysterese einlesen
                 $minLadeWatt    = $this->ReadPropertyFloat('MinLadeWatt');
