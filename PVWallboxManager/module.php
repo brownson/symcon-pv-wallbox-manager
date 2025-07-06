@@ -177,7 +177,17 @@ class PVWallboxManager extends IPSModule
 
         // Modul aktiv?
         if (!$this->ReadPropertyBoolean('ModulAktiv')) {
-            $this->LogTemplate('warn', "PVWallbox-Manager ist deaktiviert.", "Automatische Steuerung aktuell ausgesetzt.");
+            // Neu: Alles stoppen und Variablen zurücksetzen!
+            $this->DeaktiviereLaden();
+
+            $this->SetValueSafe('WB_Ladeleistung_Soll', 0, 1);
+            $this->SetValueSafe('WB_Ladeleistung_Ist', 0, 1);
+            $this->SetValueSafe('AktuellePhasen', 0, 0);
+
+            $status = "Das Modul ist deaktiviert – automatische Steuerung ausgesetzt.";
+            $this->SetLademodusStatus($status);
+            $this->LogTemplate('warn', "PVWallbox-Manager ist deaktiviert.", $status);
+
             return;
         }
 
@@ -215,6 +225,14 @@ class PVWallboxManager extends IPSModule
         // --- Hier $wb übergeben! ---
         if (!$this->IstFahrzeugVerbunden($wb)) {
             $this->DeaktiviereLaden();
+
+            // Neu: ALLE Lade-bezogenen Werte sofort auf 0 oder neutral setzen!
+            $this->SetValueSafe('WB_Ladeleistung_Soll', 0, 1);
+            $this->SetValueSafe('WB_Ladeleistung_Ist', 0, 1);
+            $this->SetValueSafe('AktuellePhasen', 0, 0);
+            // Optional: Lademodus auf Standard „Nur PV“ zurück (sofern sinnvoll)
+            $this->SetValueSafe('AktiverLademodus', 0, 0);
+
             $status = "Die Wallbox wartet auf ein angestecktes Auto.";
             $this->SetLademodusStatus($status);
             $this->LogTemplate('info', "Kein Fahrzeug verbunden.", $status);
