@@ -1181,7 +1181,7 @@ private function DeaktiviereLaden()
         }
 
         // --- Phasen auswerten: numerisch 1 oder 3 ---
-        $phasen = 0;
+        /**$phasen = 0;
         if (isset($data['pha']) && is_array($data['pha'])) {
             // In V4 ist das ein Array mit den Strömen pro Phase (A)
             // 0: L1, 1: L2, 2: L3, 3: bool L1 aktiv, 4: bool L2 aktiv, 5: bool L3 aktiv
@@ -1196,6 +1196,17 @@ private function DeaktiviereLaden()
                 // Du kannst notfalls auf 1 oder 3 mappen oder Fehler werfen
             }
         }
+        */
+        $phasen = 0;
+        if (isset($data['pha'])) {
+            $phasen = $this->ZaehleAktivePhasen($data['pha']);
+        }
+        $werte = [
+            // ...
+            'WB_Phasen' => $phasen,
+            // ...
+        ];
+        $this->SetValueSafe('AktuellePhasen', $phasen, 0);
 
         $werte = [
             'WB_Ladeleistung_W'    => $data['nrg'][11] ?? null,   // Aktuelle Ladeleistung am Ladepunkt in Watt (W)
@@ -1561,6 +1572,18 @@ private function DeaktiviereLaden()
     private function GetAttributes() {
         $obj = IPS_GetInstance($this->InstanceID);
         return isset($obj['Attributes']) ? $obj['Attributes'] : [];
+    }
+
+    private function ZaehleAktivePhasen($pha)
+    {
+        // pha kann als int oder string (dezimal, hex, etc.) kommen
+        $value = intval($pha);
+        // Alle Bits zählen, die auf 1 stehen
+        $anzahl = 0;
+        for ($i = 0; $i < 8; $i++) {
+            if (($value >> $i) & 1) $anzahl++;
+        }
+        return $anzahl;
     }
 
 }
