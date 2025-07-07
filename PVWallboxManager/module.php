@@ -149,8 +149,11 @@ class PVWallboxManager extends IPSModule
         $this->UpdateAccessStateText();
         $this->CheckSchwellenwerte();
 
-        $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
-        $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
+        //$this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
+        //$this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
+        $this->WriteAttributeInteger('PhasenDownCounter', 0);
+        $this->WriteAttributeInteger('PhasenUpCounter', 0);
+
     }
 
     public function UpdateCharging()
