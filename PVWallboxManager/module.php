@@ -6,20 +6,20 @@
  */
 class PVWallboxManager extends IPSModule
 {
-    // === Private Klassen ===
+    // === Private Klassenvariablen ===
     private $ladeStartZaehler = 0;
     private $ladeStopZaehler = 0;
     private $StartHystereseCounter = 0;
     private $StopHystereseCounter = 0;
 
-
-
-    // === 1. Initialisierung ===
+    // =========================================================================
+    // 1. INITIALISIERUNG
+    // =========================================================================
 
     /** @inheritDoc */
     public function Create()
     {
-        parent::Create();
+		parent::Create();
         // === 1. Modulsteuerung ===
         $this->RegisterPropertyBoolean('ModulAktiv', true);
         $this->RegisterPropertyBoolean('DebugLogging', false);
@@ -157,6 +157,116 @@ class PVWallboxManager extends IPSModule
         // $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
         // $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
     }
+
+    // =========================================================================
+    // 2. REQUESTACTION / TIMER / EVENTS
+    // =========================================================================
+
+    public function RequestAction($ident, $value)
+    {
+        switch ($ident) {
+            case 'AktiverLademodus':
+                $this->SetValueSafe($ident, $value);
+                $this->LogTemplate('info', "Lademodus geändert.", "Neuer Modus: ".$this->GetLademodusText($value));
+                $this->ladeStartZaehler = 0; // Hysterese-Zähler zurücksetzen!
+                $this->ladeStopZaehler = 0;  // Hysterese-Zähler zurücksetzen!
+                $this->UpdateCharging(); // Nach jedem Wechsel berechnen
+                break;
+            case 'UpdateCharging':
+                $this->UpdateCharging(); // <- Hier wird die Methode wirklich ausgeführt!
+                break;
+            case 'LockReset':
+                if ($value) {
+                    $this->ResetLock();
+                    $this->SetValue('LockReset', false); // Button sofort zurücksetzen
+                }
+                break;
+            default:
+                throw new Exception("Invalid ident: $ident");
+        }
+    }
+
+    public function OnFahrzeugStatusChange(int $neuerStatus)
+    {
+        // Status 2 = verbunden, 3 = lädt (go-e Standard)
+        if ($neuerStatus == 2 || $neuerStatus == 3) {
+            // Initialisierungen ausführen:
+            $this->LogTemplate('info', "Fahrzeug verbunden.", "Starte Initial-Check für Lademanager.");
+
+            // Alle relevanten Variablen/Lademodi zurücksetzen
+            $this->SetLademodusAutoReset();
+
+            // Sofort den Ladeprozess und die Ladeberechnung anstoßen
+            $this->UpdateCharging();
+
+            // Zusätzliche Aktionen: Logging, Timestamp setzen, etc.
+            $this->SetValueSafe('LetzterFahrzeugCheck', time(), 1);
+
+            // Optional: Push-Notification
+            // $this->SendePush("Fahrzeug angesteckt: Lademanager aktiv.");
+        }
+    }
+
+    private function CreateCarStatusEvent($goeID)
+    {
+        if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
+            $this->LogTemplate('warn', "Ereignis-Setup fehlgeschlagen.", "Keine gültige GO-e Instanz hinterlegt (ID: $goeID).");
+            return;
+        }
+
+        $carIdent = 'status'; // go-e Instanz: Variable 'status' gibt den Fahrzeugstatus
+        $carVarID = @IPS_GetObjectIDByIdent($carIdent, $goeID);
+
+        if ($carVarID === false) {
+            $this->LogTemplate('warn', "Fahrzeugstatus-Variable nicht gefunden.", "Kein 'status'-Wert in der GO-e Instanz (ID: $goeID).");
+            return;
+        }
+
+        $eventIdent = 'Trigger_UpdateCharging_OnCarStatusChange';
+        $eventID = @IPS_GetObjectIDByIdent($eventIdent, $this->InstanceID);
+
+        if ($eventID === false) {
+            $eventID = IPS_CreateEvent(0); // Trigger bei Wertänderung
+            IPS_SetParent($eventID, $this->InstanceID);
+            IPS_SetIdent($eventID, $eventIdent);
+            IPS_SetName($eventID, "Trigger: UpdateCharging bei Fahrzeugstatus-Änderung");
+            IPS_SetEventTrigger($eventID, 1, $carVarID);
+
+            // <<< HIER PATCH >>>
+            $code = 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);';
+            IPS_SetEventScript($eventID, $code);
+            // <<< PATCH ENDE >>>
+            IPS_SetEventActive($eventID, true);
+
+            $this->LogTemplate('info', "Ereignis für Fahrzeugstatus erstellt.", "Event-ID: {$eventID}");
+        } else {
+            // Existierendes Ereignis ggf. anpassen
+            if (@IPS_GetEvent($eventID)['TriggerVariableID'] != $carVarID) {
+                IPS_SetEventTrigger($eventID, 1, $carVarID);
+                $this->LogTemplate('debug', "Trigger-Variable im Ereignis aktualisiert. (Event-ID: {$eventID})");
+            }
+            IPS_SetEventActive($eventID, true);
+            // PATCH AUCH HIER SICHERSTELLEN:
+            $code = 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);';
+            IPS_SetEventScript($eventID, $code);
+            $this->LogTemplate('debug', "Ereignis zum sofortigen Update geprüft und reaktiviert. (Event-ID: {$eventID})");
+        }
+    }
+
+    private function StarteRegelmaessigeBerechnung()
+    {
+        $interval = $this->ReadPropertyInteger('RefreshInterval') * 1000;
+        $this->SetTimerInterval('UpdateCharging', $interval);
+    }
+
+    private function StoppeRegelmaessigeBerechnung()
+    {
+        $this->SetTimerInterval('UpdateCharging', 0);
+    }
+
+    // =========================================================================
+    // 3. ZENTRALE STEUERLOGIK
+    // =========================================================================
 
     public function UpdateCharging()
     {
@@ -394,22 +504,66 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+    // =========================================================================
+    // 4. LADEMODI-HANDLER
+    // =========================================================================
 
-    private function EnsureLademodusProfile()
+    private function ErmittleAktivenLademodus()
     {
-        $profil = 'PVWM.Lademodus';
-        if (!IPS_VariableProfileExists($profil)) {
-            IPS_CreateVariableProfile($profil, 1); // 1 = Integer
-            IPS_SetVariableProfileIcon($profil, 'ElectricCar');
-            IPS_SetVariableProfileValues($profil, 0, 4, 1);
-            IPS_SetVariableProfileAssociation($profil, 0, 'Nur PV', '', -1);
-            IPS_SetVariableProfileAssociation($profil, 1, 'Manuell', 'lightbulb', -1);
-            IPS_SetVariableProfileAssociation($profil, 2, 'PV2Car', 'solar-panel', -1);
-            IPS_SetVariableProfileAssociation($profil, 3, 'Zielzeit', 'clock', -1);
-            IPS_SetVariableProfileAssociation($profil, 4, 'Strompreis', 'euro', -1);
+        $id = @$this->GetIDForIdent('AktiverLademodus');
+        $modus = ($id > 0) ? GetValue($id) : 0;
+
+        // (Pseudologik – baue nach deinen Regeln aus)
+        // Reihenfolge: Manuell > PV2Car > Zielzeit > NurPV > Strompreis
+
+        // Beispiel: Prüfen, ob Volllademodus aktiviert ist (Variable oder Property)
+        if ($modus == 1) {
+            return 'manuell';  // Wenn manuell aktiviert
         }
+        if ($modus == 2) {
+            return 'pv2car';   // Wenn PV2Car aktiviert
+        }
+        if ($modus == 3) {
+            return 'zielzeit'; // Wenn Zielzeit aktiviert
+        }
+        if ($modus == 4) {
+            return 'strompreis'; // Wenn Strompreis aktiviert
+        }
+
+        // Wenn keiner der obigen Modi aktiviert ist, Standardmodi 'nurpv'
+        return 'nurpv';
     }
 
+    private function ModusManuell()
+    {
+        // TODO
+    }
+
+    private function ModusPV2Car()
+    {
+        // TODO
+    }
+
+    private function ModusZielzeit()
+    {
+        // TODO
+    }
+
+    private function ModusNurPV()
+    {
+        // TODO
+    }
+
+    private function ModusStrompreis()
+    {
+        // TODO
+    }
+
+    // =========================================================================
+    // 5. LADELEISTUNG / BERECHNUNGEN / HYSTERESE / PHASEN
+    // =========================================================================
+
+    // --- Energie-/Überschussberechnung ---
     private function LeseEnergiewert($id, $einheit = 'W', $invert = false)
     {
         if ($id > 0 && @IPS_VariableExists($id)) {
@@ -425,7 +579,6 @@ class PVWallboxManager extends IPSModule
         return 0.0;
     }
 
-    /** PV-Erzeugung (Watt, immer positiv) */
     private function LesePVErzeugung()
     {
         return $this->LeseEnergiewert(
@@ -435,7 +588,6 @@ class PVWallboxManager extends IPSModule
         );
     }
 
-    /** Netzeinspeisung (Watt, positiv = Einspeisung) */
     private function LeseNetzeinspeisung()
     {
         return $this->LeseEnergiewert(
@@ -445,7 +597,6 @@ class PVWallboxManager extends IPSModule
         );
     }
 
-    /** Hausverbrauch (Watt, immer positiv) */
     private function LeseHausverbrauch()
     {
         return $this->LeseEnergiewert(
@@ -455,7 +606,6 @@ class PVWallboxManager extends IPSModule
         );
     }
 
-    /** Batterie-Leistung (Watt, positiv = Laden, negativ = Entladen) */
     private function LeseBatterieleistung()
     {
         return $this->LeseEnergiewert(
@@ -465,22 +615,17 @@ class PVWallboxManager extends IPSModule
         );
     }
 
-    /** Holt die aktuelle Ladeleistung aus der GO-e Instanz */
     private function LeseWallboxLeistung($wb)
     {
         return (float)($wb['WB_Ladeleistung_W'] ?? 0.0);
-    }
+    }}
 
-    // === 3. Überschuss-Berechnung ===
-
-    /** Berechnet den aktuellen PV-Überschuss. */
     private function BerechnePVUeberschuss($pv, $verbrauch, $batterie, $wallbox = 0)
     {
         //$batt = max(0, $batterie); // Nur wenn >0
         return $pv - $verbrauch - $batterie + $wallbox;
     }
 
-    /** Überschuss ggf. mit dynamischem Puffer/Hysterese berechnen */
     private function BerechnePVUeberschussMitPuffer($rohwert)
     {
     $pufferFaktor = 1.0;
@@ -499,7 +644,6 @@ class PVWallboxManager extends IPSModule
     return [$PVUeberschussMitPuffer, $pufferFaktor];
     }
 
-    /** Berechnet den PV-Überschuss unter Berücksichtigung der Hysterese für Start- und Stoppwerte.*/
     private function BerechneUeberschussMitHysterese($ueberschuss, $start = true)
     {
     // Hole die Hysterese aus den Properties (Start oder Stopp)
@@ -556,74 +700,12 @@ class PVWallboxManager extends IPSModule
         return $this->ladeStartZaehler > 0; // oder eine andere Default-Logik
     }
 
-    // === 4. Modussteuerung ===
-
-    /** Welcher Lademodus ist aktiv? (manuell/PV2Car/Zielzeit/NurPV/...) */
-    private function ErmittleAktivenLademodus()
-    {
-        $id = @$this->GetIDForIdent('AktiverLademodus');
-        $modus = ($id > 0) ? GetValue($id) : 0;
-
-        // (Pseudologik – baue nach deinen Regeln aus)
-        // Reihenfolge: Manuell > PV2Car > Zielzeit > NurPV > Strompreis
-
-        // Beispiel: Prüfen, ob Volllademodus aktiviert ist (Variable oder Property)
-        if ($modus == 1) {
-            return 'manuell';  // Wenn manuell aktiviert
-        }
-        if ($modus == 2) {
-            return 'pv2car';   // Wenn PV2Car aktiviert
-        }
-        if ($modus == 3) {
-            return 'zielzeit'; // Wenn Zielzeit aktiviert
-        }
-        if ($modus == 4) {
-            return 'strompreis'; // Wenn Strompreis aktiviert
-        }
-
-        // Wenn keiner der obigen Modi aktiviert ist, Standardmodi 'nurpv'
-        return 'nurpv';
-    }
-
-    /** Manuell-Modus behandeln */
-    private function ModusManuell()
-    {
-        // TODO
-    }
-
-    /** PV2Car-Modus behandeln */
-    private function ModusPV2Car()
-    {
-        // TODO
-    }
-
-    /** Zielzeit-Lademodus behandeln */
-    private function ModusZielzeit()
-    {
-        // TODO
-    }
-
-    /** Nur-PV-Lademodus behandeln */
-    private function ModusNurPV()
-    {
-        // TODO
-    }
-
-    /** Strompreisgesteuerter Lademodus behandeln */
-    private function ModusStrompreis()
-    {
-        // TODO
-    }
-
-    // === 5. Ladeleistungs-Berechnung (je Modus) ===
-
-    /** Volllademodus: Immer maximale Ladeleistung (max aus Property) */
+    // --- Modus-spezifische Ladeleistungsberechnung ---
     private function BerechneLadeleistungManuell()
     {
         return $this->ReadPropertyInteger('MaxAmpere') * 230 * $this->ReadPropertyInteger('Phasen'); // z.B. für Drehstrom
     }
 
-    /** PV2Car-Modus: Anteil vom PV-Überschuss nutzen (Prozentslider) */
     private function BerechneLadeleistungPV2Car($ueberschuss, $prozent)
     {
         $wert = $ueberschuss * ($prozent / 100.0);
@@ -631,7 +713,6 @@ class PVWallboxManager extends IPSModule
         return min($wert, $max);
     }
 
-    /** Zielzeitladung: Ladeleistung berechnen, um Ziel-SoC bis Zielzeit zu erreichen */
     private function BerechneLadeleistungZielzeit($sollSOC, $istSOC, $zielzeit, $maxLeistung)
     {
         // Einfaches Beispiel: Berechne nötige Energie & teile durch verfügbare Zeit
@@ -648,7 +729,6 @@ class PVWallboxManager extends IPSModule
         return min($erforderliche_leistung, $maxLeistung);
     }
 
-    /** NurPV: Ladeleistung entspricht ausschließlich dem verfügbaren Überschuss */
     private function BerechneLadeleistungNurPV($ueberschuss, $wb = null)
     {
         $minA = $this->ReadPropertyInteger('MinAmpere');
@@ -673,8 +753,6 @@ class PVWallboxManager extends IPSModule
         return min($ueberschuss, $maxWatt);
     }
 
-
-    /** Strompreis-Modus: Ladeleistung, wenn Preis <= maxPreis, sonst 0 */
     private function BerechneLadeleistungStrompreis($preis, $maxPreis)
     {
         if ($preis <= $maxPreis) {
@@ -683,24 +761,7 @@ class PVWallboxManager extends IPSModule
         return 0; 
     }
 
-    /** private function GetPV2CarProzent()
-    {
-        return 0;
-    }*/
-
-    /** private function GetCurrentMarketPrice()
-    {
-         return 0;
-    } */
-    
-    /** private function GetMaxAllowedPrice()
-    {
-        return 0;
-    } */
-
-    // === 6. Phasenumschaltung / Hysterese ===
-
-    /** Prüfe, ob Phasenumschaltung nötig ist (inkl. Hysterese) */
+    // --- Phasenumschaltung & Hysterese ---
     private function PruefePhasenumschaltung($ladeleistung, $wb)
     {
         // Phasenstatus prüfen (robust)
@@ -823,7 +884,6 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    /** Erhöht den Start-Hysterese-Zähler */
     private function InkrementiereStartHysterese($max)
     {
         if ($this->ladeStartZaehler < $max) {
@@ -834,7 +894,6 @@ class PVWallboxManager extends IPSModule
         return $this->ladeStartZaehler;
     }
 
-    /** Erhöht den Stop-Hysterese-Zähler */
     private function InkrementiereStopHysterese($max)
     {
         if ($this->ladeStopZaehler < $max) {
@@ -845,92 +904,16 @@ class PVWallboxManager extends IPSModule
         return $this->ladeStopZaehler;
     }
 
-    /** Setzt beide Hysterese-Zähler zurück */
     private function ResetHystereseZaehler()
     {
         $this->ladeStartZaehler = 0;
         $this->ladeStopZaehler = 0;
     }
 
-    // === 7. Fahrzeugstatus/SOC/Zielzeit ===
+    // =========================================================================
+    // 6. WALLBOX-KOMMUNIKATION
+    // =========================================================================
 
-    /**
-     * Prüft, ob das Fahrzeug verbunden ist (z. B. über go-e Charger Status).
-     * Rückgabe: true = Fahrzeug erkannt, false = nichts gesteckt.
-     */
-    private function IstFahrzeugVerbunden($wb)
-    {
-        $status = $wb['WB_Status'] ?? 0;
-        return ($status == 2 || $status == 3 || $status == 4);
-    }
-
-    /**
-     * Setzt alle Lademodi-Buttons auf "aus" (gegenseitiger Ausschluss bei Fahrzeugwechsel).
-     * Hier Dummy-Implementierung, je nach Modul-Aufbau anpassen.
-     */
-    private function SetLademodusAutoReset()
-    {
-        // Beispiel: Lademodus-Variablen zurücksetzen
-        // SetValue($this->GetIDForIdent('ManuellLaden'), false);
-        // SetValue($this->GetIDForIdent('PV2CarModus'), false);
-        // SetValue($this->GetIDForIdent('ZielzeitModus'), false);
-        // ... ggf. weitere
-    }
-
-    /** Liest den aktuellen SoC des Fahrzeugs (aus Variable, mit Fallback) */
-    private function LeseFahrzeugSOC()
-    {
-        $socID = $this->ReadPropertyInteger('CarSOCID');
-        if ($socID > 0 && @IPS_VariableExists($socID)) {
-            return (float)GetValue($socID);
-        }
-        return (float)$this->ReadPropertyInteger('CarSOCFallback');
-    }
-
-    /** Liest den Ziel-SoC des Fahrzeugs (aus Variable, mit Fallback) */
-    private function LeseZielSOC()
-    {
-        $targetID = $this->ReadPropertyInteger('CarTargetSOCID');
-        if ($targetID > 0 && @IPS_VariableExists($targetID)) {
-            return (float)GetValue($targetID);
-        }
-        return (float)$this->ReadPropertyInteger('CarTargetSOCFallback');
-    }
-
-    /** Liest die Zielzeit für die Fertigladung (bspw. 06:00 Uhr als Timestamp oder Zeitwert) */
-    private function LeseZielzeit()
-    {
-        $varID = @$this->GetIDForIdent('CarChargeTargetTime');
-        if ($varID > 0) {
-            return (int)GetValue($varID);
-        }
-        // Fallback: z. B. 6:00 Uhr heute
-        return strtotime('today 06:00');
-    }
-
-    /** Berechnet geschätzte Ladedauer bis zum Ziel (in Stunden) */
-    private function BerechneLadedauerBisZiel($istSOC, $sollSOC, $ladeleistung)
-    {
-        $akku_kwh = $this->ReadPropertyFloat('CarBatteryCapacity');
-        $delta_soc = max(0, $sollSOC - $istSOC);
-        $bedarf_kwh = $akku_kwh * $delta_soc / 100.0;
-        // Ladeleistung in kW
-        $ladeleistung_kw = $ladeleistung / 1000.0;
-        if ($ladeleistung_kw > 0.1) {
-            return $bedarf_kwh / $ladeleistung_kw;
-        }
-        return INF; // "Unendlich", wenn keine Ladeleistung verfügbar
-    }
-
-    /** Berechnet Startzeitpunkt der Ladung (Timestamp) */
-    private function BerechneLadestartzeit($zielzeit, $dauer_stunden)
-    {
-        return $zielzeit - (int)($dauer_stunden * 3600);
-    }
-
-    // === 8. Wallbox-Steuerung ===
-
-    /** Setzt die gewünschte Ladeleistung (Watt) */
     private function SetzeLadeleistung($leistung)
     {
         $phasen   = max(1, (int)$this->ReadPropertyInteger('Phasen'));
@@ -959,198 +942,15 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('info', "Ladung aktiviert: alw=1, amp=$ampere (für $leistung W, $phasen Phasen)");
     }
 
-    /** Setzt den Wallbox-Modus (optional: z. B. für Phasenumschaltung/Status) */
     private function SetzeWallboxModus($modus)
     {
         // Hier kannst du je nach Wallbox Typ/Modul z. B. zwischen Sofortladen, Überschuss etc. umschalten.
         // Bei go-e gibt's dafür oft keine extra Methode – Status könnte aber über Variable o. Ä. gesetzt werden.
     }
 
-/** Deaktiviert die Ladung komplett */
-private function DeaktiviereLaden()
+    private function DeaktiviereLaden()
     {
         $this->SetzeLadeleistung(0);
-    }
-
-    // === 9. Logging / Statusmeldungen ===
-
-    /** Loggt eine Nachricht mit Level (info, warn, error, debug) */
-    /**private function Log($msg, $level = 'info')
-    {
-        $prefix = "[PVWM]";
-        switch ($level) {
-            case 'warn':
-            case 'warning':
-                IPS_LogMessage($prefix, "⚠️ $msg");
-                break;
-            case 'error':
-                IPS_LogMessage($prefix, "❌ $msg");
-                break;
-            case 'debug':
-                if ($this->ReadPropertyBoolean('DebugLogging')) {
-                    IPS_LogMessage($prefix, "🐞 $msg");
-                }
-                break;
-            default:
-                IPS_LogMessage($prefix, $msg);
-        }
-    }*/
-
-    /**
-     * Strukturierte Status-/Log-Meldungen mit Emojis
-     * @param string $type   info, warn, error, ok, debug
-     * @param string $short  Kurztext
-     * @param string $detail Optional: Detailtext
-     */
-    private function LogTemplate($type, $short, $detail = '')
-    {
-        $emojis = [
-            'info'  => 'ℹ️',
-            'warn'  => '⚠️',
-            'error' => '❌',
-            'ok'    => '✅',
-            'debug' => '🐞'
-        ];
-        $icon = isset($emojis[$type]) ? $emojis[$type] : 'ℹ️';
-        $msg = $icon . ' ' . $short;
-        if ($detail !== '') {
-            $msg .= "\n➡️ " . $detail;
-        }
-        if ($type === 'debug' && !$this->ReadPropertyBoolean('DebugLogging')) {
-            return; // Kein Debug, wenn nicht aktiviert
-        }
-        IPS_LogMessage('[PVWM]', $msg);
-    }
-
-
-    /** Setzt Statusanzeige im Modul (WebFront, Variablen, ...) */
-
-    private function SetLademodusStatus($msg)
-    {
-        $this->SetValueSafe('Wallbox_Status', $msg);
-    }
-
-    /** Loggt aktuelle Energiedaten für Debug */
-    private function LogDebugData($daten)
-    {
-        if ($this->ReadPropertyBoolean('DebugLogging')) {
-            $debug = [];
-            foreach ($daten as $key => $val) {
-                $debug[] = "{$key}={$val}";
-            }
-            // Trennzeichen ist jetzt |
-            $msg = 'Debug-Daten: ' . implode(' | ', $debug);
-            $this->LogTemplate('debug', $msg);
-        }
-    }
-
-    // === 10. RequestAction-Handler ===
-
-    /** Handler für WebFront-Aktionen/Buttons */
-    public function RequestAction($ident, $value)
-    {
-        switch ($ident) {
-            case 'AktiverLademodus':
-                $this->SetValueSafe($ident, $value);
-                $this->LogTemplate('info', "Lademodus geändert.", "Neuer Modus: ".$this->GetLademodusText($value));
-                $this->ladeStartZaehler = 0; // Hysterese-Zähler zurücksetzen!
-                $this->ladeStopZaehler = 0;  // Hysterese-Zähler zurücksetzen!
-                $this->UpdateCharging(); // Nach jedem Wechsel berechnen
-                break;
-            case 'UpdateCharging':
-                $this->UpdateCharging(); // <- Hier wird die Methode wirklich ausgeführt!
-                break;
-            case 'LockReset':
-                if ($value) {
-                    $this->ResetLock();
-                    $this->SetValue('LockReset', false); // Button sofort zurücksetzen
-                }
-                break;
-            default:
-                throw new Exception("Invalid ident: $ident");
-        }
-    }
-
-    // === 11. Timer/Cron-Handling ===
-
-    public function OnFahrzeugStatusChange(int $neuerStatus)
-    {
-        // Status 2 = verbunden, 3 = lädt (go-e Standard)
-        if ($neuerStatus == 2 || $neuerStatus == 3) {
-            // Initialisierungen ausführen:
-            $this->LogTemplate('info', "Fahrzeug verbunden.", "Starte Initial-Check für Lademanager.");
-
-            // Alle relevanten Variablen/Lademodi zurücksetzen
-            $this->SetLademodusAutoReset();
-
-            // Sofort den Ladeprozess und die Ladeberechnung anstoßen
-            $this->UpdateCharging();
-
-            // Zusätzliche Aktionen: Logging, Timestamp setzen, etc.
-            $this->SetValueSafe('LetzterFahrzeugCheck', time(), 1);
-
-            // Optional: Push-Notification
-            // $this->SendePush("Fahrzeug angesteckt: Lademanager aktiv.");
-        }
-    }
-
-    private function CreateCarStatusEvent($goeID)
-    {
-        if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
-            $this->LogTemplate('warn', "Ereignis-Setup fehlgeschlagen.", "Keine gültige GO-e Instanz hinterlegt (ID: $goeID).");
-            return;
-        }
-
-        $carIdent = 'status'; // go-e Instanz: Variable 'status' gibt den Fahrzeugstatus
-        $carVarID = @IPS_GetObjectIDByIdent($carIdent, $goeID);
-
-        if ($carVarID === false) {
-            $this->LogTemplate('warn', "Fahrzeugstatus-Variable nicht gefunden.", "Kein 'status'-Wert in der GO-e Instanz (ID: $goeID).");
-            return;
-        }
-
-        $eventIdent = 'Trigger_UpdateCharging_OnCarStatusChange';
-        $eventID = @IPS_GetObjectIDByIdent($eventIdent, $this->InstanceID);
-
-        if ($eventID === false) {
-            $eventID = IPS_CreateEvent(0); // Trigger bei Wertänderung
-            IPS_SetParent($eventID, $this->InstanceID);
-            IPS_SetIdent($eventID, $eventIdent);
-            IPS_SetName($eventID, "Trigger: UpdateCharging bei Fahrzeugstatus-Änderung");
-            IPS_SetEventTrigger($eventID, 1, $carVarID);
-
-            // <<< HIER PATCH >>>
-            $code = 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);';
-            IPS_SetEventScript($eventID, $code);
-            // <<< PATCH ENDE >>>
-            IPS_SetEventActive($eventID, true);
-
-            $this->LogTemplate('info', "Ereignis für Fahrzeugstatus erstellt.", "Event-ID: {$eventID}");
-        } else {
-            // Existierendes Ereignis ggf. anpassen
-            if (@IPS_GetEvent($eventID)['TriggerVariableID'] != $carVarID) {
-                IPS_SetEventTrigger($eventID, 1, $carVarID);
-                $this->LogTemplate('debug', "Trigger-Variable im Ereignis aktualisiert. (Event-ID: {$eventID})");
-            }
-            IPS_SetEventActive($eventID, true);
-            // PATCH AUCH HIER SICHERSTELLEN:
-            $code = 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);';
-            IPS_SetEventScript($eventID, $code);
-            $this->LogTemplate('debug', "Ereignis zum sofortigen Update geprüft und reaktiviert. (Event-ID: {$eventID})");
-        }
-    }
-
-    /** Startet regelmäßige Berechnung/Ladesteuerung */
-    private function StarteRegelmaessigeBerechnung()
-    {
-        $interval = $this->ReadPropertyInteger('RefreshInterval') * 1000;
-        $this->SetTimerInterval('UpdateCharging', $interval);
-    }
-
-    /** Stoppt regelmäßige Berechnung/Ladesteuerung */
-    private function StoppeRegelmaessigeBerechnung()
-    {
-        $this->SetTimerInterval('UpdateCharging', 0);
     }
 
     private function HoleGoEWallboxDaten()
@@ -1257,14 +1057,6 @@ private function DeaktiviereLaden()
         return $result;
     }
 
-    /**
-     * Setzt die Ladefreigabe ("alw") an der go-e Wallbox
-     * - Kompatibel zu V2/V3/V4
-     * - Führt bei neueren Wallboxen vorab /api/set?dwo=0 aus (Pflicht ab FW 50+)
-     *
-     * @param bool $active TRUE = Laden freigeben, FALSE = sperren
-     * @return bool Erfolg
-     */
     private function SetGoEChargingActive($active)
     {
         $ip = trim($this->ReadPropertyString('WallboxIP'));
@@ -1305,9 +1097,137 @@ private function DeaktiviereLaden()
         return true;
     }
 
-    // === 12. Hilfsfunktionen ===
+    // =========================================================================
+    // 7. FAHRZEUGSTATUS / SOC / ZIELZEIT
+    // =========================================================================
 
-    /** Hilfsfunktion: Text zum Moduswert */
+    private function IstFahrzeugVerbunden($wb)
+    {
+        $status = $wb['WB_Status'] ?? 0;
+        return ($status == 2 || $status == 3 || $status == 4);
+    }
+
+    private function SetLademodusAutoReset()
+    {
+        // Beispiel: Lademodus-Variablen zurücksetzen
+        // SetValue($this->GetIDForIdent('ManuellLaden'), false);
+        // SetValue($this->GetIDForIdent('PV2CarModus'), false);
+        // SetValue($this->GetIDForIdent('ZielzeitModus'), false);
+        // ... ggf. weitere
+    }
+
+    private function LeseFahrzeugSOC()
+    {
+        $socID = $this->ReadPropertyInteger('CarSOCID');
+        if ($socID > 0 && @IPS_VariableExists($socID)) {
+            return (float)GetValue($socID);
+        }
+        return (float)$this->ReadPropertyInteger('CarSOCFallback');
+    }
+
+    private function LeseZielSOC()
+    {
+        $targetID = $this->ReadPropertyInteger('CarTargetSOCID');
+        if ($targetID > 0 && @IPS_VariableExists($targetID)) {
+            return (float)GetValue($targetID);
+        }
+        return (float)$this->ReadPropertyInteger('CarTargetSOCFallback');
+    }
+
+    private function LeseZielzeit()
+    {
+        $varID = @$this->GetIDForIdent('CarChargeTargetTime');
+        if ($varID > 0) {
+            return (int)GetValue($varID);
+        }
+        // Fallback: z. B. 6:00 Uhr heute
+        return strtotime('today 06:00');
+    }
+
+    private function BerechneLadedauerBisZiel($istSOC, $sollSOC, $ladeleistung)
+    {
+        // ... (Code unverändert, siehe oben)
+    }
+
+    private function BerechneLadedauerBisZiel($istSOC, $sollSOC, $ladeleistung)
+	{
+		$akku_kwh = $this->ReadPropertyFloat('CarBatteryCapacity');
+		$delta_soc = max(0, $sollSOC - $istSOC);
+		$bedarf_kwh = $akku_kwh * $delta_soc / 100.0;
+		// Ladeleistung in kW
+		$ladeleistung_kw = $ladeleistung / 1000.0;
+		if ($ladeleistung_kw > 0.1) {
+			return $bedarf_kwh / $ladeleistung_kw;
+		}
+		return INF; // "Unendlich", wenn keine Ladeleistung verfügbar
+	}
+	
+	private function BerechneLadestartzeit($zielzeit, $dauer_stunden)
+	{
+		return $zielzeit - (int)($dauer_stunden * 3600);
+	}
+
+    // =========================================================================
+    // 8. LOGGING / STATUSMELDUNGEN / DEBUG
+    // =========================================================================
+
+    private function LogTemplate($type, $short, $detail = '')
+    {
+        $emojis = [
+            'info'  => 'ℹ️',
+            'warn'  => '⚠️',
+            'error' => '❌',
+            'ok'    => '✅',
+            'debug' => '🐞'
+        ];
+        $icon = isset($emojis[$type]) ? $emojis[$type] : 'ℹ️';
+        $msg = $icon . ' ' . $short;
+        if ($detail !== '') {
+            $msg .= "\n➡️ " . $detail;
+        }
+        if ($type === 'debug' && !$this->ReadPropertyBoolean('DebugLogging')) {
+            return; // Kein Debug, wenn nicht aktiviert
+        }
+        IPS_LogMessage('[PVWM]', $msg);
+    }
+
+    private function SetLademodusStatus($msg)
+    {
+        $this->SetValueSafe('Wallbox_Status', $msg);
+    }
+
+    private function LogDebugData($daten)
+    {
+        if ($this->ReadPropertyBoolean('DebugLogging')) {
+            $debug = [];
+            foreach ($daten as $key => $val) {
+                $debug[] = "{$key}={$val}";
+            }
+            // Trennzeichen ist jetzt |
+            $msg = 'Debug-Daten: ' . implode(' | ', $debug);
+            $this->LogTemplate('debug', $msg);
+        }
+    }
+
+    // =========================================================================
+    // 9. HILFSFUNKTIONEN & GETTER/SETTER
+    // =========================================================================
+
+    private function EnsureLademodusProfile()
+    {
+        $profil = 'PVWM.Lademodus';
+        if (!IPS_VariableProfileExists($profil)) {
+            IPS_CreateVariableProfile($profil, 1); // 1 = Integer
+            IPS_SetVariableProfileIcon($profil, 'ElectricCar');
+            IPS_SetVariableProfileValues($profil, 0, 4, 1);
+            IPS_SetVariableProfileAssociation($profil, 0, 'Nur PV', '', -1);
+            IPS_SetVariableProfileAssociation($profil, 1, 'Manuell', 'lightbulb', -1);
+            IPS_SetVariableProfileAssociation($profil, 2, 'PV2Car', 'solar-panel', -1);
+            IPS_SetVariableProfileAssociation($profil, 3, 'Zielzeit', 'clock', -1);
+            IPS_SetVariableProfileAssociation($profil, 4, 'Strompreis', 'euro', -1);
+        }
+    }
+
     private function GetLademodusText($mode)
     {
         switch ($mode) {
@@ -1319,25 +1239,22 @@ private function DeaktiviereLaden()
         }
     }
 
-    /** Formatiert einen Timestamp lesbar */
     private function FormatiereZeit($timestamp)
     {
         // TODO
     }
 
-    /** Liest Variable mit Typ und ggf. Invertierung */
     private function LeseVariable($id, $typ = 'float', $invert = false)
     {
         // TODO
     }
 
-    /** Validiert Energiedaten vor Berechnung */
     private function WerteValidieren($daten)
     {
         // TODO
     }
 
-        private function CheckSchwellenwerte()
+    private function CheckSchwellenwerte()
     {
         $minA = $this->ReadPropertyInteger('MinAmpere');
         $phasen = $this->ReadPropertyInteger('Phasen');
@@ -1378,13 +1295,7 @@ private function DeaktiviereLaden()
         }
     }
 
-    /**
-     * Setzt eine Variable nur, wenn sich ihr Wert wirklich geändert hat.
-     * Optional: Präzision für Floats (Standard: 2 Nachkommastellen).
-     * Erkennt und behandelt auch Integer, String und Bool sauber.
-     */
     private function SetValueSafe($ident, $value, $precision = 2, $unit = '')
-
     {
         $current = $this->GetValue($ident);
         $einheit = $unit ? " $unit" : ''; // Leerzeichen für Trennung
@@ -1480,7 +1391,6 @@ private function DeaktiviereLaden()
         $this->SetValueSafe('AccessStateText', $text, 0);
     }
 
-    /** Setzt accessStateV2 nur, wenn sich der Wert wirklich ändert.*/
     private function SetzeAccessStateV2WennNoetig($goeID, $neuerModus)
     {
         $modusID = @IPS_GetObjectIDByIdent('accessStateV2', $goeID);
@@ -1510,10 +1420,6 @@ private function DeaktiviereLaden()
         }
     }
 
-    /**
-     * PV-Eigenverbrauchspriorisierung: Haus -> Hausbatterie -> Auto -> Netz
-     * Liefert [AutoLadeleistung, HausakkuLadeleistung]
-     */
     private function PriorisiereEigenverbrauch($pv, $haus, $battSOC, $hausakkuVollSchwelle, $autoAngesteckt)
     {
         $battMax = $hausakkuVollSchwelle; // z.B. 90 %
@@ -1534,26 +1440,6 @@ private function DeaktiviereLaden()
         return [0, 0];
     }
 
-    /*
-    private function GetOrInitAttributeInteger($name, $default = 0) {
-        // Prüfen, ob Attribut existiert (indem wir mit GetArray prüfen)
-        $array = $this->GetAttributes();
-        if (!array_key_exists($name, $array)) {
-            $this->WriteAttributeInteger($name, $default);
-            return $default;
-        }
-        return $this->ReadAttributeInteger($name);
-    }
-    
-    private function GetOrInitAttributeInteger($name, $default = 0) {
-        $array = $this->GetAttributes();
-        if (isset($array[$name]) && is_numeric($array[$name])) {
-            return (int)$array[$name];
-        }
-        $this->WriteAttributeInteger($name, $default);
-        return $default;
-    }
-    */
     private function GetOrInitAttributeInteger($name, $default = 0)
     {
         // Versuche das Attribut zu lesen (Suppress Warning)
@@ -1569,8 +1455,8 @@ private function DeaktiviereLaden()
         return $val;
     }
 
-    // Gibt alle Attribute als Array zurück (Hack: so kommt man ran)
-    private function GetAttributes() {
+    private function GetAttributes()
+	{
         $obj = IPS_GetInstance($this->InstanceID);
         return isset($obj['Attributes']) ? $obj['Attributes'] : [];
     }
@@ -1586,5 +1472,4 @@ private function DeaktiviereLaden()
         }
         return $anzahl;
     }
-
 }
