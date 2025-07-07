@@ -379,8 +379,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->PhasenDownCounter,
-                    $this->PhasenUpCounter
+                    $this->ReadAttributeInteger('PhasenDownCounter'),
+                    $this->ReadAttributeInteger('PhasenUpCounter')
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
@@ -391,8 +391,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->PhasenDownCounter,
-                    $this->PhasenUpCounter
+                    $this->ReadAttributeInteger('PhasenDownCounter'),
+                    $this->ReadAttributeInteger('PhasenUpCounter')
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
@@ -406,8 +406,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->PhasenDownCounter,
-                    $this->PhasenUpCounter
+                    $this->ReadAttributeInteger('PhasenDownCounter'),
+                    $this->ReadAttributeInteger('PhasenUpCounter')
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
@@ -419,8 +419,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->PhasenDownCounter,
-                    $this->PhasenUpCounter
+                    $this->ReadAttributeInteger('PhasenDownCounter'),
+                    $this->ReadAttributeInteger('PhasenUpCounter')
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
@@ -452,8 +452,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ueberschuss, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->PhasenDownCounter,
-                    $this->PhasenUpCounter
+                    $this->ReadAttributeInteger('PhasenDownCounter'),
+                    $this->ReadAttributeInteger('PhasenUpCounter')
                 ));
 
                 // Niemals laden ohne PV-Überschuss
@@ -814,8 +814,8 @@ class PVWallboxManager extends IPSModule
 
         $this->LogTemplate('debug', sprintf(
             "Hysteresecounter: Down=%d | Up=%d",
-            $this->PhasenDownCounter,
-            $this->PhasenUpCounter
+            $this->ReadAttributeInteger('PhasenDownCounter'),
+            $this->ReadAttributeInteger('PhasenUpCounter')
         ));
 
         if (!$umschaltung) {
