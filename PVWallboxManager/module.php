@@ -1490,7 +1490,7 @@ class PVWallboxManager extends IPSModule
     private function GetOrInitAttributeInteger($name, $default = 0)
     {
         // Versuche das Attribut zu lesen (Suppress Warning)
-        $val = @$this->GetOrInitAttributeInteger($name);
+        $val = @$this->ReadAttributeInteger($name);
 
         // Prüfe, ob das Ergebnis tatsächlich ein Integer ist
         if (!is_int($val)) {
