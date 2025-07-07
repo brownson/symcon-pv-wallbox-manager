@@ -118,6 +118,9 @@ class PVWallboxManager extends IPSModule
         // Weitere Variablen nach Bedarf!
         //$this->RegisterVariableInteger('HystereseZaehler', 'Phasen-Hysteresezähler', '', 60);
         $this->RegisterVariableInteger('AktuellePhasen', 'Aktuelle Phasen', '', 80);
+        
+        $this->WriteAttributeInteger('LastSetLadeleistung', 0);
+        $this->WriteAttributeBoolean('LastSetGoEActive', false);
 
         // Timer für Berechnungsintervall
         $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
@@ -934,8 +937,8 @@ class PVWallboxManager extends IPSModule
         }
 
         // Verwende immer die persistenten Attribute!
-        $lastWatt   = $this->ReadAttributeInteger('LastSetLadeleistung');
-        $lastActive = $this->ReadAttributeBoolean('LastSetGoEActive');
+        $lastWatt   = $this->GetOrInitAttributeInteger('LastSetLadeleistung', 0);
+        $lastActive = $this->GetOrInitAttributeBoolean('LastSetGoEActive', false);
 
         $phasen   = max(1, (int)$this->ReadPropertyInteger('Phasen'));
         $spannung = 230;
@@ -1540,14 +1543,23 @@ class PVWallboxManager extends IPSModule
 
     private function GetOrInitAttributeInteger($name, $default = 0)
     {
-        // Gibt es das Attribut? Wenn nicht, anlegen!
-        $attributes = $this->GetAttributes();
-        if (!array_key_exists($name, $attributes)) {
+        // Wenn Attribut nicht existiert, direkt setzen!
+        if (!property_exists($this, 'Attribute' . $name) && method_exists($this, 'WriteAttributeInteger')) {
             $this->WriteAttributeInteger($name, $default);
             return $default;
         }
-        $val = $this->ReadAttributeInteger($name);
-        return is_int($val) ? $val : $default;
+        $val = @$this->ReadAttributeInteger($name);
+        return ($val === null) ? $default : $val;
+    }
+
+    private function GetOrInitAttributeBoolean($name, $default = false)
+    {
+        if (!property_exists($this, 'Attribute' . $name) && method_exists($this, 'WriteAttributeBoolean')) {
+            $this->WriteAttributeBoolean($name, $default);
+            return $default;
+        }
+        $val = @$this->ReadAttributeBoolean($name);
+        return ($val === null) ? $default : $val;
     }
 
     private function GetAllCustomAttributes()
