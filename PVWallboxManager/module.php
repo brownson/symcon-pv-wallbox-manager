@@ -24,7 +24,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',     '~Ampere',          3);
         $this->RegisterPhasesProfile();
         $this->RegisterVariableInteger('Phasen',      'Phasen aktiv',           'GoE.Phases',       4);
-        //$this->RegisterVariableInteger('Phasen',      'Phasen aktiv',           '',                 4);
+        $this->RegisterAlwProfile();
+        $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',           'GoE.ALW',          5);
         $this->RegisterVariableInteger('Freigabe',    'Ladefreigabe',           '',                 5);
         $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',           '',                 6);
         $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',             '',                 7);
@@ -167,6 +168,16 @@ class PVWallboxManager extends IPSModule
             IPS_SetVariableProfileAssociation($profile, 1, '1-phasig', '', 0x00ADEF);
             IPS_SetVariableProfileAssociation($profile, 2, '2-phasig', '', 0x009900);
             IPS_SetVariableProfileAssociation($profile, 3, '3-phasig', '', 0xFF9900);
+        }
+    }
+
+    private function RegisterAlwProfile()
+    {
+        $profile = 'GoE.ALW';
+        if (!IPS_VariableProfileExists($profile)) {
+            IPS_CreateVariableProfile($profile, 0); // 0 = Boolean
+            IPS_SetVariableProfileAssociation($profile, false, 'Nicht freigegeben', '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, true,  'Laden freigegeben', '', 0x44FF44);
         }
     }
 }
