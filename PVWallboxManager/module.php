@@ -27,8 +27,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('DebugLogging', false);
 
         // === 2. Wallbox-Konfiguration ===
-        $this->RegisterPropertyString('WallboxIP', '192.168.98.5');
-        $this->RegisterPropertyString('WallboxAPIKey', '');
+        //$this->RegisterPropertyString('WallboxIP', '192.168.98.5');
+        //$this->RegisterPropertyString('WallboxAPIKey', '');
         $this->RegisterPropertyInteger('GOeChargerID', 0);
         $this->RegisterPropertyInteger('MinAmpere', 6);
         $this->RegisterPropertyInteger('MaxAmpere', 16);
@@ -467,7 +467,7 @@ class PVWallboxManager extends IPSModule
 
                 // ** Niemals laden ohne PV-Überschuss (egal was Hysterese oder Status)**
                 if ($ueberschuss < $minLadeWatt) {
-                    $this->SetGoEChargingActive(false);
+                    $this->GOeCharger_SetAccessState($goeID, $active ? 2 : 1); // 2=lade, 1=gesperrt
                     $this->SetzeLadeleistung(0);
                     $this->LogTemplate('info', "Kein PV-Überschuss – Ladung deaktiviert.");
                     // Buffer zurücksetzen!
@@ -877,21 +877,21 @@ class PVWallboxManager extends IPSModule
 
     private function UmschaltenAuf1Phasig()
     {
-        $this->SetGoEChargingActive(false);
+        $this->GOeCharger_SetAccessState($goeID, $active ? 2 : 1); // 2=lade, 1=gesperrt
         IPS_Sleep(1200);
-        $this->SetGoEParameter(['psm' => 1]); // 1-phasig: psm=1!
+        $this->GOeCharger_SetMode($goeID, '1P'); // für 1-phasig
         IPS_Sleep(1500);
-        $this->SetGoEChargingActive(false); // <--- NEU: immer aus!
+        $this->GOeCharger_SetAccessState($goeID, $active ? 2 : 1); // 2=lade, 1=gesperrt // <--- NEU: immer aus!
         $this->LogTemplate('info', 'Phasenumschaltung auf 1-phasig abgeschlossen.');
     }
 
     private function UmschaltenAuf3Phasig()
     {
-        $this->SetGoEChargingActive(false);
+        $this->GOeCharger_SetAccessState($goeID, $active ? 2 : 1); // 2=lade, 1=gesperrt
         IPS_Sleep(1200);
-        $this->SetGoEParameter(['psm' => 2]); // 3-phasig: psm=2!
+        $this->GOeCharger_SetMode($goeID, '3P'); // für 3-phasig
         IPS_Sleep(1200);
-        $this->SetGoEChargingActive(false); // <--- NEU: immer aus!
+        $this->GOeCharger_SetAccessState($goeID, $active ? 2 : 1); // 2=lade, 1=gesperrt // <--- NEU: immer aus!
         $this->LogTemplate('info', 'Phasenumschaltung auf 3-phasig abgeschlossen.');
     }
 
@@ -952,7 +952,7 @@ class PVWallboxManager extends IPSModule
         // 1. Zu geringe Leistung: abschalten, wenn Änderung
         if ($leistung < $minWatt) {
             if ($lastActive !== false) {
-                $this->SetGoEChargingActive(false);
+                $this->GOeCharger_SetAccessState($goeID, $active ? 2 : 1); // 2=lade, 1=gesperrt
                 $this->LogTemplate('info', "Ladung deaktiviert (Leistung zu gering, alw=0).");
                 $this->WriteAttributeInteger('LastSetLadeleistung', 0);
                 $this->WriteAttributeBoolean('LastSetGoEActive', false);
@@ -971,9 +971,9 @@ class PVWallboxManager extends IPSModule
         }
 
         // 3. Änderung nötig: Einschalten und gewünschten Wert setzen!
-        $this->SetGoEChargingActive(true);
+        $this->GOeCharger_SetAccessState($goeID, $active ? 2 : 1); // 2=lade, 1=gesperrt
         IPS_Sleep(1200);
-        $this->SetGoEParameter(['amp' => $ampere]);
+        $this->GOeCharger_SetCurrentChargingWatt($goeID, $leistung);  // Ladeleistung (W)
         $this->LogTemplate('info', "Ladung aktiviert: alw=1, amp=$ampere (für $leistung W, $phasen Phasen)");
 
         $this->WriteAttributeInteger('LastSetLadeleistung', $leistung);
@@ -998,70 +998,21 @@ class PVWallboxManager extends IPSModule
 
     private function HoleGoEWallboxDaten()
     {
-        //$ip = trim($this->ReadPropertyString('WallboxIP'));
-        $ip = '192.168.98.5';
-        $key = trim($this->ReadPropertyString('WallboxAPIKey'));
+        $goeID = $this->ReadPropertyInteger('GOeChargerID');
+        if ($goeID <= 0 || !IPS_InstanceExists($goeID)) return false;
+        $status = GOeCharger_GetStatus($goeID);
+        $leistung = GOeCharger_GetPowerToCar($goeID);
+        $phasen = GOeCharger_GetPhases($goeID);
 
-        $this->LogTemplate('debug', "HoleGoEWallboxDaten: IP='$ip'");
-
-        // Nur prüfen, ob die IP überhaupt gesetzt ist
-        if (empty($ip)) {
-            $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
-            return 'ip';
-        }
-
-        $url = "http://$ip/api/status";
-        $opts = [
-            "http" => [
-                "method" => "GET",
-                "header" => $key ? "X-API-KEY: $key\r\n" : "",
-                "timeout" => 3
-            ]
+        return [
+            'WB_Ladeleistung_W' => $leistung,
+            'WB_Status' => $status,
+            'WB_Phasen' => $phasen,
+            // ggf. weitere Werte falls benötigt
         ];
-        $context = stream_context_create($opts);
-
-        $json = @file_get_contents($url, false, $context);
-        if ($json === false) {
-            $this->LogTemplate('error', "Wallbox unter $ip nicht erreichbar.");
-            return 'notreachable';
-        }
-
-        $data = json_decode($json, true);
-        if (!is_array($data)) {
-            $this->LogTemplate('error', "Fehler beim Parsen der Wallbox-API-Antwort.");
-            return 'json';
-        }
-
-        // ---- Erfolgsfall ----
-        $phasen = 0;
-        if (isset($data['pha'])) {
-            $phasen = $this->ZaehleAktivePhasen($data['pha']);
-        }
-        $this->SetValueSafe('AktuellePhasen', $phasen, 0);
-
-        $werte = [
-            'WB_Ladeleistung_W' => $data['nrg'][11] ?? null,
-            'WB_Status'         => $data['car'] ?? null,
-            'WB_Phasen'         => $phasen,
-            'WB_Ampere'         => $data['amp'] ?? null,
-            'WB_Ladefreigabe'   => $data['alw'] ?? null,
-            'WB_Firmware'       => $data['fwv'] ?? null,
-            'WB_Fehlercode'     => $data['err'] ?? null,
-        ];
-
-        $this->LogTemplate(
-            'info',
-            "Wallbox-Status laut API (car): " . var_export($werte['WB_Status'], true),
-            "Erklärung: 0=keins, 1=bereit, 2=lade, 3=angesteckt"
-        );
-
-        foreach ($werte as $name => $wert) {
-            $this->LogTemplate('debug', "$name: ".var_export($wert, true));
-        }
-        return $werte;
     }
 
-    private function SetGoEParameter(array $params)
+    /*private function SetGoEParameter(array $params)
     {
         //$ip = trim($this->ReadPropertyString('WallboxIP'));
         $ip = '192.168.98.5';
@@ -1091,9 +1042,9 @@ class PVWallboxManager extends IPSModule
         }
         // Optional: Result zurückgeben/prüfen
         return $result;
-    }
+    }*/
 
-    private function SetGoEChargingActive($active)
+    /*private function SetGoEChargingActive($active)
     {
         //$ip = trim($this->ReadPropertyString('WallboxIP'));
         $ip = '192.168.98.5';
@@ -1144,7 +1095,7 @@ class PVWallboxManager extends IPSModule
         }
         $this->LogTemplate('info', "Ladefreigabe gesetzt: alw=$alwValue an $ip (/mqtt)");
         return true;
-    }
+    }*/
 
 
     // =========================================================================
@@ -1518,7 +1469,7 @@ class PVWallboxManager extends IPSModule
         return $anzahl;
     }
 
-    private function GetGoEAlwStatus()
+    /*private function GetGoEAlwStatus()
     {
         //$ip = trim($this->ReadPropertyString('WallboxIP'));
         $ip = '192.168.98.5';
@@ -1550,6 +1501,6 @@ class PVWallboxManager extends IPSModule
         }
         // bool oder int, je nach Firmware!
         return (int)$data['alw'];
-    }
+    }*/
 
 }
