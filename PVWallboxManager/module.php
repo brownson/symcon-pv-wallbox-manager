@@ -12,9 +12,6 @@ class PVWallboxManager extends IPSModule
     private $StartHystereseCounter = 0;
     private $StopHystereseCounter = 0;
 
-    @$this->WriteAttributeInteger('PhasenDownCounter', 0);
-    @$this->WriteAttributeInteger('PhasenUpCounter', 0);
-
     // =========================================================================
     // 1. INITIALISIERUNG
     // =========================================================================
@@ -22,7 +19,10 @@ class PVWallboxManager extends IPSModule
     /** @inheritDoc */
     public function Create()
     {
-		parent::Create();
+        @$this->WriteAttributeInteger('PhasenDownCounter', 0);
+        @$this->WriteAttributeInteger('PhasenUpCounter', 0);
+		
+        parent::Create();
         $this->EnsurePhasenCounterAttributes();
 
         // === 1. Modulsteuerung ===
