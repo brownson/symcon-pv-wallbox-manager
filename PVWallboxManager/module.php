@@ -27,7 +27,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('DebugLogging', false);
 
         // === 2. Wallbox-Konfiguration ===
-        $this->RegisterPropertyString('WallboxIP', '');
+        $this->RegisterPropertyString('WallboxIP', '192.168.98.5');
         $this->RegisterPropertyString('WallboxAPIKey', '');
         $this->RegisterPropertyInteger('GOeChargerID', 0);
         $this->RegisterPropertyInteger('MinAmpere', 6);
@@ -998,7 +998,8 @@ class PVWallboxManager extends IPSModule
 
     private function HoleGoEWallboxDaten()
     {
-        $ip = trim($this->ReadPropertyString('WallboxIP'));
+        //$ip = trim($this->ReadPropertyString('WallboxIP'));
+        $ip = '192.168.98.5';
         $key = trim($this->ReadPropertyString('WallboxAPIKey'));
 
         $this->LogTemplate('debug', "HoleGoEWallboxDaten: IP='$ip'");
@@ -1062,7 +1063,8 @@ class PVWallboxManager extends IPSModule
 
     private function SetGoEParameter(array $params)
     {
-        $ip = trim($this->ReadPropertyString('WallboxIP'));
+        //$ip = trim($this->ReadPropertyString('WallboxIP'));
+        $ip = '192.168.98.5';
         $key = trim($this->ReadPropertyString('WallboxAPIKey'));
 
         $this->LogTemplate('debug', "DEBUG: SetGoEParameter mit IP = '$ip'");
@@ -1093,7 +1095,8 @@ class PVWallboxManager extends IPSModule
 
     private function SetGoEChargingActive($active)
     {
-        $ip = trim($this->ReadPropertyString('WallboxIP'));
+        //$ip = trim($this->ReadPropertyString('WallboxIP'));
+        $ip = '192.168.98.5';
         $apiKey = trim($this->ReadPropertyString('WallboxAPIKey'));
         if (empty($ip) || $ip == "0.0.0.0") {
             $this->LogTemplate('error', "SetGoEChargingActive - Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
@@ -1517,7 +1520,8 @@ class PVWallboxManager extends IPSModule
 
     private function GetGoEAlwStatus()
     {
-        $ip = trim($this->ReadPropertyString('WallboxIP'));
+        //$ip = trim($this->ReadPropertyString('WallboxIP'));
+        $ip = '192.168.98.5';
         $key = trim($this->ReadPropertyString('WallboxAPIKey'));
 
         if (empty($ip) || $ip == "0.0.0.0") {
