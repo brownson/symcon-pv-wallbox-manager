@@ -334,17 +334,30 @@ class PVWallboxManager extends IPSModule
         // Aktiven Lademodus bestimmen
         $modus = $this->ErmittleAktivenLademodus();
 
-        // Statusanzeige im WebFront
+        // Statusanzeige im WebFront – go-e CarState laut API (WB_Status)
         $statusNum = $wb['WB_Status'] ?? 0;
         switch ($statusNum) {
+            case 0:
+                $this->SetLademodusStatus("❔ Unbekannter Status oder Fehler.");
+                break;
             case 1:
-                $this->SetLademodusStatus("Fahrzeug bereit – warte auf Freigabe."); break;
+                $this->SetLademodusStatus("🅿️ Wallbox bereit (kein Fahrzeug angesteckt).");
+                break;
             case 2:
-                $this->SetLademodusStatus("Fahrzeug lädt."); break;
+                $this->SetLademodusStatus("⚡ Fahrzeug wird geladen.");
+                break;
             case 3:
-                $this->SetLademodusStatus("Fahrzeug angesteckt – warte auf Start."); break;
+                $this->SetLademodusStatus("🚗 Fahrzeug angesteckt – warte auf Start.");
+                break;
+            case 4:
+                $this->SetLademodusStatus("✅ Laden abgeschlossen – Fahrzeug verbunden.");
+                break;
+            case 5:
+                $this->SetLademodusStatus("❌ Wallbox-Fehler! Bitte prüfen.");
+                break;
             default:
-                $this->SetLademodusStatus("Status unbekannt.");
+                $this->SetLademodusStatus("❔ Status unbekannt.");
+                break;
         }
 
         // Ladeleistung ermitteln
