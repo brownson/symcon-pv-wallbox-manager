@@ -998,10 +998,34 @@ class PVWallboxManager extends IPSModule
         $ip  = preg_replace('/[[:^print:]]/', '', $ip);
         $this->LogTemplate('debug', "Wallbox-IP vor Prüfung: '$ip' (Länge: ".strlen($ip).")");
 
-        if (empty($ip) || $ip == "0.0.0.0") {
+        // Fehler 1: IP nicht gesetzt
+        if (empty($ip)) {
             $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
-            return;
+            return 'ip';   // << HIER: Rückgabewert zur Fehlerkennung
         }
+
+        $url = "http://$ip/api/status";
+
+        // Fehler 2: Wallbox nicht erreichbar
+        $opts = [ ... ];
+        $context = stream_context_create($opts);
+        $json = @file_get_contents($url, false, $context);
+        if ($json === false) {
+            $this->LogTemplate('error', "Wallbox unter $ip nicht erreichbar.");
+            return 'notreachable';   // << HIER: Rückgabewert zur Fehlerkennung
+        }
+
+        // Fehler 3: JSON-Fehler
+        $data = json_decode($json, true);
+        if (!is_array($data)) {
+            $this->LogTemplate('error', "Fehler beim Parsen der Wallbox-API-Antwort.");
+            return 'json';   // << Optional weitere Fehlerkennung
+        }
+
+        // ... alles OK ...
+        // [Restlicher Code, Rückgabe der Daten als Array]
+        return $werte;
+    }
 
         $url   = "http://$ip/api/status"; // APIv2: alles in einem JSON
 
