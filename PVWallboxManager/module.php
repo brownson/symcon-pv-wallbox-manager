@@ -20,7 +20,7 @@ class PVWallboxManager extends IPSModule
     public function Create()
     {
         parent::Create();
-        $this->EnsurePhasenCounterAttributes();
+        //$this->EnsurePhasenCounterAttributes();
 
         // === 1. Modulsteuerung ===
         $this->RegisterPropertyBoolean('ModulAktiv', true);
@@ -871,10 +871,10 @@ class PVWallboxManager extends IPSModule
 
     private function EnsurePhasenCounterAttributes()
     {
-        if (!@is_int(@$this->ReadAttributeInteger('PhasenDownCounter'))) {
+        if (!@is_int($this->ReadAttributeInteger('PhasenDownCounter'))) {
             $this->WriteAttributeInteger('PhasenDownCounter', 0);
         }
-        if (!@is_int(@$this->ReadAttributeInteger('PhasenUpCounter'))) {
+        if (!@is_int($this->ReadAttributeInteger('PhasenUpCounter'))) {
             $this->WriteAttributeInteger('PhasenUpCounter', 0);
         }
     }
