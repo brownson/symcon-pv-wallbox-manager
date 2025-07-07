@@ -29,9 +29,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)', '~Electricity.Wh', 8);
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
-        //$this->RegisterTimer('UpdateStatus', 30 * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", 0);');
         $this->RegisterTimer('UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", 0);');
-
 
     }
 
@@ -69,6 +67,7 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateStatus($mode = 'pvonly')
     {
+        // Modul aktiv?
         if (!$this->ReadPropertyBoolean('ModulAktiv')) {
             IPS_LogMessage("PVWallboxManager", "Modul ist inaktiv – keine Abfrage");
             return;
@@ -88,57 +87,48 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
+        // Alle Werte defensiv auslesen
+        $car         = isset($data['car'])         ? intval($data['car'])         : 0;
+        $leistung    = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
+        $ampere      = isset($data['amp'])         ? intval($data['amp'])         : 0;
+        $phasen      = (isset($data['pha']) && is_array($data['pha']))     ? array_sum($data['pha'])    : 0;
+        $energie     = isset($data['wh'])          ? intval($data['wh'])          : 0;
+        $freigabe    = isset($data['alw'])         ? intval($data['alw'])         : 0;
+        $kabelstrom  = isset($data['cbl'])         ? intval($data['cbl'])         : 0;
+        $fehlercode  = isset($data['err'])         ? intval($data['err'])         : 0;
+
         switch ($mode) {
-            case 'manuell':
-                // Alles, was für manuelles Laden gebraucht wird
-                SetValue($this->GetIDForIdent('Status'),      intval($data['car'] ?? 0));
-                SetValue($this->GetIDForIdent('Leistung'),    floatval($data['nrg'][11] ?? 0.0));
-                SetValue($this->GetIDForIdent('Ampere'),      intval($data['amp'] ?? 0));
-                SetValue($this->GetIDForIdent('Phasen'),      array_sum($data['pha'] ?? [0,0,0]));
-                SetValue($this->GetIDForIdent('Energie'),     intval($data['wh'] ?? 0));
-                SetValue($this->GetIDForIdent('Freigabe'),    intval($data['alw'] ?? 0));
-                SetValue($this->GetIDForIdent('Kabelstrom'),  intval($data['cbl'] ?? 0));
-                SetValue($this->GetIDForIdent('Fehlercode'),  intval($data['err'] ?? 0));
-                break;
+        case 'manuell':
+            SetValue($this->GetIDForIdent('Status'),      $car);
+            SetValue($this->GetIDForIdent('Leistung'),    $leistung);
+            SetValue($this->GetIDForIdent('Ampere'),      $ampere);
+            SetValue($this->GetIDForIdent('Phasen'),      $phasen);
+            SetValue($this->GetIDForIdent('Energie'),     $energie);
+            SetValue($this->GetIDForIdent('Freigabe'),    $freigabe);
+            SetValue($this->GetIDForIdent('Kabelstrom'),  $kabelstrom);
+            SetValue($this->GetIDForIdent('Fehlercode'),  $fehlercode);
+            break;
 
-            case 'pv2car':
-                // Alles, was für PV2Car benötigt wird
-                SetValue($this->GetIDForIdent('Status'),      intval($data['car'] ?? 0));
-                SetValue($this->GetIDForIdent('Leistung'),    floatval($data['nrg'][11] ?? 0.0));
-                SetValue($this->GetIDForIdent('Ampere'),      intval($data['amp'] ?? 0));
-                SetValue($this->GetIDForIdent('Phasen'),      array_sum($data['pha'] ?? [0,0,0]));
-                SetValue($this->GetIDForIdent('Energie'),     intval($data['wh'] ?? 0));
-                // weitere Werte können leicht ergänzt werden
-                break;
+        case 'pv2car':
+        case 'zielzeit':
+        case 'strompreis':
+            // Diese Modi setzen im Grundsatz die gleichen Basiswerte, können aber später noch erweitert werden
+            SetValue($this->GetIDForIdent('Status'),      $car);
+            SetValue($this->GetIDForIdent('Leistung'),    $leistung);
+            SetValue($this->GetIDForIdent('Ampere'),      $ampere);
+            SetValue($this->GetIDForIdent('Phasen'),      $phasen);
+            SetValue($this->GetIDForIdent('Energie'),     $energie);
+            break;
 
-            case 'zielzeit':
-                // Alles, was für die Zielzeitladung benötigt wird
-                SetValue($this->GetIDForIdent('Status'),      intval($data['car'] ?? 0));
-                SetValue($this->GetIDForIdent('Leistung'),    floatval($data['nrg'][11] ?? 0.0));
-                SetValue($this->GetIDForIdent('Ampere'),      intval($data['amp'] ?? 0));
-                SetValue($this->GetIDForIdent('Phasen'),      array_sum($data['pha'] ?? [0,0,0]));
-                SetValue($this->GetIDForIdent('Energie'),     intval($data['wh'] ?? 0));
-                break;
-
-            case 'strompreis':
-                // Alles, was für Strompreis-basiertes Laden benötigt wird
-                SetValue($this->GetIDForIdent('Status'),      intval($data['car'] ?? 0));
-                SetValue($this->GetIDForIdent('Leistung'),    floatval($data['nrg'][11] ?? 0.0));
-                SetValue($this->GetIDForIdent('Ampere'),      intval($data['amp'] ?? 0));
-                SetValue($this->GetIDForIdent('Phasen'),      array_sum($data['pha'] ?? [0,0,0]));
-                SetValue($this->GetIDForIdent('Energie'),     intval($data['wh'] ?? 0));
-                // aktueller Strompreis kommt extern rein (eigene Variable/Logik)
-                break;
-
-            case 'pvonly':
-            default:
-                // Standard: Nur PV-Modus, Werte für PV-Überschuss-Laden
-                SetValue($this->GetIDForIdent('Status'),      intval($data['car'] ?? 0));
-                SetValue($this->GetIDForIdent('Leistung'),    floatval($data['nrg'][11] ?? 0.0));
-                SetValue($this->GetIDForIdent('Ampere'),      intval($data['amp'] ?? 0));
-                SetValue($this->GetIDForIdent('Phasen'),      array_sum($data['pha'] ?? [0,0,0]));
-                SetValue($this->GetIDForIdent('Energie'),     intval($data['wh'] ?? 0));
-                break;
+        case 'pvonly':
+        default:
+            // Standard: Nur PV-Modus, Werte für PV-Überschuss-Laden
+            SetValue($this->GetIDForIdent('Status'),      $car);
+            SetValue($this->GetIDForIdent('Leistung'),    $leistung);
+            SetValue($this->GetIDForIdent('Ampere'),      $ampere);
+            SetValue($this->GetIDForIdent('Phasen'),      $phasen);
+            SetValue($this->GetIDForIdent('Energie'),     $energie);
+            break;
         }
     }
 
