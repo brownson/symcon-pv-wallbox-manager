@@ -299,7 +299,7 @@ class PVWallboxManager extends IPSModule
 
         // Prüfe: Nur laden, wenn Fahrzeug verbunden
         if ($this->ReadPropertyBoolean('NurMitFahrzeug') && !$this->IstFahrzeugVerbunden($wb)) {
-            GOeCharger_SetAccessState($goeID, 1); // 1 = gesperrt (NICHT laden)
+            $this->SetGoEActive($goeID, false);
             $statusText = "Bitte das Fahrzeug mit der Wallbox verbinden.";
             $this->SetLademodusStatus($statusText);
             $this->LogTemplate('info', "Warte auf Fahrzeug.", $statusText);
@@ -455,7 +455,7 @@ class PVWallboxManager extends IPSModule
 
                 // Niemals laden ohne PV-Überschuss
                 if ($ueberschuss < $minLadeWatt) {
-                    GOeCharger_SetAccessState($goeID, 1); // 1 = gesperrt (NICHT laden)
+                    $this->SetGoEActive($goeID, false);
                     $this->SetzeLadeleistung(0);
                     $this->LogTemplate('info', "Kein PV-Überschuss – Ladung deaktiviert.");
                     $this->SetBuffer('StartHystereseCounter', 0);
@@ -872,22 +872,22 @@ class PVWallboxManager extends IPSModule
     private function UmschaltenAuf1Phasig()
     {
         $goeID = $this->ReadPropertyInteger('GOeChargerID'); // <--- HINZUFÜGEN!
-        GOeCharger_SetAccessState($goeID, 1); // 1 = gesperrt (NICHT laden)
+        $this->SetGoEActive($goeID, false);
         IPS_Sleep(1200);
         $this->GOeCharger_SetMode($goeID, '1P'); // für 1-phasig
         IPS_Sleep(1500);
-        GOeCharger_SetAccessState($goeID, 2); // 2 = Freigabe/Laden
+        $this->SetGoEActive($goeID, true);
         $this->LogTemplate('info', 'Phasenumschaltung auf 1-phasig abgeschlossen.');
     }
 
     private function UmschaltenAuf3Phasig()
     {
         $goeID = $this->ReadPropertyInteger('GOeChargerID'); // <--- HINZUFÜGEN!
-        GOeCharger_SetAccessState($goeID, 1); // 1 = gesperrt (NICHT laden)
+        $this->SetGoEActive($goeID, false);
         IPS_Sleep(1200);
         $this->GOeCharger_SetMode($goeID, '3P'); // für 3-phasig
         IPS_Sleep(1200);
-        GOeCharger_SetAccessState($goeID, 2); // 2 = Freigabe/Laden
+        $this->SetGoEActive($goeID, true);
         $this->LogTemplate('info', 'Phasenumschaltung auf 3-phasig abgeschlossen.');
     }
 
@@ -943,7 +943,7 @@ class PVWallboxManager extends IPSModule
         // 1. Zu geringe Leistung: abschalten, wenn Änderung
         if ($leistung < $minWatt) {
             if ($lastActive !== false) {
-                GOeCharger_SetAccessState($goeID, 1); // 1 = gesperrt (NICHT laden)
+                $this->SetGoEActive($goeID, false);
                 $this->LogTemplate('info', "Ladung deaktiviert (Leistung zu gering, alw=0).");
                 $this->WriteAttributeInteger('LastSetLadeleistung', 0);
                 $this->WriteAttributeBoolean('LastSetGoEActive', false);
@@ -962,7 +962,7 @@ class PVWallboxManager extends IPSModule
         }
 
         // 3. Änderung nötig: Einschalten und gewünschten Wert setzen!
-        GOeCharger_SetAccessState($goeID, 2); // 2 = Freigabe/Laden
+        $this->SetGoEActive($goeID, true);
         IPS_Sleep(1200);
         GOeCharger_SetCurrentChargingWatt($goeID, $leistung);  // Ladeleistung (W)
         $this->LogTemplate('info', "Ladung aktiviert: alw=1, amp=$ampere (für $leistung W, $phasen Phasen)");
@@ -990,7 +990,7 @@ class PVWallboxManager extends IPSModule
             case 'sofort':
             case 'manuell':
                 // Freigeben und Maximalleistung setzen
-                GOeCharger_SetAccessState($goeID, 2); // Freigabe
+                $this->SetGoEActive($goeID, true);
                 GOeCharger_SetCurrentChargingWatt($goeID, $this->ReadPropertyInteger('MaxAmpere') * 230 * $this->ReadPropertyInteger('Phasen'));
                 $this->SetLademodusStatus("🔋 Sofortladen aktiviert (manuell/maximal)");
                 break;
@@ -998,7 +998,7 @@ class PVWallboxManager extends IPSModule
             case 'pv':
             case 'nurpv':
                 // Freigeben, aber nur wenn Überschuss reicht (wird in Logik geprüft)
-                GOeCharger_SetAccessState($goeID, 2); // Freigabe
+                $this->SetGoEActive($goeID, true);
                 // Ladeleistung wird durch SetzeLadeleistung geregelt!
                 $this->SetLademodusStatus("☀️ PV-Überschussmodus aktiviert");
                 break;
@@ -1006,7 +1006,7 @@ class PVWallboxManager extends IPSModule
             case 'stop':
             default:
                 // Sperren, also Laden deaktivieren
-                GOeCharger_SetAccessState($goeID, 1); // Gesperrt
+                $this->SetGoEActive($goeID, false);
                 $this->SetLademodusStatus("⛔️ Wallbox gesperrt");
                 break;
         }
@@ -1042,6 +1042,23 @@ class PVWallboxManager extends IPSModule
             // Weitere Werte (z. B. Spannung, Stromstärke, etc.) bei Bedarf ergänzen!
         ];
     }
+
+    private function SetGoEActive($goeID, $active)
+    {
+        if ($goeID > 0 && @IPS_InstanceExists($goeID)) {
+            if (function_exists('GOeCharger_SetActive')) {
+                GOeCharger_SetActive($goeID, $active);
+                $this->LogTemplate('debug', "GOeCharger_SetActive aufgerufen: " . ($active ? "aktiv" : "inaktiv"));
+                return true;
+            } else {
+                $this->LogTemplate('error', 'GOeCharger_SetActive nicht verfügbar!');
+                return false;
+            }
+        }
+        $this->LogTemplate('error', 'Ungültige GO-e Instanz-ID!');
+        return false;
+    }
+
 
     /*private function SetGoEParameter(array $params)
     {
