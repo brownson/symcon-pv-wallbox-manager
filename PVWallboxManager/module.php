@@ -1145,11 +1145,6 @@ class PVWallboxManager extends IPSModule
     }
 
     private function BerechneLadedauerBisZiel($istSOC, $sollSOC, $ladeleistung)
-    {
-        // ... (Code unverändert, siehe oben)
-    }
-
-    private function BerechneLadedauerBisZiel($istSOC, $sollSOC, $ladeleistung)
 	{
 		$akku_kwh = $this->ReadPropertyFloat('CarBatteryCapacity');
 		$delta_soc = max(0, $sollSOC - $istSOC);
