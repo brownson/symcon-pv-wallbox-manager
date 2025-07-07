@@ -19,7 +19,7 @@ class PVWallboxManager extends IPSModule
 
         // Variablen nach API v2
         $this->RegisterCarStateProfile();
-        $this->RegisterVariableInteger('Status',      'Fahrzeugstatus',     'GoE.CarState',     1);
+        $this->RegisterVariableInteger('Status',      'Fahrzeugstatus',     'GoE.CarStatus',     1);
         $this->RegisterVariableFloat('Leistung',      'Ladeleistung (W)', '~Watt', 2);
         $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)', '', 3);
         $this->RegisterVariableInteger('Phasen',      'Phasen aktiv', '', 4);
