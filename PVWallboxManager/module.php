@@ -148,7 +148,7 @@ class PVWallboxManager extends IPSModule
 
 private function RegisterCarStateProfile()
     {
-        $profile = 'GoE.CarState';
+        $profile = 'GoE.CarStatus';
         if (!IPS_VariableProfileExists($profile)) {
             IPS_CreateVariableProfile($profile, 1); // 1 = Integer
             IPS_SetVariableProfileValues($profile, 1, 4, 1);
