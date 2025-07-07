@@ -1261,7 +1261,7 @@ private function DeaktiviereLaden()
             return false;
         }
 
-        // 1. Aktuellen alw-Wert direkt abfragen
+        // 1. Aktuellen alw-Wert abfragen (optional, zur Optimierung)
         $statusUrl = "http://$ip/api/status?filter=alw";
         $statusData = @file_get_contents($statusUrl);
         $alwCurrent = null;
@@ -1280,22 +1280,17 @@ private function DeaktiviereLaden()
             return true;
         }
 
-        // 3. dwo=0 zurücksetzen (für neuere HW/FW Pflicht)
-        $resetUrl = "http://$ip/api/set?dwo=0";
-        @file_get_contents($resetUrl);
-
-        // 4. Ladefreigabe setzen (alw)
-        $alwUrl = "http://$ip/mqtt?payload=alw=$alwValue";
-        $result = @file_get_contents($alwUrl);
+        // 3. Ladefreigabe setzen (per offizieller API, nicht MQTT!)
+        $setUrl = "http://$ip/api/set?alw=$alwValue";
+        $result = @file_get_contents($setUrl);
 
         if ($result === false) {
-            $this->LogTemplate('error', "Fehler beim Setzen von alw=$alwValue an $ip!");
+            $this->LogTemplate('error', "Fehler beim Setzen von alw=$alwValue an $ip (API/set)!");
             return false;
         }
-        $this->LogTemplate('info', "Ladefreigabe gesetzt: alw=$alwValue an $ip");
+        $this->LogTemplate('info', "Ladefreigabe gesetzt: alw=$alwValue an $ip (API/set)");
         return true;
     }
-
 
     // === 12. Hilfsfunktionen ===
 
