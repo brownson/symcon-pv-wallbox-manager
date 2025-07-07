@@ -6,7 +6,8 @@
  */
 class PVWallboxManager extends IPSModule
 {
-    // === Private Klassenvariablen ===
+    /*
+    // // === Private Klassenvariablen ===
     private $ladeStartZaehler = 0;
     private $ladeStopZaehler = 0;
     private $StartHystereseCounter = 0;
@@ -15,6 +16,7 @@ class PVWallboxManager extends IPSModule
     private $PhasenUpCounter = 0;
     private $LastSetLadeleistung = 0;
     private $LastSetGoEActive = false;
+    */
 
     // =========================================================================
     // 1. INITIALISIERUNG
@@ -110,7 +112,7 @@ class PVWallboxManager extends IPSModule
         IPS_SetIcon($this->GetIDForIdent('CarChargeTargetTime'), 'clock');
 
          // Sicherstellen, dass das Profil existiert (für 'AktiverLademodus')
-        //$this->EnsureLademodusProfile();
+        $this->EnsureLademodusProfile();
         $this->RegisterVariableInteger('AktiverLademodus', 'Aktiver Lademodus', 'PVWM.Lademodus', 50);
 
         IPS_SetIcon($this->GetIDForIdent('AktiverLademodus'), 'lightbulb');
