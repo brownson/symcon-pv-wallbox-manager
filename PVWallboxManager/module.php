@@ -121,13 +121,6 @@ class PVWallboxManager extends IPSModule
 
         // Timer für Berechnungsintervall
         $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
-
-        $this->WriteAttributeInteger('PhasenDownCounter', 0);
-        $this->WriteAttributeInteger('PhasenUpCounter', 0);
-        $this->WriteAttributeInteger('LastSetLadeleistung', 0);
-        $this->WriteAttributeBoolean('LastSetGoEActive', false);
-        $this->WriteAttributeInteger('StartHystereseCounter', 0);
-        $this->WriteAttributeInteger('StopHystereseCounter', 0);
     }
 
     public function ApplyChanges()
@@ -159,13 +152,26 @@ class PVWallboxManager extends IPSModule
         }
         $this->UpdateAccessStateText();
         $this->CheckSchwellenwerte();
-        /*// In ApplyChanges():
+        
+        // Attribut-Initialisierung NUR, wenn das Attribut noch nicht existiert
+        if ($this->ReadAttributeInteger('PhasenDownCounter') === null) {
+            $this->WriteAttributeInteger('PhasenDownCounter', 0);
+        }
+        if ($this->ReadAttributeInteger('PhasenUpCounter') === null) {
+            $this->WriteAttributeInteger('PhasenUpCounter', 0);
+        }
         if ($this->ReadAttributeInteger('LastSetLadeleistung') === null) {
             $this->WriteAttributeInteger('LastSetLadeleistung', 0);
         }
         if ($this->ReadAttributeBoolean('LastSetGoEActive') === null) {
             $this->WriteAttributeBoolean('LastSetGoEActive', false);
-        }*/
+        }
+        if ($this->ReadAttributeInteger('StartHystereseCounter') === null) {
+            $this->WriteAttributeInteger('StartHystereseCounter', 0);
+        }
+        if ($this->ReadAttributeInteger('StopHystereseCounter') === null) {
+            $this->WriteAttributeInteger('StopHystereseCounter', 0);
+        }
     }
 
     // =========================================================================
