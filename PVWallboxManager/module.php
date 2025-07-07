@@ -126,7 +126,7 @@ class PVWallboxManager extends IPSModule
         parent::ApplyChanges();
 
         // Attribut-Initialisierung für Phasen-Hysteresezähler (robust, keine IPS-Warnings)
-        $this->EnsurePhasenCounterAttributes();
+        //$this->EnsurePhasenCounterAttributes();
 
         // Variablenprofil für Lademodus sicherstellen
         $this->EnsureLademodusProfile();
