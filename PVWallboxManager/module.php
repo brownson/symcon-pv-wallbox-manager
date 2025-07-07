@@ -126,9 +126,6 @@ class PVWallboxManager extends IPSModule
         // Variablenprofil für Lademodus sicherstellen
         $this->EnsureLademodusProfile();
         
-        $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
-        $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
-
         // GO-e Charger Instanz-ID holen
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
 
@@ -151,6 +148,9 @@ class PVWallboxManager extends IPSModule
         }
         $this->UpdateAccessStateText();
         $this->CheckSchwellenwerte();
+
+        $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
+        $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
     }
 
     public function UpdateCharging()
