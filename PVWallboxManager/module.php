@@ -151,7 +151,7 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        // Defensive Daten-Extraktion
+        // --- Grundwerte immer holen & setzen ---
         $car         = isset($data['car'])          ? intval($data['car'])         : 0;
         $leistung    = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
         $ampere      = isset($data['amp'])          ? intval($data['amp'])         : 0;
@@ -159,12 +159,9 @@ class PVWallboxManager extends IPSModule
         $freigabe    = isset($data['alw'])          ? (bool)$data['alw']           : false;
         $kabelstrom  = isset($data['cbl'])          ? intval($data['cbl'])         : 0;
         $fehlercode  = isset($data['err'])          ? intval($data['err'])         : 0;
+        $pha         = $data['pha'] ?? [];
+        $phasen      = (is_array($pha) && count($pha) >= 6) ? array_sum(array_slice($pha, 3, 3)) : 0;
 
-        // Phasen aus dem pha-Array: Go-e liefert 6 Felder, wir nehmen die letzten 3 (L1,L2,L3 aktiv)
-        $pha = $data['pha'] ?? [];
-        $phasen = (is_array($pha) && count($pha) >= 6) ? array_sum(array_slice($pha, 3, 3)) : 0;
-
-        // Nun die Werte **nur bei Änderung** schreiben und loggen:
         $this->SetValueAndLogChange('Status',      $car,         'Fahrzeugstatus');
         $this->SetValueAndLogChange('Leistung',    $leistung,    'Ladeleistung', 'W');
         $this->SetValueAndLogChange('Ampere',      $ampere,      'Maximaler Ladestrom', 'A');
@@ -173,49 +170,28 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('Freigabe',    $freigabe,    'Ladefreigabe');
         $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom,  'Kabeltyp');
         $this->SetValueAndLogChange('Fehlercode',  $fehlercode,  'Fehlercode', '', 'warn');
-    }
 
-
+        // --- Modus-spezifische Zusatz-Logik ---
         switch ($mode) {
-        case 'manuell':
-            $this->SetValueAndLogChange('Status',      $car,        'Fahrzeugstatus');
-            $this->SetValueAndLogChange('Leistung',    $leistung,   'Ladeleistung');
-            $this->SetValueAndLogChange('Ampere',      $ampere,     'Maximaler Ladestrom');
-            $this->SetValueAndLogChange('Phasen',      $phasen,     'Phasen aktiv');
-            $this->SetValueAndLogChange('Energie',     $energie,    'Geladene Energie');
-            $this->SetValueAndLogChange('Freigabe',    (bool)$freigabe, 'Ladefreigabe');
-            $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom, 'Kabeltyp');
-            $this->SetValueAndLogChange('Fehlercode',  $fehlercode, 'Fehlercode', '', 'warn');
-            break;
-
-        case 'pv2car':
-        case 'zielzeit':
-        case 'strompreis':
-            // Diese Modi setzen im Grundsatz die gleichen Basiswerte, können aber später noch erweitert werden
-            $this->SetValueAndLogChange('Status',      $car,        'Fahrzeugstatus');
-            $this->SetValueAndLogChange('Leistung',    $leistung,   'Ladeleistung');
-            $this->SetValueAndLogChange('Ampere',      $ampere,     'Maximaler Ladestrom');
-            $this->SetValueAndLogChange('Phasen',      $phasen,     'Phasen aktiv');
-            $this->SetValueAndLogChange('Energie',     $energie,    'Geladene Energie');
-            $this->SetValueAndLogChange('Freigabe',    (bool)$freigabe, 'Ladefreigabe');
-            $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom, 'Kabeltyp');
-            $this->SetValueAndLogChange('Fehlercode',  $fehlercode, 'Fehlercode', '', 'warn');
-            break;
-
-        case 'pvonly':
-        default:
-            // Standard: Nur PV-Modus, Werte für PV-Überschuss-Laden
-            $this->SetValueAndLogChange('Status',      $car,        'Fahrzeugstatus');
-            $this->SetValueAndLogChange('Leistung',    $leistung,   'Ladeleistung');
-            $this->SetValueAndLogChange('Ampere',      $ampere,     'Maximaler Ladestrom');
-            $this->SetValueAndLogChange('Phasen',      $phasen,     'Phasen aktiv');
-            $this->SetValueAndLogChange('Energie',     $energie,    'Geladene Energie');
-            $this->SetValueAndLogChange('Freigabe',    (bool)$freigabe, 'Ladefreigabe');
-            $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom, 'Kabeltyp');
-            $this->SetValueAndLogChange('Fehlercode',  $fehlercode, 'Fehlercode', '', 'warn');
-            break;
+            case 'manuell':
+                // spätere Erweiterungen: z. B. Ampere setzen, Freigabe manuell steuern ...
+                break;
+            case 'pv2car':
+                // PV2Car-Steuerung ergänzen
+                break;
+            case 'zielzeit':
+                // Zielzeit-Berechnung & Steuerung
+                break;
+            case 'strompreis':
+                // Strompreisabhängige Logik
+                break;
+            case 'pvonly':
+            default:
+                // Standardmodus, keine Zusatzlogik
+                break;
         }
     }
+
 
     // =========================================================================
     // 9. HILFSFUNKTIONEN & GETTER/SETTER
