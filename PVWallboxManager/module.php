@@ -125,7 +125,9 @@ class PVWallboxManager extends IPSModule
 
         // Variablenprofil für Lademodus sicherstellen
         $this->EnsureLademodusProfile();
-        //$this->EnsurePhasenCounterAttributes();
+        
+        $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
+        $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
 
         // GO-e Charger Instanz-ID holen
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
@@ -149,8 +151,6 @@ class PVWallboxManager extends IPSModule
         }
         $this->UpdateAccessStateText();
         $this->CheckSchwellenwerte();
-        $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
-        $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
     }
 
     public function UpdateCharging()
@@ -733,10 +733,12 @@ class PVWallboxManager extends IPSModule
 
     private function PruefeHystereseDown($ladeleistung)
     {
-        //$this->EnsurePhasenCounterAttributes();
         $phasen1Schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');    // z.B. 3400 W
         $phasen1Limit    = $this->ReadPropertyInteger('Phasen1Limit');      // z.B. 3
-        $counter = $this->GetOrInitAttributeInteger('PhasenDownCounter');
+
+        // Typ-stabil holen
+        $counter = (int)$this->GetOrInitAttributeInteger('PhasenDownCounter');
+        
         if ($ladeleistung < $phasen1Schwelle) {
             $counter++;
             $this->LogTemplate('debug', "Phasen-Hysterese-Down: $counter x < {$phasen1Schwelle} W");
@@ -753,13 +755,15 @@ class PVWallboxManager extends IPSModule
 
     private function PruefeHystereseUp($ladeleistung)
     {
-        //$this->EnsurePhasenCounterAttributes();
         $phasen3Schwelle = $this->ReadPropertyFloat('Phasen3Schwelle');    // z.B. 4200 W
         $phasen3Limit    = $this->ReadPropertyInteger('Phasen3Limit');      // z.B. 3
-        $counter = $this->GetOrInitAttributeInteger('PhasenUpCounter');
+
+        // Typ-stabil holen
+        $counter = (int)$this->GetOrInitAttributeInteger('PhasenUpCounter');
+        
         if ($ladeleistung > $phasen3Schwelle) {
             $counter++;
-            $this->LogTemplate('debug', "Phasen-Hysterese-Up: $counter x > $phasen3Schwelle W");
+            $this->LogTemplate('debug', "Phasen-Hysterese-Up: $counter x > {$phasen3Schwelle} W");
         } else {
             $counter = 0;
         }
@@ -1546,13 +1550,15 @@ private function DeaktiviereLaden()
     }
     */
     private function GetOrInitAttributeInteger($name, $default = 0) {
-        // Defensive: Suppress error (IPS likes to warn if attribute is missing)
+        // Defensive: suppress warnings, hole den Wert
         $value = @$this->ReadAttributeInteger($name);
-        if ($value === null) {
+
+        // Fallback für "noch nie gesetzt" oder Typfehler (bool, null, ...):
+        if (!is_int($value)) {
             $this->WriteAttributeInteger($name, $default);
-            return $default;
+            return (int)$default;
         }
-        return $value;
+        return (int)$value;
     }
 
     // Gibt alle Attribute als Array zurück (Hack: so kommt man ran)
