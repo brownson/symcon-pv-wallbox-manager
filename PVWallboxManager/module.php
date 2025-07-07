@@ -269,10 +269,9 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('debug', "=== UpdateCharging Durchlauf Start === ".date('H:i:s'));
 
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
-        if ($goeID <= 0 || !@IPS_InstanceExists($goeID)) {
-            $this->LogTemplate('warn', "Keine Wallbox-Instanz ausgewählt oder ID ungültig.", "Bitte GO-e Charger im Modul konfigurieren.");
-            $this->SetLademodusStatus("Wallbox nicht konfiguriert!");
-            return;
+        $this->LogTemplate('debug', "Aktuelle GOeChargerID im Modul: $goeID");
+        if ($goeID > 0 && !IPS_InstanceExists($goeID)) {
+            $this->LogTemplate('error', "GO-e Instanz $goeID existiert NICHT!");
         }
 
         // ---- Werte direkt aus der IPSCoyote/GO-eCharger Instanz holen ----
