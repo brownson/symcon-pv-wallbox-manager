@@ -1082,27 +1082,41 @@ class PVWallboxManager extends IPSModule
             return false;
         }
 
-        // Optional: API-Key-Header
+        // Status merken
+        $lastActive = $this->ReadAttributeBoolean('LastSetGoEActive');
+
+        // Nur wenn Status sich ändert:
+        if ($lastActive === $active) {
+            $this->LogTemplate('debug', "alw bereits auf $active – kein Setzen nötig.");
+            return true;
+        }
+
+        // Nur beim Aktivieren: dwo=0 setzen!
+        if ($active) {
+            $headers = $apiKey ? ["http" => [
+                "header" => "X-API-KEY: $apiKey\r\n",
+                "timeout" => 2
+            ]] : ["http" => ["timeout" => 2]];
+            $context = stream_context_create($headers);
+            $resetUrl = "http://$ip/api/set?dwo=0";
+            $resetResult = @file_get_contents($resetUrl, false, $context);
+
+            if ($resetResult === false) {
+                $this->LogTemplate('warn', "Konnte dwo=0 nicht setzen! (ggf. API-Key prüfen)");
+            } else {
+                $this->LogTemplate('debug', "dwo=0 erfolgreich gesetzt.");
+            }
+        }
+
+        // Jetzt alw setzen (immer, wenn sich Status ändert)
+        $alwValue = $active ? 1 : 0;
+        $setUrl = "http://$ip/mqtt?payload=alw=$alwValue";
         $headers = $apiKey ? ["http" => [
             "header" => "X-API-KEY: $apiKey\r\n",
             "timeout" => 2
         ]] : ["http" => ["timeout" => 2]];
         $context = stream_context_create($headers);
 
-        // 1. dwo=0 setzen (immer als Erstes!)
-        $resetUrl = "http://$ip/api/set?dwo=0";
-        $resetResult = @file_get_contents($resetUrl, false, $context);
-
-        if ($resetResult === false) {
-            $this->LogTemplate('warn', "Konnte dwo=0 nicht setzen! (ggf. API-Key prüfen)");
-            // Im Zweifel trotzdem weiter mit alw probieren
-        } else {
-            $this->LogTemplate('debug', "dwo=0 erfolgreich gesetzt.");
-        }
-
-        // 2. alw über MQTT-Endpoint setzen
-        $alwValue = $active ? 1 : 0;
-        $setUrl = "http://$ip/mqtt?payload=alw=$alwValue";
         $result = @file_get_contents($setUrl, false, $context);
 
         if ($result === false) {
@@ -1110,8 +1124,10 @@ class PVWallboxManager extends IPSModule
             return false;
         }
         $this->LogTemplate('info', "Ladefreigabe gesetzt: alw=$alwValue an $ip (/mqtt)");
+        $this->WriteAttributeBoolean('LastSetGoEActive', $active);
         return true;
     }
+
 
     // =========================================================================
     // 7. FAHRZEUGSTATUS / SOC / ZIELZEIT
