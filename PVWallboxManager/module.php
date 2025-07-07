@@ -1,26 +1,63 @@
 <?php
-$wallboxIP = '192.168.98.5'; // <- Deine Wallbox-IP eintragen
-$url = "http://$wallboxIP/status";
 
-$options = [
-    "http" => [
-        "timeout" => 5, // 5 Sekunden Timeout
-    ]
-];
-$context = stream_context_create($options);
+class GoEChargerSimple extends IPSModule
+{
+    public function Create()
+    {
+        // Immer zuerst
+        parent::Create();
 
-$json = @file_get_contents($url, false, $context);
+        // Properties (Konfigurationsfelder im Instanz-Dialog)
+        $this->RegisterPropertyString('WallboxIP', '192.168.98.5'); // Standard-IP, anpassbar im WebFront
 
-if ($json === false) {
-    die("Fehler: Konnte keine Daten von der Wallbox holen!");
+        // Variablen anlegen
+        $this->RegisterVariableInteger('Status', 'Fahrzeugstatus', '', 1);    // car: 1=bereit, 2=lädt, ...
+        $this->RegisterVariableFloat('Leistung', 'Ladeleistung (W)', '~Watt', 2);
+
+        // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
+        $this->RegisterTimer('UpdateStatus', 30 * 1000, 'GOE_UpdateStatus($_IPS["TARGET"]);');
+    }
+
+    public function ApplyChanges()
+    {
+        parent::ApplyChanges();
+        // Nach Konfig-Änderung: Timer ggf. neu setzen
+        $this->SetTimerInterval('UpdateStatus', 30 * 1000);
+    }
+
+    // Hauptfunktion: Statusdaten holen und Variablen setzen
+    public function UpdateStatus()
+    {
+        $ip = $this->ReadPropertyString('WallboxIP');
+        $url = "http://$ip/status";
+        $json = @file_get_contents($url);
+
+        if ($json === false) {
+            IPS_LogMessage("GoEChargerSimple", "Fehler: Keine Antwort von Wallbox ($url)");
+            return;
+        }
+        $data = json_decode($json, true);
+
+        if (!is_array($data)) {
+            IPS_LogMessage("GoEChargerSimple", "Fehler: Ungültiges JSON von Wallbox ($url)");
+            return;
+        }
+
+        // Werte setzen
+        $status = isset($data['car']) ? intval($data['car']) : 0;
+        $leistung = isset($data['nrg'][11]) ? floatval($data['nrg'][11]) : 0.0;
+
+        SetValue($this->GetIDForIdent('Status'), $status);
+        SetValue($this->GetIDForIdent('Leistung'), $leistung);
+    }
+
+    // Optional: RequestAction, falls Variablen steuerbar gemacht werden sollen
+    public function RequestAction($Ident, $Value)
+    {
+        // Beispiel für spätere Steuerfunktionen
+        switch ($Ident) {
+            default:
+                throw new Exception("Invalid ident");
+        }
+    }
 }
-
-$data = json_decode($json, true);
-
-if (!is_array($data)) {
-    die("Fehler: Ungültiges JSON erhalten!");
-}
-
-// Beispiel: Ladeleistung anzeigen
-echo "Status: " . $data['car'] . PHP_EOL;
-echo "Aktuelle Ladeleistung: " . $data['nrg'][11] . " W" . PHP_EOL; // nrg[11] = Leistung in W
