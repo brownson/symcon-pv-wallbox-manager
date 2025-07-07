@@ -11,6 +11,8 @@ class PVWallboxManager extends IPSModule
     private $ladeStopZaehler = 0;
     private $StartHystereseCounter = 0;
     private $StopHystereseCounter = 0;
+    private $PhasenDownCounter = 0;
+    private $PhasenUpCounter = 0;
 
     // =========================================================================
     // 1. INITIALISIERUNG
@@ -820,44 +822,38 @@ class PVWallboxManager extends IPSModule
 
     private function PruefeHystereseDown($ladeleistung)
     {
-        $phasen1Schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');    // z.B. 3400 W
-        $phasen1Limit    = $this->ReadPropertyInteger('Phasen1Limit');      // z.B. 3
+        $limit = $this->ReadPropertyInteger('Phasen1Limit');
+        $schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');
 
-        // Typ-stabil und immer initialisiert
-        $counter = $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
-
-        if ($ladeleistung < $phasen1Schwelle) {
-            $counter++;
-            $this->LogTemplate('debug', "Phasen-Hysterese-Down: $counter x < {$phasen1Schwelle} W");
+        if ($ladeleistung < $schwelle) {
+            $this->PhasenDownCounter++;
+            $this->PhasenUpCounter = 0; // Gegenseite immer resetten!
+            $this->LogTemplate('debug', "Phasen-Hysterese-Down: {$this->PhasenDownCounter}/{$limit} (Schwelle: {$schwelle} W)");
+            if ($this->PhasenDownCounter >= $limit) {
+                $this->PhasenDownCounter = 0; // Nach Umschalten immer auf 0!
+                return true;
+            }
         } else {
-            $counter = 0;
-        }
-        $this->WriteAttributeInteger('PhasenDownCounter', $counter);
-        if ($counter >= $phasen1Limit) {
-            $this->WriteAttributeInteger('PhasenDownCounter', 0);
-            return true;
+            $this->PhasenDownCounter = 0;
         }
         return false;
     }
 
     private function PruefeHystereseUp($ladeleistung)
     {
-        $phasen3Schwelle = $this->ReadPropertyFloat('Phasen3Schwelle');    // z.B. 4200 W
-        $phasen3Limit    = $this->ReadPropertyInteger('Phasen3Limit');      // z.B. 3
+        $limit = $this->ReadPropertyInteger('Phasen3Limit');
+        $schwelle = $this->ReadPropertyFloat('Phasen3Schwelle');
 
-        // Typ-stabil und immer initialisiert
-        $counter = $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
-
-        if ($ladeleistung > $phasen3Schwelle) {
-            $counter++;
-            $this->LogTemplate('debug', "Phasen-Hysterese-Up: $counter x > {$phasen3Schwelle} W");
+        if ($ladeleistung > $schwelle) {
+            $this->PhasenUpCounter++;
+            $this->PhasenDownCounter = 0; // Gegenseite immer resetten!
+            $this->LogTemplate('debug', "Phasen-Hysterese-Up: {$this->PhasenUpCounter}/{$limit} (Schwelle: {$schwelle} W)");
+            if ($this->PhasenUpCounter >= $limit) {
+                $this->PhasenUpCounter = 0;
+                return true;
+            }
         } else {
-            $counter = 0;
-        }
-        $this->WriteAttributeInteger('PhasenUpCounter', $counter);
-        if ($counter >= $phasen3Limit) {
-            $this->WriteAttributeInteger('PhasenUpCounter', 0);
-            return true;
+            $this->PhasenUpCounter = 0;
         }
         return false;
     }
