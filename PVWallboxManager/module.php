@@ -19,9 +19,6 @@ class PVWallboxManager extends IPSModule
     /** @inheritDoc */
     public function Create()
     {
-        @$this->WriteAttributeInteger('PhasenDownCounter', 0);
-        @$this->WriteAttributeInteger('PhasenUpCounter', 0);
-		
         parent::Create();
         $this->EnsurePhasenCounterAttributes();
 
