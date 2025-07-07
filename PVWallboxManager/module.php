@@ -1256,33 +1256,34 @@ private function DeaktiviereLaden()
     private function SetGoEChargingActive($active)
     {
         $ip = trim($this->ReadPropertyString('WallboxIP'));
+        $apiKey = trim($this->ReadPropertyString('WallboxAPIKey'));
         if (empty($ip) || $ip == "0.0.0.0") {
             $this->LogTemplate('error', 'Keine gültige IP für die Wallbox eingetragen!');
             return false;
         }
 
-        // 1. Aktuellen alw-Wert abfragen (optional, zur Optimierung)
-        $statusUrl = "http://$ip/api/status?filter=alw";
-        $statusData = @file_get_contents($statusUrl);
-        $alwCurrent = null;
-        if ($statusData !== false) {
-            $statusJson = @json_decode($statusData, true);
-            if (isset($statusJson['alw'])) {
-                $alwCurrent = intval($statusJson['alw']);
-            }
+        // Optional: API-Key-Header
+        $headers = $apiKey ? ["http" => [
+            "header" => "X-API-KEY: $apiKey\r\n",
+            "timeout" => 2
+        ]] : ["http" => ["timeout" => 2]];
+        $context = stream_context_create($headers);
+
+        // 1. dwo=0 setzen (immer als Erstes!)
+        $resetUrl = "http://$ip/api/set?dwo=0";
+        $resetResult = @file_get_contents($resetUrl, false, $context);
+
+        if ($resetResult === false) {
+            $this->LogTemplate('warn', "Konnte dwo=0 nicht setzen! (ggf. API-Key prüfen)");
+            // Im Zweifel trotzdem weiter mit alw probieren
+        } else {
+            $this->LogTemplate('debug', "dwo=0 erfolgreich gesetzt.");
         }
 
+        // 2. alw setzen
         $alwValue = $active ? 1 : 0;
-
-        // 2. Nur setzen, wenn Änderung nötig
-        if ($alwCurrent !== null && $alwCurrent === $alwValue) {
-            $this->LogTemplate('debug', "Ladefreigabe bleibt unverändert (alw=$alwCurrent an $ip)");
-            return true;
-        }
-
-        // 3. Ladefreigabe setzen (per offizieller API, nicht MQTT!)
         $setUrl = "http://$ip/api/set?alw=$alwValue";
-        $result = @file_get_contents($setUrl);
+        $result = @file_get_contents($setUrl, false, $context);
 
         if ($result === false) {
             $this->LogTemplate('error', "Fehler beim Setzen von alw=$alwValue an $ip (API/set)!");
@@ -1291,6 +1292,7 @@ private function DeaktiviereLaden()
         $this->LogTemplate('info', "Ladefreigabe gesetzt: alw=$alwValue an $ip (API/set)");
         return true;
     }
+
 
     // === 12. Hilfsfunktionen ===
 
