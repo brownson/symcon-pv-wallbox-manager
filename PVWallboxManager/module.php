@@ -141,6 +141,10 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+    // =========================================================================
+    // 9. HILFSFUNKTIONEN & GETTER/SETTER
+    // =========================================================================
+
     private function RegisterCarStateProfile()
     {
         $profile = 'GoE.CarState';
