@@ -61,13 +61,4 @@ class PVWallboxManager extends IPSModule
         SetValue($this->GetIDForIdent('Leistung'), $leistung);
     }
 
-    // Optional: RequestAction, falls Variablen steuerbar gemacht werden sollen
-    public function RequestAction($Ident, $Value)
-    {
-        // Beispiel für spätere Steuerfunktionen
-        switch ($Ident) {
-            default:
-                throw new Exception("Invalid ident");
-        }
-    }
 }
