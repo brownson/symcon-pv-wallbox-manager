@@ -20,7 +20,7 @@ class PVWallboxManager extends IPSModule
     public function Create()
     {
         parent::Create();
-        $this->EnsurePhasenCounterAttributes();
+        //$this->EnsurePhasenCounterAttributes();
 
         // === 1. Modulsteuerung ===
         $this->RegisterPropertyBoolean('ModulAktiv', true);
