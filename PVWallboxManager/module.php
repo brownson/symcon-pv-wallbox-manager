@@ -19,14 +19,14 @@ class PVWallboxManager extends IPSModule
 
         // Variablen nach API v2
         $this->RegisterCarStateProfile();
-        $this->RegisterVariableInteger('Status',      'Fahrzeugstatus',     'GoE.CarStatus',     1);
-        $this->RegisterVariableFloat('Leistung',      'Ladeleistung (W)', '~Watt', 2);
-        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)', '', 3);
-        $this->RegisterVariableInteger('Phasen',      'Phasen aktiv', '', 4);
-        $this->RegisterVariableInteger('Freigabe',    'Ladefreigabe', '', 5);
-        $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)', '', 6);
-        $this->RegisterVariableInteger('Fehlercode',  'Fehlercode', '', 7);
-        $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)', '~Electricity.Wh', 8);
+        $this->RegisterVariableInteger('Status',      'Fahrzeugstatus',         'GoE.CarStatus',    1);
+        $this->RegisterVariableFloat('Leistung',      'Ladeleistung (W)',       '~Watt',            2);
+        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',     '~Ampere',          3);
+        $this->RegisterVariableInteger('Phasen',      'Phasen aktiv',           '',                 4);
+        $this->RegisterVariableInteger('Freigabe',    'Ladefreigabe',           '',                 5);
+        $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',           '',                 6);
+        $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',             '',                 7);
+        $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',  '~Electricity.Wh',  8);
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", 0);');
