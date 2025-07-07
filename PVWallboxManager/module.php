@@ -1496,16 +1496,6 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    private function GetAccessStateV2Text($val)
-    {
-        switch ((int)$val) {
-            case 0:  return "⚪ Neutral (Wallbox entscheidet selbst)";
-            case 1:  return "🚫 Nicht laden (gesperrt)";
-            case 2:  return "⚡ Laden (erzwungen)";
-            default: return "❔ Unbekannter Modus ($val)";
-        }
-    }
-
     private function PriorisiereEigenverbrauch($pv, $haus, $battSOC, $hausakkuVollSchwelle, $autoAngesteckt)
     {
         // Schwellenwert für "Hausbatterie voll" (z.B. 90 %)
