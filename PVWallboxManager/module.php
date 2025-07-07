@@ -1103,23 +1103,27 @@ class PVWallboxManager extends IPSModule
             return false;
         }
 
-        // --- ECHTEN alw-Status aus der Instanz holen ---
+        // GO-e Instanz-ID holen
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
-        $alwID = @IPS_GetObjectIDByIdent('alw', $goeID);
+        $alwVarID = @IPS_GetObjectIDByIdent('alw', $goeID);
         $currentAlw = null;
-        if ($alwID && @IPS_VariableExists($alwID)) {
-            $currentAlw = (int)GetValue($alwID);
+
+        if ($alwVarID && @IPS_VariableExists($alwVarID)) {
+            $currentAlw = (int)GetValue($alwVarID);
         }
 
         $alwValue = $active ? 1 : 0;
 
-        // Nur setzen, wenn Wert wirklich anders ist!
-        if ($currentAlw !== null && $currentAlw === $alwValue) {
-            $this->LogTemplate('debug', "alw bereits auf $currentAlw – kein Setzen nötig.");
-            return true;
+        if ($currentAlw !== null) {
+            if ($currentAlw === $alwValue) {
+                $this->LogTemplate('debug', "alw bereits auf $alwValue – kein Setzen nötig.");
+                return true;
+            }
+        } else {
+            $this->LogTemplate('warn', "alw-Status konnte nicht aus Instanz gelesen werden – Sende immer!");
         }
 
-        // --- Nur beim Aktivieren: dwo=0 setzen! ---
+        // dwo=0 nur beim Aktivieren (Laden erlauben)
         if ($active) {
             $headers = $apiKey ? ["http" => [
                 "header" => "X-API-KEY: $apiKey\r\n",
@@ -1136,7 +1140,7 @@ class PVWallboxManager extends IPSModule
             }
         }
 
-        // --- Jetzt alw setzen ---
+        // Jetzt alw setzen (nur wenn sich Status ändert!)
         $setUrl = "http://$ip/mqtt?payload=alw=$alwValue";
         $headers = $apiKey ? ["http" => [
             "header" => "X-API-KEY: $apiKey\r\n",
@@ -1151,8 +1155,6 @@ class PVWallboxManager extends IPSModule
             return false;
         }
         $this->LogTemplate('info', "Ladefreigabe gesetzt: alw=$alwValue an $ip (/mqtt)");
-        // (Optional: Attribut auch noch setzen)
-        $this->WriteAttributeBoolean('LastSetGoEActive', $active);
         return true;
     }
 
