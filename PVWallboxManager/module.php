@@ -771,7 +771,7 @@ class PVWallboxManager extends IPSModule
         $this->SetGoEChargingActive(false);
         IPS_Sleep(1200);
 
-        $this->SetGoEParameter(['psm' => 'true']);   // 1-phasig
+        $this->SetGoEParameter(['psm' => 0]); // 1-phasig
         IPS_Sleep(1200);
 
         $this->SetGoEChargingActive(true);
@@ -784,7 +784,7 @@ class PVWallboxManager extends IPSModule
         $this->SetGoEChargingActive(false);
         IPS_Sleep(1200);
 
-        $this->SetGoEParameter(['psm' => 'false']);  // 3-phasig
+        $this->SetGoEParameter(['psm' => 2]); // 3-phasig
         IPS_Sleep(1200);
 
         $this->SetGoEChargingActive(true);
