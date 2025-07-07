@@ -1103,27 +1103,14 @@ class PVWallboxManager extends IPSModule
             return false;
         }
 
-        // GO-e Instanz-ID holen
-        $goeID = $this->ReadPropertyInteger('GOeChargerID');
-        $alwVarID = @IPS_GetObjectIDByIdent('alw', $goeID);
-        $currentAlw = null;
-
-        if ($alwVarID && @IPS_VariableExists($alwVarID)) {
-            $currentAlw = (int)GetValue($alwVarID);
+        // --- NEU: Live-Abfrage ---
+        $alwStatus = $this->GetGoEAlwStatus();
+        if ($alwStatus !== null && (int)$alwStatus === (int)$active) {
+            $this->LogTemplate('debug', "alw bereits auf $alwStatus – kein Setzen nötig.");
+            return true;
         }
 
-        $alwValue = $active ? 1 : 0;
-
-        if ($currentAlw !== null) {
-            if ($currentAlw === $alwValue) {
-                $this->LogTemplate('debug', "alw bereits auf $alwValue – kein Setzen nötig.");
-                return true;
-            }
-        } else {
-            $this->LogTemplate('warn', "alw-Status konnte nicht aus Instanz gelesen werden – Sende immer!");
-        }
-
-        // dwo=0 nur beim Aktivieren (Laden erlauben)
+        // Nur beim Aktivieren: dwo=0 setzen!
         if ($active) {
             $headers = $apiKey ? ["http" => [
                 "header" => "X-API-KEY: $apiKey\r\n",
@@ -1140,7 +1127,8 @@ class PVWallboxManager extends IPSModule
             }
         }
 
-        // Jetzt alw setzen (nur wenn sich Status ändert!)
+        // Ladefreigabe setzen
+        $alwValue = $active ? 1 : 0;
         $setUrl = "http://$ip/mqtt?payload=alw=$alwValue";
         $headers = $apiKey ? ["http" => [
             "header" => "X-API-KEY: $apiKey\r\n",
@@ -1157,6 +1145,7 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('info', "Ladefreigabe gesetzt: alw=$alwValue an $ip (/mqtt)");
         return true;
     }
+
 
     // =========================================================================
     // 7. FAHRZEUGSTATUS / SOC / ZIELZEIT
@@ -1528,4 +1517,36 @@ class PVWallboxManager extends IPSModule
         }
         return $anzahl;
     }
+
+    private function GetGoEAlwStatus()
+    {
+        $ip = trim($this->ReadPropertyString('WallboxIP'));
+        $key = trim($this->ReadPropertyString('WallboxAPIKey'));
+        if (empty($ip)) {
+            $this->LogTemplate('error', 'Keine IP für Go-e Wallbox eingetragen!');
+            return null;
+        }
+        $url = "http://$ip/api/status?filter=alw";
+        $opts = [
+            "http" => [
+                "method" => "GET",
+                "header" => $key ? "X-API-KEY: $key\r\n" : "",
+                "timeout" => 2
+            ]
+        ];
+        $context = stream_context_create($opts);
+        $json = @file_get_contents($url, false, $context);
+        if ($json === false) {
+            $this->LogTemplate('warn', "Konnte alw-Status nicht von der Wallbox lesen!");
+            return null;
+        }
+        $data = json_decode($json, true);
+        if (!is_array($data) || !array_key_exists('alw', $data)) {
+            $this->LogTemplate('warn', "alw-Status: Antwortformat unerwartet ($json)");
+            return null;
+        }
+        // bool oder int, je nach Firmware!
+        return (int)$data['alw'];
+    }
+
 }
