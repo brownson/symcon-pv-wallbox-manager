@@ -1168,13 +1168,17 @@ private function DeaktiviereLaden()
         // --- Phasen auswerten: numerisch 1 oder 3 ---
         $phasen = 0;
         if (isset($data['pha']) && is_array($data['pha'])) {
+            // In V4 ist das ein Array mit den Strömen pro Phase (A)
+            // 0: L1, 1: L2, 2: L3, 3: bool L1 aktiv, 4: bool L2 aktiv, 5: bool L3 aktiv
             $aktivePhasen = 0;
-            // Bei go-e: pha[3],[4],[5] → true, wenn Phase aktiv
-            foreach ([3,4,5] as $idx) {
+            foreach ([3, 4, 5] as $idx) {
                 if (!empty($data['pha'][$idx])) $aktivePhasen++;
             }
-            if ($aktivePhasen == 1 || $aktivePhasen == 3) {
-                $phasen = $aktivePhasen;
+            $phasen = $aktivePhasen; // Kann auch 2 sein, falls nur 2 aktiv!
+            // Nur 1 oder 3 ist korrekt, alles andere als Fehler behandeln
+            if ($phasen !== 1 && $phasen !== 3) {
+                $this->LogTemplate('warn', "Unerwartete Phasenanzahl: $phasen (pha-Array: ".json_encode($data['pha']).")");
+                // Du kannst notfalls auf 1 oder 3 mappen oder Fehler werfen
             }
         }
 
