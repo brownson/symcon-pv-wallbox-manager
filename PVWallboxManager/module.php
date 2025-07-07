@@ -110,7 +110,7 @@ class PVWallboxManager extends IPSModule
         IPS_SetIcon($this->GetIDForIdent('CarChargeTargetTime'), 'clock');
 
          // Sicherstellen, dass das Profil existiert (für 'AktiverLademodus')
-        $this->EnsureLademodusProfile();
+        //$this->EnsureLademodusProfile();
         $this->RegisterVariableInteger('AktiverLademodus', 'Aktiver Lademodus', 'PVWM.Lademodus', 50);
 
         IPS_SetIcon($this->GetIDForIdent('AktiverLademodus'), 'lightbulb');
@@ -134,9 +134,6 @@ class PVWallboxManager extends IPSModule
         $this->WriteAttributeInteger('StartHystereseCounter', 0);
         $this->WriteAttributeInteger('StopHystereseCounter', 0);
 
-        // Variablenprofil für Lademodus sicherstellen
-        $this->EnsureLademodusProfile();
-
         // GO-e Charger Instanz-ID holen
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
 
@@ -157,7 +154,7 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->SetTimerInterval('UpdateCharging', 0);
         }
-        
+
         $this->EnsureLademodusProfile();
         $this->UpdateAccessStateText();
         $this->CheckSchwellenwerte();
