@@ -747,9 +747,10 @@ class PVWallboxManager extends IPSModule
         $phasen1Schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');    // z.B. 3400 W
         $phasen1Limit    = $this->ReadPropertyInteger('Phasen1Limit');      // z.B. 3
 
-        // Typ-stabil holen
-        $counter = (int)$this->GetOrInitAttributeInteger('PhasenDownCounter');
-        
+        // Typ-stabil und immer initialisiert
+        $counter = $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
+        $counter = (is_int($counter)) ? $counter : 0;
+
         if ($ladeleistung < $phasen1Schwelle) {
             $counter++;
             $this->LogTemplate('debug', "Phasen-Hysterese-Down: $counter x < {$phasen1Schwelle} W");
@@ -769,9 +770,10 @@ class PVWallboxManager extends IPSModule
         $phasen3Schwelle = $this->ReadPropertyFloat('Phasen3Schwelle');    // z.B. 4200 W
         $phasen3Limit    = $this->ReadPropertyInteger('Phasen3Limit');      // z.B. 3
 
-        // Typ-stabil holen
-        $counter = (int)$this->GetOrInitAttributeInteger('PhasenUpCounter');
-        
+        // Typ-stabil und immer initialisiert
+        $counter = $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
+        $counter = (is_int($counter)) ? $counter : 0;
+
         if ($ladeleistung > $phasen3Schwelle) {
             $counter++;
             $this->LogTemplate('debug', "Phasen-Hysterese-Up: $counter x > {$phasen3Schwelle} W");
@@ -1542,16 +1544,14 @@ private function DeaktiviereLaden()
         return $default;
     }
     */
-    private function GetOrInitAttributeInteger($name, $default = 0) {
-        // Defensive: suppress warnings, hole den Wert
-        $value = @$this->ReadAttributeInteger($name);
-
-        // Fallback für "noch nie gesetzt" oder Typfehler (bool, null, ...):
-        if (!is_int($value)) {
+    private function GetOrInitAttributeInteger($name, $default = 0)
+    {
+        $attrs = $this->GetAttributes();
+        if (!array_key_exists($name, $attrs) || !is_int(@$this->ReadAttributeInteger($name))) {
             $this->WriteAttributeInteger($name, $default);
-            return (int)$default;
+            return $default;
         }
-        return (int)$value;
+        return $this->ReadAttributeInteger($name);
     }
 
     // Gibt alle Attribute als Array zurück (Hack: so kommt man ran)
