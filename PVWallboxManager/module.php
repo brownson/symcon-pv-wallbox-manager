@@ -13,7 +13,7 @@ class PVWallboxManager extends IPSModule
 
         // Properties aus form.json
         $this->RegisterPropertyString('WallboxIP', '0.0.0.0');
-        $this->RegisterPropertyInteger('PollingInterval', 30);
+        $this->RegisterPropertyInteger('RefreshInterval', 30);
 
         // Variablen nach API v2
         $this->RegisterVariableInteger('Status',      'Fahrzeugstatus', '', 1);
