@@ -271,7 +271,13 @@ class PVWallboxManager extends IPSModule
 
         $wb = $this->HoleGoEWallboxDaten();
         if (!is_array($wb)) {
-            $this->LogTemplate('error', "Wallbox-Daten konnten nicht abgerufen werden, Update abgebrochen.");
+            if ($wb === 'ip') {
+                $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! (Interner Abbruch)");
+            } elseif ($wb === 'notreachable') {
+                $this->LogTemplate('error', "Wallbox unter IP nicht erreichbar! (Interner Abbruch)");
+            } else {
+                $this->LogTemplate('error', "Wallbox-Daten konnten nicht abgerufen werden, Update abgebrochen.");
+            }
             return;
         }
 
