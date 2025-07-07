@@ -618,7 +618,7 @@ class PVWallboxManager extends IPSModule
     private function LeseWallboxLeistung($wb)
     {
         return (float)($wb['WB_Ladeleistung_W'] ?? 0.0);
-    }}
+    }
 
     private function BerechnePVUeberschuss($pv, $verbrauch, $batterie, $wallbox = 0)
     {
