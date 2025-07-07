@@ -15,10 +15,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableFloat('Leistung', 'Ladeleistung (W)', '~Watt', 2);
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
-        //$this->RegisterTimer('UpdateStatus', 30 * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", 0);');
-        $this->RegisterTimer('UpdateStatus', 30 * 1000, 'GoEChargerSimple_UpdateStatus($IPS_TARGET);');
-
-
+        $this->RegisterTimer('UpdateStatus', 30 * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", 0);');
     }
 
     public function ApplyChanges()
@@ -26,6 +23,16 @@ class PVWallboxManager extends IPSModule
         parent::ApplyChanges();
         // Nach Konfig-Änderung: Timer ggf. neu setzen
         $this->SetTimerInterval('UpdateStatus', 30 * 1000);
+    }
+
+    public function RequestAction($Ident, $Value)
+    {
+        if ($Ident == "UpdateStatus") {
+            $this->UpdateStatus();
+            return;
+        }
+        // ggf. weitere cases
+        throw new Exception("Invalid Ident: $Ident");
     }
 
     // Hauptfunktion: Statusdaten holen und Variablen setzen
