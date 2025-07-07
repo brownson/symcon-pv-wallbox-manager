@@ -35,8 +35,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',  '~Electricity.Wh',  8);
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
-        $this->RegisterTimer('UpdateStatusTimer', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
-        //$this->RegisterTimer('UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", 0);');
+        $this->RegisterTimer('UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
 
     }
 
