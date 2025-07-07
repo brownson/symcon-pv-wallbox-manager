@@ -1001,6 +1001,10 @@ class PVWallboxManager extends IPSModule
         $ip = trim($this->ReadPropertyString('WallboxIP'));
         $key = trim($this->ReadPropertyString('WallboxAPIKey'));
 
+        $ipRaw = $this->ReadPropertyString('WallboxIP');
+        $this->LogTemplate('debug', "WallboxIP Property (roh): '$ipRaw'");
+        $ip = trim($ipRaw);
+
         $this->LogTemplate('debug', "DEBUG: HoleGoEWallboxDaten mit IP = '$ip'");
 
         $ip = preg_replace('/[[:^print:]]/', '', $ip);
