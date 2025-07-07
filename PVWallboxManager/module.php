@@ -128,9 +128,6 @@ class PVWallboxManager extends IPSModule
     {
         parent::ApplyChanges();
 
-        //$this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
-        //$this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
-
         // Variablenprofil für Lademodus sicherstellen
         $this->EnsureLademodusProfile();
 
@@ -156,6 +153,13 @@ class PVWallboxManager extends IPSModule
         }
         $this->UpdateAccessStateText();
         $this->CheckSchwellenwerte();
+        // In ApplyChanges():
+        if ($this->ReadAttributeInteger('LastSetLadeleistung') === null) {
+            $this->WriteAttributeInteger('LastSetLadeleistung', 0);
+        }
+        if ($this->ReadAttributeBoolean('LastSetGoEActive') === null) {
+            $this->WriteAttributeBoolean('LastSetGoEActive', false);
+        }
     }
 
     // =========================================================================
@@ -929,8 +933,9 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        $lastWatt   = $this->LastSetLadeleistung;
-        $lastActive = $this->LastSetGoEActive;
+        // Verwende immer die persistenten Attribute!
+        $lastWatt   = $this->ReadAttributeInteger('LastSetLadeleistung');
+        $lastActive = $this->ReadAttributeBoolean('LastSetGoEActive');
 
         $phasen   = max(1, (int)$this->ReadPropertyInteger('Phasen'));
         $spannung = 230;
@@ -940,15 +945,12 @@ class PVWallboxManager extends IPSModule
         $ampere   = max($minAmp, min($maxAmp, $ampere));
         $minWatt  = $minAmp * $phasen * $spannung;
 
-        // 1. Zu geringe Leistung: abschalten, wenn Änderung
         if ($leistung < $minWatt) {
             if ($lastActive !== false) {
                 $this->SetGoEActive($goeID, false);
                 $this->LogTemplate('info', "Ladung deaktiviert (Leistung zu gering, alw=0).");
                 $this->WriteAttributeInteger('LastSetLadeleistung', 0);
                 $this->WriteAttributeBoolean('LastSetGoEActive', false);
-
-                // Wallbox-Status neu abfragen & loggen
                 $status = $this->HoleGoEWallboxDaten();
                 $this->LogTemplate('debug', "Wallbox nach alw=0: " . print_r($status, true));
             }
@@ -963,14 +965,14 @@ class PVWallboxManager extends IPSModule
 
         // 3. Änderung nötig: Einschalten und gewünschten Wert setzen!
         $this->SetGoEActive($goeID, true);
-        IPS_Sleep(1200);
-        GOeCharger_SetCurrentChargingWatt($goeID, $leistung);  // Ladeleistung (W)
+        IPS_Sleep(1500); // ggf. noch länger!
+        GOeCharger_SetCurrentChargingWatt($goeID, $leistung);
         $this->LogTemplate('info', "Ladung aktiviert: alw=1, amp=$ampere (für $leistung W, $phasen Phasen)");
 
-        $this->LastSetLadeleistung = $leistung;
-        $this->LastSetGoEActive = true; // Oder false – je nachdem, was du setzt!
+        // Update der Attribute
+        $this->WriteAttributeInteger('LastSetLadeleistung', $leistung);
+        $this->WriteAttributeBoolean('LastSetGoEActive', true);
 
-        // Wallbox-Status neu abfragen & loggen
         $status = $this->HoleGoEWallboxDaten();
         $this->LogTemplate('debug', "Wallbox nach Setzen: " . print_r($status, true));
     }
