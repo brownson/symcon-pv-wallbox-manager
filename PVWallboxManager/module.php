@@ -142,6 +142,8 @@ class PVWallboxManager extends IPSModule
     // =========================================================================
 
     public function UpdateStatus(string $mode = 'pvonly')
+    $this->Log("Timer-Intervall: " . $this->ReadPropertyInteger('RefreshInterval') . " Sekunden", "debug");
+
     {
         $ip = $this->ReadPropertyString('WallboxIP');
         $url = "http://$ip/api/status?filter=amp";
