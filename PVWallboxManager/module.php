@@ -327,6 +327,17 @@ class PVWallboxManager extends IPSModule
                     $this->GetOrInitAttributeInteger('PhasenUpCounter')
                 ));
 
+                // ** Niemals laden ohne PV-Überschuss (egal was Hysterese oder Status)**
+                if ($ueberschuss < $minLadeWatt) {
+                    $this->SetGoEChargingActive(false);
+                    $this->SetzeLadeleistung(0);
+                    $this->LogTemplate('info', "Kein PV-Überschuss – Ladung deaktiviert.");
+                    // Buffer zurücksetzen!
+                    $this->SetBuffer('StartHystereseCounter', 0);
+                    $this->SetBuffer('StopHystereseCounter', 0);
+                    break; // Nichts tun!
+                }
+
                 if (!$istAmLaden) {
                     if ($ueberschuss >= $minLadeWatt) {
                         $startCounter++;
@@ -779,38 +790,20 @@ class PVWallboxManager extends IPSModule
     {
         $this->SetGoEChargingActive(false);
         IPS_Sleep(1200);
-
-        $this->SetGoEParameter(['psm' => 1]); // 1-phasig → psm=1
+        $this->SetGoEParameter(['psm' => 1]); // 1-phasig: psm=1!
         IPS_Sleep(1500);
-
-        $this->SetGoEChargingActive(true);
-        IPS_Sleep(1500);
-
-        // API neu abfragen und „Aktuelle Phasen“ direkt schreiben!
-        $wbNeu = $this->HoleGoEWallboxDaten();
-        $phasen_ist = $wbNeu['WB_Phasen'] ?? 1;
-        $this->SetValueSafe('AktuellePhasen', $phasen_ist);
-
-        $this->LogTemplate('info', 'Phasenumschaltung auf 1-phasig abgeschlossen.', "ECHTE Phasen: $phasen_ist");
+        $this->SetGoEChargingActive(false); // <--- NEU: immer aus!
+        $this->LogTemplate('info', 'Phasenumschaltung auf 1-phasig abgeschlossen.');
     }
 
     private function UmschaltenAuf3Phasig()
     {
         $this->SetGoEChargingActive(false);
         IPS_Sleep(1200);
-
-        $this->SetGoEParameter(['psm' => 2]); // 3-phasig → psm=2
-        IPS_Sleep(1500);
-
-        $this->SetGoEChargingActive(true);
-        IPS_Sleep(1500);
-
-        // API neu abfragen und „Aktuelle Phasen“ direkt schreiben!
-        $wbNeu = $this->HoleGoEWallboxDaten();
-        $phasen_ist = $wbNeu['WB_Phasen'] ?? 3;
-        $this->SetValueSafe('AktuellePhasen', $phasen_ist);
-
-        $this->LogTemplate('info', 'Phasenumschaltung auf 3-phasig abgeschlossen.', "ECHTE Phasen: $phasen_ist");
+        $this->SetGoEParameter(['psm' => 2]); // 3-phasig: psm=2!
+        IPS_Sleep(1200);
+        $this->SetGoEChargingActive(false); // <--- NEU: immer aus!
+        $this->LogTemplate('info', 'Phasenumschaltung auf 3-phasig abgeschlossen.');
     }
 
     private function EnsurePhasenCounterAttributes()
