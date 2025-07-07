@@ -50,8 +50,7 @@ class PVWallboxManager extends IPSModule
         $interval = $this->ReadPropertyInteger('RefreshInterval');
 
         if ($aktiv) {
-        //$this->SetTimerInterval('UpdateStatus', $interval * 1000);
-        $this->SetTimerInterval('UpdateStatus', $this->ReadPropertyInteger('RefreshInterval') * 1000);
+        $this->SetTimerInterval('UpdateStatus', $interval * 1000);
         } else {
             $this->SetTimerInterval('UpdateStatus', 0); // Timer AUS
             // Optional: Variablen auf 0/null setzen oder einen Status loggen
