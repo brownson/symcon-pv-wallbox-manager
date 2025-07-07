@@ -157,6 +157,8 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->SetTimerInterval('UpdateCharging', 0);
         }
+        
+        $this->EnsureLademodusProfile();
         $this->UpdateAccessStateText();
         $this->CheckSchwellenwerte();
         
