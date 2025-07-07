@@ -144,18 +144,38 @@ class PVWallboxManager extends IPSModule
     // =========================================================================
 
     public function UpdateStatus(string $mode = 'pvonly')
+{
+    $this->Log("UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")", "debug");
 
-    {
-        $ip = $this->ReadPropertyString('WallboxIP');
-        $url = "http://$ip/api/status?filter=amp";
-        $json = @file_get_contents($url);
-        $data = json_decode($json, true);
-        $ampere = isset($data['amp']) ? intval($data['amp']) : 0;
-
-        $this->Log("API: $url | Wert: $ampere", "debug");
-
-        $this->SetValueAndLogChange('Ampere', $ampere, 'Maximaler Ladestrom', 'A');
+    $data = $this->getStatusFromCharger();
+    if ($data === false) {
+        // Fehler wurde schon geloggt
+        return;
     }
+
+    // Defensive Daten-Extraktion
+    $car         = isset($data['car'])          ? intval($data['car'])         : 0;
+    $leistung    = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
+    $ampere      = isset($data['amp'])          ? intval($data['amp'])         : 0;
+    $energie     = isset($data['wh'])           ? intval($data['wh'])          : 0;
+    $freigabe    = isset($data['alw'])          ? (bool)$data['alw']           : false;
+    $kabelstrom  = isset($data['cbl'])          ? intval($data['cbl'])         : 0;
+    $fehlercode  = isset($data['err'])          ? intval($data['err'])         : 0;
+
+    $pha = $data['pha'] ?? [];
+    $phasen = (is_array($pha) && count($pha) >= 6) ? array_sum(array_slice($pha, 3, 3)) : 0;
+
+    // Einfach direkt schreiben (ohne Log, ohne Vergleich)
+    SetValue($this->GetIDForIdent('Status'),     $car);
+    SetValue($this->GetIDForIdent('Leistung'),   $leistung);
+    SetValue($this->GetIDForIdent('Ampere'),     $ampere);
+    SetValue($this->GetIDForIdent('Phasen'),     $phasen);
+    SetValue($this->GetIDForIdent('Energie'),    $energie);
+    SetValue($this->GetIDForIdent('Freigabe'),   $freigabe);
+    SetValue($this->GetIDForIdent('Kabelstrom'), $kabelstrom);
+    SetValue($this->GetIDForIdent('Fehlercode'), $fehlercode);
+}
+
 
     // =========================================================================
     // 9. HILFSFUNKTIONEN & GETTER/SETTER
