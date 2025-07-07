@@ -14,9 +14,11 @@ class PVWallboxManager extends IPSModule
         // Properties aus form.json
         $this->RegisterPropertyString('WallboxIP', '0.0.0.0');
         $this->RegisterPropertyInteger('RefreshInterval', 30);
+        $this->RegisterPropertyBoolean('ModulAktiv', true);
 
         // Variablen nach API v2
-        $this->RegisterVariableInteger('Status',      'Fahrzeugstatus', '', 1);
+        $this->RegisterCarStateProfile();
+        $this->RegisterVariableInteger('Status',      'Fahrzeugstatus',     'GoE.CarState',     1);
         $this->RegisterVariableFloat('Leistung',      'Ladeleistung (W)', '~Watt', 2);
         $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)', '', 3);
         $this->RegisterVariableInteger('Phasen',      'Phasen aktiv', '', 4);
@@ -35,8 +37,15 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+        $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
         $interval = $this->ReadPropertyInteger('RefreshInterval');
+
+        if ($aktiv) {
         $this->SetTimerInterval('UpdateStatus', $interval * 1000);
+        } else {
+            $this->SetTimerInterval('UpdateStatus', 0); // Timer AUS
+            // Optional: Variablen auf 0/null setzen oder einen Status loggen
+        }
     }
 
     // =========================================================================
@@ -59,6 +68,11 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateStatus($mode = 'pvonly')
     {
+        if (!$this->ReadPropertyBoolean('ModulAktiv')) {
+            IPS_LogMessage("PVWallboxManager", "Modul ist inaktiv – keine Abfrage");
+            return;
+        }
+
         $ip = $this->ReadPropertyString('WallboxIP');
         $url = "http://$ip/api/status";
         $json = @file_get_contents($url);
@@ -126,5 +140,21 @@ class PVWallboxManager extends IPSModule
                 break;
         }
     }
+
+    private function RegisterCarStateProfile()
+    {
+        $profile = 'GoE.CarState';
+        if (!IPS_VariableProfileExists($profile)) {
+            IPS_CreateVariableProfile($profile, 1); // 1 = Integer
+            IPS_SetVariableProfileValues($profile, 0, 5, 1);
+            IPS_SetVariableProfileAssociation($profile, 0, 'Unbekannt/Fehler', '', 0x888888);
+            IPS_SetVariableProfileAssociation($profile, 1, 'Idle', '', 0xAAAAAA);
+            IPS_SetVariableProfileAssociation($profile, 2, 'Charging', '', 0x00FF00);
+            IPS_SetVariableProfileAssociation($profile, 3, 'WaitCar', '', 0x0088FF);
+            IPS_SetVariableProfileAssociation($profile, 4, 'Complete', '', 0xFFFF00);
+            IPS_SetVariableProfileAssociation($profile, 5, 'Error', '', 0xFF0000);
+        }
+    }
+
 }
 
