@@ -1,6 +1,6 @@
 <?php
 
-class GoEChargerSimple extends IPSModule
+class PVWallboxManager extends IPSModule
 {
     public function Create()
     {
