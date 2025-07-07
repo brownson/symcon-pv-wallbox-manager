@@ -833,7 +833,7 @@ class PVWallboxManager extends IPSModule
         $schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');
 
         // Counter aus Attribut lesen oder initialisieren
-        $counter = $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
+        $counter = $this->ReadAttributeInteger('PhasenDownCounter', 0);
         if (!is_int($counter)) $counter = 0;
 
         if ($ladeleistung < $schwelle) {
@@ -856,7 +856,7 @@ class PVWallboxManager extends IPSModule
         $limit = $this->ReadPropertyInteger('Phasen3Limit');
         $schwelle = $this->ReadPropertyFloat('Phasen3Schwelle');
 
-        $counter = $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
+        $counter = $this->ReadAttributeInteger('PhasenUpCounter', 0);
         if (!is_int($counter)) $counter = 0;
 
         if ($ladeleistung > $schwelle) {
