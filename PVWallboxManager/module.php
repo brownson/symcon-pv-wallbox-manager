@@ -153,10 +153,6 @@ class PVWallboxManager extends IPSModule
         }
         $this->UpdateAccessStateText();
         $this->CheckSchwellenwerte();
-        // ---> Die nächsten beiden Zeilen kannst du theoretisch weglassen, 
-        // solange du EnsurePhasenCounterAttributes regelmäßig aufrufst.
-        // $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
-        // $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
     }
 
     // =========================================================================
@@ -875,10 +871,10 @@ class PVWallboxManager extends IPSModule
 
     private function EnsurePhasenCounterAttributes()
     {
-        if (!@is_int($this->ReadAttributeInteger('PhasenDownCounter'))) {
+        if (!@is_int(@$this->ReadAttributeInteger('PhasenDownCounter'))) {
             $this->WriteAttributeInteger('PhasenDownCounter', 0);
         }
-        if (!@is_int($this->ReadAttributeInteger('PhasenUpCounter'))) {
+        if (!@is_int(@$this->ReadAttributeInteger('PhasenUpCounter'))) {
             $this->WriteAttributeInteger('PhasenUpCounter', 0);
         }
     }
