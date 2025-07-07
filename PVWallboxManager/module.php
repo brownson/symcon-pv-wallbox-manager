@@ -143,55 +143,16 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateStatus(string $mode = 'pvonly')
     {
-        $this->Log("UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")", "debug");
+        $ip = $this->ReadPropertyString('WallboxIP');
+        $url = "http://$ip/api/status?filter=amp";
+        $json = @file_get_contents($url);
+        $data = json_decode($json, true);
+        $ampere = isset($data['amp']) ? intval($data['amp']) : 0;
 
-        $data = $this->getStatusFromCharger();
-        if ($data === false) {
-            // Fehler wurde schon geloggt
-            return;
-        }
+        $this->Log("API: $url | Wert: $ampere", "debug");
 
-        // --- Grundwerte immer holen & setzen ---
-        $car         = isset($data['car'])          ? intval($data['car'])         : 0;
-        $leistung    = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
-        $ampere      = isset($data['amp'])          ? intval($data['amp'])         : 0;
-        $energie     = isset($data['wh'])           ? intval($data['wh'])          : 0;
-        $freigabe    = isset($data['alw'])          ? (bool)$data['alw']           : false;
-        $kabelstrom  = isset($data['cbl'])          ? intval($data['cbl'])         : 0;
-        $fehlercode  = isset($data['err'])          ? intval($data['err'])         : 0;
-        $pha         = $data['pha'] ?? [];
-        $phasen      = (is_array($pha) && count($pha) >= 6) ? array_sum(array_slice($pha, 3, 3)) : 0;
-
-        $this->SetValueAndLogChange('Status',      $car,         'Fahrzeugstatus');
-        $this->SetValueAndLogChange('Leistung',    $leistung,    'Ladeleistung', 'W');
-        $this->SetValueAndLogChange('Ampere',      $ampere,      'Maximaler Ladestrom', 'A');
-        $this->SetValueAndLogChange('Phasen',      $phasen,      'Phasen aktiv');
-        $this->SetValueAndLogChange('Energie',     $energie,     'Geladene Energie', 'Wh');
-        $this->SetValueAndLogChange('Freigabe',    $freigabe,    'Ladefreigabe');
-        $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom,  'Kabeltyp');
-        $this->SetValueAndLogChange('Fehlercode',  $fehlercode,  'Fehlercode', '', 'warn');
-
-        // --- Modus-spezifische Zusatz-Logik ---
-        switch ($mode) {
-            case 'manuell':
-                // spätere Erweiterungen: z. B. Ampere setzen, Freigabe manuell steuern ...
-                break;
-            case 'pv2car':
-                // PV2Car-Steuerung ergänzen
-                break;
-            case 'zielzeit':
-                // Zielzeit-Berechnung & Steuerung
-                break;
-            case 'strompreis':
-                // Strompreisabhängige Logik
-                break;
-            case 'pvonly':
-            default:
-                // Standardmodus, keine Zusatzlogik
-                break;
-        }
+        $this->SetValueAndLogChange('Ampere', $ampere, 'Maximaler Ladestrom', 'A');
     }
-
 
     // =========================================================================
     // 9. HILFSFUNKTIONEN & GETTER/SETTER
@@ -338,21 +299,6 @@ class PVWallboxManager extends IPSModule
 
         SetValue($varID, $newValue);
     }
-
-    public function UpdateStatus(string $mode = 'pvonly')
-    {
-        $ip = $this->ReadPropertyString('WallboxIP');
-        $url = "http://$ip/api/status?filter=amp";
-        $json = @file_get_contents($url);
-        $data = json_decode($json, true);
-        $ampere = isset($data['amp']) ? intval($data['amp']) : 0;
-
-        $this->Log("API: $url | Wert: $ampere", "debug");
-
-        $this->SetValueAndLogChange('Ampere', $ampere, 'Maximaler Ladestrom', 'A');
-    }
-
-
 
 
 }
