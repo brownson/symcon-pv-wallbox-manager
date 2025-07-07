@@ -13,6 +13,8 @@ class PVWallboxManager extends IPSModule
     private $StopHystereseCounter = 0;
     private $PhasenDownCounter = 0;
     private $PhasenUpCounter = 0;
+    private $LastSetLadeleistung = 0;
+    private $LastSetGoEActive = false;
 
     // =========================================================================
     // 1. INITIALISIERUNG
@@ -374,8 +376,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->GetOrInitAttributeInteger('PhasenDownCounter', 0),
-                    $this->GetOrInitAttributeInteger('PhasenUpCounter')
+                    $this->PhasenDownCounter,
+                    $this->PhasenUpCounter
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
@@ -386,8 +388,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->GetOrInitAttributeInteger('PhasenDownCounter', 0),
-                    $this->GetOrInitAttributeInteger('PhasenUpCounter')
+                    $this->PhasenDownCounter,
+                    $this->PhasenUpCounter
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
@@ -401,8 +403,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->GetOrInitAttributeInteger('PhasenDownCounter', 0),
-                    $this->GetOrInitAttributeInteger('PhasenUpCounter')
+                    $this->PhasenDownCounter,
+                    $this->PhasenUpCounter
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
@@ -414,8 +416,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->GetOrInitAttributeInteger('PhasenDownCounter', 0),
-                    $this->GetOrInitAttributeInteger('PhasenUpCounter')
+                    $this->PhasenDownCounter,
+                    $this->PhasenUpCounter
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
@@ -447,8 +449,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ueberschuss, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->GetOrInitAttributeInteger('PhasenDownCounter', 0),
-                    $this->GetOrInitAttributeInteger('PhasenUpCounter')
+                    $this->PhasenDownCounter,
+                    $this->PhasenUpCounter
                 ));
 
                 // Niemals laden ohne PV-Überschuss
@@ -809,8 +811,8 @@ class PVWallboxManager extends IPSModule
 
         $this->LogTemplate('debug', sprintf(
             "Hysteresecounter: Down=%d | Up=%d",
-            $this->GetOrInitAttributeInteger('PhasenDownCounter', 0),
-            $this->GetOrInitAttributeInteger('PhasenUpCounter')
+            $this->PhasenDownCounter,
+            $this->PhasenUpCounter
         ));
 
         if (!$umschaltung) {
@@ -830,7 +832,7 @@ class PVWallboxManager extends IPSModule
             $this->PhasenUpCounter = 0; // Gegenseite immer resetten!
             $this->LogTemplate('debug', "Phasen-Hysterese-Down: {$this->PhasenDownCounter}/{$limit} (Schwelle: {$schwelle} W)");
             if ($this->PhasenDownCounter >= $limit) {
-                $this->PhasenDownCounter = 0; // Nach Umschalten immer auf 0!
+                $this->PhasenDownCounter = 0;
                 return true;
             }
         } else {
@@ -878,18 +880,6 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('info', 'Phasenumschaltung auf 3-phasig abgeschlossen.');
     }
 
-    private function EnsurePhasenCounterAttributes()
-    {
-        // Down-Counter initialisieren
-        if (!is_int($this->GetOrInitAttributeInteger('PhasenDownCounter', 0))) {
-            $this->WriteAttributeInteger('PhasenDownCounter', 0);
-        }
-        // Up-Counter initialisieren
-        if (!is_int($this->GetOrInitAttributeInteger('PhasenUpCounter', 0))) {
-            $this->WriteAttributeInteger('PhasenUpCounter', 0);
-        }
-    }
-
     private function InkrementiereStartHysterese($max)
     {
         if ($this->ladeStartZaehler < $max) {
@@ -928,8 +918,8 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        $lastWatt   = $this->GetOrInitAttributeInteger('LastSetLadeleistung');
-        $lastActive = $this->ReadAttributeBoolean('LastSetGoEActive');
+        $lastWatt   = $this->LastSetLadeleistung;
+        $lastActive = $this->LastSetGoEActive;
 
         $phasen   = max(1, (int)$this->ReadPropertyInteger('Phasen'));
         $spannung = 230;
@@ -966,8 +956,8 @@ class PVWallboxManager extends IPSModule
         GOeCharger_SetCurrentChargingWatt($goeID, $leistung);  // Ladeleistung (W)
         $this->LogTemplate('info', "Ladung aktiviert: alw=1, amp=$ampere (für $leistung W, $phasen Phasen)");
 
-        $this->WriteAttributeInteger('LastSetLadeleistung', $leistung);
-        $this->WriteAttributeBoolean('LastSetGoEActive', true);
+        $this->LastSetLadeleistung = $leistung;
+        $this->LastSetGoEActive = true; // Oder false – je nachdem, was du setzt!
 
         // Wallbox-Status neu abfragen & loggen
         $status = $this->HoleGoEWallboxDaten();
