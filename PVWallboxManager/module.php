@@ -20,6 +20,8 @@ class PVWallboxManager extends IPSModule
     public function Create()
     {
 		parent::Create();
+        $this->EnsurePhasenCounterAttributes();
+
         // === 1. Modulsteuerung ===
         $this->RegisterPropertyBoolean('ModulAktiv', true);
         $this->RegisterPropertyBoolean('DebugLogging', false);
@@ -114,7 +116,6 @@ class PVWallboxManager extends IPSModule
         // Weitere Variablen nach Bedarf!
         //$this->RegisterVariableInteger('HystereseZaehler', 'Phasen-Hysteresezähler', '', 60);
         $this->RegisterVariableInteger('AktuellePhasen', 'Aktuelle Phasen', '', 80);
-        $this->EnsurePhasenCounterAttributes();
 
         // Timer für Berechnungsintervall
         $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
@@ -124,11 +125,11 @@ class PVWallboxManager extends IPSModule
     {
         parent::ApplyChanges();
 
-        // Variablenprofil für Lademodus sicherstellen
-        $this->EnsureLademodusProfile();
-
         // Attribut-Initialisierung für Phasen-Hysteresezähler (robust, keine IPS-Warnings)
         $this->EnsurePhasenCounterAttributes();
+
+        // Variablenprofil für Lademodus sicherstellen
+        $this->EnsureLademodusProfile();
 
         // GO-e Charger Instanz-ID holen
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
@@ -815,7 +816,6 @@ class PVWallboxManager extends IPSModule
 
         // Typ-stabil und immer initialisiert
         $counter = $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
-        $counter = (is_int($counter)) ? $counter : 0;
 
         if ($ladeleistung < $phasen1Schwelle) {
             $counter++;
@@ -838,7 +838,6 @@ class PVWallboxManager extends IPSModule
 
         // Typ-stabil und immer initialisiert
         $counter = $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
-        $counter = (is_int($counter)) ? $counter : 0;
 
         if ($ladeleistung > $phasen3Schwelle) {
             $counter++;
