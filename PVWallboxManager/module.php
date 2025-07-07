@@ -1546,12 +1546,17 @@ private function DeaktiviereLaden()
     */
     private function GetOrInitAttributeInteger($name, $default = 0)
     {
-        $attrs = $this->GetAttributes();
-        if (!array_key_exists($name, $attrs) || !is_int(@$this->ReadAttributeInteger($name))) {
+        // Versuche das Attribut zu lesen (Suppress Warning)
+        $val = @$this->ReadAttributeInteger($name);
+
+        // Prüfe, ob das Ergebnis tatsächlich ein Integer ist
+        if (!is_int($val)) {
+            // Schreibe Attribut (wird beim nächsten Durchlauf dann „existieren“)
             $this->WriteAttributeInteger($name, $default);
+            // Gib Default-Wert zurück (Warnung ist jetzt einmalig, danach nicht mehr)
             return $default;
         }
-        return $this->ReadAttributeInteger($name);
+        return $val;
     }
 
     // Gibt alle Attribute als Array zurück (Hack: so kommt man ran)
