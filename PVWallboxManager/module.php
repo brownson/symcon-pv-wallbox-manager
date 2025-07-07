@@ -985,11 +985,11 @@ class PVWallboxManager extends IPSModule
     private function HoleGoEWallboxDaten()
     {
         $ip = trim($this->ReadPropertyString('WallboxIP'));
-        $key   = trim($this->ReadPropertyString('WallboxAPIKey'));
+        $key = trim($this->ReadPropertyString('WallboxAPIKey'));
 
         $this->LogTemplate('debug', "DEBUG: HoleGoEWallboxDaten mit IP = '$ip'");
 
-        if (empty($ip)) {
+        if (empty($ip) || $ip == "0.0.0.0") {
             $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
             return;
         }
@@ -1060,6 +1060,11 @@ class PVWallboxManager extends IPSModule
 
         $this->LogTemplate('debug', "DEBUG: SetGoEParameter mit IP = '$ip'");
 
+        if (empty($ip) || $ip == "0.0.0.0") {
+            $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
+            return;
+        }
+
         $url = "http://$ip/api/set?" . http_build_query($params);
         $opts = [
             "http" => [
@@ -1084,8 +1089,8 @@ class PVWallboxManager extends IPSModule
         $ip = trim($this->ReadPropertyString('WallboxIP'));
         $apiKey = trim($this->ReadPropertyString('WallboxAPIKey'));
         if (empty($ip) || $ip == "0.0.0.0") {
-            $this->LogTemplate('error', 'Keine gültige IP für die Wallbox eingetragen!');
-            return false;
+            $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
+            return;
         }
 
         // --- NEU: Live-Abfrage ---
@@ -1507,10 +1512,12 @@ class PVWallboxManager extends IPSModule
     {
         $ip = trim($this->ReadPropertyString('WallboxIP'));
         $key = trim($this->ReadPropertyString('WallboxAPIKey'));
-        if (empty($ip)) {
-            $this->LogTemplate('error', 'Keine IP für Go-e Wallbox eingetragen!');
-            return null;
+        
+        if (empty($ip) || $ip == "0.0.0.0") {
+            $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
+            return;
         }
+
         $url = "http://$ip/api/status?filter=alw";
         $opts = [
             "http" => [
