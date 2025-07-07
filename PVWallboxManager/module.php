@@ -73,6 +73,9 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateStatus($mode = 'pvonly')
     {
+        $now = date("d.m.Y H:i:s");
+        $this->Log("Modul-Update gestartet: Modus = $mode, Zeit = $now", 'debug');
+
         // Modul aktiv?
         if (!$this->ReadPropertyBoolean('ModulAktiv')) {
             $this->Log("Modul ist inaktiv – keine Abfrage", 'warn');
