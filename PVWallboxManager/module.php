@@ -1095,16 +1095,23 @@ class PVWallboxManager extends IPSModule
             return false;
         }
 
-        // Status merken
-        $lastActive = $this->ReadAttributeBoolean('LastSetGoEActive');
+        // --- ECHTEN alw-Status aus der Instanz holen ---
+        $goeID = $this->ReadPropertyInteger('GOeChargerID');
+        $alwID = @IPS_GetObjectIDByIdent('alw', $goeID);
+        $currentAlw = null;
+        if ($alwID && @IPS_VariableExists($alwID)) {
+            $currentAlw = (int)GetValue($alwID);
+        }
 
-        // Nur wenn Status sich ändert:
-        if ($lastActive === $active) {
-            $this->LogTemplate('debug', "alw bereits auf $active – kein Setzen nötig.");
+        $alwValue = $active ? 1 : 0;
+
+        // Nur setzen, wenn Wert wirklich anders ist!
+        if ($currentAlw !== null && $currentAlw === $alwValue) {
+            $this->LogTemplate('debug', "alw bereits auf $currentAlw – kein Setzen nötig.");
             return true;
         }
 
-        // Nur beim Aktivieren: dwo=0 setzen!
+        // --- Nur beim Aktivieren: dwo=0 setzen! ---
         if ($active) {
             $headers = $apiKey ? ["http" => [
                 "header" => "X-API-KEY: $apiKey\r\n",
@@ -1121,8 +1128,7 @@ class PVWallboxManager extends IPSModule
             }
         }
 
-        // Jetzt alw setzen (immer, wenn sich Status ändert)
-        $alwValue = $active ? 1 : 0;
+        // --- Jetzt alw setzen ---
         $setUrl = "http://$ip/mqtt?payload=alw=$alwValue";
         $headers = $apiKey ? ["http" => [
             "header" => "X-API-KEY: $apiKey\r\n",
@@ -1137,10 +1143,10 @@ class PVWallboxManager extends IPSModule
             return false;
         }
         $this->LogTemplate('info', "Ladefreigabe gesetzt: alw=$alwValue an $ip (/mqtt)");
+        // (Optional: Attribut auch noch setzen)
         $this->WriteAttributeBoolean('LastSetGoEActive', $active);
         return true;
     }
-
 
     // =========================================================================
     // 7. FAHRZEUGSTATUS / SOC / ZIELZEIT
