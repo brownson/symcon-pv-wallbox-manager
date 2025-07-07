@@ -128,8 +128,8 @@ class PVWallboxManager extends IPSModule
     {
         parent::ApplyChanges();
 
-        // Attribut-Initialisierung für Phasen-Hysteresezähler (robust, keine IPS-Warnings)
-        //$this->EnsurePhasenCounterAttributes();
+        $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
+        $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
 
         // Variablenprofil für Lademodus sicherstellen
         $this->EnsureLademodusProfile();
@@ -828,7 +828,7 @@ class PVWallboxManager extends IPSModule
         $schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');
 
         // Counter aus Attribut lesen oder initialisieren
-        $counter = $this->ReadAttributeInteger('PhasenDownCounter');
+        $counter = $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
         if (!is_int($counter)) $counter = 0;
 
         if ($ladeleistung < $schwelle) {
@@ -851,7 +851,7 @@ class PVWallboxManager extends IPSModule
         $limit = $this->ReadPropertyInteger('Phasen3Limit');
         $schwelle = $this->ReadPropertyFloat('Phasen3Schwelle');
 
-        $counter = $this->ReadAttributeInteger('PhasenUpCounter');
+        $counter = $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
         if (!is_int($counter)) $counter = 0;
 
         if ($ladeleistung > $schwelle) {
@@ -1522,9 +1522,7 @@ class PVWallboxManager extends IPSModule
     private function GetOrInitAttributeInteger($name, $default = 0)
     {
         $val = @$this->ReadAttributeInteger($name);
-
         if (!is_int($val)) {
-            $default = (int)$default; // Sicherheit!
             $this->WriteAttributeInteger($name, $default);
             return $default;
         }
