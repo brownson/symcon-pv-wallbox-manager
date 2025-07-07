@@ -71,7 +71,7 @@ class PVWallboxManager extends IPSModule
     // 3. ZENTRALE STEUERLOGIK
     // =========================================================================
 
-    public function UpdateStatus($mode = 'pvonly')
+    public function UpdateStatus(string $mode = 'pvonly')
     {
         $now = date("d.m.Y H:i:s");
         $this->Log("Modul-Update gestartet: Modus = $mode, Zeit = $now", 'debug');
