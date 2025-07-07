@@ -42,6 +42,8 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+        $this->Log("Timer-Intervall: " . $this->ReadPropertyInteger('RefreshInterval') . " Sekunden", "debug");
+
         
         $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
         $interval = $this->ReadPropertyInteger('RefreshInterval');
@@ -142,7 +144,6 @@ class PVWallboxManager extends IPSModule
     // =========================================================================
 
     public function UpdateStatus(string $mode = 'pvonly')
-    $this->Log("Timer-Intervall: " . $this->ReadPropertyInteger('RefreshInterval') . " Sekunden", "debug");
 
     {
         $ip = $this->ReadPropertyString('WallboxIP');
