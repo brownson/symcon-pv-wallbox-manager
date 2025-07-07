@@ -157,9 +157,11 @@ class PVWallboxManager extends IPSModule
         $freigabe    = isset($data['alw'])          ? (bool)$data['alw']           : false;
         $kabelstrom  = isset($data['cbl'])          ? intval($data['cbl'])         : 0;
         $fehlercode  = isset($data['err'])          ? intval($data['err'])         : 0;
+        $psm         = isset($data['psm'])          ? intval($data['psm'])         : 0;
+        $pha         =       $data['pha']           ??            [];
+        //$phasen = (is_array($pha) && count($pha) >= 6) ? array_sum(array_slice($pha, 3, 3)) : 0;
+        
 
-        $pha = $data['pha'] ?? [];
-        $phasen = (is_array($pha) && count($pha) >= 6) ? array_sum(array_slice($pha, 3, 3)) : 0;
 
         // Jetzt Werte NUR bei Änderung schreiben und loggen:
         $this->SetValueAndLogChange('Status',      $car,         'Fahrzeugstatus');
