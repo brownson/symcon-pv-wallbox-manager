@@ -149,6 +149,8 @@ class PVWallboxManager extends IPSModule
         }
         $this->UpdateAccessStateText();
         $this->CheckSchwellenwerte();
+        $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
+        $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
     }
 
     public function UpdateCharging()
@@ -737,7 +739,7 @@ class PVWallboxManager extends IPSModule
         $counter = $this->GetOrInitAttributeInteger('PhasenDownCounter');
         if ($ladeleistung < $phasen1Schwelle) {
             $counter++;
-            $this->LogTemplate('debug', "Phasen-Hysterese-Down: $counter x < $phasen1Schwelle W");
+            $this->LogTemplate('debug', "Phasen-Hysterese-Down: $counter x < {$phasen1Schwelle} W");
         } else {
             $counter = 0;
         }
@@ -1533,7 +1535,7 @@ private function DeaktiviereLaden()
         }
         return $this->ReadAttributeInteger($name);
     }
-    */
+    
     private function GetOrInitAttributeInteger($name, $default = 0) {
         $array = $this->GetAttributes();
         if (isset($array[$name]) && is_numeric($array[$name])) {
@@ -1542,7 +1544,16 @@ private function DeaktiviereLaden()
         $this->WriteAttributeInteger($name, $default);
         return $default;
     }
-
+    */
+    private function GetOrInitAttributeInteger($name, $default = 0) {
+        // Defensive: Suppress error (IPS likes to warn if attribute is missing)
+        $value = @$this->ReadAttributeInteger($name);
+        if ($value === null) {
+            $this->WriteAttributeInteger($name, $default);
+            return $default;
+        }
+        return $value;
+    }
 
     // Gibt alle Attribute als Array zurück (Hack: so kommt man ran)
     private function GetAttributes() {
