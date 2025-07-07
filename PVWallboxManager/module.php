@@ -1280,19 +1280,18 @@ private function DeaktiviereLaden()
             $this->LogTemplate('debug', "dwo=0 erfolgreich gesetzt.");
         }
 
-        // 2. alw setzen
+        // 2. alw über MQTT-Endpoint setzen
         $alwValue = $active ? 1 : 0;
-        $setUrl = "http://$ip/api/set?alw=$alwValue";
+        $setUrl = "http://$ip/mqtt?payload=alw=$alwValue";
         $result = @file_get_contents($setUrl, false, $context);
 
         if ($result === false) {
-            $this->LogTemplate('error', "Fehler beim Setzen von alw=$alwValue an $ip (API/set)!");
+            $this->LogTemplate('error', "Fehler beim Setzen von alw=$alwValue an $ip (/mqtt)!");
             return false;
         }
-        $this->LogTemplate('info', "Ladefreigabe gesetzt: alw=$alwValue an $ip (API/set)");
+        $this->LogTemplate('info', "Ladefreigabe gesetzt: alw=$alwValue an $ip (/mqtt)");
         return true;
     }
-
 
     // === 12. Hilfsfunktionen ===
 
