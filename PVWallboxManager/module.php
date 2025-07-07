@@ -989,6 +989,9 @@ class PVWallboxManager extends IPSModule
 
         $this->LogTemplate('debug', "DEBUG: HoleGoEWallboxDaten mit IP = '$ip'");
 
+        $ip  = preg_replace('/[[:^print:]]/', '', $ip);
+        $this->LogTemplate('debug', "Wallbox-IP vor Prüfung: '$ip' (Länge: ".strlen($ip).")");
+
         if (empty($ip) || $ip == "0.0.0.0") {
             $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
             return;
@@ -1512,7 +1515,7 @@ class PVWallboxManager extends IPSModule
     {
         $ip = trim($this->ReadPropertyString('WallboxIP'));
         $key = trim($this->ReadPropertyString('WallboxAPIKey'));
-        
+
         if (empty($ip) || $ip == "0.0.0.0") {
             $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
             return;
