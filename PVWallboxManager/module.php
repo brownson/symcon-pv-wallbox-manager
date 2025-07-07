@@ -998,6 +998,9 @@ class PVWallboxManager extends IPSModule
 
     private function HoleGoEWallboxDaten()
     {
+        $this->LogTemplate('debug', "HoleGoEWallboxDaten ENTRY: WallboxIP (Property): '". $this->ReadPropertyString('WallboxIP') ."'");
+        $this->LogTemplate('debug', "HoleGoEWallboxDaten ENTRY: \$ip = '$ip'");
+        
         $ip = trim($this->ReadPropertyString('WallboxIP'));
         $key = trim($this->ReadPropertyString('WallboxAPIKey'));
 
