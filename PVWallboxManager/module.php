@@ -339,6 +339,20 @@ class PVWallboxManager extends IPSModule
         SetValue($varID, $newValue);
     }
 
+    public function UpdateStatus(string $mode = 'pvonly')
+    {
+        $ip = $this->ReadPropertyString('WallboxIP');
+        $url = "http://$ip/api/status?filter=amp";
+        $json = @file_get_contents($url);
+        $data = json_decode($json, true);
+        $ampere = isset($data['amp']) ? intval($data['amp']) : 0;
+
+        $this->Log("API: $url | Wert: $ampere", "debug");
+
+        $this->SetValueAndLogChange('Ampere', $ampere, 'Maximaler Ladestrom', 'A');
+    }
+
+
 
 
 }
