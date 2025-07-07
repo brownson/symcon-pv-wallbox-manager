@@ -827,17 +827,22 @@ class PVWallboxManager extends IPSModule
         $limit = $this->ReadPropertyInteger('Phasen1Limit');
         $schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');
 
+        // Counter aus Attribut lesen oder initialisieren
+        $counter = $this->ReadAttributeInteger('PhasenDownCounter');
+        if (!is_int($counter)) $counter = 0;
+
         if ($ladeleistung < $schwelle) {
-            $this->PhasenDownCounter++;
-            $this->PhasenUpCounter = 0; // Gegenseite immer resetten!
-            $this->LogTemplate('debug', "Phasen-Hysterese-Down: {$this->PhasenDownCounter}/{$limit} (Schwelle: {$schwelle} W)");
-            if ($this->PhasenDownCounter >= $limit) {
-                $this->PhasenDownCounter = 0;
+            $counter++;
+            $this->WriteAttributeInteger('PhasenUpCounter', 0); // Gegenseite immer resetten!
+            $this->LogTemplate('debug', "Phasen-Hysterese-Down: {$counter}/{$limit} (Schwelle: {$schwelle} W)");
+            if ($counter >= $limit) {
+                $this->WriteAttributeInteger('PhasenDownCounter', 0); // Reset nach Erreichen
                 return true;
             }
         } else {
-            $this->PhasenDownCounter = 0;
+            $counter = 0;
         }
+        $this->WriteAttributeInteger('PhasenDownCounter', $counter);
         return false;
     }
 
@@ -846,17 +851,21 @@ class PVWallboxManager extends IPSModule
         $limit = $this->ReadPropertyInteger('Phasen3Limit');
         $schwelle = $this->ReadPropertyFloat('Phasen3Schwelle');
 
+        $counter = $this->ReadAttributeInteger('PhasenUpCounter');
+        if (!is_int($counter)) $counter = 0;
+
         if ($ladeleistung > $schwelle) {
-            $this->PhasenUpCounter++;
-            $this->PhasenDownCounter = 0; // Gegenseite immer resetten!
-            $this->LogTemplate('debug', "Phasen-Hysterese-Up: {$this->PhasenUpCounter}/{$limit} (Schwelle: {$schwelle} W)");
-            if ($this->PhasenUpCounter >= $limit) {
-                $this->PhasenUpCounter = 0;
+            $counter++;
+            $this->WriteAttributeInteger('PhasenDownCounter', 0); // Gegenseite resetten
+            $this->LogTemplate('debug', "Phasen-Hysterese-Up: {$counter}/{$limit} (Schwelle: {$schwelle} W)");
+            if ($counter >= $limit) {
+                $this->WriteAttributeInteger('PhasenUpCounter', 0);
                 return true;
             }
         } else {
-            $this->PhasenUpCounter = 0;
+            $counter = 0;
         }
+        $this->WriteAttributeInteger('PhasenUpCounter', $counter);
         return false;
     }
 
