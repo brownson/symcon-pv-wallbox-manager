@@ -35,7 +35,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',  '~Electricity.Wh',  8);
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
-//        $this->RegisterTimer('UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
         $this->RegisterTimer('UpdateStatusTimer', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
 
     }
@@ -49,7 +48,6 @@ class PVWallboxManager extends IPSModule
         $timerName = 'UpdateStatusTimer';
 
         if ($aktiv && $interval > 0) {
-            // Setzt den Timer auf das gewählte Intervall (in ms)
             $this->SetTimerInterval($timerName, $interval * 1000);
         } else {
             // Timer AUS
@@ -73,6 +71,72 @@ class PVWallboxManager extends IPSModule
         throw new Exception("Invalid Ident: $Ident");
     }
 
+    private function getStatusFromCharger()
+    {
+        $ip = trim($this->ReadPropertyString('WallboxIP'));
+
+        // 1. Check: IP konfiguriert?
+        if ($ip == "" || $ip == "0.0.0.0") {
+            $this->Log("❌ Keine IP-Adresse für Wallbox konfiguriert.", "error");
+            //$this->SetStatus(200); // Symcon-Status: Konfiguration fehlt
+            return false;
+        }
+        // 2. Check: IP gültig?
+        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            $this->Log("❌ Ungültige IP-Adresse konfiguriert: $ip", "error");
+            //$this->SetStatus(201); // Symcon-Status: Konfigurationsfehler
+            return false;
+        }
+        // 3. Check: Erreichbar (Ping Port 80)?
+        if (!$this->ping($ip, 80, 1)) {
+            $this->Log("❌ Wallbox unter $ip:80 nicht erreichbar.", "error");
+            //$this->SetStatus(202); // Symcon-Status: Keine HTTP-Antwort
+            return false;
+        }
+
+        // 4. HTTP-Request via cURL, V2 API bevorzugen
+        $url = "http://$ip/api/status";
+        $json = false;
+        try {
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+            $json = curl_exec($ch);
+            curl_close($ch);
+        } catch (Exception $e) {
+            $this->Log("❌ HTTP Fehler: " . $e->getMessage(), 'error');
+            //$this->SetStatus(203);
+            return false;
+        }
+
+        if ($json === false || strlen($json) < 2) {
+            $this->Log("❌ Fehler: Keine Antwort von Wallbox ($url)", "error");
+            //$this->SetStatus(203);
+            return false;
+        }
+
+        $data = json_decode($json, true);
+        if (!is_array($data)) {
+            $this->Log("❌ Fehler: Ungültiges JSON von Wallbox ($url)", "error");
+            //$this->SetStatus(204);
+            return false;
+        }
+
+        //$this->SetStatus(102); // Alles OK (optional)
+        return $data;
+    }
+
+    private function ping($host, $port = 80, $timeout = 1)
+    {
+        $fp = @fsockopen($host, $port, $errno, $errstr, $timeout);
+        if ($fp) {
+            fclose($fp);
+            return true;
+        }
+        return false;
+    }
+
     // =========================================================================
     // 3. ZENTRALE STEUERLOGIK
     // =========================================================================
@@ -81,43 +145,36 @@ class PVWallboxManager extends IPSModule
     {
         $this->Log("UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")", "debug");
 
-        $now = date("d.m.Y H:i:s");
-        $this->Log("Modul-Update gestartet: Modus = $mode, Zeit = $now", 'debug');
-
-        // Modul aktiv?
-        if (!$this->ReadPropertyBoolean('ModulAktiv')) {
-            $this->Log("Modul ist inaktiv – keine Abfrage", 'warn');
+        $data = $this->getStatusFromCharger();
+        if ($data === false) {
+            // Fehler wurde schon geloggt
             return;
         }
 
-        $ip = $this->ReadPropertyString('WallboxIP');
-        $url = "http://$ip/api/status";
-        $json = @file_get_contents($url);
-
-        if ($json === false) {
-            $this->Log("Fehler: Keine Antwort von Wallbox ($url)", 'error');
-            return;
-        }
-        $data = json_decode($json, true);
-        if (!is_array($data)) {
-            $this->Log("Fehler: Ungültiges JSON von Wallbox ($url)", 'error');
-            return;
-        }
-
-        // Alle Werte defensiv auslesen
-        $car         = isset($data['car'])         ? intval($data['car'])         : 0;
+        // Defensive Daten-Extraktion
+        $car         = isset($data['car'])          ? intval($data['car'])         : 0;
         $leistung    = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
-        $ampere      = isset($data['amp'])         ? intval($data['amp'])         : 0;
-        $phasen      = (isset($data['pha']) && is_array($data['pha']))     ? array_sum($data['pha'])    : 0;
-        $energie     = isset($data['wh'])          ? intval($data['wh'])          : 0;
-        $freigabe    = isset($data['alw'])         ? intval($data['alw'])         : 0;
-        $kabelstrom  = isset($data['cbl'])         ? intval($data['cbl'])         : 0;
-        $fehlercode  = isset($data['err'])         ? intval($data['err'])         : 0;
+        $ampere      = isset($data['amp'])          ? intval($data['amp'])         : 0;
+        $energie     = isset($data['wh'])           ? intval($data['wh'])          : 0;
+        $freigabe    = isset($data['alw'])          ? (bool)$data['alw']           : false;
+        $kabelstrom  = isset($data['cbl'])          ? intval($data['cbl'])         : 0;
+        $fehlercode  = isset($data['err'])          ? intval($data['err'])         : 0;
 
-        // PHASEN
+        // Phasen aus dem pha-Array: Go-e liefert 6 Felder, wir nehmen die letzten 3 (L1,L2,L3 aktiv)
         $pha = $data['pha'] ?? [];
         $phasen = (is_array($pha) && count($pha) >= 6) ? array_sum(array_slice($pha, 3, 3)) : 0;
-        SetValue($this->GetIDForIdent('Phasen'), $phasen);
+
+        // Nun die Werte **nur bei Änderung** schreiben und loggen:
+        $this->SetValueAndLogChange('Status',      $car,         'Fahrzeugstatus');
+        $this->SetValueAndLogChange('Leistung',    $leistung,    'Ladeleistung', 'W');
+        $this->SetValueAndLogChange('Ampere',      $ampere,      'Maximaler Ladestrom', 'A');
+        $this->SetValueAndLogChange('Phasen',      $phasen,      'Phasen aktiv');
+        $this->SetValueAndLogChange('Energie',     $energie,     'Geladene Energie', 'Wh');
+        $this->SetValueAndLogChange('Freigabe',    $freigabe,    'Ladefreigabe');
+        $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom,  'Kabeltyp');
+        $this->SetValueAndLogChange('Fehlercode',  $fehlercode,  'Fehlercode', '', 'warn');
+    }
+
 
         switch ($mode) {
         case 'manuell':
