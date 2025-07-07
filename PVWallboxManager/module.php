@@ -1427,21 +1427,37 @@ class PVWallboxManager extends IPSModule
         switch (gettype($default)) {
             case 'integer':
                 $val = @$this->ReadAttributeInteger($name);
+                if (!is_int($val)) {
+                    $this->WriteAttributeInteger($name, $default);
+                    return $default;
+                }
                 break;
             case 'double': // float in PHP = double
                 $val = @$this->ReadAttributeFloat($name);
+                if (!is_float($val)) {
+                    $this->WriteAttributeFloat($name, $default);
+                    return $default;
+                }
                 break;
             case 'boolean':
                 $val = @$this->ReadAttributeBoolean($name);
+                if (!is_bool($val)) {
+                    $this->WriteAttributeBoolean($name, $default);
+                    return $default;
+                }
                 break;
             case 'string':
             default:
                 $val = @$this->ReadAttributeString($name);
+                if (!is_string($val)) {
+                    $this->WriteAttributeString($name, $default);
+                    return $default;
+                }
                 break;
         }
-        if ($val === null) return $default;
         return $val;
     }
+
 
     private function LogAccessStateV2()
     {
@@ -1541,6 +1557,7 @@ class PVWallboxManager extends IPSModule
         }
         return $val;
     }
+
     private function GetOrInitAttributeBoolean($name, $default = false)
     {
         $val = @$this->ReadAttributeBoolean($name);
