@@ -984,7 +984,7 @@ class PVWallboxManager extends IPSModule
 
     private function HoleGoEWallboxDaten()
     {
-        $ip    = $this->ReadPropertyString('WallboxIP');
+        $ip = trim($this->ReadPropertyString('WallboxIP'));
         $key   = trim($this->ReadPropertyString('WallboxAPIKey'));
 
         $this->LogTemplate('debug', "DEBUG: HoleGoEWallboxDaten mit IP = '$ip'");
@@ -1018,23 +1018,6 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        // --- Phasen auswerten: numerisch 1 oder 3 ---
-        /**$phasen = 0;
-        if (isset($data['pha']) && is_array($data['pha'])) {
-            // In V4 ist das ein Array mit den Strömen pro Phase (A)
-            // 0: L1, 1: L2, 2: L3, 3: bool L1 aktiv, 4: bool L2 aktiv, 5: bool L3 aktiv
-            $aktivePhasen = 0;
-            foreach ([3, 4, 5] as $idx) {
-                if (!empty($data['pha'][$idx])) $aktivePhasen++;
-            }
-            $phasen = $aktivePhasen; // Kann auch 2 sein, falls nur 2 aktiv!
-            // Nur 1 oder 3 ist korrekt, alles andere als Fehler behandeln
-            if ($phasen !== 1 && $phasen !== 3) {
-                $this->LogTemplate('warn', "Unerwartete Phasenanzahl: $phasen (pha-Array: ".json_encode($data['pha']).")");
-                // Du kannst notfalls auf 1 oder 3 mappen oder Fehler werfen
-            }
-        }
-        */
         $phasen = 0;
         if (isset($data['pha'])) {
             $phasen = $this->ZaehleAktivePhasen($data['pha']);
@@ -1072,8 +1055,10 @@ class PVWallboxManager extends IPSModule
 
     private function SetGoEParameter(array $params)
     {
-        $ip  = $this->ReadPropertyString('WallboxIP');
+        $ip = trim($this->ReadPropertyString('WallboxIP'));
         $key = trim($this->ReadPropertyString('WallboxAPIKey'));
+
+        $this->LogTemplate('debug', "DEBUG: SetGoEParameter mit IP = '$ip'");
 
         $url = "http://$ip/api/set?" . http_build_query($params);
         $opts = [
