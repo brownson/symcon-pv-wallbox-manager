@@ -1006,7 +1006,7 @@ class PVWallboxManager extends IPSModule
 
         // Fehler 1: IP nicht gesetzt
         if (empty($ip)) {
-            $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
+            $this->LogTemplate('error', "HoleGoEWallboxDaten - Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
             return 'ip';
         }
 
@@ -1071,7 +1071,7 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('debug', "DEBUG: SetGoEParameter mit IP = '$ip'");
 
         if (empty($ip) || $ip == "0.0.0.0") {
-            $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
+            $this->LogTemplate('error', "SetGoEParameter - Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
             return;
         }
 
@@ -1099,7 +1099,7 @@ class PVWallboxManager extends IPSModule
         $ip = trim($this->ReadPropertyString('WallboxIP'));
         $apiKey = trim($this->ReadPropertyString('WallboxAPIKey'));
         if (empty($ip) || $ip == "0.0.0.0") {
-            $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
+            $this->LogTemplate('error', "SetGoEChargingActive - Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
             return;
         }
 
@@ -1524,7 +1524,7 @@ class PVWallboxManager extends IPSModule
         $key = trim($this->ReadPropertyString('WallboxAPIKey'));
 
         if (empty($ip) || $ip == "0.0.0.0") {
-            $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
+            $this->LogTemplate('error', "GetGoEAlwStatus - Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
             return;
         }
 
