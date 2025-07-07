@@ -986,6 +986,14 @@ class PVWallboxManager extends IPSModule
     {
         $ip    = $this->ReadPropertyString('WallboxIP');
         $key   = trim($this->ReadPropertyString('WallboxAPIKey'));
+
+        $this->LogTemplate('debug', "DEBUG: HoleGoEWallboxDaten mit IP = '$ip'");
+
+        if (empty($ip)) {
+            $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
+            return;
+        }
+
         $url   = "http://$ip/api/status"; // APIv2: alles in einem JSON
 
         // Optional: Auth als Header
