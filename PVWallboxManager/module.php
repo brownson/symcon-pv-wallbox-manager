@@ -125,8 +125,10 @@ class PVWallboxManager extends IPSModule
 
         // Variablenprofil für Lademodus sicherstellen
         $this->EnsureLademodusProfile();
+
+        // Attribut-Initialisierung für Phasen-Hysteresezähler (robust, keine IPS-Warnings)
         $this->EnsurePhasenCounterAttributes();
-        
+
         // GO-e Charger Instanz-ID holen
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
 
@@ -149,10 +151,10 @@ class PVWallboxManager extends IPSModule
         }
         $this->UpdateAccessStateText();
         $this->CheckSchwellenwerte();
-
-        $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
-        $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
-
+        // ---> Die nächsten beiden Zeilen kannst du theoretisch weglassen, 
+        // solange du EnsurePhasenCounterAttributes regelmäßig aufrufst.
+        // $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
+        // $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
     }
 
     public function UpdateCharging()
