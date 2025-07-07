@@ -271,12 +271,18 @@ class PVWallboxManager extends IPSModule
 
         $wb = $this->HoleGoEWallboxDaten();
         if (!is_array($wb)) {
-            if ($wb === 'ip') {
-                $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! (Interner Abbruch)");
-            } elseif ($wb === 'notreachable') {
-                $this->LogTemplate('error', "Wallbox unter IP nicht erreichbar! (Interner Abbruch)");
-            } else {
-                $this->LogTemplate('error', "Wallbox-Daten konnten nicht abgerufen werden, Update abgebrochen.");
+            switch ($wb) {
+                case 'ip':
+                    $this->LogTemplate('error', "Wallbox-IP fehlt oder ungültig!");
+                    break;
+                case 'notreachable':
+                    $this->LogTemplate('error', "Wallbox unter angegebener IP nicht erreichbar!");
+                    break;
+                case 'json':
+                    $this->LogTemplate('error', "Wallbox-API-Antwort konnte nicht gelesen werden (JSON-Fehler).");
+                    break;
+                default:
+                    $this->LogTemplate('error', "Wallbox-Daten konnten nicht abgerufen werden, Update abgebrochen.");
             }
             return;
         }
@@ -1021,11 +1027,6 @@ class PVWallboxManager extends IPSModule
             $this->LogTemplate('error', "Fehler beim Parsen der Wallbox-API-Antwort.");
             return 'json';   // << Optional weitere Fehlerkennung
         }
-
-        // ... alles OK ...
-        // [Restlicher Code, Rückgabe der Daten als Array]
-        return $werte;
-    }
 
         $url   = "http://$ip/api/status"; // APIv2: alles in einem JSON
 
