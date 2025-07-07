@@ -35,7 +35,11 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',  '~Electricity.Wh',  8);
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
-        $this->RegisterTimer('UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", 0);');
+        //$this->RegisterTimer('UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", 0);');
+        //$this->RegisterTimer('UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
+        $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
+
+
 
     }
 
@@ -46,7 +50,8 @@ class PVWallboxManager extends IPSModule
         $interval = $this->ReadPropertyInteger('RefreshInterval');
 
         if ($aktiv) {
-        $this->SetTimerInterval('UpdateStatus', $interval * 1000);
+        //$this->SetTimerInterval('UpdateStatus', $interval * 1000);
+        $this->SetTimerInterval('UpdateStatus', $this->ReadPropertyInteger('RefreshInterval') * 1000);
         } else {
             $this->SetTimerInterval('UpdateStatus', 0); // Timer AUS
             // Optional: Variablen auf 0/null setzen oder einen Status loggen
