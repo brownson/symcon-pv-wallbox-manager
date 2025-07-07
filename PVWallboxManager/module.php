@@ -99,6 +99,11 @@ class PVWallboxManager extends IPSModule
         $kabelstrom  = isset($data['cbl'])         ? intval($data['cbl'])         : 0;
         $fehlercode  = isset($data['err'])         ? intval($data['err'])         : 0;
 
+        // PHASEN
+        $pha = $data['pha'] ?? [];
+        $phasen = (is_array($pha) && count($pha) >= 6) ? array_sum(array_slice($pha, 3, 3)) : 0;
+        SetValue($this->GetIDForIdent('Phasen'), $phasen);
+
         switch ($mode) {
         case 'manuell':
             SetValue($this->GetIDForIdent('Status'),      $car);
