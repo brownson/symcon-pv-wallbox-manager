@@ -1538,12 +1538,14 @@ class PVWallboxManager extends IPSModule
 
     private function GetOrInitAttributeInteger($name, $default = 0)
     {
-        $val = @$this->ReadAttributeInteger($name);
-        if (!is_int($val)) {
+        // Gibt es das Attribut? Wenn nicht, anlegen!
+        $attributes = $this->GetAttributes();
+        if (!array_key_exists($name, $attributes)) {
             $this->WriteAttributeInteger($name, $default);
             return $default;
         }
-        return $val;
+        $val = $this->ReadAttributeInteger($name);
+        return is_int($val) ? $val : $default;
     }
 
     private function GetAllCustomAttributes()
