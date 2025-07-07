@@ -152,13 +152,12 @@ class PVWallboxManager extends IPSModule
             IPS_CreateVariableProfile($profile, 1); // 1 = Integer
             IPS_SetVariableProfileValues($profile, 0, 5, 1);
             IPS_SetVariableProfileAssociation($profile, 0, 'Unbekannt/Fehler', '', 0x888888);
-            IPS_SetVariableProfileAssociation($profile, 1, 'Idle', '', 0xAAAAAA);
-            IPS_SetVariableProfileAssociation($profile, 2, 'Charging', '', 0x00FF00);
-            IPS_SetVariableProfileAssociation($profile, 3, 'WaitCar', '', 0x0088FF);
-            IPS_SetVariableProfileAssociation($profile, 4, 'Complete', '', 0xFFFF00);
+            IPS_SetVariableProfileAssociation($profile, 1, 'Ladestation bereit, kein Fahrzeug', '', 0xAAAAAA);
+            IPS_SetVariableProfileAssociation($profile, 2, 'Fahrzeug lädt', '', 0x00FF00);
+            IPS_SetVariableProfileAssociation($profile, 3, 'Warte auf Fahrzeug', '', 0x0088FF);
+            IPS_SetVariableProfileAssociation($profile, 4, 'Ladung beendet, Fahrzeug noch verbunden', '', 0xFFFF00);
             IPS_SetVariableProfileAssociation($profile, 5, 'Error', '', 0xFF0000);
         }
     }
 
 }
-
