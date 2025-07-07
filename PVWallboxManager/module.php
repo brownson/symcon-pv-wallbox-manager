@@ -36,23 +36,26 @@ class PVWallboxManager extends IPSModule
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
 //        $this->RegisterTimer('UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
-        $this->RegisterTimer("PVWallboxManager_UpdateTimer", 0, 'PVWallboxManager_Update($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('UpdateStatusTimer', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
+
     }
-
-
 
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+        
         $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
         $interval = $this->ReadPropertyInteger('RefreshInterval');
+        $timerName = 'UpdateStatusTimer';
 
-        if ($aktiv) {
-        //$this->SetTimerInterval('UpdateStatus', $interval * 1000);
-        $this->SetTimerInterval("PVWallboxManager_UpdateTimer", $interval * 1000);
+        if ($aktiv && $interval > 0) {
+            // Setzt den Timer auf das gewählte Intervall (in ms)
+            $this->SetTimerInterval($timerName, $interval * 1000);
         } else {
-            $this->SetTimerInterval('UpdateStatus', 0); // Timer AUS
-            // Optional: Variablen auf 0/null setzen oder einen Status loggen
+            // Timer AUS
+            $this->SetTimerInterval($timerName, 0);
+            // Optional: Variablen zurücksetzen oder Logeintrag
+            //$this->Log('Timer deaktiviert!', 'info');
         }
     }
 
@@ -64,7 +67,7 @@ class PVWallboxManager extends IPSModule
     {
         if ($Ident === "UpdateStatus") {
             // Default: PV only
-            $this->UpdateStatus('pvonly');
+            $this->UpdateStatus((string)$Value);
             return;
         }
         throw new Exception("Invalid Ident: $Ident");
@@ -76,7 +79,7 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateStatus(string $mode = 'pvonly')
     {
-        $this->Log("Timer-Trigger: UpdateStatus (Modus: $mode)", 'debug');
+        $this->Log("UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")", "debug");
 
         $now = date("d.m.Y H:i:s");
         $this->Log("Modul-Update gestartet: Modus = $mode, Zeit = $now", 'debug');
