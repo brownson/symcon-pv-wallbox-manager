@@ -15,7 +15,10 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableFloat('Leistung', 'Ladeleistung (W)', '~Watt', 2);
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
-        $this->RegisterTimer('UpdateStatus', 30 * 1000, 'GOE_UpdateStatus($_IPS["TARGET"]);');
+        //$this->RegisterTimer('UpdateStatus', 30 * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", 0);');
+        $this->RegisterTimer('UpdateStatus', 30 * 1000, 'GoEChargerSimple_UpdateStatus($IPS_TARGET);');
+
+
     }
 
     public function ApplyChanges()
