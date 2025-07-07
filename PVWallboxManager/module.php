@@ -22,7 +22,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Status',      'Fahrzeugstatus',         'GoE.CarStatus',    1);
         $this->RegisterVariableFloat('Leistung',      'Ladeleistung (W)',       '~Watt',            2);
         $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',     '~Ampere',          3);
-        $this->RegisterVariableInteger('Phasen',      'Phasen aktiv',           '',                 4);
+        $this->RegisterPhasesProfile();
+        $this->RegisterVariableInteger('Phasen',      'Phasen aktiv',           'GoE.Phases',       4);
+        //$this->RegisterVariableInteger('Phasen',      'Phasen aktiv',           '',                 4);
         $this->RegisterVariableInteger('Freigabe',    'Ladefreigabe',           '',                 5);
         $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',           '',                 6);
         $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',             '',                 7);
@@ -136,19 +138,30 @@ class PVWallboxManager extends IPSModule
     // 9. HILFSFUNKTIONEN & GETTER/SETTER
     // =========================================================================
 
-private function RegisterCarStateProfile()
-    {
-        $profile = 'GoE.CarStatus';
-        if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 1); // 1 = Integer
-            IPS_SetVariableProfileValues($profile, 1, 4, 1);
-            IPS_SetVariableProfileAssociation($profile, 0, 'Unbekannt/Firmwarefehler', '', 0x888888);
-            IPS_SetVariableProfileAssociation($profile, 1, 'Ladestation bereit, kein Fahrzeug', '', 0xAAAAAA);
-            IPS_SetVariableProfileAssociation($profile, 2, 'Fahrzeug lädt', '', 0x00FF00);
-            IPS_SetVariableProfileAssociation($profile, 3, 'Warte auf Fahrzeug', '', 0x0088FF);
-            IPS_SetVariableProfileAssociation($profile, 4, 'Ladung beendet, Fahrzeug noch verbunden', '', 0xFFFF00);
-            IPS_SetVariableProfileAssociation($profile, 5, 'Fehler', '', 0xFF0000);
-        }
+    private function RegisterCarStateProfile()
+        {
+            $profile = 'GoE.CarStatus';
+            if (!IPS_VariableProfileExists($profile)) {
+                IPS_CreateVariableProfile($profile, 1); // 1 = Integer
+                IPS_SetVariableProfileValues($profile, 1, 4, 1);
+                IPS_SetVariableProfileAssociation($profile, 0, 'Unbekannt/Firmwarefehler', '', 0x888888);
+                IPS_SetVariableProfileAssociation($profile, 1, 'Ladestation bereit, kein Fahrzeug', '', 0xAAAAAA);
+                IPS_SetVariableProfileAssociation($profile, 2, 'Fahrzeug lädt', '', 0x00FF00);
+                IPS_SetVariableProfileAssociation($profile, 3, 'Warte auf Fahrzeug', '', 0x0088FF);
+                IPS_SetVariableProfileAssociation($profile, 4, 'Ladung beendet, Fahrzeug noch verbunden', '', 0xFFFF00);
+                IPS_SetVariableProfileAssociation($profile, 5, 'Fehler', '', 0xFF0000);
+            }
     }
 
+    private function RegisterPhasesProfile()
+    {
+        $profile = 'GoE.Phases';
+        if (!IPS_VariableProfileExists($profile)) {
+            IPS_CreateVariableProfile($profile, 1); // 1 = Integer
+            IPS_SetVariableProfileAssociation($profile, 0, 'Keine', '', 0x888888);
+            IPS_SetVariableProfileAssociation($profile, 1, '1-phasig', '', 0x00ADEF);
+            IPS_SetVariableProfileAssociation($profile, 2, '2-phasig', '', 0x009900);
+            IPS_SetVariableProfileAssociation($profile, 3, '3-phasig', '', 0xFF9900);
+        }
+    }
 }
