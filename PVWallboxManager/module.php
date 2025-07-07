@@ -16,6 +16,10 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyString('WallboxIP', '');
         $this->RegisterPropertyInteger('RefreshInterval', 30);
         $this->RegisterPropertyBoolean('ModulAktiv', true);
+        $this->RegisterPropertyBoolean('DebugLogging', false);
+        $this->RegisterVariableString('Log', 'Modul-Log', '', 99);
+
+
 
         // Variablen nach API v2
         $this->RegisterCarStateProfile();
@@ -71,7 +75,7 @@ class PVWallboxManager extends IPSModule
     {
         // Modul aktiv?
         if (!$this->ReadPropertyBoolean('ModulAktiv')) {
-            IPS_LogMessage("PVWallboxManager", "Modul ist inaktiv – keine Abfrage");
+            $this->Log("Modul ist inaktiv – keine Abfrage", 'warn');
             return;
         }
 
@@ -80,12 +84,12 @@ class PVWallboxManager extends IPSModule
         $json = @file_get_contents($url);
 
         if ($json === false) {
-            IPS_LogMessage("PVWallboxManager", "Fehler: Keine Antwort von Wallbox ($url)");
+            $this->Log("Fehler: Keine Antwort von Wallbox ($url)", 'error');
             return;
         }
         $data = json_decode($json, true);
         if (!is_array($data)) {
-            IPS_LogMessage("PVWallboxManager", "Fehler: Ungültiges JSON von Wallbox ($url)");
+            $this->Log("Fehler: Ungültiges JSON von Wallbox ($url)", 'error');
             return;
         }
 
@@ -106,41 +110,41 @@ class PVWallboxManager extends IPSModule
 
         switch ($mode) {
         case 'manuell':
-            SetValue($this->GetIDForIdent('Status'),      $car);
-            SetValue($this->GetIDForIdent('Leistung'),    $leistung);
-            SetValue($this->GetIDForIdent('Ampere'),      $ampere);
-            SetValue($this->GetIDForIdent('Phasen'),      $phasen);
-            SetValue($this->GetIDForIdent('Energie'),     $energie);
-            SetValue($this->GetIDForIdent('Freigabe'),    $freigabe);
-            SetValue($this->GetIDForIdent('Kabelstrom'),  $kabelstrom);
-            SetValue($this->GetIDForIdent('Fehlercode'),  $fehlercode);
+            $this->SetValueAndLogChange('Status',      $car,        'Fahrzeugstatus');
+            $this->SetValueAndLogChange('Leistung',    $leistung,   'Ladeleistung');
+            $this->SetValueAndLogChange('Ampere',      $ampere,     'Maximaler Ladestrom');
+            $this->SetValueAndLogChange('Phasen',      $phasen,     'Phasen aktiv');
+            $this->SetValueAndLogChange('Energie',     $energie,    'Geladene Energie');
+            $this->SetValueAndLogChange('Freigabe',    (bool)$freigabe, 'Ladefreigabe');
+            $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom, 'Kabeltyp');
+            $this->SetValueAndLogChange('Fehlercode',  $fehlercode, 'Fehlercode', '', 'warn');
             break;
 
         case 'pv2car':
         case 'zielzeit':
         case 'strompreis':
             // Diese Modi setzen im Grundsatz die gleichen Basiswerte, können aber später noch erweitert werden
-            SetValue($this->GetIDForIdent('Status'),      $car);
-            SetValue($this->GetIDForIdent('Leistung'),    $leistung);
-            SetValue($this->GetIDForIdent('Ampere'),      $ampere);
-            SetValue($this->GetIDForIdent('Phasen'),      $phasen);
-            SetValue($this->GetIDForIdent('Energie'),     $energie);
-            SetValue($this->GetIDForIdent('Freigabe'),    $freigabe);
-            SetValue($this->GetIDForIdent('Kabelstrom'),  $kabelstrom);
-            SetValue($this->GetIDForIdent('Fehlercode'),  $fehlercode);
+            $this->SetValueAndLogChange('Status',      $car,        'Fahrzeugstatus');
+            $this->SetValueAndLogChange('Leistung',    $leistung,   'Ladeleistung');
+            $this->SetValueAndLogChange('Ampere',      $ampere,     'Maximaler Ladestrom');
+            $this->SetValueAndLogChange('Phasen',      $phasen,     'Phasen aktiv');
+            $this->SetValueAndLogChange('Energie',     $energie,    'Geladene Energie');
+            $this->SetValueAndLogChange('Freigabe',    (bool)$freigabe, 'Ladefreigabe');
+            $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom, 'Kabeltyp');
+            $this->SetValueAndLogChange('Fehlercode',  $fehlercode, 'Fehlercode', '', 'warn');
             break;
 
         case 'pvonly':
         default:
             // Standard: Nur PV-Modus, Werte für PV-Überschuss-Laden
-            SetValue($this->GetIDForIdent('Status'),      $car);
-            SetValue($this->GetIDForIdent('Leistung'),    $leistung);
-            SetValue($this->GetIDForIdent('Ampere'),      $ampere);
-            SetValue($this->GetIDForIdent('Phasen'),      $phasen);
-            SetValue($this->GetIDForIdent('Energie'),     $energie);
-            SetValue($this->GetIDForIdent('Freigabe'),    $freigabe);
-            SetValue($this->GetIDForIdent('Kabelstrom'),  $kabelstrom);
-            SetValue($this->GetIDForIdent('Fehlercode'),  $fehlercode);
+            $this->SetValueAndLogChange('Status',      $car,        'Fahrzeugstatus');
+            $this->SetValueAndLogChange('Leistung',    $leistung,   'Ladeleistung');
+            $this->SetValueAndLogChange('Ampere',      $ampere,     'Maximaler Ladestrom');
+            $this->SetValueAndLogChange('Phasen',      $phasen,     'Phasen aktiv');
+            $this->SetValueAndLogChange('Energie',     $energie,    'Geladene Energie');
+            $this->SetValueAndLogChange('Freigabe',    (bool)$freigabe, 'Ladefreigabe');
+            $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom, 'Kabeltyp');
+            $this->SetValueAndLogChange('Fehlercode',  $fehlercode, 'Fehlercode', '', 'warn');
             break;
         }
     }
@@ -185,4 +189,112 @@ class PVWallboxManager extends IPSModule
             IPS_SetVariableProfileAssociation($profile, true,  'Laden freigegeben', '', 0x44FF44);
         }
     }
+
+    // =========================================================================
+    // 8. LOGGING / STATUSMELDUNGEN / DEBUG
+    // =========================================================================
+
+    private function Log($msg, $level = 'info')
+    {
+        // Icons je nach Level
+        $icons = [
+            'info'  => '✅',
+            'warn'  => '⚠️',
+            'error' => '❌',
+            'debug' => '🐞'
+        ];
+        $icon = $icons[$level] ?? '';
+
+        // Debug aus, wenn nicht aktiviert
+        if ($level === 'debug' && !$this->ReadPropertyBoolean('DebugLogging')) {
+            return;
+        }
+
+        // Format: [LEVEL] Icon Nachricht
+        $prefix = '[PVWM] ';
+        $levelStr = strtoupper($level);
+        $logLine = "[$levelStr] $icon $prefix$msg";
+
+        // Symcon-Systemlog
+        IPS_LogMessage("PVWallboxManager", $logLine);
+
+        // WebFront-Log (Variable "Log")
+        $logVarID = @$this->GetIDForIdent('Log');
+        if ($logVarID) {
+            $old = GetValueString($logVarID);
+            $new = date("d.m.Y H:i:s") . " | $logLine\n" . $old;
+            SetValueString($logVarID, mb_substr($new, 0, 6000)); // max 6000 Zeichen
+        }
+    }
+
+    private function SetValueAndLogChange($ident, $newValue, $caption = '', $unit = '', $level = 'info')
+    {
+        $varID = @$this->GetIDForIdent($ident);
+        if ($varID === false) {
+            $this->Log("Variable mit Ident '$ident' nicht gefunden!", 'warn');
+            return;
+        }
+        $oldValue = GetValue($varID);
+
+        // Wenn identisch, nichts tun
+        if ($oldValue === $newValue) {
+            return;
+        }
+
+        // Werte ggf. als Klartext formatieren
+        $formatValue = function($value) use ($ident, $varID) {
+            // Profile-Auswertung (z. B. für Status, Phasen, Freigabe)
+            $profile = IPS_GetVariable($varID)['VariableCustomProfile'] ?: IPS_GetVariable($varID)['VariableProfile'];
+            if ($profile == 'GoE.CarStatus') {
+                $map = [
+                    0 => 'Unbekannt/Firmwarefehler',
+                    1 => 'Bereit, kein Fahrzeug',
+                    2 => 'Fahrzeug lädt',
+                    3 => 'Warte auf Fahrzeug',
+                    4 => 'Ladung beendet',
+                    5 => 'Fehler'
+                ];
+                return $map[intval($value)] ?? $value;
+            }
+            if ($profile == 'GoE.Phases') {
+                $map = [0 => 'Keine', 1 => '1-phasig', 2 => '2-phasig', 3 => '3-phasig'];
+                return $map[intval($value)] ?? $value;
+            }
+            if ($profile == 'GoE.ALW') {
+                return ($value ? 'Ladefreigabe: aktiv' : 'Ladefreigabe: aus');
+            }
+            if ($profile == '~Ampere') {
+                return number_format($value, 0, ',', '.') . ' A';
+            }
+            if ($profile == '~Watt') {
+                return number_format($value, 0, ',', '.') . ' W';
+            }
+            if ($profile == '~Electricity.Wh') {
+                return number_format($value, 0, ',', '.') . ' Wh';
+            }
+            // Standard: einfach Zahl/Bool
+            if (is_bool($value)) {
+                return $value ? 'ja' : 'nein';
+            }
+            if (is_numeric($value)) {
+                return number_format($value, 0, ',', '.');
+            }
+            return strval($value);
+        };
+
+        // Meldung zusammensetzen
+        $oldText = $formatValue($oldValue);
+        $newText = $formatValue($newValue);
+        if ($caption) {
+            $msg = "$caption geändert: $oldText → $newText";
+        } else {
+            $msg = "Wert geändert: $oldText → $newText";
+        }
+        $this->Log($msg, $level);
+
+        SetValue($varID, $newValue);
+    }
+
+
+
 }
