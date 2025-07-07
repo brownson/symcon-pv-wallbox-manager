@@ -871,6 +871,7 @@ class PVWallboxManager extends IPSModule
 
     private function UmschaltenAuf1Phasig()
     {
+        $goeID = $this->ReadPropertyInteger('GOeChargerID'); // <--- HINZUFÜGEN!
         GOeCharger_SetAccessState($goeID, 1); // 1 = gesperrt (NICHT laden)
         IPS_Sleep(1200);
         $this->GOeCharger_SetMode($goeID, '1P'); // für 1-phasig
@@ -881,6 +882,7 @@ class PVWallboxManager extends IPSModule
 
     private function UmschaltenAuf3Phasig()
     {
+        $goeID = $this->ReadPropertyInteger('GOeChargerID'); // <--- HINZUFÜGEN!
         GOeCharger_SetAccessState($goeID, 1); // 1 = gesperrt (NICHT laden)
         IPS_Sleep(1200);
         $this->GOeCharger_SetMode($goeID, '3P'); // für 3-phasig
