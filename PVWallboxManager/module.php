@@ -73,6 +73,8 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateStatus(string $mode = 'pvonly')
     {
+        $this->Log("Timer-Trigger: UpdateStatus (Modus: $mode)", 'debug');
+
         $now = date("d.m.Y H:i:s");
         $this->Log("Modul-Update gestartet: Modus = $mode, Zeit = $now", 'debug');
 
