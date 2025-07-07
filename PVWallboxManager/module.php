@@ -26,7 +26,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Phasen',      'Phasen aktiv',           'GoE.Phases',       4);
         $this->RegisterAlwProfile();
         $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',           'GoE.ALW',          5);
-        $this->RegisterVariableInteger('Freigabe',    'Ladefreigabe',           '',                 5);
         $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',           '',                 6);
         $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',             '',                 7);
         $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',  '~Electricity.Wh',  8);
@@ -126,6 +125,9 @@ class PVWallboxManager extends IPSModule
             SetValue($this->GetIDForIdent('Ampere'),      $ampere);
             SetValue($this->GetIDForIdent('Phasen'),      $phasen);
             SetValue($this->GetIDForIdent('Energie'),     $energie);
+            SetValue($this->GetIDForIdent('Freigabe'),    $freigabe);
+            SetValue($this->GetIDForIdent('Kabelstrom'),  $kabelstrom);
+            SetValue($this->GetIDForIdent('Fehlercode'),  $fehlercode);
             break;
 
         case 'pvonly':
@@ -136,6 +138,9 @@ class PVWallboxManager extends IPSModule
             SetValue($this->GetIDForIdent('Ampere'),      $ampere);
             SetValue($this->GetIDForIdent('Phasen'),      $phasen);
             SetValue($this->GetIDForIdent('Energie'),     $energie);
+            SetValue($this->GetIDForIdent('Freigabe'),    $freigabe);
+            SetValue($this->GetIDForIdent('Kabelstrom'),  $kabelstrom);
+            SetValue($this->GetIDForIdent('Fehlercode'),  $fehlercode);
             break;
         }
     }
