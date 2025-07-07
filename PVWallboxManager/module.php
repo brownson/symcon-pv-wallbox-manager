@@ -153,13 +153,13 @@ class PVWallboxManager extends IPSModule
         }
         $this->UpdateAccessStateText();
         $this->CheckSchwellenwerte();
-        // In ApplyChanges():
+        /*// In ApplyChanges():
         if ($this->ReadAttributeInteger('LastSetLadeleistung') === null) {
             $this->WriteAttributeInteger('LastSetLadeleistung', 0);
         }
         if ($this->ReadAttributeBoolean('LastSetGoEActive') === null) {
             $this->WriteAttributeBoolean('LastSetGoEActive', false);
-        }
+        }*/
     }
 
     // =========================================================================
