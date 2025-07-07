@@ -998,24 +998,14 @@ class PVWallboxManager extends IPSModule
 
     private function HoleGoEWallboxDaten()
     {
-        $this->LogTemplate('debug', "HoleGoEWallboxDaten ENTRY: WallboxIP (Property): '". $this->ReadPropertyString('WallboxIP') ."'");
-        $this->LogTemplate('debug', "HoleGoEWallboxDaten ENTRY: \$ip = '$ip'");
-        
         $ip = trim($this->ReadPropertyString('WallboxIP'));
         $key = trim($this->ReadPropertyString('WallboxAPIKey'));
 
-        $ipRaw = $this->ReadPropertyString('WallboxIP');
-        $this->LogTemplate('debug', "WallboxIP Property (roh): '$ipRaw'");
-        $ip = trim($ipRaw);
+        $this->LogTemplate('debug', "HoleGoEWallboxDaten: IP='$ip'");
 
-        $this->LogTemplate('debug', "DEBUG: HoleGoEWallboxDaten mit IP = '$ip'");
-
-        $ip = preg_replace('/[[:^print:]]/', '', $ip);
-        $this->LogTemplate('debug', "Wallbox-IP vor Prüfung: '$ip' (Länge: ".strlen($ip).")");
-
-        // Fehler 1: IP nicht gesetzt
-        if (empty($ip) || !filter_var($ip, FILTER_VALIDATE_IP)) {
-            $this->LogTemplate('error', "HoleGoEWallboxDaten - Wallbox-IP ungültig oder nicht gesetzt! Kann keine Verbindung aufbauen. (Wert: '$ip')");
+        // Nur prüfen, ob die IP überhaupt gesetzt ist
+        if (empty($ip)) {
+            $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
             return 'ip';
         }
 
@@ -1029,14 +1019,12 @@ class PVWallboxManager extends IPSModule
         ];
         $context = stream_context_create($opts);
 
-        // Fehler 2: Wallbox nicht erreichbar
         $json = @file_get_contents($url, false, $context);
         if ($json === false) {
             $this->LogTemplate('error', "Wallbox unter $ip nicht erreichbar.");
             return 'notreachable';
         }
 
-        // Fehler 3: JSON-Fehler
         $data = json_decode($json, true);
         if (!is_array($data)) {
             $this->LogTemplate('error', "Fehler beim Parsen der Wallbox-API-Antwort.");
