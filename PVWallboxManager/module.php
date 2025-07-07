@@ -120,11 +120,6 @@ class PVWallboxManager extends IPSModule
         // Timer für Berechnungsintervall
         $this->RegisterTimer('UpdateCharging', $this->ReadPropertyInteger('RefreshInterval') * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateCharging", 0);');
 
-        // Schreibe die Attribute nur – kein Read!
-        $this->WriteAttributeInteger('PhasenDownCounter', 0);
-        $this->WriteAttributeInteger('PhasenUpCounter', 0);
-        $this->WriteAttributeInteger('LastSetLadeleistung', 0);
-        $this->WriteAttributeBoolean('LastSetGoEActive', false);
     }
 
     public function ApplyChanges()
