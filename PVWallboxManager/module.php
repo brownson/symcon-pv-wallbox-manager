@@ -685,13 +685,16 @@ class PVWallboxManager extends IPSModule
     /** Prüfe, ob Phasenumschaltung nötig ist (inkl. Hysterese) */
     private function PruefePhasenumschaltung($ladeleistung, $wb)
     {
-        $phasen_ist = $wb['WB_Phasen'] ?? 1;
-
-        // Attribute werden in IP-Symcon automatisch auf 0 initialisiert, keine manuelle Prüfung nötig!
+        // Phasenstatus prüfen (robust)
+        $phasen_ist = isset($wb['WB_Phasen']) && in_array($wb['WB_Phasen'], [1, 3]) ? $wb['WB_Phasen'] : 0;
+        if ($phasen_ist === 0) {
+            $this->LogTemplate('warn', "Phasenstatus ungültig oder unbekannt, kann nicht umschalten!");
+            return false;
+        }
 
         $umschaltung = false;
 
-        // Umschaltung auf 1-phasig prüfen (nur wenn aktuell 3-phasig)
+        // Umschaltung auf 1-phasig
         if ($phasen_ist == 3 && $this->PruefeHystereseDown($ladeleistung)) {
             $this->UmschaltenAuf1Phasig();
             IPS_Sleep(1500);
@@ -700,7 +703,7 @@ class PVWallboxManager extends IPSModule
             $this->LogTemplate('info', 'Umschaltung auf 1-phasig ausgelöst.', "Leistung: $ladeleistung W | ECHTE Phasen: $phasen_ist");
             $umschaltung = true;
         }
-        // Umschaltung auf 3-phasig prüfen (nur wenn aktuell 1-phasig)
+        // Umschaltung auf 3-phasig
         elseif ($phasen_ist == 1 && $this->PruefeHystereseUp($ladeleistung)) {
             $this->UmschaltenAuf3Phasig();
             IPS_Sleep(1500);
@@ -710,7 +713,9 @@ class PVWallboxManager extends IPSModule
             $umschaltung = true;
         }
 
-        // Debuglog Hysterese-Zähler immer anzeigen (hilft beim Nachvollziehen im Log)
+        // Immer aktualisieren – vermeidet „hängende“ Anzeige
+        $this->SetValueSafe('AktuellePhasen', $phasen_ist);
+
         $this->LogTemplate('debug', sprintf(
             "Hysteresecounter: Down=%d | Up=%d", 
             $this->GetOrInitAttributeInteger('PhasenDownCounter'), 
@@ -721,8 +726,7 @@ class PVWallboxManager extends IPSModule
             $this->LogTemplate('debug', "Keine Phasenumschaltung nötig. (Phasen: $phasen_ist, Leistung: $ladeleistung W)");
         }
 
-        // Optional: Aktuellen Phasenwert speichern/anzeigen
-        // $this->SetValueSafe('AktuellePhasen', $phasen_ist);
+        return $umschaltung;
     }
 
     private function PruefeHystereseDown($ladeleistung)
@@ -765,18 +769,23 @@ class PVWallboxManager extends IPSModule
         return false;
     }
 
-    // Umschaltfunktionen bleiben wie gehabt
     private function UmschaltenAuf1Phasig()
     {
         $this->SetGoEChargingActive(false);
         IPS_Sleep(1200);
 
-        $this->SetGoEParameter(['psm' => 0]); // 1-phasig
-        IPS_Sleep(1200);
+        $this->SetGoEParameter(['psm' => 1]); // 1-phasig → psm=1
+        IPS_Sleep(1500);
 
         $this->SetGoEChargingActive(true);
+        IPS_Sleep(1500);
 
-        $this->LogTemplate('info', 'Phasenumschaltung auf 1-phasig abgeschlossen.');
+        // API neu abfragen und „Aktuelle Phasen“ direkt schreiben!
+        $wbNeu = $this->HoleGoEWallboxDaten();
+        $phasen_ist = $wbNeu['WB_Phasen'] ?? 1;
+        $this->SetValueSafe('AktuellePhasen', $phasen_ist);
+
+        $this->LogTemplate('info', 'Phasenumschaltung auf 1-phasig abgeschlossen.', "ECHTE Phasen: $phasen_ist");
     }
 
     private function UmschaltenAuf3Phasig()
@@ -784,12 +793,18 @@ class PVWallboxManager extends IPSModule
         $this->SetGoEChargingActive(false);
         IPS_Sleep(1200);
 
-        $this->SetGoEParameter(['psm' => 2]); // 3-phasig
-        IPS_Sleep(1200);
+        $this->SetGoEParameter(['psm' => 2]); // 3-phasig → psm=2
+        IPS_Sleep(1500);
 
         $this->SetGoEChargingActive(true);
+        IPS_Sleep(1500);
 
-        $this->LogTemplate('info', 'Phasenumschaltung auf 3-phasig abgeschlossen.');
+        // API neu abfragen und „Aktuelle Phasen“ direkt schreiben!
+        $wbNeu = $this->HoleGoEWallboxDaten();
+        $phasen_ist = $wbNeu['WB_Phasen'] ?? 3;
+        $this->SetValueSafe('AktuellePhasen', $phasen_ist);
+
+        $this->LogTemplate('info', 'Phasenumschaltung auf 3-phasig abgeschlossen.', "ECHTE Phasen: $phasen_ist");
     }
 
     private function EnsurePhasenCounterAttributes()
@@ -922,7 +937,7 @@ class PVWallboxManager extends IPSModule
 
         // Min/Max-Ampere aus Property holen
         $minAmp  = max(6, (int)$this->ReadPropertyInteger('MinAmpere'));
-        $maxAmp  = min(32, (int)$this->ReadPropertyInteger('MaxAmpere')); // ggf. auf 32 erweitern für große Boxen
+        $maxAmp  = min(32, (int)$this->ReadPropertyInteger('MaxAmpere'));
 
         // Ziel-Ampere berechnen (und sauber runden)
         $ampere = round($leistung / ($phasen * $spannung));
