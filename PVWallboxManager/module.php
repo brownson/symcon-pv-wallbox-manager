@@ -374,8 +374,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->ReadAttributeInteger('PhasenDownCounter'),
-                    $this->ReadAttributeInteger('PhasenUpCounter')
+                    $this->GetOrInitAttributeInteger('PhasenDownCounter'),
+                    $this->GetOrInitAttributeInteger('PhasenUpCounter')
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
@@ -386,8 +386,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->ReadAttributeInteger('PhasenDownCounter'),
-                    $this->ReadAttributeInteger('PhasenUpCounter')
+                    $this->GetOrInitAttributeInteger('PhasenDownCounter'),
+                    $this->GetOrInitAttributeInteger('PhasenUpCounter')
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
@@ -401,8 +401,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->ReadAttributeInteger('PhasenDownCounter'),
-                    $this->ReadAttributeInteger('PhasenUpCounter')
+                    $this->GetOrInitAttributeInteger('PhasenDownCounter'),
+                    $this->GetOrInitAttributeInteger('PhasenUpCounter')
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
@@ -414,8 +414,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->ReadAttributeInteger('PhasenDownCounter'),
-                    $this->ReadAttributeInteger('PhasenUpCounter')
+                    $this->GetOrInitAttributeInteger('PhasenDownCounter'),
+                    $this->GetOrInitAttributeInteger('PhasenUpCounter')
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
                 break;
@@ -447,8 +447,8 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ueberschuss, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->ReadAttributeInteger('PhasenDownCounter'),
-                    $this->ReadAttributeInteger('PhasenUpCounter')
+                    $this->GetOrInitAttributeInteger('PhasenDownCounter'),
+                    $this->GetOrInitAttributeInteger('PhasenUpCounter')
                 ));
 
                 // Niemals laden ohne PV-Überschuss
@@ -809,8 +809,8 @@ class PVWallboxManager extends IPSModule
 
         $this->LogTemplate('debug', sprintf(
             "Hysteresecounter: Down=%d | Up=%d",
-            $this->ReadAttributeInteger('PhasenDownCounter'),
-            $this->ReadAttributeInteger('PhasenUpCounter')
+            $this->GetOrInitAttributeInteger('PhasenDownCounter'),
+            $this->GetOrInitAttributeInteger('PhasenUpCounter')
         ));
 
         if (!$umschaltung) {
@@ -826,7 +826,7 @@ class PVWallboxManager extends IPSModule
         $schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');
 
         // Counter aus Attribut lesen oder initialisieren
-        $counter = @$this->ReadAttributeInteger('PhasenDownCounter');
+        $counter = $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
         if (!is_int($counter)) $counter = 0;
 
         if ($ladeleistung < $schwelle) {
@@ -849,7 +849,7 @@ class PVWallboxManager extends IPSModule
         $limit = $this->ReadPropertyInteger('Phasen3Limit');
         $schwelle = $this->ReadPropertyFloat('Phasen3Schwelle');
 
-        $counter = @$this->ReadAttributeInteger('PhasenUpCounter', 0);
+        $counter = $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
         if (!is_int($counter)) $counter = 0;
 
         if ($ladeleistung > $schwelle) {
