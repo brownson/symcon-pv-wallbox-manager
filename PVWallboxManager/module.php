@@ -1005,8 +1005,8 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('debug', "Wallbox-IP vor Prüfung: '$ip' (Länge: ".strlen($ip).")");
 
         // Fehler 1: IP nicht gesetzt
-        if (empty($ip)) {
-            $this->LogTemplate('error', "HoleGoEWallboxDaten - Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
+        if (empty($ip) || !filter_var($ip, FILTER_VALIDATE_IP)) {
+            $this->LogTemplate('error', "HoleGoEWallboxDaten - Wallbox-IP ungültig oder nicht gesetzt! Kann keine Verbindung aufbauen. (Wert: '$ip')");
             return 'ip';
         }
 
