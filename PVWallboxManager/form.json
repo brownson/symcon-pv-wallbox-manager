@@ -6,6 +6,8 @@
       "items": [
         { "type": "ValidationTextBox", "name": "WallboxIP", "caption": "Wallbox-IP"},
         { "type": "PasswordTextBox", "name": "WallboxAPIKey", "caption": "API-Key (optional)"},
+        { "type": "Label", "label": "🔄 Intervall für die Leistungsberechnung in Sekunden (15–600)." },
+        { "type": "NumberSpinner", "name": "RefreshInterval", "caption": "Aktualisierungsintervall (s)", "minimum": 15, "maximum": 600 },
         { "type": "CheckBox", "name": "ModulAktiv", "caption": "⚡ Modul aktiv (bei Deaktivierung werden keine Aktionen ausgeführt)"},
         { "type": "CheckBox", "name": "DebugLogging", "caption": "🐞 Debug-Logging aktivieren (Details zu allen Variablen und Werten ins IPS-Log)", "default": false },
         { "type": "Button", "caption": "Lock zurücksetzen", "icon": "Unlock", "onClick": "ResetLock"},
@@ -82,9 +84,7 @@
             { "caption": "Kilowatt (kW)", "value": "kW" } ], "default": "W" },
           { "type": "Label", "caption": "         " },
           { "type": "CheckBox", "name": "InvertBatterieladung", "caption": "Positiv = Laden, negativ = Entladen. Falls dein System umgekehrte Vorzeichen liefert, hier invertieren." }
-        ]},
-        { "type": "Label", "label": "🔄 Intervall für die Leistungsberechnung in Sekunden (15–600)." },
-        { "type": "NumberSpinner", "name": "RefreshInterval", "caption": "Aktualisierungsintervall (s)", "minimum": 15, "maximum": 600 }
+        ]}
       ]
     },
     {
