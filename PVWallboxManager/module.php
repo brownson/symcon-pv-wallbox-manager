@@ -26,12 +26,6 @@ class PVWallboxManager extends IPSModule
     public function Create()
     {
         parent::Create();
-        $this->WriteAttributeInteger('PhasenDownCounter', 0);
-        $this->WriteAttributeInteger('PhasenUpCounter', 0);
-        $this->WriteAttributeInteger('LastSetLadeleistung', 0);
-        $this->WriteAttributeBoolean('LastSetGoEActive', false);
-        $this->WriteAttributeInteger('StartHystereseCounter', 0);
-        $this->WriteAttributeInteger('StopHystereseCounter', 0);
 
         // === 1. Modulsteuerung ===
         $this->RegisterPropertyBoolean('ModulAktiv', true);
