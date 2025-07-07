@@ -125,6 +125,7 @@ class PVWallboxManager extends IPSModule
 
         // Variablenprofil für Lademodus sicherstellen
         $this->EnsureLademodusProfile();
+        $this->EnsurePhasenCounterAttributes();
         
         // GO-e Charger Instanz-ID holen
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
@@ -149,10 +150,8 @@ class PVWallboxManager extends IPSModule
         $this->UpdateAccessStateText();
         $this->CheckSchwellenwerte();
 
-        //$this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
-        //$this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
-        $this->WriteAttributeInteger('PhasenDownCounter', 0);
-        $this->WriteAttributeInteger('PhasenUpCounter', 0);
+        $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
+        $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
 
     }
 
@@ -813,18 +812,13 @@ class PVWallboxManager extends IPSModule
 
     private function EnsurePhasenCounterAttributes()
     {
-        // DownCounter initialisieren, falls nicht vorhanden oder nicht integer
-        $valDown = @$this->GetOrInitAttributeInteger('PhasenDownCounter');
-        if (!is_int($valDown)) {
+        if (!@is_int($this->ReadAttributeInteger('PhasenDownCounter'))) {
             $this->WriteAttributeInteger('PhasenDownCounter', 0);
         }
-        // UpCounter initialisieren, falls nicht vorhanden oder nicht integer
-        $valUp = @$this->GetOrInitAttributeInteger('PhasenUpCounter');
-        if (!is_int($valUp)) {
+        if (!@is_int($this->ReadAttributeInteger('PhasenUpCounter'))) {
             $this->WriteAttributeInteger('PhasenUpCounter', 0);
         }
     }
-
 
     /** Erhöht den Start-Hysterese-Zähler */
     private function InkrementiereStartHysterese($max)
