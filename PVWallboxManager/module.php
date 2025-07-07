@@ -26,8 +26,10 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Status',      'Fahrzeugstatus',         'GoE.CarStatus',    1);
         $this->RegisterVariableFloat('Leistung',      'Ladeleistung (W)',       '~Watt',            2);
         $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',     '~Ampere',          3);
-        $this->RegisterPhasesProfile();
-        $this->RegisterVariableInteger('Phasen',      'Phasen aktiv',           'GoE.Phases',       4);
+        //$this->RegisterPhasesProfile();
+        //$this->RegisterVariableInteger('Phasen',      'Phasen aktiv',           'GoE.Phases',       4);
+        $this->RegisterPSMProfile();
+        $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',            'GoE.PSM',          4);
         $this->RegisterAlwProfile();
         $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',           'GoE.ALW',          5);
         $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',           '~Ampere',          6);
@@ -163,7 +165,8 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('Status',      $car,         'Fahrzeugstatus');
         $this->SetValueAndLogChange('Leistung',    $leistung,    'Ladeleistung', 'W');
         $this->SetValueAndLogChange('Ampere',      $ampere,      'Maximaler Ladestrom', 'A');
-        $this->SetValueAndLogChange('Phasen',      $phasen,      'Phasen aktiv');
+        //$this->SetValueAndLogChange('Phasen',      $phasen,      'Phasen aktiv');
+        $this->SetValueAndLogChange('Phasenmodus', $psm,         'Phasenmodus');
         $this->SetValueAndLogChange('Energie',     $energie,     'Geladene Energie', 'Wh');
         $this->SetValueAndLogChange('Freigabe',    $freigabe,    'Ladefreigabe');
         $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom,  'Kabeltyp');
@@ -191,15 +194,14 @@ class PVWallboxManager extends IPSModule
             }
     }
 
-    private function RegisterPhasesProfile()
+    private function RegisterPSMProfile()
     {
-        $profile = 'GoE.Phases';
+        $profile = 'GoE.PSM';
         if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 1); // 1 = Integer
-            IPS_SetVariableProfileAssociation($profile, 0, 'Keine', '', 0x888888);
+            IPS_CreateVariableProfile($profile, 1); // Integer
+            IPS_SetVariableProfileAssociation($profile, 0, 'Auto', '', 0xAAAAAA);
             IPS_SetVariableProfileAssociation($profile, 1, '1-phasig', '', 0x00ADEF);
-            IPS_SetVariableProfileAssociation($profile, 2, '2-phasig', '', 0x009900);
-            IPS_SetVariableProfileAssociation($profile, 3, '3-phasig', '', 0xFF9900);
+            IPS_SetVariableProfileAssociation($profile, 2, '3-phasig', '', 0xFF9900);
         }
     }
 
