@@ -13,7 +13,7 @@ class PVWallboxManager extends IPSModule
         parent::Create();
 
         // Properties aus form.json
-        $this->RegisterPropertyString('WallboxIP', '0.0.0.0');
+        $this->RegisterPropertyString('WallboxIP', '');
         $this->RegisterPropertyInteger('RefreshInterval', 30);
         $this->RegisterPropertyBoolean('ModulAktiv', true);
 
@@ -146,18 +146,18 @@ class PVWallboxManager extends IPSModule
     // 9. HILFSFUNKTIONEN & GETTER/SETTER
     // =========================================================================
 
-    private function RegisterCarStateProfile()
+private function RegisterCarStateProfile()
     {
         $profile = 'GoE.CarState';
         if (!IPS_VariableProfileExists($profile)) {
             IPS_CreateVariableProfile($profile, 1); // 1 = Integer
-            IPS_SetVariableProfileValues($profile, 0, 5, 1);
-            IPS_SetVariableProfileAssociation($profile, 0, 'Unbekannt/Fehler', '', 0x888888);
+            IPS_SetVariableProfileValues($profile, 1, 4, 1);
+            IPS_SetVariableProfileAssociation($profile, 0, 'Unbekannt/Firmwarefehler', '', 0x888888);
             IPS_SetVariableProfileAssociation($profile, 1, 'Ladestation bereit, kein Fahrzeug', '', 0xAAAAAA);
             IPS_SetVariableProfileAssociation($profile, 2, 'Fahrzeug lädt', '', 0x00FF00);
             IPS_SetVariableProfileAssociation($profile, 3, 'Warte auf Fahrzeug', '', 0x0088FF);
             IPS_SetVariableProfileAssociation($profile, 4, 'Ladung beendet, Fahrzeug noch verbunden', '', 0xFFFF00);
-            IPS_SetVariableProfileAssociation($profile, 5, 'Error', '', 0xFF0000);
+            IPS_SetVariableProfileAssociation($profile, 5, 'Fehler', '', 0xFF0000);
         }
     }
 
