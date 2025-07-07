@@ -41,21 +41,21 @@ class PVWallboxManager extends IPSModule
     }
 
     public function ApplyChanges()
-    {
-        parent::ApplyChanges();
+{
+    parent::ApplyChanges();
 
-        $this->Log("Timer-Intervall: " . $this->ReadPropertyInteger('RefreshInterval') . " Sekunden", "debug");
+    $interval = $this->ReadPropertyInteger('RefreshInterval'); 
+    $this->Log("Timer-Intervall: " . $interval . " Sekunden", "debug");
 
-        
-        $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
+    $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
 
-        if ($aktiv) {
-            $this->SetTimerInterval('UpdateStatus', $interval * 1000);
-
-        } else {
-            $this->SetTimerInterval('UpdateStatus', 0); // Timer AUS
-        }
+    if ($aktiv) {
+        $this->SetTimerInterval('UpdateStatus', $interval * 1000);
+    } else {
+        $this->SetTimerInterval('UpdateStatus', 0); // Timer AUS
     }
+}
+
 
     // =========================================================================
     // 2. REQUESTACTION / TIMER / EVENTS
