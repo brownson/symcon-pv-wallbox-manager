@@ -1507,6 +1507,7 @@ private function DeaktiviereLaden()
         return [0, 0];
     }
 
+    /*
     private function GetOrInitAttributeInteger($name, $default = 0) {
         // Prüfen, ob Attribut existiert (indem wir mit GetArray prüfen)
         $array = $this->GetAttributes();
@@ -1516,6 +1517,16 @@ private function DeaktiviereLaden()
         }
         return $this->ReadAttributeInteger($name);
     }
+    */
+    private function GetOrInitAttributeInteger($name, $default = 0) {
+        $array = $this->GetAttributes();
+        if (isset($array[$name]) && is_numeric($array[$name])) {
+            return (int)$array[$name];
+        }
+        $this->WriteAttributeInteger($name, $default);
+        return $default;
+    }
+
 
     // Gibt alle Attribute als Array zurück (Hack: so kommt man ran)
     private function GetAttributes() {
