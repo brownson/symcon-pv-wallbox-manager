@@ -85,4 +85,3 @@ class PVWallboxManager extends IPSModule
     }
 }
 
-}
