@@ -279,6 +279,7 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('debug', "Aktuelle GOeChargerID im Modul: $goeID");
         if ($goeID > 0 && !IPS_InstanceExists($goeID)) {
             $this->LogTemplate('error', "GO-e Instanz $goeID existiert NICHT!");
+            return; // <--- Fehlerfall direkt abbrechen
         }
 
         // ---- Werte direkt aus der IPSCoyote/GO-eCharger Instanz holen ----
