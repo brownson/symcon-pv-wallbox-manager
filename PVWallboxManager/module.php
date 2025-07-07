@@ -26,8 +26,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Status',      'Fahrzeugstatus',         'GoE.CarStatus',    1);
         $this->RegisterVariableFloat('Leistung',      'Ladeleistung (W)',       '~Watt',            2);
         $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',     '~Ampere',          3);
-        //$this->RegisterPhasesProfile();
-        //$this->RegisterVariableInteger('Phasen',      'Phasen aktiv',           'GoE.Phases',       4);
         $this->RegisterPSMProfile();
         $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',            'GoE.PSM',          4);
         $this->RegisterAlwProfile();
@@ -159,15 +157,11 @@ class PVWallboxManager extends IPSModule
         $fehlercode  = isset($data['err'])          ? intval($data['err'])         : 0;
         $psm         = isset($data['psm'])          ? intval($data['psm'])         : 0;
         $pha         =       $data['pha']           ??            [];
-        //$phasen = (is_array($pha) && count($pha) >= 6) ? array_sum(array_slice($pha, 3, 3)) : 0;
-        
-
 
         // Jetzt Werte NUR bei Änderung schreiben und loggen:
         $this->SetValueAndLogChange('Status',      $car,         'Fahrzeugstatus');
         $this->SetValueAndLogChange('Leistung',    $leistung,    'Ladeleistung', 'W');
         $this->SetValueAndLogChange('Ampere',      $ampere,      'Maximaler Ladestrom', 'A');
-        //$this->SetValueAndLogChange('Phasen',      $phasen,      'Phasen aktiv');
         $this->SetValueAndLogChange('Phasenmodus', $psm,         'Phasenmodus');
         $this->SetValueAndLogChange('Energie',     $energie,     'Geladene Energie', 'Wh');
         $this->SetValueAndLogChange('Freigabe',    $freigabe,    'Ladefreigabe');
@@ -254,73 +248,45 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    private function SetValueAndLogChange($ident, $newValue, $caption = '', $unit = '', $level = 'info')
-    {
-        $varID = @$this->GetIDForIdent($ident);
-        if ($varID === false) {
-            $this->Log("Variable mit Ident '$ident' nicht gefunden!", 'warn');
-            return;
-        }
-        $oldValue = GetValue($varID);
-
-        // Wenn identisch, nichts tun
-        if ($oldValue === $newValue) {
-            return;
-        }
-
-        // Werte ggf. als Klartext formatieren
-        $formatValue = function($value) use ($ident, $varID) {
-            // Profile-Auswertung (z. B. für Status, Phasen, Freigabe)
-            $profile = IPS_GetVariable($varID)['VariableCustomProfile'] ?: IPS_GetVariable($varID)['VariableProfile'];
-            if ($profile == 'GoE.CarStatus') {
-                $map = [
-                    0 => 'Unbekannt/Firmwarefehler',
-                    1 => 'Bereit, kein Fahrzeug',
-                    2 => 'Fahrzeug lädt',
-                    3 => 'Warte auf Fahrzeug',
-                    4 => 'Ladung beendet',
-                    5 => 'Fehler'
-                ];
-                return $map[intval($value)] ?? $value;
-            }
-            if ($profile == 'GoE.Phases') {
-                $map = [0 => 'Keine', 1 => '1-phasig', 2 => '2-phasig', 3 => '3-phasig'];
-                return $map[intval($value)] ?? $value;
-            }
-            if ($profile == 'GoE.ALW') {
-                return ($value ? 'Ladefreigabe: aktiv' : 'Ladefreigabe: aus');
-            }
-            if ($profile == '~Ampere') {
-                return number_format($value, 0, ',', '.') . ' A';
-            }
-            if ($profile == '~Watt') {
-                return number_format($value, 0, ',', '.') . ' W';
-            }
-            if ($profile == '~Electricity.Wh') {
-                return number_format($value, 0, ',', '.') . ' Wh';
-            }
-            // Standard: einfach Zahl/Bool
-            if (is_bool($value)) {
-                return $value ? 'ja' : 'nein';
-            }
-            if (is_numeric($value)) {
-                return number_format($value, 0, ',', '.');
-            }
-            return strval($value);
-        };
-
-        // Meldung zusammensetzen
-        $oldText = $formatValue($oldValue);
-        $newText = $formatValue($newValue);
-        if ($caption) {
-            $msg = "$caption geändert: $oldText → $newText";
-        } else {
-            $msg = "Wert geändert: $oldText → $newText";
-        }
-        $this->Log($msg, $level);
-
-        SetValue($varID, $newValue);
+    $formatValue = function($value) use ($ident, $varID) { 
+    $profile = IPS_GetVariable($varID)['VariableCustomProfile'] ?: IPS_GetVariable($varID)['VariableProfile'];
+    if ($profile == 'GoE.CarStatus') {
+        $map = [
+            0 => 'Unbekannt/Firmwarefehler',
+            1 => 'Bereit, kein Fahrzeug',
+            2 => 'Fahrzeug lädt',
+            3 => 'Warte auf Fahrzeug',
+            4 => 'Ladung beendet',
+            5 => 'Fehler'
+        ];
+        return $map[intval($value)] ?? $value;
     }
+    // *** NEU: Phasenmodus (psm) ***
+    if ($profile == 'GoE.PSM') {
+        $map = [0 => 'Auto', 1 => '1-phasig', 2 => '3-phasig'];
+        return $map[intval($value)] ?? $value;
+    }
+    if ($profile == 'GoE.ALW') {
+        return ($value ? 'Ladefreigabe: aktiv' : 'Ladefreigabe: aus');
+    }
+    if ($profile == '~Ampere') {
+        return number_format($value, 0, ',', '.') . ' A';
+    }
+    if ($profile == '~Watt') {
+        return number_format($value, 0, ',', '.') . ' W';
+    }
+    if ($profile == '~Electricity.Wh') {
+        return number_format($value, 0, ',', '.') . ' Wh';
+    }
+    // Standard: einfach Zahl/Bool
+    if (is_bool($value)) {
+        return $value ? 'ja' : 'nein';
+    }
+    if (is_numeric($value)) {
+        return number_format($value, 0, ',', '.');
+    }
+    return strval($value);
+};
 
 
 }
