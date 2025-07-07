@@ -133,8 +133,8 @@ class PVWallboxManager extends IPSModule
     {
         parent::ApplyChanges();
 
-        $this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
-        $this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
+        //$this->GetOrInitAttributeInteger('PhasenUpCounter', 0);
+        //$this->GetOrInitAttributeInteger('PhasenDownCounter', 0);
 
         // Variablenprofil für Lademodus sicherstellen
         $this->EnsureLademodusProfile();
