@@ -248,7 +248,22 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    $formatValue = function($value) use ($ident, $varID) { 
+    private function SetValueAndLogChange($ident, $newValue, $caption = '', $unit = '', $level = 'info')
+    {
+        $varID = @$this->GetIDForIdent($ident);
+        if ($varID === false) {
+            $this->Log("Variable mit Ident '$ident' nicht gefunden!", 'warn');
+            return;
+        }
+        $oldValue = GetValue($varID);
+
+        // Wenn identisch, nichts tun
+        if ($oldValue === $newValue) {
+            return;
+        }
+
+        // Werte ggf. als Klartext formatieren
+        $formatValue = function($value) use ($ident, $varID) { 
     $profile = IPS_GetVariable($varID)['VariableCustomProfile'] ?: IPS_GetVariable($varID)['VariableProfile'];
     if ($profile == 'GoE.CarStatus') {
         $map = [
@@ -260,33 +275,46 @@ class PVWallboxManager extends IPSModule
             5 => 'Fehler'
         ];
         return $map[intval($value)] ?? $value;
+        }
+        // *** NEU: Phasenmodus (psm) ***
+        if ($profile == 'GoE.PSM') {
+            $map = [0 => 'Auto', 1 => '1-phasig', 2 => '3-phasig'];
+            return $map[intval($value)] ?? $value;
+        }
+        if ($profile == 'GoE.ALW') {
+            return ($value ? 'Ladefreigabe: aktiv' : 'Ladefreigabe: aus');
+        }
+        if ($profile == '~Ampere') {
+            return number_format($value, 0, ',', '.') . ' A';
+        }
+        if ($profile == '~Watt') {
+            return number_format($value, 0, ',', '.') . ' W';
+        }
+        if ($profile == '~Electricity.Wh') {
+            return number_format($value, 0, ',', '.') . ' Wh';
+        }
+        // Standard: einfach Zahl/Bool
+        if (is_bool($value)) {
+            return $value ? 'ja' : 'nein';
+        }
+        if (is_numeric($value)) {
+            return number_format($value, 0, ',', '.');
+        }
+        return strval($value);
+    };
+
+        // Meldung zusammensetzen
+        $oldText = $formatValue($oldValue);
+        $newText = $formatValue($newValue);
+        if ($caption) {
+            $msg = "$caption geändert: $oldText → $newText";
+        } else {
+            $msg = "Wert geändert: $oldText → $newText";
+        }
+        $this->Log($msg, $level);
+
+        SetValue($varID, $newValue);
     }
-    // *** NEU: Phasenmodus (psm) ***
-    if ($profile == 'GoE.PSM') {
-        $map = [0 => 'Auto', 1 => '1-phasig', 2 => '3-phasig'];
-        return $map[intval($value)] ?? $value;
-    }
-    if ($profile == 'GoE.ALW') {
-        return ($value ? 'Ladefreigabe: aktiv' : 'Ladefreigabe: aus');
-    }
-    if ($profile == '~Ampere') {
-        return number_format($value, 0, ',', '.') . ' A';
-    }
-    if ($profile == '~Watt') {
-        return number_format($value, 0, ',', '.') . ' W';
-    }
-    if ($profile == '~Electricity.Wh') {
-        return number_format($value, 0, ',', '.') . ' Wh';
-    }
-    // Standard: einfach Zahl/Bool
-    if (is_bool($value)) {
-        return $value ? 'ja' : 'nein';
-    }
-    if (is_numeric($value)) {
-        return number_format($value, 0, ',', '.');
-    }
-    return strval($value);
-};
 
 
 }
