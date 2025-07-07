@@ -1001,36 +1001,16 @@ class PVWallboxManager extends IPSModule
 
         $this->LogTemplate('debug', "DEBUG: HoleGoEWallboxDaten mit IP = '$ip'");
 
-        $ip  = preg_replace('/[[:^print:]]/', '', $ip);
+        $ip = preg_replace('/[[:^print:]]/', '', $ip);
         $this->LogTemplate('debug', "Wallbox-IP vor Prüfung: '$ip' (Länge: ".strlen($ip).")");
 
         // Fehler 1: IP nicht gesetzt
         if (empty($ip)) {
             $this->LogTemplate('error', "Wallbox-IP nicht gesetzt! Kann keine Verbindung aufbauen.");
-            return 'ip';   // << HIER: Rückgabewert zur Fehlerkennung
+            return 'ip';
         }
 
         $url = "http://$ip/api/status";
-
-        // Fehler 2: Wallbox nicht erreichbar
-        $opts = [ ... ];
-        $context = stream_context_create($opts);
-        $json = @file_get_contents($url, false, $context);
-        if ($json === false) {
-            $this->LogTemplate('error', "Wallbox unter $ip nicht erreichbar.");
-            return 'notreachable';   // << HIER: Rückgabewert zur Fehlerkennung
-        }
-
-        // Fehler 3: JSON-Fehler
-        $data = json_decode($json, true);
-        if (!is_array($data)) {
-            $this->LogTemplate('error', "Fehler beim Parsen der Wallbox-API-Antwort.");
-            return 'json';   // << Optional weitere Fehlerkennung
-        }
-
-        $url   = "http://$ip/api/status"; // APIv2: alles in einem JSON
-
-        // Optional: Auth als Header
         $opts = [
             "http" => [
                 "method" => "GET",
@@ -1040,38 +1020,35 @@ class PVWallboxManager extends IPSModule
         ];
         $context = stream_context_create($opts);
 
+        // Fehler 2: Wallbox nicht erreichbar
         $json = @file_get_contents($url, false, $context);
         if ($json === false) {
             $this->LogTemplate('error', "Wallbox unter $ip nicht erreichbar.");
-            return;
+            return 'notreachable';
         }
 
+        // Fehler 3: JSON-Fehler
         $data = json_decode($json, true);
         if (!is_array($data)) {
             $this->LogTemplate('error', "Fehler beim Parsen der Wallbox-API-Antwort.");
-            return;
+            return 'json';
         }
 
+        // ---- Erfolgsfall ----
         $phasen = 0;
         if (isset($data['pha'])) {
             $phasen = $this->ZaehleAktivePhasen($data['pha']);
         }
-        $werte = [
-            // ...
-            'WB_Phasen' => $phasen,
-            // ...
-        ];
         $this->SetValueSafe('AktuellePhasen', $phasen, 0);
 
         $werte = [
-            'WB_Ladeleistung_W'    => $data['nrg'][11] ?? null,   // Aktuelle Ladeleistung am Ladepunkt in Watt (W)
-            'WB_Status'            => $data['car'] ?? null,       // Status des Fahrzeugs: 1 = bereit, 2 = lädt, 3 = angesteckt (wartet auf Ladung)
-            'WB_Phasen'            => $phasen,                    // 1 oder 3 Phasen aktiv (numerisch)
-            'WB_Ampere'            => $data['amp'] ?? null,       // Maximal erlaubter Ladestrom (Ampere)
-            'WB_Ladefreigabe'      => $data['alw'] ?? null,       // Ladefreigabe: 1 = freigegeben, 0 = gesperrt
-            'WB_Firmware'          => $data['fwv'] ?? null,       // Firmware-Version (z.B. "040.0")
-            'WB_Fehlercode'        => $data['err'] ?? null,       // Fehlercode laut API (siehe Doku)
-            // 'WB_SOC_BMS'        => $data['bcs'] ?? null,       // State of Charge BMS (%), nur wenn vom Fahrzeug geliefert
+            'WB_Ladeleistung_W' => $data['nrg'][11] ?? null,
+            'WB_Status'         => $data['car'] ?? null,
+            'WB_Phasen'         => $phasen,
+            'WB_Ampere'         => $data['amp'] ?? null,
+            'WB_Ladefreigabe'   => $data['alw'] ?? null,
+            'WB_Firmware'       => $data['fwv'] ?? null,
+            'WB_Fehlercode'     => $data['err'] ?? null,
         ];
 
         $this->LogTemplate(
@@ -1080,7 +1057,6 @@ class PVWallboxManager extends IPSModule
             "Erklärung: 0=keins, 1=bereit, 2=lade, 3=angesteckt"
         );
 
-        // Ausgabe im Log (zum Testen)
         foreach ($werte as $name => $wert) {
             $this->LogTemplate('debug', "$name: ".var_export($wert, true));
         }
