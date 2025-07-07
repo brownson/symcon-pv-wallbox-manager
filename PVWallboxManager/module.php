@@ -381,7 +381,7 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->GetOrInitAttributeInteger('PhasenDownCounter'),
+                    $this->GetOrInitAttributeInteger('PhasenDownCounter', 0),
                     $this->GetOrInitAttributeInteger('PhasenUpCounter')
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
@@ -393,7 +393,7 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->GetOrInitAttributeInteger('PhasenDownCounter'),
+                    $this->GetOrInitAttributeInteger('PhasenDownCounter', 0),
                     $this->GetOrInitAttributeInteger('PhasenUpCounter')
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
@@ -408,7 +408,7 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->GetOrInitAttributeInteger('PhasenDownCounter'),
+                    $this->GetOrInitAttributeInteger('PhasenDownCounter', 0),
                     $this->GetOrInitAttributeInteger('PhasenUpCounter')
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
@@ -421,7 +421,7 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ladeleistung, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->GetOrInitAttributeInteger('PhasenDownCounter'),
+                    $this->GetOrInitAttributeInteger('PhasenDownCounter', 0),
                     $this->GetOrInitAttributeInteger('PhasenUpCounter')
                 ));
                 $this->SetzeLadeleistung($ladeleistung);
@@ -461,7 +461,7 @@ class PVWallboxManager extends IPSModule
                 $this->PruefePhasenumschaltung($ueberschuss, $wb);
                 $this->LogTemplate('debug', sprintf(
                     "Hysteresecounter: Down=%d | Up=%d",
-                    $this->GetOrInitAttributeInteger('PhasenDownCounter'),
+                    $this->GetOrInitAttributeInteger('PhasenDownCounter', 0),
                     $this->GetOrInitAttributeInteger('PhasenUpCounter')
                 ));
 
@@ -820,7 +820,7 @@ class PVWallboxManager extends IPSModule
 
         $this->LogTemplate('debug', sprintf(
             "Hysteresecounter: Down=%d | Up=%d", 
-            $this->GetOrInitAttributeInteger('PhasenDownCounter'), 
+            $this->GetOrInitAttributeInteger('PhasenDownCounter', 0), 
             $this->GetOrInitAttributeInteger('PhasenUpCounter')
         ));
 
@@ -897,10 +897,10 @@ class PVWallboxManager extends IPSModule
 
     private function EnsurePhasenCounterAttributes()
     {
-        if (!@is_int($this->ReadAttributeInteger('PhasenDownCounter'))) {
+        if (!@is_int($this->GetOrInitAttributeInteger('PhasenDownCounter', 0))) {
             $this->WriteAttributeInteger('PhasenDownCounter', 0);
         }
-        if (!@is_int($this->ReadAttributeInteger('PhasenUpCounter'))) {
+        if (!@is_int($this->GetOrInitAttributeInteger('PhasenUpCounter'))) {
             $this->WriteAttributeInteger('PhasenUpCounter', 0);
         }
     }
@@ -938,7 +938,7 @@ class PVWallboxManager extends IPSModule
 
     private function SetzeLadeleistung($leistung)
     {
-        $lastWatt   = $this->ReadAttributeInteger('LastSetLadeleistung');
+        $lastWatt   = $this->GetOrInitAttributeInteger('LastSetLadeleistung');
         $lastActive = $this->ReadAttributeBoolean('LastSetGoEActive');
 
         $phasen   = max(1, (int)$this->ReadPropertyInteger('Phasen'));
@@ -1490,7 +1490,7 @@ class PVWallboxManager extends IPSModule
     private function GetOrInitAttributeInteger($name, $default = 0)
     {
         // Versuche das Attribut zu lesen (Suppress Warning)
-        $val = @$this->ReadAttributeInteger($name);
+        $val = @$this->GetOrInitAttributeInteger($name);
 
         // Prüfe, ob das Ergebnis tatsächlich ein Integer ist
         if (!is_int($val)) {
