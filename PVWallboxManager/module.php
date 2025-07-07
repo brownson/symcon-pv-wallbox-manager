@@ -911,6 +911,10 @@ class PVWallboxManager extends IPSModule
 
     private function SetzeLadeleistung($leistung)
     {
+        // Merker als Attribut (überlebt Modul-Neuladen und Neustart)
+        $lastWatt = $this->ReadAttributeInteger('LastSetLadeleistung');
+        $lastActive = $this->ReadAttributeBoolean('LastSetGoEActive');
+
         $phasen   = max(1, (int)$this->ReadPropertyInteger('Phasen'));
         $spannung = 230;
 
@@ -922,19 +926,35 @@ class PVWallboxManager extends IPSModule
         $ampere = round($leistung / ($phasen * $spannung));
         $ampere = max($minAmp, min($maxAmp, $ampere)); // Clamp zwischen Min/Max
 
-        $this->LogTemplate('debug', "SetzeLadeleistung: Gefordert $leistung W, Minimum erlaubt: ".($minAmp * $phasen * $spannung)." W");
+        $minWatt = $minAmp * $phasen * $spannung;
 
-        // Falls Leistung unter Minimum (also unter minAmp*Phasen*Spannung): abschalten
-        if ($leistung < ($minAmp * $phasen * $spannung)) {
-            $this->SetGoEChargingActive(false);
-            $this->LogTemplate('info', "Ladung deaktiviert (Leistung zu gering, alw=0).");
+        // 1. Zu geringe Leistung -> nur wenn sich der Zustand ändert abschalten!
+        if ($leistung < $minWatt) {
+            if ($lastActive !== false) {
+                $this->SetGoEChargingActive(false);
+                $this->LogTemplate('info', "Ladung deaktiviert (Leistung zu gering, alw=0).");
+                $this->WriteAttributeInteger('LastSetLadeleistung', 0);
+                $this->WriteAttributeBoolean('LastSetGoEActive', false);
+            } else {
+                $this->LogTemplate('debug', "Ladung bleibt deaktiviert (alw=0, keine Änderung).");
+            }
             return;
         }
 
-        // Freigabe und Ampere setzen
+        // 2. Leistung oder Status hat sich nicht geändert → nix tun!
+        if ($lastWatt === $leistung && $lastActive === true) {
+            $this->LogTemplate('debug', "SetzeLadeleistung: Wert unverändert ($leistung W, $ampere A, $phasen Phasen) – kein API-Call.");
+            return;
+        }
+
+        // 3. Änderung nötig: Einschalten und gewünschten Wert setzen!
         $this->SetGoEChargingActive(true);
+        IPS_Sleep(1200); // optional: Wallbox mag das
         $this->SetGoEParameter(['amp' => $ampere]);
         $this->LogTemplate('info', "Ladung aktiviert: alw=1, amp=$ampere (für $leistung W, $phasen Phasen)");
+
+        $this->WriteAttributeInteger('LastSetLadeleistung', $leistung);
+        $this->WriteAttributeBoolean('LastSetGoEActive', true);
     }
 
     private function SetzeWallboxModus($modus)
