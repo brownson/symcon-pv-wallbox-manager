@@ -26,7 +26,12 @@ class PVWallboxManager extends IPSModule
     public function Create()
     {
         parent::Create();
-        //$this->EnsurePhasenCounterAttributes();
+        $this->WriteAttributeInteger('PhasenDownCounter', 0);
+        $this->WriteAttributeInteger('PhasenUpCounter', 0);
+        $this->WriteAttributeInteger('LastSetLadeleistung', 0);
+        $this->WriteAttributeBoolean('LastSetGoEActive', false);
+        $this->WriteAttributeInteger('StartHystereseCounter', 0);
+        $this->WriteAttributeInteger('StopHystereseCounter', 0);
 
         // === 1. Modulsteuerung ===
         $this->RegisterPropertyBoolean('ModulAktiv', true);
@@ -129,13 +134,6 @@ class PVWallboxManager extends IPSModule
     {
         parent::ApplyChanges();
         
-        $this->WriteAttributeInteger('PhasenDownCounter', 0);
-        $this->WriteAttributeInteger('PhasenUpCounter', 0);
-        $this->WriteAttributeInteger('LastSetLadeleistung', 0);
-        $this->WriteAttributeBoolean('LastSetGoEActive', false);
-        $this->WriteAttributeInteger('StartHystereseCounter', 0);
-        $this->WriteAttributeInteger('StopHystereseCounter', 0);
-
         // GO-e Charger Instanz-ID holen
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
 
@@ -833,7 +831,7 @@ class PVWallboxManager extends IPSModule
         $schwelle = $this->ReadPropertyFloat('Phasen1Schwelle');
 
         // Counter aus Attribut lesen oder initialisieren
-        $counter = $this->ReadAttributeInteger('PhasenDownCounter', 0);
+        $counter = @$this->ReadAttributeInteger('PhasenDownCounter');
         if (!is_int($counter)) $counter = 0;
 
         if ($ladeleistung < $schwelle) {
@@ -856,7 +854,7 @@ class PVWallboxManager extends IPSModule
         $limit = $this->ReadPropertyInteger('Phasen3Limit');
         $schwelle = $this->ReadPropertyFloat('Phasen3Schwelle');
 
-        $counter = $this->ReadAttributeInteger('PhasenUpCounter', 0);
+        $counter = @$this->ReadAttributeInteger('PhasenUpCounter', 0);
         if (!is_int($counter)) $counter = 0;
 
         if ($ladeleistung > $schwelle) {
@@ -1541,23 +1539,21 @@ class PVWallboxManager extends IPSModule
 
     private function GetOrInitAttributeInteger($name, $default = 0)
     {
-        // Wenn Attribut nicht existiert, direkt setzen!
-        if (!property_exists($this, 'Attribute' . $name) && method_exists($this, 'WriteAttributeInteger')) {
+        $val = @$this->ReadAttributeInteger($name);
+        if (!is_int($val)) {
             $this->WriteAttributeInteger($name, $default);
             return $default;
         }
-        $val = @$this->ReadAttributeInteger($name);
-        return ($val === null) ? $default : $val;
+        return $val;
     }
-
     private function GetOrInitAttributeBoolean($name, $default = false)
     {
-        if (!property_exists($this, 'Attribute' . $name) && method_exists($this, 'WriteAttributeBoolean')) {
+        $val = @$this->ReadAttributeBoolean($name);
+        if (!is_bool($val)) {
             $this->WriteAttributeBoolean($name, $default);
             return $default;
         }
-        $val = @$this->ReadAttributeBoolean($name);
-        return ($val === null) ? $default : $val;
+        return $val;
     }
 
     private function GetAllCustomAttributes()
