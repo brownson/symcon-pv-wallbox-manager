@@ -127,13 +127,13 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
-        
-        $this->WriteAttributeInteger('PhasenDownCounter', $this->GetOrInitAttributeInteger('PhasenDownCounter', 0));
-        $this->WriteAttributeInteger('PhasenUpCounter', $this->GetOrInitAttributeInteger('PhasenUpCounter', 0));
-        $this->WriteAttributeInteger('LastSetLadeleistung', $this->GetOrInitAttributeInteger('LastSetLadeleistung', 0));
-        $this->WriteAttributeBoolean('LastSetGoEActive', $this->GetOrInitAttributeBoolean('LastSetGoEActive', false));
-        $this->WriteAttributeInteger('StartHystereseCounter', $this->GetOrInitAttributeInteger('StartHystereseCounter', 0));
-        $this->WriteAttributeInteger('StopHystereseCounter', $this->GetOrInitAttributeInteger('StopHystereseCounter', 0));
+
+        $this->WriteAttributeInteger('PhasenDownCounter', 0);
+        $this->WriteAttributeInteger('PhasenUpCounter', 0);
+        $this->WriteAttributeInteger('LastSetLadeleistung', 0);
+        $this->WriteAttributeBoolean('LastSetGoEActive', false);
+        $this->WriteAttributeInteger('StartHystereseCounter', 0);
+        $this->WriteAttributeInteger('StopHystereseCounter', 0);
 
         // GO-e Charger Instanz-ID holen
         $goeID = $this->ReadPropertyInteger('GOeChargerID');
