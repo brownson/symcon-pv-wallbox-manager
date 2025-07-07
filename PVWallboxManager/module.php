@@ -35,8 +35,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',  '~Electricity.Wh',  8);
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
-        $this->RegisterTimer('UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
-
+        $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
     }
 
     public function ApplyChanges()
@@ -49,12 +48,11 @@ class PVWallboxManager extends IPSModule
     $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
 
     if ($aktiv) {
-        $this->SetTimerInterval('UpdateStatus', $interval * 1000);
+        $this->SetTimerInterval('PVWM_UpdateStatus', $interval * 1000);
     } else {
-        $this->SetTimerInterval('UpdateStatus', 0); // Timer AUS
+        $this->SetTimerInterval('PVWM_UpdateStatus', 0); // Timer AUS
     }
 }
-
 
     // =========================================================================
     // 2. REQUESTACTION / TIMER / EVENTS
@@ -63,8 +61,7 @@ class PVWallboxManager extends IPSModule
     public function RequestAction($Ident, $Value)
     {
         if ($Ident === "UpdateStatus") {
-            // Default: PV only
-            $this->UpdateStatus((string)$Value);
+            $this->UpdateStatus($Value); // $Value ist dann z.B. 'pvonly'
             return;
         }
         throw new Exception("Invalid Ident: $Ident");
@@ -141,37 +138,38 @@ class PVWallboxManager extends IPSModule
     // =========================================================================
 
     public function UpdateStatus(string $mode = 'pvonly')
-{
-    $this->Log("UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")", "debug");
+    {
+        $this->Log("UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")", "debug");
 
-    $data = $this->getStatusFromCharger();
-    if ($data === false) {
-        // Fehler wurde schon geloggt
-        return;
+        $data = $this->getStatusFromCharger();
+        if ($data === false) {
+            // Fehler wurde schon geloggt
+            return;
+        }
+
+        // Defensive Daten-Extraktion
+        $car         = isset($data['car'])          ? intval($data['car'])         : 0;
+        $leistung    = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
+        $ampere      = isset($data['amp'])          ? intval($data['amp'])         : 0;
+        $energie     = isset($data['wh'])           ? intval($data['wh'])          : 0;
+        $freigabe    = isset($data['alw'])          ? (bool)$data['alw']           : false;
+        $kabelstrom  = isset($data['cbl'])          ? intval($data['cbl'])         : 0;
+        $fehlercode  = isset($data['err'])          ? intval($data['err'])         : 0;
+
+        $pha = $data['pha'] ?? [];
+        $phasen = (is_array($pha) && count($pha) >= 6) ? array_sum(array_slice($pha, 3, 3)) : 0;
+
+        // Jetzt Werte NUR bei Änderung schreiben und loggen:
+        $this->SetValueAndLogChange('Status',      $car,         'Fahrzeugstatus');
+        $this->SetValueAndLogChange('Leistung',    $leistung,    'Ladeleistung', 'W');
+        $this->SetValueAndLogChange('Ampere',      $ampere,      'Maximaler Ladestrom', 'A');
+        $this->SetValueAndLogChange('Phasen',      $phasen,      'Phasen aktiv');
+        $this->SetValueAndLogChange('Energie',     $energie,     'Geladene Energie', 'Wh');
+        $this->SetValueAndLogChange('Freigabe',    $freigabe,    'Ladefreigabe');
+        $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom,  'Kabeltyp');
+        $this->SetValueAndLogChange('Fehlercode',  $fehlercode,  'Fehlercode', '', 'warn');
     }
 
-    // Defensive Daten-Extraktion
-    $car         = isset($data['car'])          ? intval($data['car'])         : 0;
-    $leistung    = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
-    $ampere      = isset($data['amp'])          ? intval($data['amp'])         : 0;
-    $energie     = isset($data['wh'])           ? intval($data['wh'])          : 0;
-    $freigabe    = isset($data['alw'])          ? (bool)$data['alw']           : false;
-    $kabelstrom  = isset($data['cbl'])          ? intval($data['cbl'])         : 0;
-    $fehlercode  = isset($data['err'])          ? intval($data['err'])         : 0;
-
-    $pha = $data['pha'] ?? [];
-    $phasen = (is_array($pha) && count($pha) >= 6) ? array_sum(array_slice($pha, 3, 3)) : 0;
-
-    // Einfach direkt schreiben (ohne Log, ohne Vergleich)
-    SetValue($this->GetIDForIdent('Status'),     $car);
-    SetValue($this->GetIDForIdent('Leistung'),   $leistung);
-    SetValue($this->GetIDForIdent('Ampere'),     $ampere);
-    SetValue($this->GetIDForIdent('Phasen'),     $phasen);
-    SetValue($this->GetIDForIdent('Energie'),    $energie);
-    SetValue($this->GetIDForIdent('Freigabe'),   $freigabe);
-    SetValue($this->GetIDForIdent('Kabelstrom'), $kabelstrom);
-    SetValue($this->GetIDForIdent('Fehlercode'), $fehlercode);
-}
 
 
     // =========================================================================
