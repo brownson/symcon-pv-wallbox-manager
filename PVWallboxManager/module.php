@@ -67,6 +67,10 @@ class PVWallboxManager extends IPSModule
         IPS_SetIcon($this->GetIDForIdent('TargetTime'), 'clock');
 
         // === 7. Strompreis-Börse / Forecast ===
+        $this->RegisterPropertyBoolean('UseMarketPrices', false);
+        $this->RegisterPropertyString('MarketPriceProvider', 'awattar_at');
+        $this->RegisterPropertyString('MarketPriceAPI', '');
+        $this->RegisterPropertyInteger('MarketPriceInterval', 30);
         $this->RegisterVariableFloat('CurrentSpotPrice', 'Aktueller Börsenpreis (ct/kWh)', $profile, 30);
         $this->RegisterVariableString('MarketPrices', 'Börsenpreis-Vorschau', '', 31);
 
@@ -105,13 +109,17 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->SetTimerInterval('PVWM_UpdateStatus', 0); // Timer AUS
         }
-        // Strompreis-Update-Timer setzen
+        // Strompreis-Update-Timer steuern
         $interval = $this->ReadPropertyInteger('MarketPriceInterval');
         $useMarketPrices = $this->ReadPropertyBoolean('UseMarketPrices');
         if ($useMarketPrices && $interval > 0) {
-            $this->RegisterTimer('PVWM_UpdateMarketPrices', $interval * 60 * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
+            $this->RegisterTimer(
+                'PVWM_UpdateMarketPrices',
+                $interval * 60 * 1000,
+                'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");'
+            );
         } else {
-            $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, ''); // Timer aus
+            $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, '');
         }
     }
 
