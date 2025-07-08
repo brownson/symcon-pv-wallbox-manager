@@ -113,12 +113,12 @@ class PVWallboxManager extends IPSModule
         $interval = $this->ReadPropertyInteger('RefreshInterval');
         $this->SetTimerInterval('PVWM_UpdateStatus', $interval * 1000);
 
-        $intervalMarket = $this->ReadPropertyInteger('MarketPriceInterval');
-        $useMarketPrices = $this->ReadPropertyBoolean('UseMarketPrices');
-        $this->SetTimerInterval(
-            'PVWM_UpdateMarketPrices',
-            ($useMarketPrices && $intervalMarket > 0) ? $intervalMarket * 60 * 1000 : 0
-        );
+        $interval = $this->ReadPropertyInteger('MarketPriceInterval');
+        if ($this->ReadPropertyBoolean('UseMarketPrices')) {
+            $this->RegisterTimer('PVWM_UpdateMarketPrices', $interval * 60 * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
+        } else {
+            $this->UnregisterTimer('PVWM_UpdateMarketPrices');
+        }
     }
 
     // =========================================================================
