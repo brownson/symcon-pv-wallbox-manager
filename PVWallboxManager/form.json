@@ -5,7 +5,6 @@
       "caption": "🛑 Modulsteuerung",
       "items": [
         { "type": "Label", "label": "🔄 Intervall für die Leistungsberechnung in Sekunden (15–600)." },
-        { "type": "NumberSpinner", "name": "RefreshInterval", "caption": "Aktualisierungsintervall (s)", "minimum": 15, "maximum": 600 },
         { "type": "CheckBox", "name": "ModulAktiv", "caption": "⚡ Modul aktiv (bei Deaktivierung werden keine Aktionen ausgeführt)"},
         { "type": "CheckBox", "name": "DebugLogging", "caption": "🐞 Debug-Logging aktivieren (Details zu allen Variablen und Werten ins IPS-Log)", "default": false },
         { "type": "Button", "caption": "Lock zurücksetzen", "icon": "Unlock", "onClick": "ResetLock"},
@@ -21,9 +20,11 @@
         { "type": "RowLayout", "items": [
           { "type": "ValidationTextBox", "name": "WallboxIP", "caption": "Wallbox-IP"},
           { "type": "Label", "caption": "    " },
-          { "type": "PasswordTextBox", "name": "WallboxAPIKey", "caption": "API-Key (optional)"}
+          { "type": "NumberSpinner", "name": "RefreshInterval", "caption": "Aktualisierungsintervall (15–600s)", "minimum": 15, "maximum": 600 }
         ]},
-          { "type": "RowLayout", "items": [
+        { "type": "RowLayout", "items": [
+          { "type": "PasswordTextBox", "name": "WallboxAPIKey", "caption": "API-Key (optional)"},
+        { "type": "RowLayout", "items": [
           { "type": "NumberSpinner", "name": "MinAmpere", "caption": "Minimaler Ladestrom (A)", "icon": "Minus", "suffix": "A", "minimum": 6, "maximum": 16, "default": 6 },
           { "type": "Label", "caption": "    " },
           { "type": "NumberSpinner", "name": "MaxAmpere", "caption": "Maximaler Ladestrom (A)", "icon": "Plus", "suffix": "A", "minimum": 6, "maximum": 16, "default": 16 }
