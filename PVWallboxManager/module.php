@@ -36,24 +36,49 @@ class PVWallboxManager extends IPSModule
         $this->RegisterErrorCodeProfile();
         $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                             'GoE.ErrorCode',     9);
 
-        // --- Zielzeit (Unixtimestamp als Variable für WebFront) ---
-        $this->RegisterVariableInteger('TargetTime', 'Zielzeit', '~UnixTimestampTime', 10);
+        // === 3. Energiequellen ===
+        $this->RegisterPropertyInteger('PVErzeugungID', 0);
+        $this->RegisterPropertyString('PVErzeugungEinheit', 'W');
+        $this->RegisterPropertyInteger('NetzeinspeisungID', 0);
+        $this->RegisterPropertyString('NetzeinspeisungEinheit', 'W');
+        $this->RegisterPropertyBoolean('InvertNetzeinspeisung', false);
+        $this->RegisterPropertyInteger('HausverbrauchID', 0);
+        $this->RegisterPropertyString('HausverbrauchEinheit', 'W');
+        $this->RegisterPropertyBoolean('InvertHausverbrauch', false);
+        $this->RegisterPropertyInteger('BatterieladungID', 0);
+        $this->RegisterPropertyString('BatterieladungEinheit', 'W');
+        $this->RegisterPropertyBoolean('InvertBatterieladung', false);
+        $this->RegisterPropertyInteger('RefreshInterval', 30);
 
-        // --- Status- & Berechnungsvariablen ---
-        this->RegisterVariableFloat('PVUeberschuss', 'PV-Überschuss (W)', '~Watt', 20); // interne Berechnung
+        // Zielzeit für Zielzeitladung
+        $this->RegisterVariableInteger('TargetTime', 'Zielzeit', '~UnixTimestampTime', 20);
+        IPS_SetIcon($this->GetIDForIdent('TargetTime'), 'clock');
 
-        // --- Lademodi ---
-        $this->RegisterVariableBoolean('ManuellLaden', '🔌 Manuell: Vollladen aktiv', '~Switch', 60);
-        $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV2Car-Modus', '~Switch', 62);
-        $this->RegisterVariableBoolean('ZielzeitLaden', '⏰ Zielzeit-Ladung', '~Switch', 64);
-        $this->RegisterVariableInteger('PVAnteil', 'PV-Anteil (%)', '', 66);
+        // === 7. Strompreis-Börse / Forecast ===
+        $this->RegisterVariableFloat('CurrentSpotPrice', 'Aktueller Börsenpreis (ct/kWh)', '~ElectricityPrice', 30);
+        $this->RegisterVariableString('MarketPrices', 'Börsenpreis-Vorschau', '', 31);
 
-        $this->RegisterVariableFloat('Marktueller-Börsenpreis', 'Aktueller Börsenpreis (ct/kWh)', '~ElectricityPrice', 300);
-        $this->RegisterVariableString('Börsenpreis-Vorschau', 'Börsenpreis-Vorschau', '', 302);
+        // === Modul-Variablen für Visualisierung, Status, Lademodus etc. ===
+        $this->RegisterVariableFloat('PV_Ueberschuss', '☀️ PV-Überschuss (W)', '~Watt', 10);
+        IPS_SetIcon($this->GetIDForIdent('PV_Ueberschuss'), 'solar-panel');
 
-        // --- Profile anlegen (falls noch nicht vorhanden) ---
+        // Hausverbrauch (W)
+        $this->RegisterVariableFloat('Hausverbrauch_W', '🏠 Hausverbrauch (W)', '~Watt', 12);
+        IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_W'), 'home');
+
+        // Hausverbrauch abzügl. Wallbox (W) – wie vorher empfohlen
+        $this->RegisterVariableFloat('Hausverbrauch_abz_Wallbox', '🏠 Hausverbrauch abzügl. Wallbox (W)', '~Watt', 15);
+        IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_abz_Wallbox'), 'home');
+
+        // Lademodi
+        $this->RegisterVariableBoolean('ManuellLaden', '🔌 Manuell: Vollladen aktiv', '~Switch', 40);
+        $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV2Car-Modus', '~Switch', 41);
+        $this->RegisterVariableBoolean('ZielzeitLaden', '⏰ Zielzeit-Ladung', '~Switch', 42);
+        $this->RegisterVariableInteger('PVAnteil', 'PV-Anteil (%)', '', 43);
+
+        // Profil für Strompreis, falls noch nicht vorhanden
         if (!IPS_VariableProfileExists('~ElectricityPrice')) {
-            IPS_CreateVariableProfile('~ElectricityPrice', 2); // 2 = Float
+            IPS_CreateVariableProfile('~ElectricityPrice', 2);
             IPS_SetVariableProfileDigits('~ElectricityPrice', 3);
             IPS_SetVariableProfileSuffix('~ElectricityPrice', ' ct/kWh');
             IPS_SetVariableProfileIcon('~ElectricityPrice', 'Euro');
