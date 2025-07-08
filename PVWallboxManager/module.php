@@ -19,8 +19,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('DebugLogging', false);
         $this->RegisterVariableString('Log', 'Modul-Log', '', 99);
 
-
-
         // Variablen nach API v2
         $this->RegisterCarStateProfile();
         $this->RegisterVariableInteger('Status',      'Status',                                 'GoE.CarStatus',    1);
