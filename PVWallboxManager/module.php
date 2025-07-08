@@ -766,7 +766,6 @@ class PVWallboxManager extends IPSModule
         IPS_SetVariableProfileIcon($profile, 'Clock');
         // Achtung: Keine eigene Suffix für Zeit, Symcon zeigt das als Zeit automatisch an
     }
-
 }
 
-
+}
