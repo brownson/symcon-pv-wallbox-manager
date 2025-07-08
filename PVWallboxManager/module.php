@@ -24,23 +24,23 @@ class PVWallboxManager extends IPSModule
 
         // Variablen nach API v2
         $this->RegisterCarStateProfile();
-        $this->RegisterVariableInteger('Status',      'Status',                                 'GoE.CarStatus',     1);
+        $this->RegisterVariableInteger('Status',      'Status',                                 'PVWM.CarStatus',     1);
         $this->RegisterAccessStateV2Profile();
-        $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                        'GoE.AccessStateV2', 2);
+        $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                        'PVWM.AccessStateV2', 2);
 //        $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', '~Watt',             3);
         $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', 'PVWM.Watt',         3);
 //        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                     'GOECHARGER_Ampere', 4);
         $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                    'PVWM.Ampere', 4);
 
         $this->RegisterPSMProfile();
-        $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'GoE.PSM',           5);
+        $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'PVWM.PSM',           5);
         $this->RegisterAlwProfile();
-        $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',                           'GoE.ALW',           6);
-        $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',                           'GOECHARGER_AmpereCable',           7);
+        $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',                           'PVWM.ALW',           6);
+        $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',                           'PVWM.AmpereCable',           7);
 //        $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',                  '~Electricity.Wh',   8);
         $this->RegisterVariableFloat('Energie',       'Geladene Energie (Wh)',                 'PVWM.Wh',    8);
         $this->RegisterErrorCodeProfile();
-        $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                             'GoE.ErrorCode',     9);
+        $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                             'PVWM.ErrorCode',     9);
 
         // === 3. Energiequellen ===
         $this->RegisterPropertyInteger('PVErzeugungID', 0);
@@ -713,8 +713,8 @@ class PVWallboxManager extends IPSModule
 
     private function RegisterCustomProfiles()
     {
-        // Hilfsfunktion für Anlage/Löschen/Suffix/Icon
-        $create = function($name, $type, $digits, $suffix, $icon) {
+        // Hilfsfunktion für Anlage/Löschen/Suffix/Icon/Assoziationen
+        $create = function($name, $type, $digits, $suffix, $icon = '', $associations = null) {
             if (IPS_VariableProfileExists($name)) {
                 IPS_DeleteVariableProfile($name);
             }
@@ -724,16 +724,75 @@ class PVWallboxManager extends IPSModule
             if (!empty($icon)) {
                 IPS_SetVariableProfileIcon($name, $icon);
             }
+            if (is_array($associations)) {
+                foreach ($associations as $idx => $a) {
+                    // [Wert, Name, Icon, Farbe]
+                    IPS_SetVariableProfileAssociation($name, $a[0], $a[1], $a[2] ?? '', $a[3] ?? -1);
+                }
+            }
         };
 
-        // Integer-Profile
+        // Integer-Profile (mit Assoziationen, wo nötig)
+        $create('PVWM.CarStatus', VARIABLETYPE_INTEGER, 0, '', 'Car', [
+            [0, 'Unbekannt/Firmwarefehler', '', 0x888888],
+            [1, 'Bereit, kein Fahrzeug',     '', 0xAAAAAA],
+            [2, 'Fahrzeug lädt',             '', 0x00FF00],
+            [3, 'Warte auf Fahrzeug',        '', 0x0088FF],
+            [4, 'Ladung beendet',            '', 0xFFFF00],
+            [5, 'Fehler',                    '', 0xFF0000]
+        ]);
+
+        $create('PVWM.ErrorCode', VARIABLETYPE_INTEGER, 0, '', 'Alert', [
+            [0,  'Kein Fehler',                 '', 0x44FF44],
+            [1,  'FI AC',                       '', 0xFFAA00],
+            [2,  'FI DC',                       '', 0xFFAA00],
+            [3,  'Phasenfehler',                '', 0xFF4444],
+            [4,  'Überspannung',                '', 0xFF4444],
+            [5,  'Überstrom',                   '', 0xFF4444],
+            [6,  'Diodenfehler',                '', 0xFF4444],
+            [7,  'PP ungültig',                 '', 0xFF4444],
+            [8,  'GND ungültig',                '', 0xFF4444],
+            [9,  'Schütz hängt',                '', 0xFF4444],
+            [10, 'Schütz fehlt',                '', 0xFF4444],
+            [11, 'FI unbekannt',                '', 0xFF4444],
+            [12, 'Unbekannter Fehler',          '', 0xFF4444],
+            [13, 'Übertemperatur',              '', 0xFF4444],
+            [14, 'Keine Kommunikation',         '', 0xFF4444],
+            [15, 'Verriegelung klemmt offen',   '', 0xFF4444],
+            [16, 'Verriegelung klemmt verriegelt', '', 0xFF4444],
+            [20, 'Reserviert 20',               '', 0xAAAAAA],
+            [21, 'Reserviert 21',               '', 0xAAAAAA],
+            [22, 'Reserviert 22',               '', 0xAAAAAA],
+            [23, 'Reserviert 23',               '', 0xAAAAAA],
+            [24, 'Reserviert 24',               '', 0xAAAAAA]
+        ]);
+
+        $create('PVWM.AccessStateV2', VARIABLETYPE_INTEGER, 0, '', 'Lock', [
+            [0, 'Neutral (Wallbox entscheidet)', '', 0xAAAAAA],
+            [1, 'Nicht Laden (gesperrt)',        '', 0xFF4444],
+            [2, 'Laden (erzwungen)',             '', 0x44FF44]
+        ]);
+
+        $create('PVWM.PSM', VARIABLETYPE_INTEGER, 0, '', 'Lightning', [
+            [0, 'Auto',     '', 0xAAAAAA],
+            [1, '1-phasig', '', 0x00ADEF],
+            [2, '3-phasig', '', 0xFF9900]
+        ]);
+
+        $create('PVWM.ALW', VARIABLETYPE_BOOLEAN, 0, '', 'Power', [
+            [false, 'Nicht freigegeben', '', 0xFF4444],
+            [true,  'Laden freigegeben', '', 0x44FF44]
+        ]);
+
+        $create('PVWM.AmpereCable', VARIABLETYPE_INTEGER, 0, ' A', 'Energy');
+
+        // Die bisherigen Profile
         $create('PVWM.Ampere',      VARIABLETYPE_INTEGER, 0, ' A',      'Energy');
         $create('PVWM.Percent',     VARIABLETYPE_INTEGER, 0, ' %',      'Percent');
-
-        // Float-Profile
         $create('PVWM.Watt',        VARIABLETYPE_FLOAT,   0, ' W',      'Flash');
         $create('PVWM.W',           VARIABLETYPE_FLOAT,   0, ' W',      'Flash');
         $create('PVWM.CentPerKWh',  VARIABLETYPE_FLOAT,   3, ' ct/kWh', 'Euro');
+        $create('PVWM.Wh',          VARIABLETYPE_FLOAT,   0, ' Wh',     'Lightning');
     }
 
 }
