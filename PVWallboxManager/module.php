@@ -36,20 +36,27 @@ class PVWallboxManager extends IPSModule
         $this->RegisterErrorCodeProfile();
         $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                             'GoE.ErrorCode',     9);
 
-        // Status-/Datenvariablen
-        $this->RegisterVariableFloat('PVErzeugungID', 'PV-Überschuss (W)', '~Watt', 10);
-        $this->RegisterVariableFloat('WB_Ladeleistung_Ist', 'Wallbox Leistung (Ist, W)', '~Watt', 20);
-        $this->RegisterVariableFloat('WB_Ladeleistung_Soll', 'Wallbox Leistung (Soll, W)', '~Watt', 30);
-        $this->RegisterVariableInteger('PhasenStatus', 'Phasen', '', 40);
-        $this->RegisterVariableBoolean('FahrzeugStatus', 'Fahrzeug erkannt', '', 50);
-        $this->RegisterVariableInteger('HystereseZaehler', 'Phasen-Hysteresezähler', '', 60);
+        // --- Zielzeit (Unixtimestamp als Variable für WebFront) ---
+        $this->RegisterVariableInteger('TargetTime', 'Zielzeit', '~UnixTimestampTime', 10);
 
-        // Bedien-/Modusvariablen
-        $this->RegisterVariableBoolean('ManuellLaden', '🔌 Manuell: Vollladen aktiv', '~Switch', 100);
-        $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV2Car-Modus', '~Switch', 110);
-        $this->RegisterVariableBoolean('ZielzeitLaden', '⏰ Zielzeit-Ladung', '~Switch', 120);
-        $this->RegisterVariableInteger('PVAnteil', 'PV-Anteil (%)', '', 130);
-        $this->RegisterVariableString('LademodusStatus', 'Statusmeldung', '', 140);
+         // --- Status- & Berechnungsvariablen ---
+        this->RegisterVariableFloat('PVUeberschuss', 'PV-Überschuss (W)', '~Watt', 20); // interne Berechnung
+
+        // --- Lademodi ---
+        $this->RegisterVariableBoolean('ManuellLaden', '🔌 Manuell: Vollladen aktiv', '~Switch', 60);
+        $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV2Car-Modus', '~Switch', 62);
+        $this->RegisterVariableBoolean('ZielzeitLaden', '⏰ Zielzeit-Ladung', '~Switch', 64);
+        $this->RegisterVariableInteger('PVAnteil', 'PV-Anteil (%)', '', 66);
+
+        $this->RegisterVariableFloat('Marktueller-Börsenpreis', 'Aktueller Börsenpreis (ct/kWh)', '~ElectricityPrice', 300);
+        $this->RegisterVariableString('Börsenpreis-Vorschau', 'Börsenpreis-Vorschau', '', 302);
+
+        // --- Profile anlegen (falls noch nicht vorhanden) ---
+        if (!IPS_VariableProfileExists('~ElectricityPrice')) {
+            IPS_CreateVariableProfile('~ElectricityPrice', 2); // 2 = Float
+            IPS_SetVariableProfileDigits('~ElectricityPrice', 3);
+            IPS_SetVariableProfileSuffix('~ElectricityPrice', ' ct/kWh');
+            IPS_SetVariableProfileIcon('~ElectricityPrice', 'Euro');
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');

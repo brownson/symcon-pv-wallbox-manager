@@ -204,7 +204,7 @@
           "maximum": 120,
           "default": 30
         },
-        {"type": "Label", "label": "Der aktuelle Börsenpreis-Forecast wird automatisch in die Variable 'MAktueller-Börsenpreis' geschrieben."},
+        {"type": "Label", "label": "Der aktuelle Börsenpreis-Forecast wird automatisch in die Variable 'Marktueller-Börsenpreis' geschrieben."},
         {"type": "Label", "label": "Die Preise werden alle X Minuten aktualisiert und können in der Lade-Logik verwendet werden."},
         {
         "type": "Label",
