@@ -93,7 +93,7 @@ class PVWallboxManager extends IPSModule
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
         $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
-
+        
     }
 
     public function ApplyChanges()
@@ -110,10 +110,11 @@ class PVWallboxManager extends IPSModule
             $this->SetTimerInterval('PVWM_UpdateStatus', 0); // Timer AUS
         }
         // Strompreis-Update-Timer steuern
-        $this->UnregisterTimer('PVWM_UpdateMarketPrices');
         if ($this->ReadPropertyBoolean('UseMarketPrices')) {
-            $interval = max(5, $this->ReadPropertyInteger('MarketPriceInterval')); // Minimum 5 Minuten
-            $this->RegisterTimer('PVWM_UpdateMarketPrices', $interval * 60 * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
+            $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval')); // Minimum 5 Minuten
+            $this->SetTimerInterval('PVWM_UpdateMarketPrices', $marketInterval * 60 * 1000);
+        } else {
+            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0); // Timer AUS
         }
     }
 
