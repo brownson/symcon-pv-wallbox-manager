@@ -28,13 +28,16 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAccessStateV2Profile();
         $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                        'PVWM.AccessStateV2', 2);
         $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', 'PVWM.Watt',         3);
+        IPS_SetIcon($this->GetIDForIdent('Leistung'), 'Flash');
         $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                    'PVWM.Ampere', 4);
+        IPS_SetIcon($this->GetIDForIdent('Ampere'), 'Energy');
 
         $this->RegisterPSMProfile();
         $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'PVWM.PSM',           5);
         $this->RegisterAlwProfile();
         $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',                           'PVWM.ALW',           6);
         $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',                           'PVWM.AmpereCable',   7);
+        IPS_SetIcon($this->GetIDForIdent('Kabelstrom'), 'Energy');
         $this->RegisterVariableFloat('Energie',       'Geladene Energie (Wh)',                 'PVWM.Wh',    8);
         $this->RegisterErrorCodeProfile();
         $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                             'PVWM.ErrorCode',     9);
@@ -81,6 +84,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV2Car-Modus', '~Switch', 41);
         $this->RegisterVariableBoolean('ZielzeitLaden', '⏰ Zielzeit-Ladung', '~Switch', 42);
         $this->RegisterVariableInteger('PVAnteil',    'PV-Anteil (%)',                         'PVWM.Percent',43);
+        IPS_SetIcon($this->GetIDForIdent('PVAnteil'), 'Percent');
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
