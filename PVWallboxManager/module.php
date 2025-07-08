@@ -4,7 +4,7 @@ class PVWallboxManager extends IPSModule
 {
 
     // =========================================================================
-    // 1. INITIALISIERUNG
+    // 1. Initialisierung
     // =========================================================================
 
     public function Create()
@@ -41,23 +41,23 @@ class PVWallboxManager extends IPSModule
     }
 
     public function ApplyChanges()
-{
-    parent::ApplyChanges();
+    {
+        parent::ApplyChanges();
 
-    $interval = $this->ReadPropertyInteger('RefreshInterval'); 
-    $this->Log("Timer-Intervall: " . $interval . " Sekunden", "debug");
+        $interval = $this->ReadPropertyInteger('RefreshInterval'); 
+        $this->Log("Timer-Intervall: " . $interval . " Sekunden", "debug");
 
-    $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
+        $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
 
-    if ($aktiv) {
-        $this->SetTimerInterval('PVWM_UpdateStatus', $interval * 1000);
-    } else {
-        $this->SetTimerInterval('PVWM_UpdateStatus', 0); // Timer AUS
+        if ($aktiv) {
+            $this->SetTimerInterval('PVWM_UpdateStatus', $interval * 1000);
+        } else {
+            $this->SetTimerInterval('PVWM_UpdateStatus', 0); // Timer AUS
+        }
     }
-}
 
     // =========================================================================
-    // 2. REQUESTACTION / TIMER / EVENTS
+    // 2. Events & RequestAction
     // =========================================================================
 
     public function RequestAction($Ident, $Value)
@@ -68,6 +68,10 @@ class PVWallboxManager extends IPSModule
         }
         throw new Exception("Invalid Ident: $Ident");
     }
+
+    // =========================================================================
+    // 3. Wallbox-Kommunikation (API-Funktionen)
+    // =========================================================================
 
     private function getStatusFromCharger()
     {
@@ -136,7 +140,7 @@ class PVWallboxManager extends IPSModule
     }
 
     // =========================================================================
-    // 3. ZENTRALE STEUERLOGIK
+    // 4. Zentrale Steuerlogik
     // =========================================================================
 
     public function UpdateStatus(string $mode = 'pvonly')
@@ -174,7 +178,7 @@ class PVWallboxManager extends IPSModule
     }
 
     // =========================================================================
-    // 6. WALLBOX-KOMMUNIKATION
+    // 5. Set-Funktionen (Wallbox steuern)
     // =========================================================================
 
     public function SetChargingCurrent(int $ampere)
@@ -265,26 +269,6 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    public function StopCharging()
-    {
-        $ip = $this->ReadPropertyString('WallboxIP');
-        $url = "http://$ip/api/set?stp=1";
-
-        $this->Log("StopCharging: Sende Stopp-Befehl an $url", "info");
-
-        $result = @file_get_contents($url);
-
-        if ($result === false) {
-            $this->Log("StopCharging: Fehler beim Stoppen des Ladevorgangs!", "error");
-            return false;
-        } else {
-            $this->Log("StopCharging: Ladevorgang wurde gestoppt.", "info");
-            // Direkt Status aktualisieren
-            $this->UpdateStatus();
-            return true;
-        }
-    }
-
     public function SetChargingEnabled(bool $enabled)
     {
         $ip = $this->ReadPropertyString('WallboxIP');
@@ -314,10 +298,105 @@ class PVWallboxManager extends IPSModule
             return true;
         }
     }
+    
+    public function StopCharging()
+    {
+        $ip = $this->ReadPropertyString('WallboxIP');
+        $url = "http://$ip/api/set?stp=1";
+
+        $this->Log("StopCharging: Sende Stopp-Befehl an $url", "info");
+
+        $result = @file_get_contents($url);
+
+        if ($result === false) {
+            $this->Log("StopCharging: Fehler beim Stoppen des Ladevorgangs!", "error");
+            return false;
+        } else {
+            $this->Log("StopCharging: Ladevorgang wurde gestoppt.", "info");
+            // Direkt Status aktualisieren
+            $this->UpdateStatus();
+            return true;
+        }
+    }
 
     // =========================================================================
-    // 9. HILFSFUNKTIONEN & GETTER/SETTER
+    // 6. Hilfsfunktionen
     // =========================================================================
+
+    private function SetValueAndLogChange($ident, $newValue, $caption = '', $unit = '', $level = 'info')
+    {
+        $varID = @$this->GetIDForIdent($ident);
+        if ($varID === false) {
+            $this->Log("Variable mit Ident '$ident' nicht gefunden!", 'warn');
+            return;
+        }
+        $oldValue = GetValue($varID);
+
+        // Wenn identisch, nichts tun
+        if ($oldValue === $newValue) {
+            return;
+        }
+
+        // Werte ggf. als Klartext formatieren
+        $formatValue = function($value) use ($ident, $varID) { 
+    $profile = IPS_GetVariable($varID)['VariableCustomProfile'] ?: IPS_GetVariable($varID)['VariableProfile'];
+    if ($profile == 'GoE.CarStatus') {
+        $map = [
+            0 => 'Unbekannt/Firmwarefehler',
+            1 => 'Bereit, kein Fahrzeug',
+            2 => 'Fahrzeug lädt',
+            3 => 'Warte auf Fahrzeug',
+            4 => 'Ladung beendet',
+            5 => 'Fehler'
+        ];
+        return $map[intval($value)] ?? $value;
+        }
+        // *** NEU: Phasenmodus (psm) ***
+        if ($profile == 'GoE.PSM') {
+            $map = [0 => 'Auto', 1 => '1-phasig', 2 => '3-phasig'];
+            return $map[intval($value)] ?? $value;
+        }
+        if ($profile == 'GoE.ALW') {
+            return ($value ? 'Ladefreigabe: aktiv' : 'Ladefreigabe: aus');
+        }
+        if ($profile == '~Ampere') {
+            return number_format($value, 0, ',', '.') . ' A';
+        }
+        if ($profile == '~Watt') {
+            return number_format($value, 0, ',', '.') . ' W';
+        }
+        if ($profile == '~Electricity.Wh') {
+            return number_format($value, 0, ',', '.') . ' Wh';
+        }
+        // Standard: einfach Zahl/Bool
+        if (is_bool($value)) {
+            return $value ? 'ja' : 'nein';
+        }
+        if (is_numeric($value)) {
+            return number_format($value, 0, ',', '.');
+        }
+        if ($profile == 'GoE.AccessStateV2') {
+        $map = [
+            0 => 'Neutral (Wallbox entscheidet)',
+            1 => 'Nicht Laden (gesperrt)',
+            2 => 'Laden (erzwungen)'
+        ];
+        return $map[intval($value)] ?? $value;
+        }
+            return strval($value);
+        };
+
+            // Meldung zusammensetzen
+            $oldText = $formatValue($oldValue);
+            $newText = $formatValue($newValue);
+            if ($caption) {
+                $msg = "$caption geändert: $oldText → $newText";
+            } else {
+                $msg = "Wert geändert: $oldText → $newText";
+            }
+        $this->Log($msg, $level);
+        SetValue($varID, $newValue);
+    }
 
     private function RegisterCarStateProfile()
         {
@@ -397,7 +476,7 @@ class PVWallboxManager extends IPSModule
     }
 
     // =========================================================================
-    // 8. LOGGING / STATUSMELDUNGEN / DEBUG
+    // 7. LOGGING / STATUSMELDUNGEN / DEBUG
     // =========================================================================
 
     private function Log($msg, $level = 'info')
@@ -433,83 +512,8 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    private function SetValueAndLogChange($ident, $newValue, $caption = '', $unit = '', $level = 'info')
-    {
-        $varID = @$this->GetIDForIdent($ident);
-        if ($varID === false) {
-            $this->Log("Variable mit Ident '$ident' nicht gefunden!", 'warn');
-            return;
-        }
-        $oldValue = GetValue($varID);
-
-        // Wenn identisch, nichts tun
-        if ($oldValue === $newValue) {
-            return;
-        }
-
-        // Werte ggf. als Klartext formatieren
-        $formatValue = function($value) use ($ident, $varID) { 
-    $profile = IPS_GetVariable($varID)['VariableCustomProfile'] ?: IPS_GetVariable($varID)['VariableProfile'];
-    if ($profile == 'GoE.CarStatus') {
-        $map = [
-            0 => 'Unbekannt/Firmwarefehler',
-            1 => 'Bereit, kein Fahrzeug',
-            2 => 'Fahrzeug lädt',
-            3 => 'Warte auf Fahrzeug',
-            4 => 'Ladung beendet',
-            5 => 'Fehler'
-        ];
-        return $map[intval($value)] ?? $value;
-        }
-        // *** NEU: Phasenmodus (psm) ***
-        if ($profile == 'GoE.PSM') {
-            $map = [0 => 'Auto', 1 => '1-phasig', 2 => '3-phasig'];
-            return $map[intval($value)] ?? $value;
-        }
-        if ($profile == 'GoE.ALW') {
-            return ($value ? 'Ladefreigabe: aktiv' : 'Ladefreigabe: aus');
-        }
-        if ($profile == '~Ampere') {
-            return number_format($value, 0, ',', '.') . ' A';
-        }
-        if ($profile == '~Watt') {
-            return number_format($value, 0, ',', '.') . ' W';
-        }
-        if ($profile == '~Electricity.Wh') {
-            return number_format($value, 0, ',', '.') . ' Wh';
-        }
-        // Standard: einfach Zahl/Bool
-        if (is_bool($value)) {
-            return $value ? 'ja' : 'nein';
-        }
-        if (is_numeric($value)) {
-            return number_format($value, 0, ',', '.');
-        }
-        if ($profile == 'GoE.AccessStateV2') {
-        $map = [
-            0 => 'Neutral (Wallbox entscheidet)',
-            1 => 'Nicht Laden (gesperrt)',
-            2 => 'Laden (erzwungen)'
-        ];
-        return $map[intval($value)] ?? $value;
-    }
-        return strval($value);
-    };
-
-        // Meldung zusammensetzen
-        $oldText = $formatValue($oldValue);
-        $newText = $formatValue($newValue);
-        if ($caption) {
-            $msg = "$caption geändert: $oldText → $newText";
-        } else {
-            $msg = "Wert geändert: $oldText → $newText";
-        }
-        $this->Log($msg, $level);
-
-        SetValue($varID, $newValue);
-    }
-
-
-
+    // =========================================================================
+    // 8. (Optional) Erweiterungen & Auslagerungen
+    // =========================================================================
 
 }
