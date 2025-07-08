@@ -713,76 +713,26 @@ class PVWallboxManager extends IPSModule
 
     private function RegisterCustomProfiles()
     {
-        // Ampere
-        $profile = 'PVWM.Ampere';
-        if (IPS_VariableProfileExists($profile)) {
-            IPS_DeleteVariableProfile($profile);
-        }
-        IPS_CreateVariableProfile($profile, 2); // 2 = Float
-        IPS_SetVariableProfileDigits($profile, 0);
-        if (function_exists('IPS_SetVariableProfileSuffix')) {
-            IPS_SetVariableProfileSuffix($profile, ' A');
-        }
-        if (function_exists('IPS_SetVariableProfileIcon')) {
-            IPS_SetVariableProfileIcon($profile, 'Energy');
-        }
+        // Hilfsfunktion für Anlage/Löschen/Suffix/Icon
+        $create = function($name, $digits, $suffix, $icon) {
+            if (IPS_VariableProfileExists($name)) {
+                IPS_DeleteVariableProfile($name);
+            }
+            IPS_CreateVariableProfile($name, VARIABLETYPE_FLOAT); // 2 = Float, aber besser Konstante
+            IPS_SetVariableProfileDigits($name, $digits);
+            // Suffix korrekt setzen (Text NACH Wert)
+            IPS_SetVariableProfileText($name, '', $suffix);
+            if (!empty($icon)) {
+                IPS_SetVariableProfileIcon($name, $icon);
+            }
+        };
 
-        // Watt
-        $profile = 'PVWM.Watt';
-        if (IPS_VariableProfileExists($profile)) {
-            IPS_DeleteVariableProfile($profile);
-        }
-        IPS_CreateVariableProfile($profile, 2); // 2 = Float
-        IPS_SetVariableProfileDigits($profile, 0);
-        if (function_exists('IPS_SetVariableProfileSuffix')) {
-            IPS_SetVariableProfileSuffix($profile, ' W');
-        }
-        if (function_exists('IPS_SetVariableProfileIcon')) {
-            IPS_SetVariableProfileIcon($profile, 'Electricity');
-        }
-
-        // Wh
-        $profile = 'PVWM.Wh';
-        if (IPS_VariableProfileExists($profile)) {
-            IPS_DeleteVariableProfile($profile);
-        }
-        IPS_CreateVariableProfile($profile, 2); // Float
-        IPS_SetVariableProfileDigits($profile, 0);
-        if (function_exists('IPS_SetVariableProfileSuffix')) {
-            IPS_SetVariableProfileSuffix($profile, ' Wh');
-        }
-        if (function_exists('IPS_SetVariableProfileIcon')) {
-            IPS_SetVariableProfileIcon($profile, 'Electricity');
-        }
-
-        // Prozent
-        $profile = 'PVWM.Percent';
-        if (IPS_VariableProfileExists($profile)) {
-            IPS_DeleteVariableProfile($profile);
-        }
-        IPS_CreateVariableProfile($profile, 2); // Float
-        IPS_SetVariableProfileDigits($profile, 0);
-        if (function_exists('IPS_SetVariableProfileSuffix')) {
-            IPS_SetVariableProfileSuffix($profile, ' %');
-        }
-        if (function_exists('IPS_SetVariableProfileIcon')) {
-            IPS_SetVariableProfileIcon($profile, 'Percent');
-        }
-
-        // ct/kWh
-        $profile = 'PVWM.CentPerKWh';
-        if (IPS_VariableProfileExists($profile)) {
-            IPS_DeleteVariableProfile($profile);
-        }
-        IPS_CreateVariableProfile($profile, 2); // Float
-        IPS_SetVariableProfileDigits($profile, 3);
-        if (function_exists('IPS_SetVariableProfileSuffix')) {
-            IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
-        }
-        if (function_exists('IPS_SetVariableProfileIcon')) {
-            IPS_SetVariableProfileIcon($profile, 'Euro');
-        }
+        // Profile anlegen
+        $create('PVWM.Ampere',      0, ' A',      'Energy');
+        $create('PVWM.Watt',        0, ' W',      'Flash');
+        $create('PVWM.Wh',          0, ' Wh',     'Lightning');
+        $create('PVWM.Percent',     0, ' %',      'Percent');
+        $create('PVWM.CentPerKWh',  3, ' ct/kWh', 'Euro');
     }
 
-    
 }
