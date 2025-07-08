@@ -715,65 +715,73 @@ class PVWallboxManager extends IPSModule
     {
         // Ampere
         $profile = 'PVWM.Ampere';
-        if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 2); // Float
-            IPS_SetVariableProfileDigits($profile, 0);
-            if (function_exists('IPS_SetVariableProfileSuffix')) {
-                IPS_SetVariableProfileSuffix($profile, ' A');
-            }
-            if (function_exists('IPS_SetVariableProfileIcon')) {
-                IPS_SetVariableProfileIcon($profile, 'Energy');
-            }
+        if (IPS_VariableProfileExists($profile)) {
+            IPS_DeleteVariableProfile($profile);
         }
+        IPS_CreateVariableProfile($profile, 2); // 2 = Float
+        IPS_SetVariableProfileDigits($profile, 0);
+        if (function_exists('IPS_SetVariableProfileSuffix')) {
+            IPS_SetVariableProfileSuffix($profile, ' A');
+        }
+        if (function_exists('IPS_SetVariableProfileIcon')) {
+            IPS_SetVariableProfileIcon($profile, 'Energy');
+        }
+
         // Watt
         $profile = 'PVWM.Watt';
-        if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 2); // Float
-            IPS_SetVariableProfileDigits($profile, 0);
-            if (function_exists('IPS_SetVariableProfileSuffix')) {
-                IPS_SetVariableProfileSuffix($profile, ' W');
-            }
-            if (function_exists('IPS_SetVariableProfileIcon')) {
-                IPS_SetVariableProfileIcon($profile, 'Electricity');
-            }
+        if (IPS_VariableProfileExists($profile)) {
+            IPS_DeleteVariableProfile($profile);
         }
+        IPS_CreateVariableProfile($profile, 2); // 2 = Float
+        IPS_SetVariableProfileDigits($profile, 0);
+        if (function_exists('IPS_SetVariableProfileSuffix')) {
+            IPS_SetVariableProfileSuffix($profile, ' W');
+        }
+        if (function_exists('IPS_SetVariableProfileIcon')) {
+            IPS_SetVariableProfileIcon($profile, 'Electricity');
+        }
+
         // Wh
         $profile = 'PVWM.Wh';
-        if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 2); // Float
-            IPS_SetVariableProfileDigits($profile, 0);
-            if (function_exists('IPS_SetVariableProfileSuffix')) {
-                IPS_SetVariableProfileSuffix($profile, ' Wh');
-            }
-            if (function_exists('IPS_SetVariableProfileIcon')) {
-                IPS_SetVariableProfileIcon($profile, 'Electricity');
-            }
+        if (IPS_VariableProfileExists($profile)) {
+            IPS_DeleteVariableProfile($profile);
         }
+        IPS_CreateVariableProfile($profile, 2); // Float
+        IPS_SetVariableProfileDigits($profile, 0);
+        if (function_exists('IPS_SetVariableProfileSuffix')) {
+            IPS_SetVariableProfileSuffix($profile, ' Wh');
+        }
+        if (function_exists('IPS_SetVariableProfileIcon')) {
+            IPS_SetVariableProfileIcon($profile, 'Electricity');
+        }
+
         // Prozent
         $profile = 'PVWM.Percent';
-        if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 2); // Float
-            IPS_SetVariableProfileDigits($profile, 0);
-            if (function_exists('IPS_SetVariableProfileSuffix')) {
-                IPS_SetVariableProfileSuffix($profile, ' %');
-            }
-            if (function_exists('IPS_SetVariableProfileIcon')) {
-                IPS_SetVariableProfileIcon($profile, 'Percent');
-            }
+        if (IPS_VariableProfileExists($profile)) {
+            IPS_DeleteVariableProfile($profile);
         }
+        IPS_CreateVariableProfile($profile, 2); // Float
+        IPS_SetVariableProfileDigits($profile, 0);
+        if (function_exists('IPS_SetVariableProfileSuffix')) {
+            IPS_SetVariableProfileSuffix($profile, ' %');
+        }
+        if (function_exists('IPS_SetVariableProfileIcon')) {
+            IPS_SetVariableProfileIcon($profile, 'Percent');
+        }
+
         // ct/kWh
         $profile = 'PVWM.CentPerKWh';
-        if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 2); // Float
-            IPS_SetVariableProfileDigits($profile, 3);
-            if (function_exists('IPS_SetVariableProfileSuffix')) {
-                IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
-            }
-            if (function_exists('IPS_SetVariableProfileIcon')) {
-                IPS_SetVariableProfileIcon($profile, 'Euro');
-            }
+        if (IPS_VariableProfileExists($profile)) {
+            IPS_DeleteVariableProfile($profile);
+        }
+        IPS_CreateVariableProfile($profile, 2); // Float
+        IPS_SetVariableProfileDigits($profile, 3);
+        if (function_exists('IPS_SetVariableProfileSuffix')) {
+            IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
+        }
+        if (function_exists('IPS_SetVariableProfileIcon')) {
+            IPS_SetVariableProfileIcon($profile, 'Euro');
         }
     }
-
 
 }
