@@ -97,10 +97,9 @@ class PVWallboxManager extends IPSModule
         parent::ApplyChanges();
 
         $interval = $this->ReadPropertyInteger('RefreshInterval'); 
-        $this->Log("Timer-Intervall: " . $interval . " Sekunden", "debug");
+        $this->LogTemplate('debug', "Timer-Intervall: $interval Sekunden");
 
         $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
-
         if ($aktiv) {
             $this->SetTimerInterval('PVWM_UpdateStatus', $interval * 1000);
         } else {
@@ -131,19 +130,19 @@ class PVWallboxManager extends IPSModule
 
         // 1. Check: IP konfiguriert?
         if ($ip == "" || $ip == "0.0.0.0") {
-            $this->Log("❌ Keine IP-Adresse für Wallbox konfiguriert.", "error");
+            $this->LogTemplate('error', "Keine IP-Adresse für Wallbox konfiguriert.");
             //$this->SetStatus(200); // Symcon-Status: Konfiguration fehlt
             return false;
         }
         // 2. Check: IP gültig?
         if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-            $this->Log("❌ Ungültige IP-Adresse konfiguriert: $ip", "error");
+            $this->LogTemplate('error', "Ungültige IP-Adresse konfiguriert: $ip");
             //$this->SetStatus(201); // Symcon-Status: Konfigurationsfehler
             return false;
         }
         // 3. Check: Erreichbar (Ping Port 80)?
         if (!$this->ping($ip, 80, 1)) {
-            $this->Log("❌ Wallbox unter $ip:80 nicht erreichbar.", "error");
+            $this->LogTemplate('error', "Wallbox unter $ip:80 nicht erreichbar.");
             //$this->SetStatus(202); // Symcon-Status: Keine HTTP-Antwort
             return false;
         }
@@ -159,20 +158,20 @@ class PVWallboxManager extends IPSModule
             $json = curl_exec($ch);
             curl_close($ch);
         } catch (Exception $e) {
-            $this->Log("❌ HTTP Fehler: " . $e->getMessage(), 'error');
+            $this->LogTemplate('error', "HTTP Fehler: " . $e->getMessage());
             //$this->SetStatus(203);
             return false;
         }
 
         if ($json === false || strlen($json) < 2) {
-            $this->Log("❌ Fehler: Keine Antwort von Wallbox ($url)", "error");
+            $this->LogTemplate('error', "Fehler: Keine Antwort von Wallbox ($url)");
             //$this->SetStatus(203);
             return false;
         }
 
         $data = json_decode($json, true);
         if (!is_array($data)) {
-            $this->Log("❌ Fehler: Ungültiges JSON von Wallbox ($url)", "error");
+            $this->LogTemplate('error', "Fehler: Ungültiges JSON von Wallbox ($url)");
             //$this->SetStatus(204);
             return false;
         }
@@ -197,7 +196,7 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateStatus(string $mode = 'pvonly')
     {
-        $this->Log("UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")", "debug");
+        $this->LogTemplate('debug', "UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")");
 
         $data = $this->getStatusFromCharger();
         if ($data === false) {
@@ -239,22 +238,22 @@ class PVWallboxManager extends IPSModule
     {
         // Wertebereich prüfen – die meisten go-e erlauben nur 6–16A (bei manchen z.B. bis 32A)
         if ($ampere < 6 || $ampere > 16) {
-            $this->Log("SetChargingCurrent: Ungültiger Wert ($ampere A). Erlaubt: 6–16A!", "warn");
+            $this->LogTemplate('warn', "SetChargingCurrent: Ungültiger Wert ($ampere A). Erlaubt: 6–16A!");
             return false;
         }
 
         $ip = $this->ReadPropertyString('WallboxIP');
         $url = "http://$ip/api/set?amp=" . intval($ampere);
 
-        $this->Log("SetChargingCurrent: Sende Ladestrom $ampere A an $url", "info");
+        $this->LogTemplate('info', "SetChargingCurrent: Sende Ladestrom $ampere A an $url");
 
         $result = @file_get_contents($url);
 
         if ($result === false) {
-            $this->Log("SetChargingCurrent: Fehler beim Setzen auf $ampere A!", "error");
+            $this->LogTemplate('error', "SetChargingCurrent: Fehler beim Setzen auf $ampere A!");
             return false;
         } else {
-            $this->Log("SetChargingCurrent: Ladestrom auf $ampere A gesetzt.", "info");
+            $this->LogTemplate('ok', "SetChargingCurrent: Ladestrom auf $ampere A gesetzt.");
             // Direkt Status aktualisieren, damit das WebFront aktuell ist
             //IPS_Sleep(1000);
             $this->UpdateStatus();
@@ -266,7 +265,7 @@ class PVWallboxManager extends IPSModule
     {
         // Wertebereich prüfen: 0 = Auto, 1 = 1-phasig, 2 = 3-phasig
         if ($mode < 0 || $mode > 2) {
-            $this->Log("SetPhaseMode: Ungültiger Wert ($mode). Erlaubt: 0=Auto, 1=1-phasig, 2=3-phasig!", "warn");
+            $this->LogTemplate('warn', "SetPhaseMode: Ungültiger Wert ($mode). Erlaubt: 0=Auto, 1=1-phasig, 2=3-phasig!");
             return false;
         }
 
@@ -276,15 +275,15 @@ class PVWallboxManager extends IPSModule
         $modes = [0 => "Auto", 1 => "1-phasig", 2 => "3-phasig"];
         $modeText = $modes[$mode] ?? $mode;
 
-        $this->Log("SetPhaseMode: Sende Phasenmodus '$modeText' ($mode) an $url", "info");
+        $this->LogTemplate('info', "SetPhaseMode: Sende Phasenmodus '$modeText' ($mode) an $url");
 
         $result = @file_get_contents($url);
 
         if ($result === false) {
-            $this->Log("SetPhaseMode: Fehler beim Setzen auf '$modeText' ($mode)!", "error");
+            $this->LogTemplate('error', "SetPhaseMode: Fehler beim Setzen auf '$modeText' ($mode)!");
             return false;
         } else {
-            $this->Log("SetPhaseMode: Phasenmodus auf '$modeText' ($mode) gesetzt.", "info");
+            $this->LogTemplate('ok', "SetPhaseMode: Phasenmodus auf '$modeText' ($mode) gesetzt.");
             // Direkt Status aktualisieren
             $this->UpdateStatus();
             return true;
@@ -295,7 +294,7 @@ class PVWallboxManager extends IPSModule
     {
         // Wertebereich prüfen: 0 = Neutral, 1 = Nicht Laden, 2 = Laden
         if ($state < 0 || $state > 2) {
-            $this->Log("SetForceState: Ungültiger Wert ($state). Erlaubt: 0=Neutral, 1=OFF, 2=ON!", "warn");
+            $this->LogTemplate('warn', "SetForceState: Ungültiger Wert ($state). Erlaubt: 0=Neutral, 1=OFF, 2=ON!");
             return false;
         }
 
@@ -309,15 +308,15 @@ class PVWallboxManager extends IPSModule
         ];
         $modeText = $modes[$state] ?? $state;
 
-        $this->Log("SetForceState: Sende Wallbox-Modus '$modeText' ($state) an $url", "info");
+        $this->LogTemplate('info', "SetForceState: Sende Wallbox-Modus '$modeText' ($state) an $url");
 
         $result = @file_get_contents($url);
 
         if ($result === false) {
-            $this->Log("SetForceState: Fehler beim Setzen auf '$modeText' ($state)!", "error");
+            $this->LogTemplate('error', "SetForceState: Fehler beim Setzen auf '$modeText' ($state)!");
             return false;
         } else {
-            $this->Log("SetForceState: Wallbox-Modus auf '$modeText' ($state) gesetzt.", "info");
+            $this->LogTemplate('ok', "SetForceState: Wallbox-Modus auf '$modeText' ($state) gesetzt.");
             // Direkt Status aktualisieren
             $this->UpdateStatus();
             return true;
@@ -335,20 +334,20 @@ class PVWallboxManager extends IPSModule
         if ($apiKey != '') {
             // Offizieller Weg: mit API-Key
             $url = "http://$ip/api/set?dwo=0&alw=$alwValue&key=" . urlencode($apiKey);
-            $this->Log("SetChargingEnabled: Sende (API-Key) Ladefreigabe '$statusText' ($alwValue) an $url", "info");
+            $this->LogTemplate('info', "SetChargingEnabled: Sende (API-Key) Ladefreigabe '$statusText' ($alwValue) an $url");
         } else {
             // Inoffizieller Weg: MQTT-Shortcut
             $url = "http://$ip/mqtt?payload=alw=$alwValue";
-            $this->Log("SetChargingEnabled: Sende (MQTT) Ladefreigabe '$statusText' ($alwValue) an $url", "info");
+            $this->LogTemplate('info', "SetChargingEnabled: Sende (MQTT) Ladefreigabe '$statusText' ($alwValue) an $url");
         }
 
         $result = @file_get_contents($url);
 
         if ($result === false) {
-            $this->Log("SetChargingEnabled: Fehler beim Setzen der Ladefreigabe ($alwValue)!", "error");
+            $this->LogTemplate('error', "SetChargingEnabled: Fehler beim Setzen der Ladefreigabe ($alwValue)!");
             return false;
         } else {
-            $this->Log("SetChargingEnabled: Ladefreigabe wurde auf '$statusText' ($alwValue) gesetzt.", "info");
+            $this->LogTemplate('ok', "SetChargingEnabled: Ladefreigabe wurde auf '$statusText' ($alwValue) gesetzt.");
             $this->UpdateStatus();
             return true;
         }
@@ -359,15 +358,15 @@ class PVWallboxManager extends IPSModule
         $ip = $this->ReadPropertyString('WallboxIP');
         $url = "http://$ip/api/set?stp=1";
 
-        $this->Log("StopCharging: Sende Stopp-Befehl an $url", "info");
+        $this->LogTemplate('info', "StopCharging: Sende Stopp-Befehl an $url");
 
         $result = @file_get_contents($url);
 
         if ($result === false) {
-            $this->Log("StopCharging: Fehler beim Stoppen des Ladevorgangs!", "error");
+            $this->LogTemplate('error', "StopCharging: Fehler beim Stoppen des Ladevorgangs!");
             return false;
         } else {
-            $this->Log("StopCharging: Ladevorgang wurde gestoppt.", "info");
+            $this->LogTemplate('ok', "StopCharging: Ladevorgang wurde gestoppt.");
             // Direkt Status aktualisieren
             $this->UpdateStatus();
             return true;
@@ -382,7 +381,7 @@ class PVWallboxManager extends IPSModule
     {
         $varID = @$this->GetIDForIdent($ident);
         if ($varID === false) {
-            $this->Log("Variable mit Ident '$ident' nicht gefunden!", 'warn');
+            $this->LogTemplate('warn', "Variable mit Ident '$ident' nicht gefunden!");
             return;
         }
         $oldValue = GetValue($varID);
@@ -449,7 +448,7 @@ class PVWallboxManager extends IPSModule
             } else {
                 $msg = "Wert geändert: $oldText → $newText";
             }
-        $this->Log($msg, $level);
+        $this->LogTemplate($level, $msg);
         SetValue($varID, $newValue);
     }
 
@@ -534,38 +533,25 @@ class PVWallboxManager extends IPSModule
     // 7. LOGGING / STATUSMELDUNGEN / DEBUG
     // =========================================================================
 
-    private function Log($msg, $level = 'info')
-    {
-        // Icons je nach Level
-        $icons = [
-            'info'  => '✅',
-            'warn'  => '⚠️',
-            'error' => '❌',
-            'debug' => '🐞'
-        ];
-        $icon = $icons[$level] ?? '';
-
-        // Debug aus, wenn nicht aktiviert
-        if ($level === 'debug' && !$this->ReadPropertyBoolean('DebugLogging')) {
-            return;
+    private function LogTemplate($type, $short, $detail = '')
+        {
+            $emojis = [
+                'info'  => 'ℹ️',
+                'warn'  => '⚠️',
+                'error' => '❌',
+                'ok'    => '✅',
+                'debug' => '🐞'
+            ];
+            $icon = isset($emojis[$type]) ? $emojis[$type] : 'ℹ️';
+            $msg = $icon . ' ' . $short;
+            if ($detail !== '') {
+                $msg .= ' | ' . $detail;
+            }
+            if ($type === 'debug' && !$this->ReadPropertyBoolean('DebugLogging')) {
+                return;
+            }
+            IPS_LogMessage('[PVWM]', $msg);
         }
-
-        // Format: [LEVEL] Icon Nachricht
-        $prefix = '[PVWM] ';
-        $levelStr = strtoupper($level);
-        $logLine = "[$levelStr] $icon $prefix$msg";
-
-        // Symcon-Systemlog
-        IPS_LogMessage("PVWallboxManager", $logLine);
-
-        // WebFront-Log (Variable "Log")
-        $logVarID = @$this->GetIDForIdent('Log');
-        if ($logVarID) {
-            $old = GetValueString($logVarID);
-            $new = date("d.m.Y H:i:s") . " | $logLine\n" . $old;
-            SetValueString($logVarID, mb_substr($new, 0, 6000)); // max 6000 Zeichen
-        }
-    }
 
     // =========================================================================
     // 8. Berechnungen
@@ -606,8 +592,11 @@ class PVWallboxManager extends IPSModule
         $this->SetValue('Hausverbrauch_W', $hausverbrauch);
 
         // Logging/Debug
-        $this->Log("PV-Überschuss berechnet: PV=$pv W, Hausverbrauch=$hausverbrauch W, Batterie=$batterieladung W → Überschuss=$pvUeberschuss W", "debug");
-
+        $this->LogTemplate(
+            'debug',
+            "PV-Überschuss berechnet: PV=$pv W, Hausverbrauch=$hausverbrauch W, Batterie=$batterieladung W → Überschuss=$pvUeberschuss W"
+        );
+        
         return $pvUeberschuss;
     }
 
