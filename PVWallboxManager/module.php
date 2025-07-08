@@ -48,14 +48,13 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('BatterieladungID', 0);
         $this->RegisterPropertyString('BatterieladungEinheit', 'W');
         $this->RegisterPropertyBoolean('InvertBatterieladung', false);
-        $this->RegisterPropertyInteger('RefreshInterval', 30);
 
         // Zielzeit für Zielzeitladung
         $this->RegisterVariableInteger('TargetTime', 'Zielzeit', '~UnixTimestampTime', 20);
         IPS_SetIcon($this->GetIDForIdent('TargetTime'), 'clock');
 
         // === 7. Strompreis-Börse / Forecast ===
-        $this->RegisterVariableFloat('CurrentSpotPrice', 'Aktueller Börsenpreis (ct/kWh)', '~ElectricityPrice', 30);
+        $this->RegisterVariableFloat('CurrentSpotPrice', 'Aktueller Börsenpreis (ct/kWh)', $profile, 30);
         $this->RegisterVariableString('MarketPrices', 'Börsenpreis-Vorschau', '', 31);
 
         // === Modul-Variablen für Visualisierung, Status, Lademodus etc. ===
@@ -77,11 +76,12 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('PVAnteil', 'PV-Anteil (%)', '', 43);
 
         // Profil für Strompreis, falls noch nicht vorhanden
-        if (!IPS_VariableProfileExists('~ElectricityPrice')) {
-            IPS_CreateVariableProfile('~ElectricityPrice', 2);
-            IPS_SetVariableProfileDigits('~ElectricityPrice', 3);
-            IPS_SetVariableProfileSuffix('~ElectricityPrice', ' ct/kWh');
-            IPS_SetVariableProfileIcon('~ElectricityPrice', 'Euro');
+        $profile = 'ElectricityPrice';
+        if (!IPS_VariableProfileExists($profile)) {
+            IPS_CreateVariableProfile($profile, 2);
+            IPS_SetVariableProfileDigits($profile, 3);
+            IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
+            IPS_SetVariableProfileIcon($profile, 'Euro');
         }
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
