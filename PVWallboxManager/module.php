@@ -62,12 +62,26 @@ class PVWallboxManager extends IPSModule
 
     public function RequestAction($Ident, $Value)
     {
+    switch ($Ident) {
+        case "UpdateStatus":
+            $this->UpdateStatus($Value);
+            break;
+        case "Ampere":
+            $this->SetChargingCurrent($Value); // Führt auch direkt das UpdateStatus durch!
+            break;
+        // ... weitere Fälle für andere Set-Operationen ...
+        default:
+            throw new Exception("Invalid Ident: $Ident");
+    }
+    /*}
+
+    {
         if ($Ident === "UpdateStatus") {
             $this->UpdateStatus($Value); // $Value ist dann z.B. 'pvonly'
             return;
         }
         throw new Exception("Invalid Ident: $Ident");
-    }
+    }*/
 
     // =========================================================================
     // 3. Wallbox-Kommunikation (API-Funktionen)
@@ -202,7 +216,7 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->Log("SetChargingCurrent: Ladestrom auf $ampere A gesetzt.", "info");
             // Direkt Status aktualisieren, damit das WebFront aktuell ist
-            IPS_Sleep(4000);
+            //IPS_Sleep(4000);
             $this->UpdateStatus();
             return true;
         }
