@@ -51,12 +51,13 @@ class PVWallboxManager extends IPSModule
 
         // Profil für Börsenpreis anlegen (ohne ~, robust)
         $profile = 'ElectricityPrice';
-        if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 2); // Float
-            IPS_SetVariableProfileDigits($profile, 3);
-            IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
-            IPS_SetVariableProfileIcon($profile, 'Euro');
+        if (IPS_VariableProfileExists($profile)) {
+            IPS_DeleteVariableProfile($profile);
         }
+        IPS_CreateVariableProfile($profile, 2); // 2 = Float
+        IPS_SetVariableProfileDigits($profile, 3);
+        IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
+        IPS_SetVariableProfileIcon($profile, 'Euro');
 
         // Strompreis-Börse / Forecast
         $this->RegisterPropertyBoolean('UseMarketPrices', false);
@@ -707,5 +708,5 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('ok', "Strompreis-Update: Aktuell = $currentPrice ct/kWh, Forecast gespeichert ({$forecast[0]['timestamp']}ff)");
     }
 
-    
+
 }
