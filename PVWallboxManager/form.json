@@ -24,6 +24,7 @@
         ]},
         { "type": "RowLayout", "items": [
           { "type": "PasswordTextBox", "name": "WallboxAPIKey", "caption": "API-Key (optional)"},
+        ]},
         { "type": "RowLayout", "items": [
           { "type": "NumberSpinner", "name": "MinAmpere", "caption": "Minimaler Ladestrom (A)", "icon": "Minus", "suffix": "A", "minimum": 6, "maximum": 16, "default": 6 },
           { "type": "Label", "caption": "    " },
