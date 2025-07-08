@@ -22,18 +22,19 @@ class PVWallboxManager extends IPSModule
 
         // Variablen nach API v2
         $this->RegisterCarStateProfile();
-        $this->RegisterVariableInteger('Status',      'Status',                                 'GoE.CarStatus',    1);
+        $this->RegisterVariableInteger('Status',      'Status',                                 'GoE.CarStatus',     1);
         $this->RegisterAccessStateV2Profile();
         $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                        'GoE.AccessStateV2', 2);
-        $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', '~Watt',            3);
-        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                     '~Ampere',          4);
+        $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', '~Watt',             3);
+        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                     '~Ampere',           4);
         $this->RegisterPSMProfile();
-        $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'GoE.PSM',          5);
+        $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'GoE.PSM',           5);
         $this->RegisterAlwProfile();
-        $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',                           'GoE.ALW',          6);
-        $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',                           '~Ampere',          7);
-        $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                              '',                 8);
-        $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',                  '~Electricity.Wh',  9);
+        $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',                           'GoE.ALW',           6);
+        $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',                           '~Ampere',           7);
+        $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',                  '~Electricity.Wh',   8);
+        $this->RegisterErrorCodeProfile();
+        $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                             'GoE.ErrorCode',     9);
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
@@ -365,6 +366,35 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+    private function RegisterErrorCodeProfile()
+    {
+        $profile = 'GoE.ErrorCode';
+        if (!IPS_VariableProfileExists($profile)) {
+            IPS_CreateVariableProfile($profile, 1); // Integer
+            IPS_SetVariableProfileAssociation($profile, 0,  'Kein Fehler',           '', 0x44FF44);
+            IPS_SetVariableProfileAssociation($profile, 1,  'FI AC',                '', 0xFFAA00);
+            IPS_SetVariableProfileAssociation($profile, 2,  'FI DC',                '', 0xFFAA00);
+            IPS_SetVariableProfileAssociation($profile, 3,  'Phasenfehler',         '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 4,  'Überspannung',         '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 5,  'Überstrom',            '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 6,  'Diodenfehler',         '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 7,  'PP ungültig',          '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 8,  'GND ungültig',         '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 9,  'Schütz hängt',         '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 10, 'Schütz fehlt',         '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 11, 'FI unbekannt',         '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 12, 'Unbekannter Fehler',   '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 13, 'Übertemperatur',       '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 14, 'Keine Kommunikation',  '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 15, 'Verriegelung klemmt offen', '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 16, 'Verriegelung klemmt verriegelt', '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 20, 'Reserviert 20',        '', 0xAAAAAA);
+            IPS_SetVariableProfileAssociation($profile, 21, 'Reserviert 21',        '', 0xAAAAAA);
+            IPS_SetVariableProfileAssociation($profile, 22, 'Reserviert 22',        '', 0xAAAAAA);
+            IPS_SetVariableProfileAssociation($profile, 23, 'Reserviert 23',        '', 0xAAAAAA);
+            IPS_SetVariableProfileAssociation($profile, 24, 'Reserviert 24',        '', 0xAAAAAA);
+        }
+    }
 
     // =========================================================================
     // 8. LOGGING / STATUSMELDUNGEN / DEBUG
