@@ -286,17 +286,22 @@ class PVWallboxManager extends IPSModule
     public function SetChargingEnabled(bool $enabled)
     {
         $ip = $this->ReadPropertyString('WallboxIP');
+        $apiKey = $this->ReadPropertyString('WallboxAPIKey');
         $alwValue = $enabled ? 1 : 0;
 
-        // Erst dwo=0 setzen (Schreibschutz freigeben)
-        $urlDWO = "http://$ip/api/set?dwo=0";
-        @file_get_contents($urlDWO);
-
-        // Dann alw setzen
-        $urlALW = "http://$ip/api/set?alw=" . $alwValue;
-        $result = @file_get_contents($urlALW);
-
         $statusText = $enabled ? "Laden erlaubt" : "Laden gesperrt";
+
+        if ($apiKey != '') {
+            // Offizieller Weg: mit API-Key
+            $url = "http://$ip/api/set?dwo=0&alw=$alwValue&key=" . urlencode($apiKey);
+            $this->Log("SetChargingEnabled: Sende (API-Key) Ladefreigabe '$statusText' ($alwValue) an $url", "info");
+        } else {
+            // Inoffizieller Weg: MQTT-Shortcut
+            $url = "http://$ip/mqtt?payload=alw=$alwValue";
+            $this->Log("SetChargingEnabled: Sende (MQTT) Ladefreigabe '$statusText' ($alwValue) an $url", "info");
+        }
+
+        $result = @file_get_contents($url);
 
         if ($result === false) {
             $this->Log("SetChargingEnabled: Fehler beim Setzen der Ladefreigabe ($alwValue)!", "error");
