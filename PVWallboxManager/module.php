@@ -49,30 +49,26 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyString('BatterieladungEinheit', 'W');
         $this->RegisterPropertyBoolean('InvertBatterieladung', false);
 
+        // Profil für Börsenpreis anlegen (ohne ~, robust)
         $profile = 'ElectricityPrice';
         if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 2);
+            IPS_CreateVariableProfile($profile, 2); // Float
             IPS_SetVariableProfileDigits($profile, 3);
-            // Suffix und Icon optional, nur falls supported
-            if (function_exists('IPS_SetVariableProfileSuffix')) {
-                @IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
-            }
-            if (function_exists('IPS_SetVariableProfileIcon')) {
-                @IPS_SetVariableProfileIcon($profile, 'Euro');
-            }
+            IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
+            IPS_SetVariableProfileIcon($profile, 'Euro');
         }
 
-        // Zielzeit für Zielzeitladung
-        $this->RegisterVariableInteger('TargetTime', 'Zielzeit', '~UnixTimestampTime', 20);
-        IPS_SetIcon($this->GetIDForIdent('TargetTime'), 'clock');
-
-        // === 7. Strompreis-Börse / Forecast ===
+        // Strompreis-Börse / Forecast
         $this->RegisterPropertyBoolean('UseMarketPrices', false);
         $this->RegisterPropertyString('MarketPriceProvider', 'awattar_at');
         $this->RegisterPropertyString('MarketPriceAPI', '');
         $this->RegisterPropertyInteger('MarketPriceInterval', 30);
         $this->RegisterVariableFloat('CurrentSpotPrice', 'Aktueller Börsenpreis (ct/kWh)', $profile, 30);
         $this->RegisterVariableString('MarketPrices', 'Börsenpreis-Vorschau', '', 31);
+
+        // Zielzeit für Zielzeitladung
+        $this->RegisterVariableInteger('TargetTime', 'Zielzeit', '~UnixTimestampTime', 20);
+        IPS_SetIcon($this->GetIDForIdent('TargetTime'), 'clock');
 
         // === Modul-Variablen für Visualisierung, Status, Lademodus etc. ===
         $this->RegisterVariableFloat('PV_Ueberschuss', '☀️ PV-Überschuss (W)', '~Watt', 10);
