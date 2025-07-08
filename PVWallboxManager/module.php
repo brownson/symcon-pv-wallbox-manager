@@ -263,6 +263,26 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+    public function StopCharging()
+    {
+        $ip = $this->ReadPropertyString('WallboxIP');
+        $url = "http://$ip/api/set?stp=1";
+
+        $this->Log("StopCharging: Sende Stopp-Befehl an $url", "info");
+
+        $result = @file_get_contents($url);
+
+        if ($result === false) {
+            $this->Log("StopCharging: Fehler beim Stoppen des Ladevorgangs!", "error");
+            return false;
+        } else {
+            $this->Log("StopCharging: Ladevorgang wurde gestoppt.", "info");
+            // Direkt Status aktualisieren
+            $this->UpdateStatus();
+            return true;
+        }
+    }
+
     // =========================================================================
     // 9. HILFSFUNKTIONEN & GETTER/SETTER
     // =========================================================================
