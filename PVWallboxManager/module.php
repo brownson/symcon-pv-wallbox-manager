@@ -72,10 +72,10 @@ class PVWallboxManager extends IPSModule
         // ... weitere Fälle für andere Set-Operationen ...
         default:
             throw new Exception("Invalid Ident: $Ident");
+        }
     }
-    /*}
-
-    {
+    
+    /*{
         if ($Ident === "UpdateStatus") {
             $this->UpdateStatus($Value); // $Value ist dann z.B. 'pvonly'
             return;
