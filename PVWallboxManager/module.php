@@ -418,11 +418,11 @@ class PVWallboxManager extends IPSModule
         }
 
         // Werte ggf. als Klartext formatieren
-        $formatValue = function($value) use ($ident, $varID) { 
+        $formatValue = function($value) use ($varID) {
             $profile = IPS_GetVariable($varID)['VariableCustomProfile'] ?: IPS_GetVariable($varID)['VariableProfile'];
 
             switch ($profile) {
-                case 'GoE.CarStatus':
+                case 'PVWM.CarStatus':
                     $map = [
                         0 => 'Unbekannt/Firmwarefehler',
                         1 => 'Bereit, kein Fahrzeug',
@@ -433,14 +433,14 @@ class PVWallboxManager extends IPSModule
                     ];
                     return $map[intval($value)] ?? $value;
 
-                case 'GoE.PSM':
+                case 'PVWM.PSM':
                     $map = [0 => 'Auto', 1 => '1-phasig', 2 => '3-phasig'];
                     return $map[intval($value)] ?? $value;
 
-                case 'GoE.ALW':
-                    return ($value ? 'Ladefreigabe: aktiv' : 'Ladefreigabe: aus');
+                case 'PVWM.ALW':
+                    return ($value ? 'Laden freigegeben' : 'Nicht freigegeben');
 
-                case 'GoE.AccessStateV2':
+                case 'PVWM.AccessStateV2':
                     $map = [
                         0 => 'Neutral (Wallbox entscheidet)',
                         1 => 'Nicht Laden (gesperrt)',
@@ -448,19 +448,35 @@ class PVWallboxManager extends IPSModule
                     ];
                     return $map[intval($value)] ?? $value;
 
-                // Eigene Profile
+                case 'PVWM.ErrorCode':
+                    $map = [
+                        0 => 'Kein Fehler', 1 => 'FI AC', 2 => 'FI DC', 3 => 'Phasenfehler', 4 => 'Überspannung',
+                        5 => 'Überstrom', 6 => 'Diodenfehler', 7 => 'PP ungültig', 8 => 'GND ungültig', 9 => 'Schütz hängt',
+                        10 => 'Schütz fehlt', 11 => 'FI unbekannt', 12 => 'Unbekannter Fehler', 13 => 'Übertemperatur',
+                        14 => 'Keine Kommunikation', 15 => 'Verriegelung klemmt offen', 16 => 'Verriegelung klemmt verriegelt',
+                        20 => 'Reserviert 20', 21 => 'Reserviert 21', 22 => 'Reserviert 22', 23 => 'Reserviert 23', 24 => 'Reserviert 24'
+                    ];
+                    return $map[intval($value)] ?? $value;
+
                 case 'PVWM.Ampere':
                     return number_format($value, 0, ',', '.') . ' A';
+
+                case 'PVWM.AmpereCable':
+                    return number_format($value, 0, ',', '.') . ' A';
+
                 case 'PVWM.Watt':
+                case 'PVWM.W':
                     return number_format($value, 0, ',', '.') . ' W';
+
                 case 'PVWM.Wh':
                     return number_format($value, 0, ',', '.') . ' Wh';
+
                 case 'PVWM.Percent':
                     return number_format($value, 0, ',', '.') . ' %';
+
                 case 'PVWM.CentPerKWh':
                     return number_format($value, 3, ',', '.') . ' ct/kWh';
 
-                // Fallback für bool/zahl
                 default:
                     if (is_bool($value)) return $value ? 'ja' : 'nein';
                     if (is_numeric($value)) return number_format($value, 0, ',', '.');
@@ -468,7 +484,7 @@ class PVWallboxManager extends IPSModule
             }
         };
 
-        // Meldung zusammensetzen (gehört NICHT in das $formatValue!)
+        // Meldung zusammensetzen
         $oldText = $formatValue($oldValue);
         $newText = $formatValue($newValue);
         if ($caption) {
@@ -478,10 +494,8 @@ class PVWallboxManager extends IPSModule
         }
 
         $this->LogTemplate($level, $msg);
-
         SetValue($varID, $newValue);
     }
-
     private function RegisterCarStateProfile()
         {
             $profile = 'GoE.CarStatus';
