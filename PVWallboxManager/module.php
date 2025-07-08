@@ -714,25 +714,26 @@ class PVWallboxManager extends IPSModule
     private function RegisterCustomProfiles()
     {
         // Hilfsfunktion für Anlage/Löschen/Suffix/Icon
-        $create = function($name, $digits, $suffix, $icon) {
+        $create = function($name, $type, $digits, $suffix, $icon) {
             if (IPS_VariableProfileExists($name)) {
                 IPS_DeleteVariableProfile($name);
             }
-            IPS_CreateVariableProfile($name, VARIABLETYPE_FLOAT); // 2 = Float, aber besser Konstante
+            IPS_CreateVariableProfile($name, $type);
             IPS_SetVariableProfileDigits($name, $digits);
-            // Suffix korrekt setzen (Text NACH Wert)
             IPS_SetVariableProfileText($name, '', $suffix);
             if (!empty($icon)) {
                 IPS_SetVariableProfileIcon($name, $icon);
             }
         };
 
-        // Profile anlegen
-        $create('PVWM.Ampere',      0, ' A',      'Energy');
-        $create('PVWM.Watt',        0, ' W',      'Flash');
-        $create('PVWM.Wh',          0, ' Wh',     'Lightning');
-        $create('PVWM.Percent',     0, ' %',      'Percent');
-        $create('PVWM.CentPerKWh',  3, ' ct/kWh', 'Euro');
+        // Integer-Profile
+        $create('PVWM.Ampere',      VARIABLETYPE_INTEGER, 0, ' A',      'Energy');
+        $create('PVWM.Percent',     VARIABLETYPE_INTEGER, 0, ' %',      'Percent');
+
+        // Float-Profile
+        $create('PVWM.Watt',        VARIABLETYPE_FLOAT,   0, ' W',      'Flash');
+        $create('PVWM.W',           VARIABLETYPE_FLOAT,   0, ' W',      'Flash');
+        $create('PVWM.CentPerKWh',  VARIABLETYPE_FLOAT,   3, ' ct/kWh', 'Euro');
     }
 
 }
