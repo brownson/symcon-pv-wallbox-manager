@@ -29,7 +29,7 @@ class PVWallboxManager extends IPSModule
 //        $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', '~Watt',             3);
         $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', 'PVWM.Watt',         3);
 //        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                     'GOECHARGER_Ampere', 4);
-        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                    'PVWM.Ampere',4);
+        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                    'PVWM.Ampere', 4);
         $this->RegisterPSMProfile();
         $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'GoE.PSM',           5);
         $this->RegisterAlwProfile();
@@ -39,7 +39,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableFloat('Energie',       'Geladene Energie (Wh)',                 'PVWM.Wh',    8);
         $this->RegisterErrorCodeProfile();
         $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                             'GoE.ErrorCode',     9);
-
 
         // === 3. Energiequellen ===
         $this->RegisterPropertyInteger('PVErzeugungID', 0);
