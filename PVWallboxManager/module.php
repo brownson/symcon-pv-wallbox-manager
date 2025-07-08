@@ -148,15 +148,15 @@ class PVWallboxManager extends IPSModule
         }
 
         // Defensive Daten-Extraktion
-        $car         = isset($data['car'])          ? intval($data['car'])         : 0;
-        $leistung    = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
-        $ampere      = isset($data['amp'])          ? intval($data['amp'])         : 0;
-        $energie     = isset($data['wh'])           ? intval($data['wh'])          : 0;
-        $freigabe    = isset($data['alw'])          ? (bool)$data['alw']           : false;
-        $kabelstrom  = isset($data['cbl'])          ? intval($data['cbl'])         : 0;
-        $fehlercode  = isset($data['err'])          ? intval($data['err'])         : 0;
-        $psm         = isset($data['psm'])          ? intval($data['psm'])         : 0;
-        $pha         =       $data['pha']           ??            [];
+        $car = isset($data['car']) ? intval($data['car']) : 0;
+        $leistung = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
+        $ampere = isset($data['amp']) ? intval($data['amp']) : 0;
+        $energie = isset($data['wh']) ? intval($data['wh']) : 0;
+        $freigabe = isset($data['alw']) ? (bool)$data['alw'] : false;
+        $kabelstrom = isset($data['cbl']) ? intval($data['cbl']) : 0;
+        $fehlercode = isset($data['err']) ? intval($data['err']) : 0;
+        $psm = isset($data['psm']) ? intval($data['psm']) : 0;
+        $pha = $data['pha'] ?? [];
         $accessStateV2 = isset($data['accessStateV2']) ? intval($data['accessStateV2']) : 0;
 
         // Jetzt Werte NUR bei Änderung schreiben und loggen:
@@ -230,33 +230,33 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    public function SetAccessStateV2(int $mode)
+    public function SetForceState(int $state)
     {
         // Wertebereich prüfen: 0 = Neutral, 1 = Nicht Laden, 2 = Laden
-        if ($mode < 0 || $mode > 2) {
-            $this->Log("SetAccessStateV2: Ungültiger Wert ($mode). Erlaubt: 0=Neutral, 1=Nicht Laden, 2=Laden!", "warn");
+        if ($state < 0 || $state > 2) {
+            $this->Log("SetForceState: Ungültiger Wert ($state). Erlaubt: 0=Neutral, 1=OFF, 2=ON!", "warn");
             return false;
         }
 
         $ip = $this->ReadPropertyString('WallboxIP');
-        $url = "http://$ip/api/set?accessStateV2=" . intval($mode);
+        $url = "http://$ip/api/set?frc=" . intval($state);
 
         $modes = [
             0 => "Neutral (Wallbox entscheidet)",
             1 => "Nicht Laden (gesperrt)",
             2 => "Laden (erzwungen)"
         ];
-        $modeText = $modes[$mode] ?? $mode;
+        $modeText = $modes[$state] ?? $state;
 
-        $this->Log("SetAccessStateV2: Sende Wallbox-Modus '$modeText' ($mode) an $url", "info");
+        $this->Log("SetForceState: Sende Wallbox-Modus '$modeText' ($state) an $url", "info");
 
         $result = @file_get_contents($url);
 
         if ($result === false) {
-            $this->Log("SetAccessStateV2: Fehler beim Setzen auf '$modeText' ($mode)!", "error");
+            $this->Log("SetForceState: Fehler beim Setzen auf '$modeText' ($state)!", "error");
             return false;
         } else {
-            $this->Log("SetAccessStateV2: Wallbox-Modus auf '$modeText' ($mode) gesetzt.", "info");
+            $this->Log("SetForceState: Wallbox-Modus auf '$modeText' ($state) gesetzt.", "info");
             // Direkt Status aktualisieren
             $this->UpdateStatus();
             return true;
