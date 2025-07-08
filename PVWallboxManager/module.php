@@ -707,4 +707,5 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('ok', "Strompreis-Update: Aktuell = $currentPrice ct/kWh, Forecast gespeichert ({$forecast[0]['timestamp']}ff)");
     }
 
+    
 }
