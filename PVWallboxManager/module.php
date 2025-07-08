@@ -23,23 +23,23 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableString('Log', 'Modul-Log', '', 99);
 
         // Variablen nach API v2
-        $this->RegisterCarStateProfile();
+//        $this->RegisterCarStateProfile();
         $this->RegisterVariableInteger('Status',      'Status',                                 'PVWM.CarStatus',     1);
-        $this->RegisterAccessStateV2Profile();
+//        $this->RegisterAccessStateV2Profile();
         $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                        'PVWM.AccessStateV2', 2);
         $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', 'PVWM.Watt',         3);
         IPS_SetIcon($this->GetIDForIdent('Leistung'), 'Flash');
         $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                    'PVWM.Ampere', 4);
         IPS_SetIcon($this->GetIDForIdent('Ampere'), 'Energy');
 
-        $this->RegisterPSMProfile();
+//        $this->RegisterPSMProfile();
         $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'PVWM.PSM',           5);
-        $this->RegisterAlwProfile();
+//        $this->RegisterAlwProfile();
         $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',                           'PVWM.ALW',           6);
         $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',                           'PVWM.AmpereCable',   7);
         IPS_SetIcon($this->GetIDForIdent('Kabelstrom'), 'Energy');
         $this->RegisterVariableFloat('Energie',       'Geladene Energie (Wh)',                 'PVWM.Wh',    8);
-        $this->RegisterErrorCodeProfile();
+//        $this->RegisterErrorCodeProfile();
         $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                             'PVWM.ErrorCode',     9);
 
         // === 3. Energiequellen ===
@@ -480,6 +480,7 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate($level, $msg);
         SetValue($varID, $newValue);
     }
+    /*
     private function RegisterCarStateProfile()
         {
             $profile = 'GoE.CarStatus';
@@ -556,6 +557,7 @@ class PVWallboxManager extends IPSModule
             IPS_SetVariableProfileAssociation($profile, 24, 'Reserviert 24',        '', 0xAAAAAA);
         }
     }
+    */
 
     // =========================================================================
     // 7. LOGGING / STATUSMELDUNGEN / DEBUG
