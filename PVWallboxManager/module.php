@@ -72,12 +72,12 @@ class PVWallboxManager extends IPSModule
             }
         }
 //        $this->RegisterVariableFloat('CurrentSpotPrice', 'Aktueller Börsenpreis (ct/kWh)', $profile, 30);
-        $this->RegisterVariableFloat('CurrentSpotPrice','Aktueller Börsenpreis (ct/kWh)',      'PVWM.Price', 30);
+        $this->RegisterVariableFloat('CurrentSpotPrice','Aktueller Börsenpreis (ct/kWh)',      'PVWM.CentPerKWh', 30);
         $this->RegisterVariableString('MarketPrices', 'Börsenpreis-Vorschau', '', 31);
 
         // Zielzeit für Zielzeitladung
-//        $this->RegisterVariableInteger('TargetTime', 'Zielzeit', '~UnixTimestampTime', 20);
-        $this->RegisterVariableInteger('TargetTime',  'Zielzeit',                              'PVWM.Time', 20);
+        $this->RegisterVariableInteger('TargetTime', 'Zielzeit', '~UnixTimestampTime', 20);
+//        $this->RegisterVariableInteger('TargetTime',  'Zielzeit',                              'PVWM.Time', 20);
         IPS_SetIcon($this->GetIDForIdent('TargetTime'), 'clock');
 
         // === Modul-Variablen für Visualisierung, Status, Lademodus etc. ===
