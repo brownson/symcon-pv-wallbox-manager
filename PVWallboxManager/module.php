@@ -202,6 +202,7 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->Log("SetChargingCurrent: Ladestrom auf $ampere A gesetzt.", "info");
             // Direkt Status aktualisieren, damit das WebFront aktuell ist
+            IPS_Sleep(1000);
             $this->UpdateStatus();
             return true;
         }
