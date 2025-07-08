@@ -283,6 +283,31 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+    public function SetChargingEnabled(bool $enabled)
+    {
+        $ip = $this->ReadPropertyString('WallboxIP');
+        $alwValue = $enabled ? 1 : 0;
+
+        // Erst dwo=0 setzen (Schreibschutz freigeben)
+        $urlDWO = "http://$ip/api/set?dwo=0";
+        @file_get_contents($urlDWO);
+
+        // Dann alw setzen
+        $urlALW = "http://$ip/api/set?alw=" . $alwValue;
+        $result = @file_get_contents($urlALW);
+
+        $statusText = $enabled ? "Laden erlaubt" : "Laden gesperrt";
+
+        if ($result === false) {
+            $this->Log("SetChargingEnabled: Fehler beim Setzen der Ladefreigabe ($alwValue)!", "error");
+            return false;
+        } else {
+            $this->Log("SetChargingEnabled: Ladefreigabe wurde auf '$statusText' ($alwValue) gesetzt.", "info");
+            $this->UpdateStatus();
+            return true;
+        }
+    }
+
     // =========================================================================
     // 9. HILFSFUNKTIONEN & GETTER/SETTER
     // =========================================================================
