@@ -49,6 +49,19 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyString('BatterieladungEinheit', 'W');
         $this->RegisterPropertyBoolean('InvertBatterieladung', false);
 
+        $profile = 'ElectricityPrice';
+        if (!IPS_VariableProfileExists($profile)) {
+            IPS_CreateVariableProfile($profile, 2);
+            IPS_SetVariableProfileDigits($profile, 3);
+            // Suffix und Icon optional, nur falls supported
+            if (function_exists('IPS_SetVariableProfileSuffix')) {
+                @IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
+            }
+            if (function_exists('IPS_SetVariableProfileIcon')) {
+                @IPS_SetVariableProfileIcon($profile, 'Euro');
+            }
+        }
+
         // Zielzeit für Zielzeitladung
         $this->RegisterVariableInteger('TargetTime', 'Zielzeit', '~UnixTimestampTime', 20);
         IPS_SetIcon($this->GetIDForIdent('TargetTime'), 'clock');
@@ -74,15 +87,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV2Car-Modus', '~Switch', 41);
         $this->RegisterVariableBoolean('ZielzeitLaden', '⏰ Zielzeit-Ladung', '~Switch', 42);
         $this->RegisterVariableInteger('PVAnteil', 'PV-Anteil (%)', '', 43);
-
-        // Profil für Strompreis, falls noch nicht vorhanden
-        $profile = 'ElectricityPrice';
-        if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 2);
-            IPS_SetVariableProfileDigits($profile, 3);
-            IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
-            IPS_SetVariableProfileIcon($profile, 'Euro');
-        }
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
