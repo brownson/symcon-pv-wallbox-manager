@@ -26,7 +26,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAccessStateV2Profile();
         $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                        'GoE.AccessStateV2', 2);
         $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', '~Watt',             3);
-        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                     '',           4);
+        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                     'GOECHARGER_Ampere', 4);
         $this->RegisterPSMProfile();
         $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'GoE.PSM',           5);
         $this->RegisterAlwProfile();
