@@ -39,7 +39,7 @@ class PVWallboxManager extends IPSModule
         // --- Zielzeit (Unixtimestamp als Variable für WebFront) ---
         $this->RegisterVariableInteger('TargetTime', 'Zielzeit', '~UnixTimestampTime', 10);
 
-         // --- Status- & Berechnungsvariablen ---
+        // --- Status- & Berechnungsvariablen ---
         this->RegisterVariableFloat('PVUeberschuss', 'PV-Überschuss (W)', '~Watt', 20); // interne Berechnung
 
         // --- Lademodi ---
