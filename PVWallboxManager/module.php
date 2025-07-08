@@ -420,53 +420,53 @@ class PVWallboxManager extends IPSModule
 
         // Werte ggf. als Klartext formatieren
         $formatValue = function($value) use ($ident, $varID) { 
-    $profile = IPS_GetVariable($varID)['VariableCustomProfile'] ?: IPS_GetVariable($varID)['VariableProfile'];
+        $profile = IPS_GetVariable($varID)['VariableCustomProfile'] ?: IPS_GetVariable($varID)['VariableProfile'];
 
-    switch ($profile) {
-        case 'GoE.CarStatus':
-            $map = [
-                0 => 'Unbekannt/Firmwarefehler',
-                1 => 'Bereit, kein Fahrzeug',
-                2 => 'Fahrzeug lädt',
-                3 => 'Warte auf Fahrzeug',
-                4 => 'Ladung beendet',
-                5 => 'Fehler'
-            ];
-            return $map[intval($value)] ?? $value;
+        switch ($profile) {
+            case 'GoE.CarStatus':
+                $map = [
+                    0 => 'Unbekannt/Firmwarefehler',
+                    1 => 'Bereit, kein Fahrzeug',
+                    2 => 'Fahrzeug lädt',
+                    3 => 'Warte auf Fahrzeug',
+                    4 => 'Ladung beendet',
+                    5 => 'Fehler'
+                ];
+                return $map[intval($value)] ?? $value;
 
-        case 'GoE.PSM':
-            $map = [0 => 'Auto', 1 => '1-phasig', 2 => '3-phasig'];
-            return $map[intval($value)] ?? $value;
+            case 'GoE.PSM':
+                $map = [0 => 'Auto', 1 => '1-phasig', 2 => '3-phasig'];
+                return $map[intval($value)] ?? $value;
 
-        case 'GoE.ALW':
-            return ($value ? 'Ladefreigabe: aktiv' : 'Ladefreigabe: aus');
+            case 'GoE.ALW':
+                return ($value ? 'Ladefreigabe: aktiv' : 'Ladefreigabe: aus');
 
-        case 'GoE.AccessStateV2':
-            $map = [
-                0 => 'Neutral (Wallbox entscheidet)',
-                1 => 'Nicht Laden (gesperrt)',
-                2 => 'Laden (erzwungen)'
-            ];
-            return $map[intval($value)] ?? $value;
+            case 'GoE.AccessStateV2':
+                $map = [
+                    0 => 'Neutral (Wallbox entscheidet)',
+                    1 => 'Nicht Laden (gesperrt)',
+                    2 => 'Laden (erzwungen)'
+                ];
+                return $map[intval($value)] ?? $value;
 
-        // Eigene Profile
-        case 'PVWM.Ampere':
-            return number_format($value, 0, ',', '.') . ' A';
-        case 'PVWM.Watt':
-            return number_format($value, 0, ',', '.') . ' W';
-        case 'PVWM.Wh':
-            return number_format($value, 0, ',', '.') . ' Wh';
-        case 'PVWM.Percent':
-            return number_format($value, 0, ',', '.') . ' %';
-        case 'PVWM.CentPerKWh':
-            return number_format($value, 3, ',', '.') . ' ct/kWh';
+            // Eigene Profile
+            case 'PVWM.Ampere':
+                return number_format($value, 0, ',', '.') . ' A';
+            case 'PVWM.Watt':
+                return number_format($value, 0, ',', '.') . ' W';
+            case 'PVWM.Wh':
+                return number_format($value, 0, ',', '.') . ' Wh';
+            case 'PVWM.Percent':
+                return number_format($value, 0, ',', '.') . ' %';
+            case 'PVWM.CentPerKWh':
+                return number_format($value, 3, ',', '.') . ' ct/kWh';
 
-        // Fallback für bool/zahl
-        default:
-            if (is_bool($value)) return $value ? 'ja' : 'nein';
-            if (is_numeric($value)) return number_format($value, 0, ',', '.');
-            return strval($value);
-    },
+            // Fallback für bool/zahl
+            default:
+                if (is_bool($value)) return $value ? 'ja' : 'nein';
+                if (is_numeric($value)) return number_format($value, 0, ',', '.');
+                return strval($value);
+        }
 
 
         // Meldung zusammensetzen
