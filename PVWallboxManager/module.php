@@ -27,17 +27,14 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Status',      'Status',                                 'PVWM.CarStatus',     1);
         $this->RegisterAccessStateV2Profile();
         $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                        'PVWM.AccessStateV2', 2);
-//        $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', '~Watt',             3);
         $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', 'PVWM.Watt',         3);
-//        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                     'GOECHARGER_Ampere', 4);
         $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                    'PVWM.Ampere', 4);
 
         $this->RegisterPSMProfile();
         $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'PVWM.PSM',           5);
         $this->RegisterAlwProfile();
         $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',                           'PVWM.ALW',           6);
-        $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',                           'PVWM.AmpereCable',           7);
-//        $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',                  '~Electricity.Wh',   8);
+        $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',                           'PVWM.AmpereCable',   7);
         $this->RegisterVariableFloat('Energie',       'Geladene Energie (Wh)',                 'PVWM.Wh',    8);
         $this->RegisterErrorCodeProfile();
         $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                             'PVWM.ErrorCode',     9);
@@ -60,38 +57,22 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyString('MarketPriceAPI', '');
         $this->RegisterPropertyInteger('MarketPriceInterval', 30); // Minuten
 
-        $profile = 'ElectricityPrice';
-        if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 2); // Float
-            IPS_SetVariableProfileDigits($profile, 3);
-            if (function_exists('IPS_SetVariableProfileSuffix')) {
-                @IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
-            }
-            if (function_exists('IPS_SetVariableProfileIcon')) {
-                @IPS_SetVariableProfileIcon($profile, 'Euro');
-            }
-        }
-//        $this->RegisterVariableFloat('CurrentSpotPrice', 'Aktueller Börsenpreis (ct/kWh)', $profile, 30);
         $this->RegisterVariableFloat('CurrentSpotPrice','Aktueller Börsenpreis (ct/kWh)',      'PVWM.CentPerKWh', 30);
         $this->RegisterVariableString('MarketPrices', 'Börsenpreis-Vorschau', '', 31);
 
         // Zielzeit für Zielzeitladung
         $this->RegisterVariableInteger('TargetTime', 'Zielzeit', '~UnixTimestampTime', 20);
-//        $this->RegisterVariableInteger('TargetTime',  'Zielzeit',                              'PVWM.Time', 20);
         IPS_SetIcon($this->GetIDForIdent('TargetTime'), 'clock');
 
         // === Modul-Variablen für Visualisierung, Status, Lademodus etc. ===
-//        $this->RegisterVariableFloat('PV_Ueberschuss', '☀️ PV-Überschuss (W)', '~Watt', 10);
         $this->RegisterVariableFloat('PV_Ueberschuss','☀️ PV-Überschuss (W)',                  'PVWM.Watt', 10);
         IPS_SetIcon($this->GetIDForIdent('PV_Ueberschuss'), 'solar-panel');
 
         // Hausverbrauch (W)
-//        $this->RegisterVariableFloat('Hausverbrauch_W', '🏠 Hausverbrauch (W)', '~Watt', 12);
         $this->RegisterVariableFloat('Hausverbrauch_W','🏠 Hausverbrauch (W)',                  'PVWM.Watt', 12);
         IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_W'), 'home');
 
         // Hausverbrauch abzügl. Wallbox (W) – wie vorher empfohlen
-//        $this->RegisterVariableFloat('Hausverbrauch_abz_Wallbox', '🏠 Hausverbrauch abzügl. Wallbox (W)', '~Watt', 15);
         $this->RegisterVariableFloat('Hausverbrauch_abz_Wallbox','🏠 Hausverbrauch abzügl. Wallbox (W)','PVWM.Watt',15);
         IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_abz_Wallbox'), 'home');
 
@@ -99,7 +80,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableBoolean('ManuellLaden', '🔌 Manuell: Vollladen aktiv', '~Switch', 40);
         $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV2Car-Modus', '~Switch', 41);
         $this->RegisterVariableBoolean('ZielzeitLaden', '⏰ Zielzeit-Ladung', '~Switch', 42);
-//        $this->RegisterVariableInteger('PVAnteil', 'PV-Anteil (%)', '', 43);
         $this->RegisterVariableInteger('PVAnteil',    'PV-Anteil (%)',                         'PVWM.Percent',43);
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
