@@ -13,7 +13,8 @@ class PVWallboxManager extends IPSModule
         parent::Create();
 
         // Properties aus form.json
-        $this->RegisterPropertyString('WallboxIP', '');
+        $this->RegisterPropertyString('WallboxIP', '0.0.0.0');
+        $this->RegisterPropertyString('WallboxAPIKey', '');
         $this->RegisterPropertyInteger('RefreshInterval', 30);
         $this->RegisterPropertyBoolean('ModulAktiv', true);
         $this->RegisterPropertyBoolean('DebugLogging', false);
