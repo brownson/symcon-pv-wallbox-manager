@@ -230,6 +230,39 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+    public function SetAccessStateV2(int $mode)
+    {
+        // Wertebereich prüfen: 0 = Neutral, 1 = Nicht Laden, 2 = Laden
+        if ($mode < 0 || $mode > 2) {
+            $this->Log("SetAccessStateV2: Ungültiger Wert ($mode). Erlaubt: 0=Neutral, 1=Nicht Laden, 2=Laden!", "warn");
+            return false;
+        }
+
+        $ip = $this->ReadPropertyString('WallboxIP');
+        $url = "http://$ip/api/set?accessStateV2=" . intval($mode);
+
+        $modes = [
+            0 => "Neutral (Wallbox entscheidet)",
+            1 => "Nicht Laden (gesperrt)",
+            2 => "Laden (erzwungen)"
+        ];
+        $modeText = $modes[$mode] ?? $mode;
+
+        $this->Log("SetAccessStateV2: Sende Wallbox-Modus '$modeText' ($mode) an $url", "info");
+
+        $result = @file_get_contents($url);
+
+        if ($result === false) {
+            $this->Log("SetAccessStateV2: Fehler beim Setzen auf '$modeText' ($mode)!", "error");
+            return false;
+        } else {
+            $this->Log("SetAccessStateV2: Wallbox-Modus auf '$modeText' ($mode) gesetzt.", "info");
+            // Direkt Status aktualisieren
+            $this->UpdateStatus();
+            return true;
+        }
+    }
+
     // =========================================================================
     // 9. HILFSFUNKTIONEN & GETTER/SETTER
     // =========================================================================
