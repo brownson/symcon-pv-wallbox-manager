@@ -227,6 +227,8 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('Freigabe',    $freigabe,    'Ladefreigabe');
         $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom,  'Kabeltyp');
         $this->SetValueAndLogChange('Fehlercode',  $fehlercode,  'Fehlercode', '', 'warn');
+
+        $pvUeberschuss = $this->BerechnePVUeberschuss();
     }
 
     // =========================================================================
@@ -566,7 +568,51 @@ class PVWallboxManager extends IPSModule
     }
 
     // =========================================================================
-    // 8. (Optional) Erweiterungen & Auslagerungen
+    // 8. Berechnungen
+    // =========================================================================
+
+    private function BerechnePVUeberschuss()
+    {
+        // PV-Erzeugung holen
+        $pvID = $this->ReadPropertyInteger('PVErzeugungID');
+        $pvEinheit = $this->ReadPropertyString('PVErzeugungEinheit');
+        $pv = ($pvID > 0) ? GetValueFloat($pvID) : 0;
+        // kW → W umrechnen falls nötig
+        if ($pvEinheit == "kW") $pv *= 1000;
+
+        // Hausverbrauch holen
+        $hvID = $this->ReadPropertyInteger('HausverbrauchID');
+        $hvEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
+        $invertHV = $this->ReadPropertyBoolean('InvertHausverbrauch');
+        $hausverbrauch = ($hvID > 0) ? GetValueFloat($hvID) : 0;
+        if ($hvEinheit == "kW") $hausverbrauch *= 1000;
+        if ($invertHV) $hausverbrauch *= -1;
+
+        // Batterie holen (optional)
+        $batID = $this->ReadPropertyInteger('BatterieladungID');
+        $batEinheit = $this->ReadPropertyString('BatterieladungEinheit');
+        $invertBat = $this->ReadPropertyBoolean('InvertBatterieladung');
+        $batterieladung = ($batID > 0) ? GetValueFloat($batID) : 0;
+        if ($batEinheit == "kW") $batterieladung *= 1000;
+        if ($invertBat) $batterieladung *= -1;
+
+        // --- PV-Überschuss berechnen ---
+        $pvUeberschuss = $pv - $hausverbrauch - $batterieladung;
+
+        // In die Visualisierungsvariable schreiben
+        $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
+
+        // (Optional: Hausverbrauch ebenfalls aktualisieren)
+        $this->SetValue('Hausverbrauch_W', $hausverbrauch);
+
+        // Logging/Debug
+        $this->Log("PV-Überschuss berechnet: PV=$pv W, Hausverbrauch=$hausverbrauch W, Batterie=$batterieladung W → Überschuss=$pvUeberschuss W", "debug");
+
+        return $pvUeberschuss;
+    }
+
+    // =========================================================================
+    // 9. (Optional) Erweiterungen & Auslagerungen
     // =========================================================================
 
 }
