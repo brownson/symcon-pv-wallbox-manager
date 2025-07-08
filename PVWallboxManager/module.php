@@ -36,6 +36,21 @@ class PVWallboxManager extends IPSModule
         $this->RegisterErrorCodeProfile();
         $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                             'GoE.ErrorCode',     9);
 
+        // Status-/Datenvariablen
+        $this->RegisterVariableFloat('PVErzeugungID', 'PV-Überschuss (W)', '~Watt', 10);
+        $this->RegisterVariableFloat('WB_Ladeleistung_Ist', 'Wallbox Leistung (Ist, W)', '~Watt', 20);
+        $this->RegisterVariableFloat('WB_Ladeleistung_Soll', 'Wallbox Leistung (Soll, W)', '~Watt', 30);
+        $this->RegisterVariableInteger('PhasenStatus', 'Phasen', '', 40);
+        $this->RegisterVariableBoolean('FahrzeugStatus', 'Fahrzeug erkannt', '', 50);
+        $this->RegisterVariableInteger('HystereseZaehler', 'Phasen-Hysteresezähler', '', 60);
+
+        // Bedien-/Modusvariablen
+        $this->RegisterVariableBoolean('ManuellLaden', '🔌 Manuell: Vollladen aktiv', '~Switch', 100);
+        $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV2Car-Modus', '~Switch', 110);
+        $this->RegisterVariableBoolean('ZielzeitLaden', '⏰ Zielzeit-Ladung', '~Switch', 120);
+        $this->RegisterVariableInteger('PVAnteil', 'PV-Anteil (%)', '', 130);
+        $this->RegisterVariableString('LademodusStatus', 'Statusmeldung', '', 140);
+
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
     }
@@ -62,26 +77,12 @@ class PVWallboxManager extends IPSModule
 
     public function RequestAction($Ident, $Value)
     {
-    switch ($Ident) {
-        case "UpdateStatus":
-            $this->UpdateStatus($Value);
-            break;
-        case "Ampere":
-            $this->SetChargingCurrent($Value); // Führt auch direkt das UpdateStatus durch!
-            break;
-        // ... weitere Fälle für andere Set-Operationen ...
-        default:
-            throw new Exception("Invalid Ident: $Ident");
-        }
-    }
-    
-    /*{
         if ($Ident === "UpdateStatus") {
             $this->UpdateStatus($Value); // $Value ist dann z.B. 'pvonly'
             return;
         }
         throw new Exception("Invalid Ident: $Ident");
-    }*/
+    }
 
     // =========================================================================
     // 3. Wallbox-Kommunikation (API-Funktionen)
@@ -216,7 +217,7 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->Log("SetChargingCurrent: Ladestrom auf $ampere A gesetzt.", "info");
             // Direkt Status aktualisieren, damit das WebFront aktuell ist
-            IPS_Sleep(1000);
+            //IPS_Sleep(1000);
             $this->UpdateStatus();
             return true;
         }

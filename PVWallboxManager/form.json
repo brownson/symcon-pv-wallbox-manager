@@ -4,8 +4,8 @@
       "type": "ExpansionPanel",
       "caption": "🛑 Modulsteuerung",
       "items": [
-        { "type": "ValidationTextBox", "name": "WallboxIP", "caption": "Wallbox-IP"},
-        { "type": "PasswordTextBox", "name": "WallboxAPIKey", "caption": "API-Key (optional)"},
+        
+        
         { "type": "Label", "label": "🔄 Intervall für die Leistungsberechnung in Sekunden (15–600)." },
         { "type": "NumberSpinner", "name": "RefreshInterval", "caption": "Aktualisierungsintervall (s)", "minimum": 15, "maximum": 600 },
         { "type": "CheckBox", "name": "ModulAktiv", "caption": "⚡ Modul aktiv (bei Deaktivierung werden keine Aktionen ausgeführt)"},
@@ -21,8 +21,11 @@
       "items": [
         { "type": "Label", "label": "⚙️ Konfiguriere hier deine GO-e Wallbox und Ladeparameter & 🔌 Ladeströme." },
         { "type": "RowLayout", "items": [
-          { "type": "SelectInstance", "name": "GOeChargerID", "caption": "GO-e Instanz", "validClasses": ["GOeCharger"], "icon": "Plug" },
+          { "type": "ValidationTextBox", "name": "WallboxIP", "caption": "Wallbox-IP"},
           { "type": "Label", "caption": "    " },
+          { "type": "PasswordTextBox", "name": "WallboxAPIKey", "caption": "API-Key (optional)"},
+        ]},
+          { "type": "RowLayout", "items": [
           { "type": "NumberSpinner", "name": "MinAmpere", "caption": "Minimaler Ladestrom (A)", "icon": "Minus", "suffix": "A", "minimum": 6, "maximum": 16, "default": 6 },
           { "type": "Label", "caption": "    " },
           { "type": "NumberSpinner", "name": "MaxAmpere", "caption": "Maximaler Ladestrom (A)", "icon": "Plus", "suffix": "A", "minimum": 6, "maximum": 16, "default": 16 }
@@ -202,11 +205,11 @@
           "maximum": 120,
           "default": 30
         },
-        {"type": "Label", "label": "Der aktuelle Börsenpreis-Forecast wird automatisch in die Variable 'MarketPrices' geschrieben."},
+        {"type": "Label", "label": "Der aktuelle Börsenpreis-Forecast wird automatisch in die Variable 'MAktueller-Börsenpreis' geschrieben."},
         {"type": "Label", "label": "Die Preise werden alle X Minuten aktualisiert und können in der Lade-Logik verwendet werden."},
         {
         "type": "Label",
-        "label": "Die aktuelle Börsenpreis-Vorschau findest du im WebFront unter 'Preisvorschau'."
+        "label": "Den aktuellen Börsenpreis-Forecast findest du im WebFront unter 'Börsenpreis-Vorschau'."
       }
       ]
     }
