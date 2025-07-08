@@ -171,7 +171,35 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('Fehlercode',  $fehlercode,  'Fehlercode', '', 'warn');
     }
 
+    // =========================================================================
+    // 6. WALLBOX-KOMMUNIKATION
+    // =========================================================================
 
+    public function SetChargingCurrent(int $ampere)
+    {
+        // Wertebereich prüfen – die meisten go-e erlauben nur 6–16A (bei manchen z.B. bis 32A)
+        if ($ampere < 6 || $ampere > 16) {
+            $this->Log("SetChargingCurrent: Ungültiger Wert ($ampere A). Erlaubt: 6–16A!", "warn");
+            return false;
+        }
+
+        $ip = $this->ReadPropertyString('WallboxIP');
+        $url = "http://$ip/api/set?amp=" . intval($ampere);
+
+        $this->Log("SetChargingCurrent: Sende Ladestrom $ampere A an $url", "info");
+
+        $result = @file_get_contents($url);
+
+        if ($result === false) {
+            $this->Log("SetChargingCurrent: Fehler beim Setzen auf $ampere A!", "error");
+            return false;
+        } else {
+            $this->Log("SetChargingCurrent: Ladestrom auf $ampere A gesetzt.", "info");
+            // Direkt Status aktualisieren, damit das WebFront aktuell ist
+            $this->UpdateStatus();
+            return true;
+        }
+    }
 
     // =========================================================================
     // 9. HILFSFUNKTIONEN & GETTER/SETTER
@@ -337,6 +365,8 @@ class PVWallboxManager extends IPSModule
 
         SetValue($varID, $newValue);
     }
+
+
 
 
 }
