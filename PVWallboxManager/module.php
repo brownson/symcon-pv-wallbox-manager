@@ -57,6 +57,7 @@ class PVWallboxManager extends IPSModule
             IPS_SetVariableProfileDigits('~ElectricityPrice', 3);
             IPS_SetVariableProfileSuffix('~ElectricityPrice', ' ct/kWh');
             IPS_SetVariableProfileIcon('~ElectricityPrice', 'Euro');
+        }
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
