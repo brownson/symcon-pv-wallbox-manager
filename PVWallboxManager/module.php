@@ -31,7 +31,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'GoE.PSM',           5);
         $this->RegisterAlwProfile();
         $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',                           'GoE.ALW',           6);
-        $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',                           '~Ampere',           7);
+        $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',                           'GOECHARGER_AmpereCable',           7);
         $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',                  '~Electricity.Wh',   8);
         $this->RegisterErrorCodeProfile();
         $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                             'GoE.ErrorCode',     9);
