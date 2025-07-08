@@ -25,14 +25,14 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Status',      'Status',                                 'GoE.CarStatus',     1);
         $this->RegisterAccessStateV2Profile();
         $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                        'GoE.AccessStateV2', 2);
-        $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', 'GoE.Watt',             3);
-        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                     'GoE.Ampere', 4);
+        $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', '~Watt',             3);
+        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                     'GOECHARGER_Ampere', 4);
         $this->RegisterPSMProfile();
         $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'GoE.PSM',           5);
         $this->RegisterAlwProfile();
         $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',                           'GoE.ALW',           6);
         $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',                           'GOECHARGER_AmpereCable',           7);
-        $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',                  'GoE.Wh',   8);
+        $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',                  '~Electricity.Wh',   8);
         $this->RegisterErrorCodeProfile();
         $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                             'GoE.ErrorCode',     9);
 
@@ -428,13 +428,13 @@ class PVWallboxManager extends IPSModule
         if ($profile == 'GoE.ALW') {
             return ($value ? 'Ladefreigabe: aktiv' : 'Ladefreigabe: aus');
         }
-        if ($profile == 'GoE.Ampere') {
+        if ($profile == '~Ampere') {
             return number_format($value, 0, ',', '.') . ' A';
         }
-        if ($profile == 'GoE.Watt') {
+        if ($profile == '~Watt') {
             return number_format($value, 0, ',', '.') . ' W';
         }
-        if ($profile == 'GoE.Wh') {
+        if ($profile == '~Electricity.Wh') {
             return number_format($value, 0, ',', '.') . ' Wh';
         }
         // Standard: einfach Zahl/Bool
