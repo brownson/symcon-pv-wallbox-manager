@@ -629,60 +629,9 @@ class PVWallboxManager extends IPSModule
         return $pvUeberschuss;
     }
 
-
     // =========================================================================
     // 9. (Optional) Erweiterungen & Auslagerungen
     // =========================================================================
-
-// =========================================================================
-// Im Create() - Properties und Variablen (Ausschnitt)
-// =========================================================================
-$this->RegisterPropertyBoolean('UseMarketPrices', false);
-$this->RegisterPropertyString('MarketPriceProvider', 'awattar_at');
-$this->RegisterPropertyString('MarketPriceAPI', '');
-$this->RegisterPropertyInteger('MarketPriceInterval', 30); // Minuten
-
-$profile = 'ElectricityPrice';
-if (!IPS_VariableProfileExists($profile)) {
-    IPS_CreateVariableProfile($profile, 2); // Float
-    IPS_SetVariableProfileDigits($profile, 3);
-    if (function_exists('IPS_SetVariableProfileSuffix')) {
-        @IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
-    }
-    if (function_exists('IPS_SetVariableProfileIcon')) {
-        @IPS_SetVariableProfileIcon($profile, 'Euro');
-    }
-}
-$this->RegisterVariableFloat('CurrentSpotPrice', 'Aktueller Börsenpreis (ct/kWh)', $profile, 30);
-$this->RegisterVariableString('MarketPrices', 'Börsenpreis-Vorschau', '', 31);
-
-// =========================================================================
-// In ApplyChanges() - Timer steuern
-// =========================================================================
-public function ApplyChanges()
-{
-    parent::ApplyChanges();
-    // ... dein sonstiger Code ...
-    $interval = $this->ReadPropertyInteger('MarketPriceInterval');
-    if ($this->ReadPropertyBoolean('UseMarketPrices')) {
-        $this->RegisterTimer('PVWM_UpdateMarketPrices', $interval * 60 * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
-    } else {
-        $this->UnregisterTimer('PVWM_UpdateMarketPrices');
-    }
-    // ... andere Timer etc ...
-}
-
-// =========================================================================
-// RequestAction erweitern
-// =========================================================================
-    public function RequestAction($Ident, $Value)
-    {
-        if ($Ident === "UpdateMarketPrices") {
-            $this->AktualisiereMarktpreise();
-            return;
-        }
-        // ... deine bisherigen Zweige ...
-    }
 
     // =========================================================================
     // Neue Funktion für Marktpreis-Forecast
