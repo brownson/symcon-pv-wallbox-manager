@@ -49,21 +49,22 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyString('BatterieladungEinheit', 'W');
         $this->RegisterPropertyBoolean('InvertBatterieladung', false);
 
-        // Profil für Börsenpreis anlegen (ohne ~, robust)
-        $profile = 'ElectricityPrice';
-        if (IPS_VariableProfileExists($profile)) {
-            IPS_DeleteVariableProfile($profile);
-        }
-        IPS_CreateVariableProfile($profile, 2); // 2 = Float
-        IPS_SetVariableProfileDigits($profile, 3);
-        IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
-        IPS_SetVariableProfileIcon($profile, 'Euro');
-
-        // Strompreis-Börse / Forecast
         $this->RegisterPropertyBoolean('UseMarketPrices', false);
         $this->RegisterPropertyString('MarketPriceProvider', 'awattar_at');
         $this->RegisterPropertyString('MarketPriceAPI', '');
-        $this->RegisterPropertyInteger('MarketPriceInterval', 30);
+        $this->RegisterPropertyInteger('MarketPriceInterval', 30); // Minuten
+
+        $profile = 'ElectricityPrice';
+        if (!IPS_VariableProfileExists($profile)) {
+            IPS_CreateVariableProfile($profile, 2); // Float
+            IPS_SetVariableProfileDigits($profile, 3);
+            if (function_exists('IPS_SetVariableProfileSuffix')) {
+                @IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
+            }
+            if (function_exists('IPS_SetVariableProfileIcon')) {
+                @IPS_SetVariableProfileIcon($profile, 'Euro');
+            }
+        }
         $this->RegisterVariableFloat('CurrentSpotPrice', 'Aktueller Börsenpreis (ct/kWh)', $profile, 30);
         $this->RegisterVariableString('MarketPrices', 'Börsenpreis-Vorschau', '', 31);
 
@@ -131,7 +132,7 @@ class PVWallboxManager extends IPSModule
             return;
         }
         if ($Ident === "UpdateMarketPrices") {
-            $this->UpdateMarketPrices();
+            $this->AktualisiereMarktpreise();
             return;
         }
         throw new Exception("Invalid Ident: $Ident");
@@ -633,80 +634,122 @@ class PVWallboxManager extends IPSModule
     // 9. (Optional) Erweiterungen & Auslagerungen
     // =========================================================================
 
-    private function LadeAwattarForecast()
+// =========================================================================
+// Im Create() - Properties und Variablen (Ausschnitt)
+// =========================================================================
+$this->RegisterPropertyBoolean('UseMarketPrices', false);
+$this->RegisterPropertyString('MarketPriceProvider', 'awattar_at');
+$this->RegisterPropertyString('MarketPriceAPI', '');
+$this->RegisterPropertyInteger('MarketPriceInterval', 30); // Minuten
+
+$profile = 'ElectricityPrice';
+if (!IPS_VariableProfileExists($profile)) {
+    IPS_CreateVariableProfile($profile, 2); // Float
+    IPS_SetVariableProfileDigits($profile, 3);
+    if (function_exists('IPS_SetVariableProfileSuffix')) {
+        @IPS_SetVariableProfileSuffix($profile, ' ct/kWh');
+    }
+    if (function_exists('IPS_SetVariableProfileIcon')) {
+        @IPS_SetVariableProfileIcon($profile, 'Euro');
+    }
+}
+$this->RegisterVariableFloat('CurrentSpotPrice', 'Aktueller Börsenpreis (ct/kWh)', $profile, 30);
+$this->RegisterVariableString('MarketPrices', 'Börsenpreis-Vorschau', '', 31);
+
+// =========================================================================
+// In ApplyChanges() - Timer steuern
+// =========================================================================
+public function ApplyChanges()
+{
+    parent::ApplyChanges();
+    // ... dein sonstiger Code ...
+    $interval = $this->ReadPropertyInteger('MarketPriceInterval');
+    if ($this->ReadPropertyBoolean('UseMarketPrices')) {
+        $this->RegisterTimer('PVWM_UpdateMarketPrices', $interval * 60 * 1000, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
+    } else {
+        $this->UnregisterTimer('PVWM_UpdateMarketPrices');
+    }
+    // ... andere Timer etc ...
+}
+
+// =========================================================================
+// RequestAction erweitern
+// =========================================================================
+    public function RequestAction($Ident, $Value)
     {
-        $provider = $this->ReadPropertyString('MarketPriceProvider');
-        $url = '';
-        if ($provider == 'awattar_at') {
-            $url = 'https://api.awattar.at/v1/marketdata';
-        } elseif ($provider == 'awattar_de') {
-            $url = 'https://api.awattar.de/v1/marketdata';
-        } elseif ($provider == 'custom') {
-            $url = trim($this->ReadPropertyString('MarketPriceAPI'));
-            if ($url == '') {
-                $this->LogTemplate('warn', "Kein Custom-API-URL konfiguriert!");
-                return false;
-            }
-        } else {
-            $url = 'https://api.awattar.at/v1/marketdata';
+        if ($Ident === "UpdateMarketPrices") {
+            $this->AktualisiereMarktpreise();
+            return;
         }
-
-        $json = @file_get_contents($url);
-        if ($json === false) {
-            $this->LogTemplate('error', "API nicht erreichbar: $url");
-            return false;
-        }
-        $data = json_decode($json, true);
-        if (!isset($data['data']) || !is_array($data['data'])) {
-            $this->LogTemplate('error', "Ungültige Antwort von Strompreis-API");
-            return false;
-        }
-
-        $forecast = [];
-        foreach ($data['data'] as $item) {
-            $timestamp = intval($item['start_timestamp'] / 1000);
-            $price_eur_per_mwh = floatval($item['marketprice']);
-            $price_ct_per_kwh = $price_eur_per_mwh / 10.0;
-            $forecast[] = [
-                'timestamp' => $timestamp,
-                'price'     => round($price_ct_per_kwh, 3)
-            ];
-        }
-        return $forecast;
+        // ... deine bisherigen Zweige ...
     }
 
-    public function UpdateMarketPrices()
+    // =========================================================================
+    // Neue Funktion für Marktpreis-Forecast
+    // =========================================================================
+    private function AktualisiereMarktpreise()
     {
         if (!$this->ReadPropertyBoolean('UseMarketPrices')) {
-            $this->LogTemplate('info', "Strompreis-Update deaktiviert (UseMarketPrices=false)");
+            $this->LogTemplate('info', "Börsenpreis-Update übersprungen (deaktiviert).");
             return;
         }
 
-        $forecast = $this->LadeAwattarForecast();
-        if ($forecast === false) {
-            $this->SetValueAndLogChange('CurrentSpotPrice', 0, 'Aktueller Börsenpreis', ' ct/kWh', 'warn');
-            $this->SetValue('MarketPrices', '');
+        // Provider/URL wählen
+        $provider = $this->ReadPropertyString('MarketPriceProvider');
+        $apiUrl = '';
+        if ($provider == 'awattar_at') {
+            $apiUrl = 'https://api.awattar.at/v1/marketdata';
+        } elseif ($provider == 'awattar_de') {
+            $apiUrl = 'https://api.awattar.de/v1/marketdata';
+        } elseif ($provider == 'custom') {
+            $apiUrl = $this->ReadPropertyString('MarketPriceAPI');
+        }
+        if ($apiUrl == '') {
+            $this->LogTemplate('error', "Keine gültige API-URL für Strompreis-Provider!");
             return;
         }
 
-        // Aktueller Preis (für die laufende Stunde)
+        // Daten abrufen
+        $json = @file_get_contents($apiUrl);
+        if ($json === false) {
+            $this->LogTemplate('error', "Abruf der Börsenpreise fehlgeschlagen (URL: $apiUrl)");
+            return;
+        }
+        $data = json_decode($json, true);
+        if (!is_array($data) || !isset($data['data'])) {
+            $this->LogTemplate('error', "Fehlerhafte Antwort der API (keine 'data').");
+            return;
+        }
+
+        // --- Preise aufbereiten (nächste 36h) ---
+        $preise = [];
         $now = time();
-        $currentPrice = null;
-        foreach ($forecast as $item) {
-            if ($now >= $item['timestamp'] && $now < ($item['timestamp'] + 3600)) {
-                $currentPrice = $item['price'];
-                break;
+        $maxTimestamp = $now + 36 * 3600; // bis max 36h in die Zukunft
+
+        foreach ($data['data'] as $item) {
+            if (isset($item['start_timestamp'], $item['marketprice'])) {
+                $start = intval($item['start_timestamp'] / 1000);
+                if ($start > $maxTimestamp) break;
+                $preise[] = [
+                    'timestamp' => $start,
+                    'price' => floatval($item['marketprice'] / 10.0) // €/MWh → ct/kWh
+                ];
             }
         }
-        if ($currentPrice === null && count($forecast) > 0) {
-            // Fallback: nächster Preis
-            $currentPrice = $forecast[0]['price'];
+
+        if (count($preise) === 0) {
+            $this->LogTemplate('warn', "Keine gültigen Preisdaten gefunden!");
+            return;
         }
 
-        $this->SetValueAndLogChange('CurrentSpotPrice', $currentPrice, 'Aktueller Börsenpreis', ' ct/kWh', 'debug');
-        $this->SetValue('MarketPrices', json_encode($forecast));
-        $this->LogTemplate('ok', "Strompreis-Update: Aktuell = $currentPrice ct/kWh, Forecast gespeichert ({$forecast[0]['timestamp']}ff)");
-    }
+        // Aktuellen Preis setzen (erster Datensatz)
+        $aktuellerPreis = $preise[0]['price'];
+        $this->SetValueAndLogChange('CurrentSpotPrice', $aktuellerPreis);
 
+        // Forecast als JSON speichern
+        $this->SetValueAndLogChange('MarketPrices', json_encode($preise));
+
+        $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
+    }
 
 }
