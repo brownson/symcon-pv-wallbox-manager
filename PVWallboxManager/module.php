@@ -440,15 +440,17 @@ class PVWallboxManager extends IPSModule
             return strval($value);
         };
 
-            // Meldung zusammensetzen
-            $oldText = $formatValue($oldValue);
-            $newText = $formatValue($newValue);
-            if ($caption) {
-                $msg = "$caption geändert: $oldText → $newText";
-            } else {
-                $msg = "Wert geändert: $oldText → $newText";
-            }
+        // Meldung zusammensetzen
+        $oldText = $formatValue($oldValue);
+        $newText = $formatValue($newValue);
+        if ($caption) {
+            $msg = "$caption geändert: $oldText → $newText";
+        } else {
+            $msg = "Wert geändert: $oldText → $newText";
+        }
+
         $this->LogTemplate($level, $msg);
+
         SetValue($varID, $newValue);
     }
 
@@ -563,10 +565,9 @@ class PVWallboxManager extends IPSModule
         $pvID = $this->ReadPropertyInteger('PVErzeugungID');
         $pvEinheit = $this->ReadPropertyString('PVErzeugungEinheit');
         $pv = ($pvID > 0) ? GetValueFloat($pvID) : 0;
-        // kW → W umrechnen falls nötig
         if ($pvEinheit == "kW") $pv *= 1000;
 
-        // Hausverbrauch holen
+        // Hausverbrauch holen (inkl. Wallbox-Leistung)
         $hvID = $this->ReadPropertyInteger('HausverbrauchID');
         $hvEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
         $invertHV = $this->ReadPropertyBoolean('InvertHausverbrauch');
@@ -574,7 +575,12 @@ class PVWallboxManager extends IPSModule
         if ($hvEinheit == "kW") $hausverbrauch *= 1000;
         if ($invertHV) $hausverbrauch *= -1;
 
-        // Batterie holen (optional)
+        // Wallbox-Leistung (direkt an Auto, nur für Visualisierung)
+        $ladeleistung = $this->GetValue('Leistung'); // oder $this->GetLadeleistungAuto()
+        // Hausverbrauch abzügl. Wallbox (nur Visualisierung)
+        $hausverbrauchAbzWallbox = $hausverbrauch - $ladeleistung;
+
+        // Batterie-Ladung: Nur positiv (lädt)
         $batID = $this->ReadPropertyInteger('BatterieladungID');
         $batEinheit = $this->ReadPropertyString('BatterieladungEinheit');
         $invertBat = $this->ReadPropertyBoolean('InvertBatterieladung');
@@ -582,23 +588,29 @@ class PVWallboxManager extends IPSModule
         if ($batEinheit == "kW") $batterieladung *= 1000;
         if ($invertBat) $batterieladung *= -1;
 
+        // Verbrauch gesamt = Hausverbrauch (inkl. Wallbox) + nur wenn Batterie lädt (batterieladung > 0)
+        $verbrauchGesamt = $hausverbrauch;
+        if ($batterieladung > 0) {
+            $verbrauchGesamt += $batterieladung;
+        }
+
         // --- PV-Überschuss berechnen ---
-        $pvUeberschuss = max(0, $pv - $hausverbrauch - $batterieladung);
+        $pvUeberschuss = max(0, $pv - $verbrauchGesamt);
 
-        // In die Visualisierungsvariable schreiben
-        $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
+        // Variablen setzen und loggen
+        $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', ' W', 'debug');
+        $this->SetValueAndLogChange('Hausverbrauch_W', $hausverbrauch, 'Hausverbrauch', ' W', 'debug');
+        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallbox, 'Hausverbrauch abz. Wallbox', ' W', 'debug');
 
-        // (Optional: Hausverbrauch ebenfalls aktualisieren)
-        $this->SetValue('Hausverbrauch_W', $hausverbrauch);
-
-        // Logging/Debug
+        // Logging (kompakt)
         $this->LogTemplate(
             'debug',
-            "PV-Überschuss berechnet: PV=$pv W, Hausverbrauch=$hausverbrauch W, Batterie=$batterieladung W → Überschuss=$pvUeberschuss W"
+            "PV-Überschuss berechnet: PV=$pv W, Haus=$hausverbrauch W, Wallbox=$ladeleistung W, Batterie=$batterieladung W → Überschuss=$pvUeberschuss W"
         );
-        
+
         return $pvUeberschuss;
     }
+
 
     // =========================================================================
     // 9. (Optional) Erweiterungen & Auslagerungen
