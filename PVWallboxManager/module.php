@@ -201,6 +201,35 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+    public function SetPhaseMode(int $mode)
+    {
+        // Wertebereich prüfen: 0 = Auto, 1 = 1-phasig, 2 = 3-phasig
+        if ($mode < 0 || $mode > 2) {
+            $this->Log("SetPhaseMode: Ungültiger Wert ($mode). Erlaubt: 0=Auto, 1=1-phasig, 2=3-phasig!", "warn");
+            return false;
+        }
+
+        $ip = $this->ReadPropertyString('WallboxIP');
+        $url = "http://$ip/api/set?psm=" . intval($mode);
+
+        $modes = [0 => "Auto", 1 => "1-phasig", 2 => "3-phasig"];
+        $modeText = $modes[$mode] ?? $mode;
+
+        $this->Log("SetPhaseMode: Sende Phasenmodus '$modeText' ($mode) an $url", "info");
+
+        $result = @file_get_contents($url);
+
+        if ($result === false) {
+            $this->Log("SetPhaseMode: Fehler beim Setzen auf '$modeText' ($mode)!", "error");
+            return false;
+        } else {
+            $this->Log("SetPhaseMode: Phasenmodus auf '$modeText' ($mode) gesetzt.", "info");
+            // Direkt Status aktualisieren
+            $this->UpdateStatus();
+            return true;
+        }
+    }
+
     // =========================================================================
     // 9. HILFSFUNKTIONEN & GETTER/SETTER
     // =========================================================================
