@@ -26,7 +26,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAccessStateV2Profile();
         $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                        'GoE.AccessStateV2', 2);
         $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', '~Watt',             3);
-        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                     '~Ampere',           4);
+        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                     '',           4);
         $this->RegisterPSMProfile();
         $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'GoE.PSM',           5);
         $this->RegisterAlwProfile();
@@ -92,7 +92,7 @@ class PVWallboxManager extends IPSModule
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
-        $this->RegisterTimer('PVWM_UpdateMarketPrices2', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
+        $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
         
     }
 
@@ -112,9 +112,9 @@ class PVWallboxManager extends IPSModule
         // Strompreis-Update-Timer steuern
         if ($this->ReadPropertyBoolean('UseMarketPrices')) {
             $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval')); // Minimum 5 Minuten
-            $this->SetTimerInterval('PVWM_UpdateMarketPrices2', $marketInterval * 60 * 1000);
+            $this->SetTimerInterval('PVWM_UpdateMarketPrices', $marketInterval * 60 * 1000);
         } else {
-            $this->SetTimerInterval('PVWM_UpdateMarketPrices2', 0); // Timer AUS
+            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0); // Timer AUS
         }
     }
 
