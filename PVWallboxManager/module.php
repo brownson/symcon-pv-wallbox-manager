@@ -23,24 +23,19 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableString('Log', 'Modul-Log', '', 99);
 
         // Variablen nach API v2
-//        $this->RegisterCarStateProfile();
-        $this->RegisterVariableInteger('Status',      'Status',                                 'PVWM.CarStatus',     1);
-//        $this->RegisterAccessStateV2Profile();
-        $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                        'PVWM.AccessStateV2', 2);
-        $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', 'PVWM.Watt',         3);
-        IPS_SetIcon($this->GetIDForIdent('Leistung'), 'Flash');
-        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                    'PVWM.Ampere', 4);
-        IPS_SetIcon($this->GetIDForIdent('Ampere'), 'Energy');
+        $this->RegisterVariableInteger('Status',        'Status',                                   'PVWM.CarStatus',       1);
+        $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                            'PVWM.AccessStateV2',   2);
+        $this->RegisterVariableFloat('Leistung',        'Aktuelle Ladeleistung zum Fahrzeug (W)',   'PVWM.Watt',            3);
+        IPS_SetIcon($this->GetIDForIdent('Leistung'),   'Flash');
+        $this->RegisterVariableInteger('Ampere',        'Max. Ladestrom (A)',                       'PVWM.Ampere',          4);
+        IPS_SetIcon($this->GetIDForIdent('Ampere'),     'Energy');
 
-//        $this->RegisterPSMProfile();
-        $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'PVWM.PSM',           5);
-//        $this->RegisterAlwProfile();
-        $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',                           'PVWM.ALW',           6);
-        $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',                           'PVWM.AmpereCable',   7);
+        $this->RegisterVariableInteger('Phasenmodus',   'Phasenmodus',                              'PVWM.PSM',             5);
+        $this->RegisterVariableBoolean('Freigabe',      'Ladefreigabe',                             'PVWM.ALW',             6);
+        $this->RegisterVariableInteger('Kabelstrom',    'Kabeltyp (A)',                             'PVWM.AmpereCable',     7);
         IPS_SetIcon($this->GetIDForIdent('Kabelstrom'), 'Energy');
-        $this->RegisterVariableFloat('Energie',       'Geladene Energie (Wh)',                 'PVWM.Wh',    8);
-//        $this->RegisterErrorCodeProfile();
-        $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                             'PVWM.ErrorCode',     9);
+        $this->RegisterVariableFloat('Energie',         'Geladene Energie (Wh)',                    'PVWM.Wh',              8);
+        $this->RegisterVariableInteger('Fehlercode',    'Fehlercode',                               'PVWM.ErrorCode',       9);
 
         // === 3. Energiequellen ===
         $this->RegisterPropertyInteger('PVErzeugungID', 0);
@@ -60,7 +55,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyString('MarketPriceAPI', '');
         $this->RegisterPropertyInteger('MarketPriceInterval', 30); // Minuten
 
-        $this->RegisterVariableFloat('CurrentSpotPrice','Aktueller Börsenpreis (ct/kWh)',      'PVWM.CentPerKWh', 30);
+        $this->RegisterVariableFloat('CurrentSpotPrice','Aktueller Börsenpreis (ct/kWh)',                   'PVWM.CentPerKWh', 30);
         $this->RegisterVariableString('MarketPrices', 'Börsenpreis-Vorschau', '', 31);
 
         // Zielzeit für Zielzeitladung
@@ -68,22 +63,22 @@ class PVWallboxManager extends IPSModule
         IPS_SetIcon($this->GetIDForIdent('TargetTime'), 'clock');
 
         // === Modul-Variablen für Visualisierung, Status, Lademodus etc. ===
-        $this->RegisterVariableFloat('PV_Ueberschuss','☀️ PV-Überschuss (W)',                  'PVWM.Watt', 10);
+        $this->RegisterVariableFloat('PV_Ueberschuss','☀️ PV-Überschuss (W)',                               'PVWM.Watt', 10);
         IPS_SetIcon($this->GetIDForIdent('PV_Ueberschuss'), 'solar-panel');
 
         // Hausverbrauch (W)
-        $this->RegisterVariableFloat('Hausverbrauch_W','🏠 Hausverbrauch (W)',                  'PVWM.Watt', 12);
+        $this->RegisterVariableFloat('Hausverbrauch_W','🏠 Hausverbrauch (W)',                              'PVWM.Watt', 12);
         IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_W'), 'home');
 
         // Hausverbrauch abzügl. Wallbox (W) – wie vorher empfohlen
-        $this->RegisterVariableFloat('Hausverbrauch_abz_Wallbox','🏠 Hausverbrauch abzügl. Wallbox (W)','PVWM.Watt',15);
+        $this->RegisterVariableFloat('Hausverbrauch_abz_Wallbox','🏠 Hausverbrauch abzügl. Wallbox (W)',    'PVWM.Watt',15);
         IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_abz_Wallbox'), 'home');
 
         // Lademodi
         $this->RegisterVariableBoolean('ManuellLaden', '🔌 Manuell: Vollladen aktiv', '~Switch', 40);
         $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV2Car-Modus', '~Switch', 41);
         $this->RegisterVariableBoolean('ZielzeitLaden', '⏰ Zielzeit-Ladung', '~Switch', 42);
-        $this->RegisterVariableInteger('PVAnteil',    'PV-Anteil (%)',                         'PVWM.Percent',43);
+        $this->RegisterVariableInteger('PVAnteil',    'PV-Anteil (%)',                                      'PVWM.Percent',43);
         IPS_SetIcon($this->GetIDForIdent('PVAnteil'), 'Percent');
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
@@ -480,85 +475,7 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate($level, $msg);
         SetValue($varID, $newValue);
     }
-    /*
-    private function RegisterCarStateProfile()
-        {
-            $profile = 'GoE.CarStatus';
-            if (!IPS_VariableProfileExists($profile)) {
-                IPS_CreateVariableProfile($profile, 1); // 1 = Integer
-                IPS_SetVariableProfileValues($profile, 1, 4, 1);
-                IPS_SetVariableProfileAssociation($profile, 0, 'Unbekannt/Firmwarefehler', '', 0x888888);
-                IPS_SetVariableProfileAssociation($profile, 1, 'Ladestation bereit, kein Fahrzeug', '', 0xAAAAAA);
-                IPS_SetVariableProfileAssociation($profile, 2, 'Fahrzeug lädt', '', 0x00FF00);
-                IPS_SetVariableProfileAssociation($profile, 3, 'Warte auf Fahrzeug', '', 0x0088FF);
-                IPS_SetVariableProfileAssociation($profile, 4, 'Ladung beendet, Fahrzeug noch verbunden', '', 0xFFFF00);
-                IPS_SetVariableProfileAssociation($profile, 5, 'Fehler', '', 0xFF0000);
-            }
-    }
-
-    private function RegisterPSMProfile()
-    {
-        $profile = 'GoE.PSM';
-        if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 1); // Integer
-            IPS_SetVariableProfileAssociation($profile, 0, 'Auto', '', 0xAAAAAA);
-            IPS_SetVariableProfileAssociation($profile, 1, '1-phasig', '', 0x00ADEF);
-            IPS_SetVariableProfileAssociation($profile, 2, '3-phasig', '', 0xFF9900);
-        }
-    }
-
-    private function RegisterAlwProfile()
-    {
-        $profile = 'GoE.ALW';
-        if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 0); // 0 = Boolean
-            IPS_SetVariableProfileAssociation($profile, false, 'Nicht freigegeben', '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, true,  'Laden freigegeben', '', 0x44FF44);
-        }
-    }
-
-    private function RegisterAccessStateV2Profile()
-    {
-        $profile = 'GoE.AccessStateV2';
-        if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 1); // Integer
-            IPS_SetVariableProfileAssociation($profile, 0, 'Neutral (Wallbox entscheidet)', '', 0xAAAAAA);
-            IPS_SetVariableProfileAssociation($profile, 1, 'Nicht Laden (gesperrt)', '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 2, 'Laden (erzwungen)', '', 0x44FF44);
-        }
-    }
-
-    private function RegisterErrorCodeProfile()
-    {
-        $profile = 'GoE.ErrorCode';
-        if (!IPS_VariableProfileExists($profile)) {
-            IPS_CreateVariableProfile($profile, 1); // Integer
-            IPS_SetVariableProfileAssociation($profile, 0,  'Kein Fehler',           '', 0x44FF44);
-            IPS_SetVariableProfileAssociation($profile, 1,  'FI AC',                '', 0xFFAA00);
-            IPS_SetVariableProfileAssociation($profile, 2,  'FI DC',                '', 0xFFAA00);
-            IPS_SetVariableProfileAssociation($profile, 3,  'Phasenfehler',         '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 4,  'Überspannung',         '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 5,  'Überstrom',            '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 6,  'Diodenfehler',         '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 7,  'PP ungültig',          '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 8,  'GND ungültig',         '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 9,  'Schütz hängt',         '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 10, 'Schütz fehlt',         '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 11, 'FI unbekannt',         '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 12, 'Unbekannter Fehler',   '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 13, 'Übertemperatur',       '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 14, 'Keine Kommunikation',  '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 15, 'Verriegelung klemmt offen', '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 16, 'Verriegelung klemmt verriegelt', '', 0xFF4444);
-            IPS_SetVariableProfileAssociation($profile, 20, 'Reserviert 20',        '', 0xAAAAAA);
-            IPS_SetVariableProfileAssociation($profile, 21, 'Reserviert 21',        '', 0xAAAAAA);
-            IPS_SetVariableProfileAssociation($profile, 22, 'Reserviert 22',        '', 0xAAAAAA);
-            IPS_SetVariableProfileAssociation($profile, 23, 'Reserviert 23',        '', 0xAAAAAA);
-            IPS_SetVariableProfileAssociation($profile, 24, 'Reserviert 24',        '', 0xAAAAAA);
-        }
-    }
-    */
-
+    
     // =========================================================================
     // 7. LOGGING / STATUSMELDUNGEN / DEBUG
     // =========================================================================
