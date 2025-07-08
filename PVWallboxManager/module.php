@@ -597,7 +597,7 @@ class PVWallboxManager extends IPSModule
         if ($invertBat) $batterieladung *= -1;
 
         // --- PV-Überschuss berechnen ---
-        $pvUeberschuss = $pv - $hausverbrauch - $batterieladung;
+        $pvUeberschuss = max(0, $pv - $hausverbrauch - $batterieladung);
 
         // In die Visualisierungsvariable schreiben
         $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
