@@ -23,16 +23,18 @@ class PVWallboxManager extends IPSModule
 
         // Variablen nach API v2
         $this->RegisterCarStateProfile();
-        $this->RegisterVariableInteger('Status',      'Fahrzeugstatus',         'GoE.CarStatus',    1);
-        $this->RegisterVariableFloat('Leistung',      'Ladeleistung (W)',       '~Watt',            2);
-        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',     '~Ampere',          3);
+        $this->RegisterVariableInteger('Status',      'Status',                                 'GoE.CarStatus',    1);
+        $this->RegisterAccessStateV2Profile();
+        $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                        'GoE.AccessStateV2', 2);
+        $this->RegisterVariableFloat('Leistung',      'Aktuelle Ladeleistung zum Fahrzeug (W)', '~Watt',            3);
+        $this->RegisterVariableInteger('Ampere',      'Max. Ladestrom (A)',                     '~Ampere',          4);
         $this->RegisterPSMProfile();
-        $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',            'GoE.PSM',          4);
+        $this->RegisterVariableInteger('Phasenmodus', 'Phasenmodus',                            'GoE.PSM',          5);
         $this->RegisterAlwProfile();
-        $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',           'GoE.ALW',          5);
-        $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',           '~Ampere',          6);
-        $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',             '',                 7);
-        $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',  '~Electricity.Wh',  8);
+        $this->RegisterVariableBoolean('Freigabe',    'Ladefreigabe',                           'GoE.ALW',          6);
+        $this->RegisterVariableInteger('Kabelstrom',  'Kabeltyp (A)',                           '~Ampere',          7);
+        $this->RegisterVariableInteger('Fehlercode',  'Fehlercode',                              '',                 8);
+        $this->RegisterVariableInteger('Energie',     'Geladene Energie (Wh)',                  '~Electricity.Wh',  9);
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
@@ -157,10 +159,12 @@ class PVWallboxManager extends IPSModule
         $fehlercode  = isset($data['err'])          ? intval($data['err'])         : 0;
         $psm         = isset($data['psm'])          ? intval($data['psm'])         : 0;
         $pha         =       $data['pha']           ??            [];
+        $accessStateV2 = isset($data['accessStateV2']) ? intval($data['accessStateV2']) : 0;
 
         // Jetzt Werte NUR bei Änderung schreiben und loggen:
-        $this->SetValueAndLogChange('Status',      $car,         'Fahrzeugstatus');
-        $this->SetValueAndLogChange('Leistung',    $leistung,    'Ladeleistung', 'W');
+        $this->SetValueAndLogChange('Status',      $car,         'Status');
+        $this->SetValueAndLogChange('AccessStateV2', $accessStateV2, 'Wallbox Modus');
+        $this->SetValueAndLogChange('Leistung',    $leistung,    'Aktuelle Ladeleistung zum Fahrzeug', 'W');
         $this->SetValueAndLogChange('Ampere',      $ampere,      'Maximaler Ladestrom', 'A');
         $this->SetValueAndLogChange('Phasenmodus', $psm,         'Phasenmodus');
         $this->SetValueAndLogChange('Energie',     $energie,     'Geladene Energie', 'Wh');
@@ -210,6 +214,18 @@ class PVWallboxManager extends IPSModule
             IPS_SetVariableProfileAssociation($profile, true,  'Laden freigegeben', '', 0x44FF44);
         }
     }
+
+    private function RegisterAccessStateV2Profile()
+    {
+        $profile = 'GoE.AccessStateV2';
+        if (!IPS_VariableProfileExists($profile)) {
+            IPS_CreateVariableProfile($profile, 1); // Integer
+            IPS_SetVariableProfileAssociation($profile, 0, 'Neutral (Wallbox entscheidet)', '', 0xAAAAAA);
+            IPS_SetVariableProfileAssociation($profile, 1, 'Nicht Laden (gesperrt)', '', 0xFF4444);
+            IPS_SetVariableProfileAssociation($profile, 2, 'Laden (erzwungen)', '', 0x44FF44);
+        }
+    }
+
 
     // =========================================================================
     // 8. LOGGING / STATUSMELDUNGEN / DEBUG
@@ -300,6 +316,14 @@ class PVWallboxManager extends IPSModule
         if (is_numeric($value)) {
             return number_format($value, 0, ',', '.');
         }
+        if ($profile == 'GoE.AccessStateV2') {
+        $map = [
+            0 => 'Neutral (Wallbox entscheidet)',
+            1 => 'Nicht Laden (gesperrt)',
+            2 => 'Laden (erzwungen)'
+        ];
+        return $map[intval($value)] ?? $value;
+    }
         return strval($value);
     };
 
