@@ -699,13 +699,17 @@ class PVWallboxManager extends IPSModule
         SetValue($varID, $newValue);
     }
 
-    private function GetFrcText($frc)
+    private function ProfileValueText($profile, $value)
     {
-        switch (intval($frc)) {
-            case 0: return 'Neutral (Wallbox entscheidet)';
-            case 1: return 'Nicht Laden (gesperrt)';
-            case 2: return 'Laden (erzwungen)';
-            default: return 'Unbekannt (' . $frc . ')';
+        switch ($profile) {
+            case 'PVWM.AccessStateV2':
+                return $this->GetFrcText($value);
+            case 'PVWM.PSM':
+                $map = [0 => 'Auto', 1 => '1-phasig', 2 => '3-phasig'];
+                return $map[intval($value)] ?? $value;
+            // ... weitere Profile nach Bedarf ...
+            default:
+                return $value;
         }
     }
     
