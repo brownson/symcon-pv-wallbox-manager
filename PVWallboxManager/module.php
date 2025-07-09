@@ -23,6 +23,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableString('Log', 'Modul-Log', '', 99);
         $this->RegisterPropertyInteger('MinAmpere', 6);   // Minimal möglicher Ladestrom
         $this->RegisterPropertyInteger('MaxAmpere', 16);  // Maximal möglicher Ladestrom
+        $this->RegisterPropertyInteger('Phasen1Schwelle', 1400); // Beispiel: 1-phasig ab < 1.400 W
+        $this->RegisterPropertyInteger('Phasen3Schwelle', 3800); // Beispiel: 3-phasig ab > 4.200 W
+
 
         // Variablen nach API v2
         $this->RegisterVariableInteger('Status',        'Status',                                   'PVWM.CarStatus',       1);
@@ -665,7 +668,11 @@ class PVWallboxManager extends IPSModule
             "PV-Überschuss: PV=$pv W, Haus=$hausverbrauch W, Wallbox=$ladeleistung W, Batterie=$batterieladung W, Phasenmodus=$anzPhasen → Überschuss=$pvUeberschuss W / $ampere A"
         );
 
-            return $pvUeberschuss;
+        return [
+            'ueberschuss_w' => $pvUeberschuss,
+            'ueberschuss_a' => $ampere,
+            'phasenmodus'   => $anzPhasen
+        ];
     }
 
     // =========================================================================
