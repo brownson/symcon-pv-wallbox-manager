@@ -68,6 +68,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableFloat('PV_Ueberschuss','☀️ PV-Überschuss (W)',                               'PVWM.Watt', 10);
         IPS_SetIcon($this->GetIDForIdent('PV_Ueberschuss'), 'solar-panel');
 
+        $this->RegisterVariableInteger('PV_Ueberschuss_A', 'PV-Überschuss (A)',                             'PVWM.Ampere', 11);
+        IPS_SetIcon($this->GetIDForIdent('PV_Ueberschuss_A'), 'Energy');
+
         // Hausverbrauch (W)
         $this->RegisterVariableFloat('Hausverbrauch_W','🏠 Hausverbrauch (W)',                              'PVWM.Watt', 12);
         IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_W'), 'home');
@@ -631,10 +634,23 @@ class PVWallboxManager extends IPSModule
         // --- PV-Überschuss berechnen ---
         $pvUeberschuss = max(0, $pv - $verbrauchGesamt);
 
+        // --- Ladestrom berechnen (A) ---
+        // Phasenmodus bestimmen (ggf. aus Variable, oder Standard = 1 Phase)
+        $psm = $this->GetValue('Phasenmodus'); // oder wie du gerade den Phasenmodus hältst
+        $anzPhasen = ($psm == 2) ? 3 : 1; // 1 = 1-phasig, 2 = 3-phasig
+
+        $minAmp = $this->ReadPropertyInteger('MinAmpere');
+        $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+
+        // Berechne den Ladestrom als ganzzahligen Wert
+        $ampere = floor($pvUeberschuss / (230 * $anzPhasen));
+        $ampere = max($minAmp, min($maxAmp, $ampere));
+
         // Variablen setzen und loggen
         $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', ' W', 'debug');
         $this->SetValueAndLogChange('Hausverbrauch_W', $hausverbrauch, 'Hausverbrauch', ' W', 'debug');
         $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallbox, 'Hausverbrauch abz. Wallbox', ' W', 'debug');
+        $this->SetValueAndLogChange('PV_Ueberschuss_A', $ampere, 'PV-Überschuss (A)', 'A', 'debug');
 
         // Logging (kompakt)
         $this->LogTemplate(
