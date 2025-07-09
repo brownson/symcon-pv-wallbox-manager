@@ -4,7 +4,7 @@ class PVWallboxManager extends IPSModule
 {
 
     // =========================================================================
-    // 1. Initialisierung
+    // 1. KONSTRUKTOR & INITIALISIERUNG
     // =========================================================================
 
     public function Create()
@@ -109,7 +109,95 @@ class PVWallboxManager extends IPSModule
     }
 
     // =========================================================================
-    // 2. Events & RequestAction
+    // 2. PROFILE & VARIABLEN-PROFILE
+    // =========================================================================
+
+    private function RegisterCustomProfiles()
+    {
+        // Hilfsfunktion für Anlage/Löschen/Suffix/Icon/Assoziationen
+        $create = function($name, $type, $digits, $suffix, $icon = '', $associations = null) {
+            if (IPS_VariableProfileExists($name)) {
+                IPS_DeleteVariableProfile($name);
+            }
+            IPS_CreateVariableProfile($name, $type);
+            IPS_SetVariableProfileDigits($name, $digits);
+            IPS_SetVariableProfileText($name, '', $suffix);
+            if (!empty($icon)) {
+                IPS_SetVariableProfileIcon($name, $icon);
+            }
+            if (is_array($associations)) {
+                foreach ($associations as $idx => $a) {
+                    // [Wert, Name, Icon, Farbe]
+                    IPS_SetVariableProfileAssociation($name, $a[0], $a[1], $a[2] ?? '', $a[3] ?? -1);
+                }
+            }
+        };
+
+        // Integer-Profile (mit Assoziationen, wo nötig)
+        $create('PVWM.CarStatus', VARIABLETYPE_INTEGER, 0, '', 'Car', [
+            [0, 'Unbekannt/Firmwarefehler', '', 0x888888],
+            [1, 'Bereit, kein Fahrzeug',     '', 0xAAAAAA],
+            [2, 'Fahrzeug lädt',             '', 0x00FF00],
+            [3, 'Warte auf Fahrzeug',        '', 0x0088FF],
+            [4, 'Ladung beendet',            '', 0xFFFF00],
+            [5, 'Fehler',                    '', 0xFF0000]
+        ]);
+
+        $create('PVWM.ErrorCode', VARIABLETYPE_INTEGER, 0, '', 'Alert', [
+            [0,  'Kein Fehler',                 '', 0x44FF44],
+            [1,  'FI AC',                       '', 0xFFAA00],
+            [2,  'FI DC',                       '', 0xFFAA00],
+            [3,  'Phasenfehler',                '', 0xFF4444],
+            [4,  'Überspannung',                '', 0xFF4444],
+            [5,  'Überstrom',                   '', 0xFF4444],
+            [6,  'Diodenfehler',                '', 0xFF4444],
+            [7,  'PP ungültig',                 '', 0xFF4444],
+            [8,  'GND ungültig',                '', 0xFF4444],
+            [9,  'Schütz hängt',                '', 0xFF4444],
+            [10, 'Schütz fehlt',                '', 0xFF4444],
+            [11, 'FI unbekannt',                '', 0xFF4444],
+            [12, 'Unbekannter Fehler',          '', 0xFF4444],
+            [13, 'Übertemperatur',              '', 0xFF4444],
+            [14, 'Keine Kommunikation',         '', 0xFF4444],
+            [15, 'Verriegelung klemmt offen',   '', 0xFF4444],
+            [16, 'Verriegelung klemmt verriegelt', '', 0xFF4444],
+            [20, 'Reserviert 20',               '', 0xAAAAAA],
+            [21, 'Reserviert 21',               '', 0xAAAAAA],
+            [22, 'Reserviert 22',               '', 0xAAAAAA],
+            [23, 'Reserviert 23',               '', 0xAAAAAA],
+            [24, 'Reserviert 24',               '', 0xAAAAAA]
+        ]);
+
+        $create('PVWM.AccessStateV2', VARIABLETYPE_INTEGER, 0, '', 'Lock', [
+            [0, 'Neutral (Wallbox entscheidet)', '', 0xAAAAAA],
+            [1, 'Nicht Laden (gesperrt)',        '', 0xFF4444],
+            [2, 'Laden (erzwungen)',             '', 0x44FF44]
+        ]);
+
+        $create('PVWM.PSM', VARIABLETYPE_INTEGER, 0, '', 'Lightning', [
+            [0, 'Auto',     '', 0xAAAAAA],
+            [1, '1-phasig', '', 0x00ADEF],
+            [2, '3-phasig', '', 0xFF9900]
+        ]);
+
+        $create('PVWM.ALW', VARIABLETYPE_BOOLEAN, 0, '', 'Power', [
+            [false, 'Nicht freigegeben', '', 0xFF4444],
+            [true,  'Laden freigegeben', '', 0x44FF44]
+        ]);
+
+        $create('PVWM.AmpereCable', VARIABLETYPE_INTEGER, 0, ' A', 'Energy');
+
+        // Die bisherigen Profile
+        $create('PVWM.Ampere',      VARIABLETYPE_INTEGER, 0, ' A',      'Energy');
+        $create('PVWM.Percent',     VARIABLETYPE_INTEGER, 0, ' %',      'Percent');
+        $create('PVWM.Watt',        VARIABLETYPE_FLOAT,   0, ' W',      'Flash');
+        $create('PVWM.W',           VARIABLETYPE_FLOAT,   0, ' W',      'Flash');
+        $create('PVWM.CentPerKWh',  VARIABLETYPE_FLOAT,   3, ' ct/kWh', 'Euro');
+        $create('PVWM.Wh',          VARIABLETYPE_FLOAT,   0, ' Wh',     'Lightning');
+    }
+
+    // =========================================================================
+    // 3. EVENTS & REQUESTACTION
     // =========================================================================
 
     public function RequestAction($Ident, $Value)
@@ -126,7 +214,7 @@ class PVWallboxManager extends IPSModule
     }
 
     // =========================================================================
-    // 3. Wallbox-Kommunikation (API-Funktionen)
+    // 4. WALLBOX-KOMMUNIKATION (API)
     // =========================================================================
 
     private function getStatusFromCharger()
@@ -196,7 +284,7 @@ class PVWallboxManager extends IPSModule
     }
 
     // =========================================================================
-    // 4. Zentrale Steuerlogik
+    // 5. HAUPT-STEUERLOGIK
     // =========================================================================
 
     public function UpdateStatus(string $mode = 'pvonly')
@@ -236,7 +324,7 @@ class PVWallboxManager extends IPSModule
     }
 
     // =========================================================================
-    // 5. Set-Funktionen (Wallbox steuern)
+    // 6. WALLBOX STEUERN (SET-FUNKTIONEN)
     // =========================================================================
 
     public function SetChargingCurrent(int $ampere)
@@ -379,7 +467,7 @@ class PVWallboxManager extends IPSModule
     }
 
     // =========================================================================
-    // 6. Hilfsfunktionen
+    // 7. HILFSFUNKTIONEN & WERTLOGGING
     // =========================================================================
 
     private function SetValueAndLogChange($ident, $newValue, $caption = '', $unit = '', $level = 'info')
@@ -477,7 +565,7 @@ class PVWallboxManager extends IPSModule
     }
     
     // =========================================================================
-    // 7. LOGGING / STATUSMELDUNGEN / DEBUG
+    // 8. LOGGING / DEBUG / STATUSMELDUNGEN
     // =========================================================================
 
     private function LogTemplate($type, $short, $detail = '')
@@ -501,7 +589,7 @@ class PVWallboxManager extends IPSModule
         }
 
     // =========================================================================
-    // 8. Berechnungen
+    // 9. BERECHNUNGEN
     // =========================================================================
 
     private function BerechnePVUeberschuss()
@@ -557,12 +645,9 @@ class PVWallboxManager extends IPSModule
     }
 
     // =========================================================================
-    // 9. (Optional) Erweiterungen & Auslagerungen
+    // 10. EXTERNE SCHNITTSTELLEN & FORECAST
     // =========================================================================
 
-    // =========================================================================
-    // Neue Funktion für Marktpreis-Forecast
-    // =========================================================================
     private function AktualisiereMarktpreise()
     {
         if (!$this->ReadPropertyBoolean('UseMarketPrices')) {
@@ -626,90 +711,6 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('MarketPrices', json_encode($preise));
 
         $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
-    }
-
-    private function RegisterCustomProfiles()
-    {
-        // Hilfsfunktion für Anlage/Löschen/Suffix/Icon/Assoziationen
-        $create = function($name, $type, $digits, $suffix, $icon = '', $associations = null) {
-            if (IPS_VariableProfileExists($name)) {
-                IPS_DeleteVariableProfile($name);
-            }
-            IPS_CreateVariableProfile($name, $type);
-            IPS_SetVariableProfileDigits($name, $digits);
-            IPS_SetVariableProfileText($name, '', $suffix);
-            if (!empty($icon)) {
-                IPS_SetVariableProfileIcon($name, $icon);
-            }
-            if (is_array($associations)) {
-                foreach ($associations as $idx => $a) {
-                    // [Wert, Name, Icon, Farbe]
-                    IPS_SetVariableProfileAssociation($name, $a[0], $a[1], $a[2] ?? '', $a[3] ?? -1);
-                }
-            }
-        };
-
-        // Integer-Profile (mit Assoziationen, wo nötig)
-        $create('PVWM.CarStatus', VARIABLETYPE_INTEGER, 0, '', 'Car', [
-            [0, 'Unbekannt/Firmwarefehler', '', 0x888888],
-            [1, 'Bereit, kein Fahrzeug',     '', 0xAAAAAA],
-            [2, 'Fahrzeug lädt',             '', 0x00FF00],
-            [3, 'Warte auf Fahrzeug',        '', 0x0088FF],
-            [4, 'Ladung beendet',            '', 0xFFFF00],
-            [5, 'Fehler',                    '', 0xFF0000]
-        ]);
-
-        $create('PVWM.ErrorCode', VARIABLETYPE_INTEGER, 0, '', 'Alert', [
-            [0,  'Kein Fehler',                 '', 0x44FF44],
-            [1,  'FI AC',                       '', 0xFFAA00],
-            [2,  'FI DC',                       '', 0xFFAA00],
-            [3,  'Phasenfehler',                '', 0xFF4444],
-            [4,  'Überspannung',                '', 0xFF4444],
-            [5,  'Überstrom',                   '', 0xFF4444],
-            [6,  'Diodenfehler',                '', 0xFF4444],
-            [7,  'PP ungültig',                 '', 0xFF4444],
-            [8,  'GND ungültig',                '', 0xFF4444],
-            [9,  'Schütz hängt',                '', 0xFF4444],
-            [10, 'Schütz fehlt',                '', 0xFF4444],
-            [11, 'FI unbekannt',                '', 0xFF4444],
-            [12, 'Unbekannter Fehler',          '', 0xFF4444],
-            [13, 'Übertemperatur',              '', 0xFF4444],
-            [14, 'Keine Kommunikation',         '', 0xFF4444],
-            [15, 'Verriegelung klemmt offen',   '', 0xFF4444],
-            [16, 'Verriegelung klemmt verriegelt', '', 0xFF4444],
-            [20, 'Reserviert 20',               '', 0xAAAAAA],
-            [21, 'Reserviert 21',               '', 0xAAAAAA],
-            [22, 'Reserviert 22',               '', 0xAAAAAA],
-            [23, 'Reserviert 23',               '', 0xAAAAAA],
-            [24, 'Reserviert 24',               '', 0xAAAAAA]
-        ]);
-
-        $create('PVWM.AccessStateV2', VARIABLETYPE_INTEGER, 0, '', 'Lock', [
-            [0, 'Neutral (Wallbox entscheidet)', '', 0xAAAAAA],
-            [1, 'Nicht Laden (gesperrt)',        '', 0xFF4444],
-            [2, 'Laden (erzwungen)',             '', 0x44FF44]
-        ]);
-
-        $create('PVWM.PSM', VARIABLETYPE_INTEGER, 0, '', 'Lightning', [
-            [0, 'Auto',     '', 0xAAAAAA],
-            [1, '1-phasig', '', 0x00ADEF],
-            [2, '3-phasig', '', 0xFF9900]
-        ]);
-
-        $create('PVWM.ALW', VARIABLETYPE_BOOLEAN, 0, '', 'Power', [
-            [false, 'Nicht freigegeben', '', 0xFF4444],
-            [true,  'Laden freigegeben', '', 0x44FF44]
-        ]);
-
-        $create('PVWM.AmpereCable', VARIABLETYPE_INTEGER, 0, ' A', 'Energy');
-
-        // Die bisherigen Profile
-        $create('PVWM.Ampere',      VARIABLETYPE_INTEGER, 0, ' A',      'Energy');
-        $create('PVWM.Percent',     VARIABLETYPE_INTEGER, 0, ' %',      'Percent');
-        $create('PVWM.Watt',        VARIABLETYPE_FLOAT,   0, ' W',      'Flash');
-        $create('PVWM.W',           VARIABLETYPE_FLOAT,   0, ' W',      'Flash');
-        $create('PVWM.CentPerKWh',  VARIABLETYPE_FLOAT,   3, ' ct/kWh', 'Euro');
-        $create('PVWM.Wh',          VARIABLETYPE_FLOAT,   0, ' Wh',     'Lightning');
     }
 
 }
