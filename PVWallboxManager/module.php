@@ -886,4 +886,5 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
     }
 
+    
 }
