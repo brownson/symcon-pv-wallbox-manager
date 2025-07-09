@@ -370,13 +370,13 @@ class PVWallboxManager extends IPSModule
 
         $result = curl_exec($ch);
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
+        $error = curl_error($ch);
         curl_close($ch);
 
         return [
-            'result'    => $result,
-            'httpcode'  => $httpcode,
-            'error'     => $curlError
+            'result'   => $result,
+            'httpcode' => $httpcode,
+            'error'    => $error
         ];
     }
 
