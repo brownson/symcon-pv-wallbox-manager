@@ -89,6 +89,13 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('PVAnteil',    'PV-Anteil (%)',                                      'PVWM.Percent',43);
         IPS_SetIcon($this->GetIDForIdent('PVAnteil'), 'Percent');
 
+        // Im Create()-Bereich, nach den anderen Variablen
+        $this->RegisterVariableInteger('PhasenmodusEinstellung', 'Phasenmodus (Einstellung)', 'PVWM.PSM', 50);
+        IPS_SetIcon($this->GetIDForIdent('PhasenmodusEinstellung'), 'Lightning');
+        $this->RegisterVariableInteger('Phasenmodus', 'Genutzte Phasen', '', 51);
+        IPS_SetIcon($this->GetIDForIdent('Phasenmodus'), 'Lightning');
+
+
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
         $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
@@ -324,8 +331,7 @@ class PVWallboxManager extends IPSModule
 
         $this->SetValueAndLogChange('PhasenmodusEinstellung', $psm, 'Phasenmodus (Einstellung)', '', 'debug');
 
-        // Aktive Phasen anhand der nrg-Array Stromwerte ermitteln
-        //$phasenSchwelle = $this->ReadPropertyFloat('PhaseAmpThreshold'); // z.B. 1.5A ev. als Property anlegen
+        // Tatsächlich genutzte Phasen ermitteln aus nrg[4..6]
         $phasenSchwelle = 1.5; // 1.5A als Schwelle zur Phasenerkennung (hartcodiert)
 
 //        if ($phasenSchwelle <= 0) $phasenSchwelle = 1.5;
@@ -333,17 +339,20 @@ class PVWallboxManager extends IPSModule
         $anzPhasen = 0;
         if (isset($data['nrg'][4]) && isset($data['nrg'][5]) && isset($data['nrg'][6])) {
             $phasenAmpere = [
-                floatval($data['nrg'][4]),
-                floatval($data['nrg'][5]),
-                floatval($data['nrg'][6])
+                abs(floatval($data['nrg'][4])),
+                abs(floatval($data['nrg'][5])),
+                abs(floatval($data['nrg'][6]))
             ];
             foreach ($phasenAmpere as $a) {
                 if ($a > $phasenSchwelle) $anzPhasen++;
             }
+            if ($anzPhasen === 0) $anzPhasen = 1;
         } else {
-            $anzPhasen = 1; // Fallback
+            $anzPhasen = 1;
         }
-        $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Aktiv genutzte Phasen', '', 'debug');
+//        $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Aktiv genutzte Phasen', '', 'debug');
+        $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
+
 
         // Kompatibel beide Felder für forceState/AccessStateV2 abfragen
         $accessStateV2 = 0;
@@ -379,8 +388,7 @@ class PVWallboxManager extends IPSModule
         $this->PruefeUndSetzePhasenmodus($pvUeberschuss);
 
         // Ladefreigabe steuern (z.B. im pvonly Modus)
-//        $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasen); ?????
-        $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasenCalc);
+        $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasen);
     }
 
     // =========================================================================
