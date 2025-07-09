@@ -828,7 +828,7 @@ class PVWallboxManager extends IPSModule
         $minAmp = $this->ReadPropertyInteger('MinAmpere');
         $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
         // Division durch die tatsächlich genutzte Phasenzahl
-        $ampere = floor($pvUeberschuss / (230 * $anzPhasen));
+        $ampere = ceil($pvUeberschuss / (230 * $anzPhasen));
         $ampere = max($minAmp, min($maxAmp, $ampere));
 
         // === ALLE Variablen setzen ===
@@ -840,7 +840,7 @@ class PVWallboxManager extends IPSModule
         // Logging
         $this->LogTemplate(
             'debug',
-            "PV-Überschuss: PV=$pv W, Haus=$hausverbrauch W, Wallbox=$ladeleistung W, Batterie=$batterieladung W, Phasenmodus=$anzPhasen → Überschuss=$pvUeberschuss W / $ampere A"
+            "PV-Überschuss: PV=$pv W, Haus=$hausverbrauchAbzWallbox W, Wallbox=$ladeleistung W, Batterie=$batterieladung W, Phasenmodus=$anzPhasen → Überschuss=$pvUeberschuss W / $ampere A"
         );
 
         // Rückgabe für die Steuerlogik
