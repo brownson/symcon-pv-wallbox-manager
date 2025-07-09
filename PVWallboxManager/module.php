@@ -689,8 +689,19 @@ class PVWallboxManager extends IPSModule
         // --- PV-Überschuss berechnen ---
         $pvUeberschuss = max(0, $pv - $verbrauchGesamt);
 
-        // Phasenmodus aus aktueller Variable holen
-        $aktuellerPhasenmodus = $this->GetValue('Phasenmodus'); // 1=1-phasig, 2=3-phasig
+        // === PHASENUMSCHALTUNG ===
+        $schwelle1 = $this->ReadPropertyInteger('Phasen1Schwelle');
+        $schwelle3 = $this->ReadPropertyInteger('Phasen3Schwelle');
+        $aktuellerPhasenmodus = $this->GetValue('Phasenmodus');
+
+        // Umschalt-Logik
+        if ($pvUeberschuss >= $schwelle3 && $aktuellerPhasenmodus != 2) {
+            $this->SetValueAndLogChange('Phasenmodus', 2, 'Phasenumschaltung', '', 'ok');
+            $aktuellerPhasenmodus = 2; // Direkt anpassen!
+        } elseif ($pvUeberschuss <= $schwelle1 && $aktuellerPhasenmodus != 1) {
+            $this->SetValueAndLogChange('Phasenmodus', 1, 'Phasenumschaltung', '', 'warn');
+            $aktuellerPhasenmodus = 1; // Direkt anpassen!
+        }
         $anzPhasen = ($aktuellerPhasenmodus == 2) ? 3 : 1;
 
         // LADENSTROM (AMPERE) BERECHNEN
