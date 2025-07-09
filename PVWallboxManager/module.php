@@ -500,7 +500,7 @@ class PVWallboxManager extends IPSModule
 
     private function SteuerungLadefreigabe($pvUeberschuss, $modus = 'pvonly')
     {
-        $minUeberschuss = $this->ReadPropertyInteger('MinPVUeberschuss'); // z.B. 1400 W
+        $minUeberschuss = $this->ReadPropertyInteger('MinLadeWatt'); // z.B. 1400 W
 
         // Default: Immer FRC=1 → Kein Laden, Wallbox gesperrt (wartet auf Überschuss)
         $sollFRC = 1;
