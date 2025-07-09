@@ -498,7 +498,7 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    private function SteuerungLadefreigabe($pvUeberschuss, $modus = 'pvonly')
+    private function SteuerungLadefreigabe($pvUeberschuss, $modus = 'pvonly', $ampere = 0, $anzPhasen = 1)
     {
         $minUeberschuss = $this->ReadPropertyInteger('MinLadeWatt'); // z.B. 1400 W
 
@@ -515,13 +515,16 @@ class PVWallboxManager extends IPSModule
             $sollFRC = 2;
         }
 
-        // Noch mehr Lademodi ergänzbar…
-
         // Nur wenn nötig an Wallbox senden!
         $aktFRC = $this->GetValue('AccessStateV2');
         if ($aktFRC != $sollFRC) {
             $this->SetForceState($sollFRC);
             $this->LogTemplate('ok', "Ladefreigabe auf FRC=$sollFRC gestellt (Modus: $modus, Überschuss: {$pvUeberschuss}W)");
+        }
+
+        // Wenn Laden aktiviert, Ampere setzen
+        if ($sollFRC == 2 && $ampere > 0) {
+            $this->SetChargingCurrent($ampere);
         }
     }
 
