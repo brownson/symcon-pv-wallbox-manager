@@ -782,11 +782,13 @@ class PVWallboxManager extends IPSModule
         if ($batterieladung > 0) {
             $verbrauchGesamt += $batterieladung;
         }
-
+/*
         // Wenn Batterie entlädt, dann ist das zusätzliche PV-Leistung (bzw. Verbrauch wird reduziert)
         if ($batterieladung < 0) {
             $verbrauchGesamt += $batterieladung; // Da $batterieladung negativ ist, wird abgezogen!
         }
+*/
+        $verbrauchGesamt = $hausverbrauch + $batterieladung;
 
         // --- PV-Überschuss berechnen ---
         $pvUeberschuss = max(0, $pv - $verbrauchGesamt);
