@@ -805,10 +805,11 @@ class PVWallboxManager extends IPSModule
         $hausverbrauch = ($hvID > 0) ? GetValueFloat($hvID) : 0;
         if ($hvEinheit == "kW") $hausverbrauch *= 1000;
         if ($invertHV) $hausverbrauch *= -1;
+        $hausverbrauch = round($hausverbrauch);
 
         // Wallbox-Leistung (direkt an Auto, nur für Visualisierung)
-        $ladeleistung = $this->GetValue('Leistung');
-        $hausverbrauchAbzWallbox = $hausverbrauch - $ladeleistung;
+        $ladeleistung = round($this->GetValue('Leistung'));
+        $hausverbrauchAbzWallbox = round($hausverbrauch - $ladeleistung);
 
         // Batterie-Ladung (positiv = lädt, negativ = entlädt)
         $batID = $this->ReadPropertyInteger('BatterieladungID');
@@ -828,7 +829,7 @@ class PVWallboxManager extends IPSModule
         $minAmp = $this->ReadPropertyInteger('MinAmpere');
         $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
         // Division durch die tatsächlich genutzte Phasenzahl
-        $ampere = ceil($pvUeberschuss / (230 * $anzPhasen));
+        $ampere = ceil($pvUeberschuss / (230 * $anzPhasen));   // floor() = Abrunden  //  round() = Mittelweg  //  ceil() = Aufrunden
         $ampere = max($minAmp, min($maxAmp, $ampere));
 
         // === ALLE Variablen setzen ===
