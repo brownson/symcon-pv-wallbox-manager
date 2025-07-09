@@ -712,6 +712,16 @@ class PVWallboxManager extends IPSModule
                 return $value;
         }
     }
+
+    private function GetFrcText($frc)
+    {
+        switch (intval($frc)) {
+            case 0: return 'Neutral (Wallbox entscheidet)';
+            case 1: return 'Nicht Laden (gesperrt)';
+            case 2: return 'Laden (erzwungen)';
+            default: return 'Unbekannt (' . $frc . ')';
+        }
+    }
     
     // =========================================================================
     // 8. LOGGING / DEBUG / STATUSMELDUNGEN
