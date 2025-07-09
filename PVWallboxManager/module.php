@@ -25,7 +25,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('MaxAmpere', 16);  // Maximal möglicher Ladestrom
         $this->RegisterPropertyInteger('Phasen1Schwelle', 1400); // Beispiel: 1-phasig ab < 1.400 W
         $this->RegisterPropertyInteger('Phasen3Schwelle', 3700); // Beispiel: 3-phasig ab > 3.700 W
-
+        $this->RegisterPropertyInteger('MinLadeWatt', 1400);
 
         // Variablen nach API v2
         $this->RegisterVariableInteger('Status',        'Status',                                   'PVWM.CarStatus',       1);
@@ -328,7 +328,18 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom,  'Kabeltyp');
         $this->SetValueAndLogChange('Fehlercode',  $fehlercode,  'Fehlercode', '', 'warn');
 
-        $pvUeberschuss = $this->BerechnePVUeberschuss();
+        // $pvUeberschuss = $this->BerechnePVUeberschuss();
+        // PV-Überschuss & Strom berechnen (liefert Array zurück)
+        $berechnung = $this->BerechnePVUeberschuss();
+        $pvUeberschuss = $berechnung['ueberschuss_w'];
+        $ampere        = $berechnung['ueberschuss_a'];
+        $anzPhasen     = $berechnung['phasenmodus'];
+
+        // Phasenumschaltung
+        $this->PruefeUndSetzePhasenmodus($pvUeberschuss);
+
+        // Ladefreigabe steuern (z.B. im pvonly Modus)
+        $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasen);
     }
 
     // =========================================================================
@@ -470,6 +481,47 @@ class PVWallboxManager extends IPSModule
             // Direkt Status aktualisieren
             $this->UpdateStatus();
             return true;
+        }
+    }
+
+    private function PruefeUndSetzePhasenmodus($pvUeberschuss)
+    {
+        $schwelle1 = $this->ReadPropertyInteger('Phasen1Schwelle');
+        $schwelle3 = $this->ReadPropertyInteger('Phasen3Schwelle');
+        $aktuellerPhasenmodus = $this->GetValue('Phasenmodus');
+        if ($pvUeberschuss >= $schwelle3 && $aktuellerPhasenmodus != 2) {
+            $this->SetValueAndLogChange('Phasenmodus', 2, 'Phasenumschaltung', '', 'ok');
+            // Optional: API-Aufruf für Wallbox-Phasenumschaltung
+        } elseif ($pvUeberschuss <= $schwelle1 && $aktuellerPhasenmodus != 1) {
+            $this->SetValueAndLogChange('Phasenmodus', 1, 'Phasenumschaltung', '', 'warn');
+            // Optional: API-Aufruf für Wallbox-Phasenumschaltung
+        }
+    }
+
+    private function SteuerungLadefreigabe($pvUeberschuss, $modus = 'pvonly')
+    {
+        $minUeberschuss = $this->ReadPropertyInteger('MinPVUeberschuss'); // z.B. 1400 W
+
+        // Default: Immer FRC=1 → Kein Laden, Wallbox gesperrt (wartet auf Überschuss)
+        $sollFRC = 1;
+
+        // PV-Modus: nur Laden bei Überschuss
+        if ($modus === 'pvonly' && $pvUeberschuss >= $minUeberschuss) {
+            $sollFRC = 2; // Laden erzwingen
+        }
+
+        // Manueller Modus: Immer laden, unabhängig vom Überschuss
+        if ($modus === 'manuell') {
+            $sollFRC = 2;
+        }
+
+        // Noch mehr Lademodi ergänzbar…
+
+        // Nur wenn nötig an Wallbox senden!
+        $aktFRC = $this->GetValue('AccessStateV2');
+        if ($aktFRC != $sollFRC) {
+            $this->SetForceState($sollFRC);
+            $this->LogTemplate('ok', "Ladefreigabe auf FRC=$sollFRC gestellt (Modus: $modus, Überschuss: {$pvUeberschuss}W)");
         }
     }
 
@@ -616,8 +668,7 @@ class PVWallboxManager extends IPSModule
         if ($invertHV) $hausverbrauch *= -1;
 
         // Wallbox-Leistung (direkt an Auto, nur für Visualisierung)
-        $ladeleistung = $this->GetValue('Leistung'); // oder $this->GetLadeleistungAuto()
-        // Hausverbrauch abzügl. Wallbox (nur Visualisierung)
+        $ladeleistung = $this->GetValue('Leistung');
         $hausverbrauchAbzWallbox = $hausverbrauch - $ladeleistung;
 
         // Batterie-Ladung: Nur positiv (lädt)
@@ -635,22 +686,11 @@ class PVWallboxManager extends IPSModule
         // --- PV-Überschuss berechnen ---
         $pvUeberschuss = max(0, $pv - $verbrauchGesamt);
 
-        // === PHASENUMSCHALTUNG ===
-        $schwelle1 = $this->ReadPropertyInteger('Phasen1Schwelle'); // z.B. 1500 W
-        $schwelle3 = $this->ReadPropertyInteger('Phasen3Schwelle'); // z.B. 4200 W
+        // Phasenmodus aus aktueller Variable holen
         $aktuellerPhasenmodus = $this->GetValue('Phasenmodus'); // 1=1-phasig, 2=3-phasig
+        $anzPhasen = ($aktuellerPhasenmodus == 2) ? 3 : 1;
 
-        // Umschalt-Logik: einfache Schwellwerte mit Hysterese-Check
-        if ($pvUeberschuss >= $schwelle3 && $aktuellerPhasenmodus != 2) {
-            $this->SetValueAndLogChange('Phasenmodus', 2, 'Phasenumschaltung', '', 'ok');
-        } elseif ($pvUeberschuss <= $schwelle1 && $aktuellerPhasenmodus != 1) {
-            $this->SetValueAndLogChange('Phasenmodus', 1, 'Phasenumschaltung', '', 'warn');
-        }
-        // Danach aktuellen Phasenmodus neu lesen:
-        $phasen = $this->GetValue('Phasenmodus');
-        $anzPhasen = ($phasen == 2) ? 3 : 1;
-
-        // === LADENSTROM (AMPERE) BERECHNEN ===
+        // LADENSTROM (AMPERE) BERECHNEN
         $minAmp = $this->ReadPropertyInteger('MinAmpere');
         $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
         $ampere = floor($pvUeberschuss / (230 * $anzPhasen));
@@ -668,6 +708,7 @@ class PVWallboxManager extends IPSModule
             "PV-Überschuss: PV=$pv W, Haus=$hausverbrauch W, Wallbox=$ladeleistung W, Batterie=$batterieladung W, Phasenmodus=$anzPhasen → Überschuss=$pvUeberschuss W / $ampere A"
         );
 
+        // Rückgabe für die Steuerlogik
         return [
             'ueberschuss_w' => $pvUeberschuss,
             'ueberschuss_a' => $ampere,
