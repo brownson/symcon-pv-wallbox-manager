@@ -320,7 +320,20 @@ class PVWallboxManager extends IPSModule
         $fehlercode = isset($data['err']) ? intval($data['err']) : 0;
         $psm = isset($data['psm']) ? intval($data['psm']) : 0;
         $pha = $data['pha'] ?? [];
-        $accessStateV2 = isset($data['accessStateV2']) ? intval($data['accessStateV2']) : 0;
+//        $accessStateV2 = isset($data['accessStateV2']) ? intval($data['accessStateV2']) : 0;
+
+        // Kompatibel beide Felder für forceState/AccessStateV2 abfragen
+        $accessStateV2 = 0;
+        if (isset($data['frc'])) {
+            $accessStateV2 = intval($data['frc']);
+        } elseif (isset($data['accessStateV2'])) {
+            $accessStateV2 = intval($data['accessStateV2']);
+        }
+        $this->LogTemplate(
+            'debug',
+            "Status: forceState (frc)=" . (isset($data['frc']) ? $data['frc'] : 'n/a') .
+            " accessStateV2=" . (isset($data['accessStateV2']) ? $data['accessStateV2'] : 'n/a')
+        );
 
         // Jetzt Werte NUR bei Änderung schreiben und loggen:
         $this->SetValueAndLogChange('Status',      $car,         'Status');
