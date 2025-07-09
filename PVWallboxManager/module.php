@@ -24,7 +24,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('MinAmpere', 6);   // Minimal möglicher Ladestrom
         $this->RegisterPropertyInteger('MaxAmpere', 16);  // Maximal möglicher Ladestrom
         $this->RegisterPropertyInteger('Phasen1Schwelle', 1400); // Beispiel: 1-phasig ab < 1.400 W
-        $this->RegisterPropertyInteger('Phasen3Schwelle', 3800); // Beispiel: 3-phasig ab > 4.200 W
+        $this->RegisterPropertyInteger('Phasen3Schwelle', 3700); // Beispiel: 3-phasig ab > 3.700 W
 
 
         // Variablen nach API v2
