@@ -519,13 +519,21 @@ class PVWallboxManager extends IPSModule
         // Nur wenn nötig an Wallbox senden!
         $aktFRC = $this->GetValue('AccessStateV2');
         if ($aktFRC != $sollFRC) {
-            $this->SetForceState($sollFRC);
-            $this->LogTemplate('ok', "Ladefreigabe auf FRC=$sollFRC gestellt (Modus: $modus, Überschuss: {$pvUeberschuss}W)");
+            if ($this->SetForceState($sollFRC)) {
+                $this->LogTemplate('ok', "Ladefreigabe auf FRC=$sollFRC gestellt (Modus: $modus, Überschuss: {$pvUeberschuss}W)");
+                IPS_Sleep(1000); // Kleines Delay, damit die Wallbox reagieren kann
+            } else {
+                $this->LogTemplate('warn', "Ladefreigabe setzen auf FRC=$sollFRC **fehlgeschlagen**!");
+            }
         }
 
-        // Wenn Laden aktiviert, Ampere setzen
+        // Wenn Laden aktiviert, Ampere setzen (nur wenn gültig)
         if ($sollFRC == 2 && $ampere > 0) {
-            $this->SetChargingCurrent($ampere);
+            if ($this->SetChargingCurrent($ampere)) {
+                $this->LogTemplate('ok', "Ladestrom auf $ampere A gesetzt (Phasen: $anzPhasen).");
+            } else {
+                $this->LogTemplate('warn', "Setzen des Ladestroms auf $ampere A **fehlgeschlagen**!");
+            }
         }
     }
 
