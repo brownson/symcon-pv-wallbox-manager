@@ -21,6 +21,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('ModulAktiv', true);
         $this->RegisterPropertyBoolean('DebugLogging', false);
         $this->RegisterVariableString('Log', 'Modul-Log', '', 99);
+        $this->RegisterPropertyInteger('MinAmpere', 6);   // Minimal möglicher Ladestrom
+        $this->RegisterPropertyInteger('MaxAmpere', 16);  // Maximal möglicher Ladestrom
 
         // Variablen nach API v2
         $this->RegisterVariableInteger('Status',        'Status',                                   'PVWM.CarStatus',       1);
@@ -329,12 +331,13 @@ class PVWallboxManager extends IPSModule
 
     public function SetChargingCurrent(int $ampere)
     {
-        // Wertebereich prüfen – die meisten go-e erlauben nur 6–16A (bei manchen z.B. bis 32A)
-        if ($ampere < 6 || $ampere > 16) {
-            $this->LogTemplate('warn', "SetChargingCurrent: Ungültiger Wert ($ampere A). Erlaubt: 6–16A!");
+        $minAmp = $this->ReadPropertyInteger('MinAmpere');
+        $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+        // Wertebereich prüfen
+        if ($ampere < $minAmp || $ampere > $maxAmp) {
+            $this->LogTemplate('warn', "SetChargingCurrent: Ungültiger Wert ($ampere A). Erlaubt: $minAmp–$maxAmp A!");
             return false;
         }
-
         $ip = $this->ReadPropertyString('WallboxIP');
         $url = "http://$ip/api/set?amp=" . intval($ampere);
 
@@ -347,8 +350,6 @@ class PVWallboxManager extends IPSModule
             return false;
         } else {
             $this->LogTemplate('ok', "SetChargingCurrent: Ladestrom auf $ampere A gesetzt.");
-            // Direkt Status aktualisieren, damit das WebFront aktuell ist
-            //IPS_Sleep(1000);
             $this->UpdateStatus();
             return true;
         }
