@@ -489,12 +489,13 @@ class PVWallboxManager extends IPSModule
         $schwelle1 = $this->ReadPropertyInteger('Phasen1Schwelle');
         $schwelle3 = $this->ReadPropertyInteger('Phasen3Schwelle');
         $aktuellerPhasenmodus = $this->GetValue('Phasenmodus');
+
         if ($pvUeberschuss >= $schwelle3 && $aktuellerPhasenmodus != 2) {
             $this->SetValueAndLogChange('Phasenmodus', 2, 'Phasenumschaltung', '', 'ok');
-            // Optional: API-Aufruf für Wallbox-Phasenumschaltung
+            $this->SetPhaseMode(2); // <--- Wallbox wirklich auf 3-phasig stellen
         } elseif ($pvUeberschuss <= $schwelle1 && $aktuellerPhasenmodus != 1) {
             $this->SetValueAndLogChange('Phasenmodus', 1, 'Phasenumschaltung', '', 'warn');
-            // Optional: API-Aufruf für Wallbox-Phasenumschaltung
+            $this->SetPhaseMode(1); // <--- Wallbox wirklich auf 1-phasig stellen
         }
     }
 
