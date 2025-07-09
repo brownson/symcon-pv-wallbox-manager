@@ -405,7 +405,7 @@ class PVWallboxManager extends IPSModule
             return false;
         } else {
             $this->LogTemplate('ok', "SetChargingCurrent: Ladestrom auf $ampere A gesetzt. (HTTP {$response['httpcode']})");
-            $this->UpdateStatus();
+            //$this->UpdateStatus();
             return true;
         }
     }
@@ -437,7 +437,7 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->LogTemplate('ok', "SetPhaseMode: Phasenmodus auf '$modeText' ($mode) gesetzt. (HTTP {$response['httpcode']})");
             // Direkt Status aktualisieren
-            $this->UpdateStatus();
+            //$this->UpdateStatus();
             return true;
         }
     }
@@ -473,7 +473,7 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->LogTemplate('ok', "SetForceState: Wallbox-Modus auf '$modeText' ($state) gesetzt. (HTTP {$response['httpcode']})");
             // Direkt Status aktualisieren
-            $this->UpdateStatus();
+            //$this->UpdateStatus();
             return true;
         }
     }
@@ -506,7 +506,7 @@ class PVWallboxManager extends IPSModule
             return false;
         } else {
             $this->LogTemplate('ok', "SetChargingEnabled: Ladefreigabe wurde auf '$statusText' ($alwValue) gesetzt. (HTTP {$response['httpcode']})");
-            $this->UpdateStatus();
+            //$this->UpdateStatus();
             return true;
         }
     }
@@ -529,7 +529,7 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->LogTemplate('ok', "StopCharging: Ladevorgang wurde gestoppt. (HTTP {$response['httpcode']})");
             // Direkt Status aktualisieren
-            $this->UpdateStatus();
+            //$this->UpdateStatus();
             return true;
         }
     }
