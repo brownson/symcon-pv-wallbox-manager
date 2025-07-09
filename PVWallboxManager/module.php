@@ -169,20 +169,20 @@ class PVWallboxManager extends IPSModule
         ]);
 
         $create('PVWM.AccessStateV2', VARIABLETYPE_INTEGER, 0, '', 'Lock', [
-            [0, 'Neutral (Wallbox entscheidet)', '', 0xAAAAAA],
-            [1, 'Nicht Laden (gesperrt)',        '', 0xFF4444],
-            [2, 'Laden (erzwungen)',             '', 0x44FF44]
+            [0, 'Neutral (Wallbox entscheidet)', 'LockOpen', 0xAAAAAA],
+            [1, 'Nicht Laden (gesperrt)',        'Lock', 0xFF4444],
+            [2, 'Laden (erzwungen)',             'Power', 0x44FF44]
         ]);
 
         $create('PVWM.PSM', VARIABLETYPE_INTEGER, 0, '', 'Lightning', [
-            [0, 'Auto',     '', 0xAAAAAA],
-            [1, '1-phasig', '', 0x00ADEF],
-            [2, '3-phasig', '', 0xFF9900]
+            [0, 'Auto',     'Gears', 0xAAAAAA],
+            [1, '1-phasig', 'Plug', 0x00ADEF],
+            [2, '3-phasig', 'Plug', 0xFF9900]
         ]);
 
         $create('PVWM.ALW', VARIABLETYPE_BOOLEAN, 0, '', 'Power', [
-            [false, 'Nicht freigegeben', '', 0xFF4444],
-            [true,  'Laden freigegeben', '', 0x44FF44]
+            [false, 'Nicht freigegeben', 'Close', 0xFF4444],
+            [true,  'Laden freigegeben', 'Power', 0x44FF44]
         ]);
 
         $create('PVWM.AmpereCable', VARIABLETYPE_INTEGER, 0, ' A', 'Energy');
