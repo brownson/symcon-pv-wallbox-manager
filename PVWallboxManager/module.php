@@ -331,8 +331,7 @@ class PVWallboxManager extends IPSModule
         }
         $this->LogTemplate(
             'debug',
-            "Status: forceState (frc)=" . (isset($data['frc']) ? $data['frc'] : 'n/a') .
-            " accessStateV2=" . (isset($data['accessStateV2']) ? $data['accessStateV2'] : 'n/a')
+            "Status: forceState (frc)=" . (isset($data['frc']) ? $data['frc'] . ' (' . $this->ProfileValueText('PVWM.AccessStateV2', $data['frc']) . ')' : 'n/a')
         );
 
         // Jetzt Werte NUR bei Änderung schreiben und loggen:
@@ -700,6 +699,18 @@ class PVWallboxManager extends IPSModule
         SetValue($varID, $newValue);
     }
 
+    private function ProfileValueText($profile, $value)
+    {
+        switch ($profile) {
+            case 'PVWM.AccessStateV2':
+                return $this->GetFrcText($value);
+            case 'PVWM.PSM':
+                return ['Auto', '1-phasig', '3-phasig'][intval($value)] ?? $value;
+            // ... weitere Profile nach Bedarf ...
+            default:
+                return $value;
+        }
+    }
     
     // =========================================================================
     // 8. LOGGING / DEBUG / STATUSMELDUNGEN
