@@ -319,8 +319,31 @@ class PVWallboxManager extends IPSModule
         $kabelstrom = isset($data['cbl']) ? intval($data['cbl']) : 0;
         $fehlercode = isset($data['err']) ? intval($data['err']) : 0;
         $psm = isset($data['psm']) ? intval($data['psm']) : 0;
-        $pha = $data['pha'] ?? [];
+//        $pha = $data['pha'] ?? [];
 //        $accessStateV2 = isset($data['accessStateV2']) ? intval($data['accessStateV2']) : 0;
+
+        $this->SetValueAndLogChange('PhasenmodusEinstellung', $psm, 'Phasenmodus (Einstellung)', '', 'debug');
+
+        // Aktive Phasen anhand der nrg-Array Stromwerte ermitteln
+        //$phasenSchwelle = $this->ReadPropertyFloat('PhaseAmpThreshold'); // z.B. 1.5A ev. als Property anlegen
+        $phasenSchwelle = 1.5; // 1.5A als Schwelle zur Phasenerkennung (hartcodiert)
+
+//        if ($phasenSchwelle <= 0) $phasenSchwelle = 1.5;
+
+        $anzPhasen = 0;
+        if (isset($data['nrg'][4]) && isset($data['nrg'][5]) && isset($data['nrg'][6])) {
+            $phasenAmpere = [
+                floatval($data['nrg'][4]),
+                floatval($data['nrg'][5]),
+                floatval($data['nrg'][6])
+            ];
+            foreach ($phasenAmpere as $a) {
+                if ($a > $phasenSchwelle) $anzPhasen++;
+            }
+        } else {
+            $anzPhasen = 1; // Fallback
+        }
+        $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Aktiv genutzte Phasen', '', 'debug');
 
         // Kompatibel beide Felder für forceState/AccessStateV2 abfragen
         $accessStateV2 = 0;
@@ -339,13 +362,15 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('AccessStateV2', $accessStateV2, 'Wallbox Modus');
         $this->SetValueAndLogChange('Leistung',    $leistung,    'Aktuelle Ladeleistung zum Fahrzeug', 'W');
         $this->SetValueAndLogChange('Ampere',      $ampere,      'Maximaler Ladestrom', 'A');
-        $this->SetValueAndLogChange('Phasenmodus', $psm,         'Phasenmodus');
+//        $this->SetValueAndLogChange('Phasenmodus', $psm,         'Phasenmodus');
         $this->SetValueAndLogChange('Energie',     $energie,     'Geladene Energie', 'Wh');
         $this->SetValueAndLogChange('Freigabe',    $freigabe,    'Ladefreigabe');
         $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom,  'Kabeltyp');
         $this->SetValueAndLogChange('Fehlercode',  $fehlercode,  'Fehlercode', '', 'warn');
 
-        $berechnung = $this->BerechnePVUeberschuss();
+        // --- PV-Überschuss neu berechnen (hier ggf. $anzPhasen übergeben, falls relevant) ---
+//        $berechnung = $this->BerechnePVUeberschuss();
+        $berechnung    = $this->BerechnePVUeberschuss($anzPhasen); 
         $pvUeberschuss = $berechnung['ueberschuss_w'];
         $ampere        = $berechnung['ueberschuss_a'];
         $anzPhasen     = $berechnung['phasenmodus'];
@@ -354,7 +379,8 @@ class PVWallboxManager extends IPSModule
         $this->PruefeUndSetzePhasenmodus($pvUeberschuss);
 
         // Ladefreigabe steuern (z.B. im pvonly Modus)
-        $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasen);
+//        $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasen); ?????
+        $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasenCalc);
     }
 
     // =========================================================================
@@ -584,13 +610,19 @@ class PVWallboxManager extends IPSModule
             }
         }
 
-        // Wenn Laden aktiviert, Ampere setzen (nur wenn gültig)
+        // Nur Ladestrom setzen, wenn Freigabe aktiv und Ampere gültig
         if ($sollFRC == 2 && $ampere > 0) {
-            $ok = $this->SetChargingCurrent($ampere);
-            if ($ok) {
-                $this->LogTemplate('ok', "Ladestrom auf $ampere A gesetzt (Phasen: $anzPhasen).");
+            // Zusatz: Prüfen, ob sich der gewünschte Ladestrom von aktuellem unterscheidet
+            $currentAmp = $this->GetValue('Ampere');
+            if ($currentAmp != $ampere) {
+                $ok = $this->SetChargingCurrent($ampere);
+                if ($ok) {
+                    $this->LogTemplate('ok', "Ladestrom auf $ampere A gesetzt (tatsächliche Phasen: $anzPhasen).");
+                } else {
+                    $this->LogTemplate('warn', "Setzen des Ladestroms auf $ampere A **fehlgeschlagen**!");
+                }
             } else {
-                $this->LogTemplate('warn', "Setzen des Ladestroms auf $ampere A **fehlgeschlagen**!");
+                $this->LogTemplate('debug', "Ladestrom bereits auf $ampere A (Phasen: $anzPhasen), keine Änderung nötig.");
             }
         }
     }
@@ -750,7 +782,7 @@ class PVWallboxManager extends IPSModule
     // =========================================================================
     // 9. BERECHNUNGEN
     // =========================================================================
-    private function BerechnePVUeberschuss()
+    private function BerechnePVUeberschuss($anzPhasen = 1)
     {
         // PV-Erzeugung holen
         $pvID = $this->ReadPropertyInteger('PVErzeugungID');
@@ -784,13 +816,10 @@ class PVWallboxManager extends IPSModule
         // --- PV-Überschuss berechnen ---
         $pvUeberschuss = max(0, $pv - $verbrauchGesamt);
 
-        // Wie viele Phasen aktuell? (Kannst du weglassen oder aus Variable lesen)
-        $aktuellerPhasenmodus = $this->GetValue('Phasenmodus');
-        $anzPhasen = ($aktuellerPhasenmodus == 2) ? 3 : 1;
-
-        // LADENSTROM (AMPERE) BERECHNEN
+        // --- LADENSTROM (AMPERE) BERECHNEN ---
         $minAmp = $this->ReadPropertyInteger('MinAmpere');
         $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+        // Division durch die tatsächlich genutzte Phasenzahl
         $ampere = floor($pvUeberschuss / (230 * $anzPhasen));
         $ampere = max($minAmp, min($maxAmp, $ampere));
 
@@ -886,5 +915,36 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
     }
 
-    
+    /**
+     * Ermittelt die aktiven Phasen und reale Ladeleistung aus dem nrg-Array der go-e Wallbox
+     * @param array $nrg Das nrg-Array aus der /api/status-Abfrage
+     * @return array ['phasen' => int, 'aktive_phasen' => array, 'leistung' => float, 'strom_je_phase' => array]
+     */
+    private function AnalysiereGoENrgArray($nrg)
+    {
+        // Indizes je nach go-e Firmware
+        $I_L1 = isset($nrg[4]) ? floatval($nrg[4]) : 0.0;
+        $I_L2 = isset($nrg[5]) ? floatval($nrg[5]) : 0.0;
+        $I_L3 = isset($nrg[6]) ? floatval($nrg[6]) : 0.0;
+
+        $P_L1 = isset($nrg[8])  ? floatval($nrg[8])  : 0.0;
+        $P_L2 = isset($nrg[9])  ? floatval($nrg[9])  : 0.0;
+        $P_L3 = isset($nrg[10]) ? floatval($nrg[10]) : 0.0;
+        $P_total = isset($nrg[11]) ? floatval($nrg[11]) : ($P_L1 + $P_L2 + $P_L3);
+
+        // Welche Phasen sind aktiv? Schwelle > 1A
+        $aktivePhasen = [];
+        if ($I_L1 > 1.0) $aktivePhasen[] = 1;
+        if ($I_L2 > 1.0) $aktivePhasen[] = 2;
+        if ($I_L3 > 1.0) $aktivePhasen[] = 3;
+        $phasen = count($aktivePhasen);
+
+        return [
+            'phasen'         => $phasen,
+            'aktive_phasen'  => $aktivePhasen,
+            'leistung'       => $P_total, // Gesamtleistung in Watt
+            'strom_je_phase' => [$I_L1, $I_L2, $I_L3]
+        ];
+    }
+
 }
