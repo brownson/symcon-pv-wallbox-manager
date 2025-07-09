@@ -627,38 +627,45 @@ class PVWallboxManager extends IPSModule
 
         // Verbrauch gesamt = Hausverbrauch (inkl. Wallbox) + nur wenn Batterie lädt (batterieladung > 0)
         $verbrauchGesamt = $hausverbrauch;
-        if ($batterieladung > 0) {
-            $verbrauchGesamt += $batterieladung;
-        }
+        if ($batterieladung > 0) $verbrauchGesamt += $batterieladung;
 
         // --- PV-Überschuss berechnen ---
         $pvUeberschuss = max(0, $pv - $verbrauchGesamt);
 
-        // --- Ladestrom berechnen (A) ---
-        // Phasenmodus bestimmen (ggf. aus Variable, oder Standard = 1 Phase)
-        $psm = $this->GetValue('Phasenmodus'); // oder wie du gerade den Phasenmodus hältst
-        $anzPhasen = ($psm == 2) ? 3 : 1; // 1 = 1-phasig, 2 = 3-phasig
+        // === PHASENUMSCHALTUNG ===
+        $schwelle1 = $this->ReadPropertyInteger('Phasen1Schwelle'); // z.B. 1500 W
+        $schwelle3 = $this->ReadPropertyInteger('Phasen3Schwelle'); // z.B. 4200 W
+        $aktuellerPhasenmodus = $this->GetValue('Phasenmodus'); // 1=1-phasig, 2=3-phasig
 
+        // Umschalt-Logik: einfache Schwellwerte mit Hysterese-Check
+        if ($pvUeberschuss >= $schwelle3 && $aktuellerPhasenmodus != 2) {
+            $this->SetValueAndLogChange('Phasenmodus', 2, 'Phasenumschaltung', '', 'ok');
+        } elseif ($pvUeberschuss <= $schwelle1 && $aktuellerPhasenmodus != 1) {
+            $this->SetValueAndLogChange('Phasenmodus', 1, 'Phasenumschaltung', '', 'warn');
+        }
+        // Danach aktuellen Phasenmodus neu lesen:
+        $phasen = $this->GetValue('Phasenmodus');
+        $anzPhasen = ($phasen == 2) ? 3 : 1;
+
+        // === LADENSTROM (AMPERE) BERECHNEN ===
         $minAmp = $this->ReadPropertyInteger('MinAmpere');
         $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
-
-        // Berechne den Ladestrom als ganzzahligen Wert
         $ampere = floor($pvUeberschuss / (230 * $anzPhasen));
         $ampere = max($minAmp, min($maxAmp, $ampere));
 
-        // Variablen setzen und loggen
-        $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', ' W', 'debug');
-        $this->SetValueAndLogChange('Hausverbrauch_W', $hausverbrauch, 'Hausverbrauch', ' W', 'debug');
-        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallbox, 'Hausverbrauch abz. Wallbox', ' W', 'debug');
+        // === ALLE Variablen setzen ===
+        $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', 'W', 'debug');
+        $this->SetValueAndLogChange('Hausverbrauch_W', $hausverbrauch, 'Hausverbrauch', 'W', 'debug');
+        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallbox, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
         $this->SetValueAndLogChange('PV_Ueberschuss_A', $ampere, 'PV-Überschuss (A)', 'A', 'debug');
 
-        // Logging (kompakt)
+        // Logging
         $this->LogTemplate(
             'debug',
-            "PV-Überschuss berechnet: PV=$pv W, Haus=$hausverbrauch W, Wallbox=$ladeleistung W, Batterie=$batterieladung W → Überschuss=$pvUeberschuss W"
+            "PV-Überschuss: PV=$pv W, Haus=$hausverbrauch W, Wallbox=$ladeleistung W, Batterie=$batterieladung W, Phasenmodus=$anzPhasen → Überschuss=$pvUeberschuss W / $ampere A"
         );
 
-        return $pvUeberschuss;
+            return $pvUeberschuss;
     }
 
     // =========================================================================
