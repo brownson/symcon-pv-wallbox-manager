@@ -209,19 +209,21 @@ class PVWallboxManager extends IPSModule
     // =========================================================================
 
     public function RequestAction($Ident, $Value)
-    switch ($Ident) {
-        case "UpdateStatus":
-            $this->UpdateStatus($Value);
-            break;
-        case "UpdateMarketPrices":
-            $this->AktualisiereMarktpreise();
-            break;
-        case "ManuellLaden":
-            $this->SetValue('ManuellLaden', $Value);
-            break;
-        // ... weitere Variablen
-        default:
-            throw new Exception("Invalid Ident: $Ident");
+    {
+        switch ($Ident) {
+            case "UpdateStatus":
+                $this->UpdateStatus($Value);
+                break;
+            case "UpdateMarketPrices":
+                $this->AktualisiereMarktpreise();
+                break;
+            case "ManuellLaden":
+                $this->SetValue('ManuellLaden', $Value);
+                break;
+            // ... weitere cases ...
+            default:
+                throw new Exception("Invalid Ident: $Ident");
+        }
     }
 
     // =========================================================================
