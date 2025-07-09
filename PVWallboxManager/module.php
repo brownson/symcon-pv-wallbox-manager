@@ -728,7 +728,85 @@ class PVWallboxManager extends IPSModule
     // =========================================================================
     // 9. BERECHNUNGEN
     // =========================================================================
+        private function BerechnePVUeberschuss()
+    {
+        // PV-Erzeugung holen
+        $pvID = $this->ReadPropertyInteger('PVErzeugungID');
+        $pvEinheit = $this->ReadPropertyString('PVErzeugungEinheit');
+        $pv = ($pvID > 0) ? GetValueFloat($pvID) : 0;
+        if ($pvEinheit == "kW") $pv *= 1000;
 
+        // Hausverbrauch holen (inkl. Wallbox-Leistung)
+        $hvID = $this->ReadPropertyInteger('HausverbrauchID');
+        $hvEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
+        $invertHV = $this->ReadPropertyBoolean('InvertHausverbrauch');
+        $hausverbrauch = ($hvID > 0) ? GetValueFloat($hvID) : 0;
+        if ($hvEinheit == "kW") $hausverbrauch *= 1000;
+        if ($invertHV) $hausverbrauch *= -1;
+
+        // Wallbox-Leistung (direkt an Auto, nur für Visualisierung)
+        $ladeleistung = $this->GetValue('Leistung');
+        $hausverbrauchAbzWallbox = $hausverbrauch - $ladeleistung;
+
+        // Batterie-Ladung: Nur positiv (lädt)
+        $batID = $this->ReadPropertyInteger('BatterieladungID');
+        $batEinheit = $this->ReadPropertyString('BatterieladungEinheit');
+        $invertBat = $this->ReadPropertyBoolean('InvertBatterieladung');
+        $batterieladung = ($batID > 0) ? GetValueFloat($batID) : 0;
+        if ($batEinheit == "kW") $batterieladung *= 1000;
+        if ($invertBat) $batterieladung *= -1;
+
+        // Verbrauch gesamt = Hausverbrauch (inkl. Wallbox) + nur wenn Batterie lädt (batterieladung > 0)
+        $verbrauchGesamt = $hausverbrauch;
+        if ($batterieladung > 0) $verbrauchGesamt += $batterieladung;
+
+        // --- PV-Überschuss berechnen ---
+        $pvUeberschuss = max(0, $pv - $verbrauchGesamt);
+
+        // === PHASENUMSCHALTUNG ===
+        $schwelle1 = $this->ReadPropertyInteger('Phasen1Schwelle');
+        $schwelle3 = $this->ReadPropertyInteger('Phasen3Schwelle');
+        $aktuellerPhasenmodus = $this->GetValue('Phasenmodus');
+
+        // Umschalt-Logik
+        if ($pvUeberschuss >= $schwelle3 && $aktuellerPhasenmodus != 2) {
+            $this->SetValueAndLogChange('Phasenmodus', 2, 'Phasenumschaltung', '', 'ok');
+            $aktuellerPhasenmodus = 2; // Direkt anpassen!
+        } elseif ($pvUeberschuss <= $schwelle1 && $aktuellerPhasenmodus != 1) {
+            $this->SetValueAndLogChange('Phasenmodus', 1, 'Phasenumschaltung', '', 'warn');
+            $aktuellerPhasenmodus = 1; // Direkt anpassen!
+        }
+        $anzPhasen = ($aktuellerPhasenmodus == 2) ? 3 : 1;
+
+        // LADENSTROM (AMPERE) BERECHNEN
+        $minAmp = $this->ReadPropertyInteger('MinAmpere');
+        $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+        $ampere = floor($pvUeberschuss / (230 * $anzPhasen));
+        $ampere = max($minAmp, min($maxAmp, $ampere));
+
+        // === ALLE Variablen setzen ===
+        $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', 'W', 'debug');
+        $this->SetValueAndLogChange('Hausverbrauch_W', $hausverbrauch, 'Hausverbrauch', 'W', 'debug');
+        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallbox, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
+        $this->SetValueAndLogChange('PV_Ueberschuss_A', $ampere, 'PV-Überschuss (A)', 'A', 'debug');
+
+        // Logging
+        $this->LogTemplate(
+            'debug',
+            "PV-Überschuss: PV=$pv W, Haus=$hausverbrauch W, Wallbox=$ladeleistung W, Batterie=$batterieladung W, Phasenmodus=$anzPhasen → Überschuss=$pvUeberschuss W / $ampere A"
+        );
+
+        // Rückgabe für die Steuerlogik
+        return [
+            'ueberschuss_w' => $pvUeberschuss,
+            'ueberschuss_a' => $ampere,
+            'phasenmodus'   => $anzPhasen
+        ];
+    }
+    
+    //=========================================================================
+    // 10. EXTERNE SCHNITTSTELLEN & FORECAST
+    // =========================================================================
     private function AktualisiereMarktpreise()
     {
         if (!$this->ReadPropertyBoolean('UseMarketPrices')) {
