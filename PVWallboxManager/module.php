@@ -134,13 +134,13 @@ class PVWallboxManager extends IPSModule
         };
 
         // Integer-Profile (mit Assoziationen, wo nötig)
-        $create('PVWM.CarStatus', VARIABLETYPE_INTEGER, 0, '', 'Car', [
-            [0, 'Unbekannt/Firmwarefehler', '', 0x888888],
-            [1, 'Bereit, kein Fahrzeug',     '', 0xAAAAAA],
-            [2, 'Fahrzeug lädt',             '', 0x00FF00],
-            [3, 'Warte auf Fahrzeug',        '', 0x0088FF],
-            [4, 'Ladung beendet',            '', 0xFFFF00],
-            [5, 'Fehler',                    '', 0xFF0000]
+        $create('PVWM.CarStatus', VARIABLETYPE_INTEGER, 0,  '', 'Car', [
+            [0, 'Unbekannt/Firmwarefehler',                 'Question',     0x888888],
+            [1, 'Bereit, kein Fahrzeug',                    'Parking',      0xAAAAAA],
+            [2, 'Fahrzeug lädt',                            'Lightning',    0x00FF00],
+            [3, 'Warte auf Fahrzeug',                       'Car',          0x0088FF],
+            [4, 'Ladung beendet, Fahrzeug noch verbunden',  'Check',        0xFFFF00],
+            [5, 'Fehler',                                   'Alert',        0xFF0000]
         ]);
 
         $create('PVWM.ErrorCode', VARIABLETYPE_INTEGER, 0, '', 'Alert', [
@@ -495,7 +495,7 @@ class PVWallboxManager extends IPSModule
                         1 => 'Bereit, kein Fahrzeug',
                         2 => 'Fahrzeug lädt',
                         3 => 'Warte auf Fahrzeug',
-                        4 => 'Ladung beendet',
+                        4 => 'Ladung beendet, Fahrzeug noch verbunden',
                         5 => 'Fehler'
                     ];
                     return $map[intval($value)] ?? $value;
