@@ -346,11 +346,6 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        if ($this->GetValue('ManuellLaden')) {
-            $this->ModusManuellVollladen($data); // $data aus getStatusFromCharger()
-            return; // Rest abbrechen!
-        }
-
         // Defensive Daten-Extraktion
         $car = isset($data['car']) ? intval($data['car']) : 0;
         $leistung = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
@@ -421,6 +416,11 @@ class PVWallboxManager extends IPSModule
         $pvUeberschuss = $berechnung['ueberschuss_w'];
         $ampere        = $berechnung['ueberschuss_a'];
         $anzPhasen     = $berechnung['phasenmodus'];
+
+        if ($this->GetValue('ManuellLaden')) {
+            $this->ModusManuellVollladen($data); // $data aus getStatusFromCharger()
+            return; // Rest abbrechen!
+        }
 
         // Phasenumschaltung
         $this->PruefeUndSetzePhasenmodus($pvUeberschuss);
