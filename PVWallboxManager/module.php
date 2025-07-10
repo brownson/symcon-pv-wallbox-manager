@@ -378,17 +378,6 @@ class PVWallboxManager extends IPSModule
 
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
 
-        // === Initial-Schnellpoll: Kein Fahrzeug erkannt ===
-        if ($car <= 1) {
-            $this->LogTemplate(
-                'info',
-                "💤 Kein Fahrzeug erkannt (Status $car ≤ 1) – erneuter Check in 5 Sekunden aktiviert."
-            );
-            $this->SetTimerInterval('PVWM_InitialCheck', $this->GetInitialCheckInterval() * 1000);
-            $this->SetTimerInterval('PVWM_UpdateStatus', 0);
-            return;
-        }
-
         // Kompatibel beide Felder für forceState/AccessStateV2 abfragen
         $accessStateV2 = 0;
         if (isset($data['frc'])) {
