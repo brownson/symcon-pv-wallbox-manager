@@ -250,10 +250,15 @@ class PVWallboxManager extends IPSModule
                 $this->InitialCheck();
                 break;
             case "ManuellLaden":
-                $this->SetValue('ManuellLaden', $Value);
-                if (!$Value) {
-                    $this->LogTemplate('info', "🔌 Manuelles Vollladen deaktiviert – zurück in PVonly-Modus.");
-                    $this->UpdateStatus('pvonly');
+                if ($Value && $this->GetValue('Status') <= 1) {
+                    $this->LogTemplate('warn', "🔌 Manuelles Vollladen NICHT möglich: Kein Fahrzeug erkannt!");
+                    $this->SetValue('ManuellLaden', false);
+                } else {
+                    $this->SetValue('ManuellLaden', $Value);
+                    if (!$Value) {
+                        $this->LogTemplate('info', "🔌 Manuelles Vollladen deaktiviert – zurück in PVonly-Modus.");
+                        $this->UpdateStatus('pvonly');
+                    }
                 }
                 break;
             // ... weitere cases ...
