@@ -19,7 +19,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyString('WallboxAPIKey', '');
         $this->RegisterPropertyInteger('RefreshInterval', 30);
         $this->RegisterPropertyBoolean('ModulAktiv', true);
-        $this->RegisterVariableString('Log', 'Modul-Log', '', 99);
+        $this->RegisterPropertyBoolean('DebugLogging', false);
         $this->RegisterPropertyInteger('MinAmpere', 6);   // Minimal möglicher Ladestrom
         $this->RegisterPropertyInteger('MaxAmpere', 16);  // Maximal möglicher Ladestrom
         $this->RegisterPropertyInteger('Phasen1Schwelle', 1400); // Beispiel: 1-phasig ab < 1.400 W
