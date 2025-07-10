@@ -107,7 +107,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
         
         // Schnell-Poll-Timer für Initialstatus
-        $this->RegisterTimer('PVWM_InitialStatusCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "InitialStatusCheck", "");');
+        $this->RegisterTimer('PVWM_InitialCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "InitialStatusCheck", "");');
     }
 
     public function ApplyChanges()
@@ -379,7 +379,7 @@ class PVWallboxManager extends IPSModule
                 'info',
                 "💤 Kein Fahrzeug erkannt (Status $car ≤ 1) – erneuter Check in 5 Sekunden aktiviert."
             );
-            $this->SetTimerInterval('PVWM_InitialStatusCheck', 5000);     // Schnellpoll aktivieren
+            $this->SetTimerInterval('PVWM_InitialCheck', 5000);     // Schnellpoll aktivieren
             $this->SetTimerInterval('PVWM_UpdateStatus', 0);              // Haupt-Timer deaktivieren
             return;                                                       // Abbruch – nichts weiter machen!
         }   
@@ -1012,7 +1012,7 @@ class PVWallboxManager extends IPSModule
         if ($carStatus > 1) {
             // Auto jetzt erkannt → auf Normalintervall schalten
             $interval = $this->ReadPropertyInteger('RefreshInterval');
-            $this->SetTimerInterval('PVWM_InitialStatusCheck', 0);
+            $this->SetTimerInterval('PVWM_InitialCheck', 0);
             $this->SetTimerInterval('PVWM_UpdateStatus', $interval * 1000);
             $this->LogTemplate('ok', "Auto erkannt! Wechsel auf normalen Status-Intervall ({$interval}s).");
         }
