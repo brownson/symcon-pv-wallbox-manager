@@ -115,28 +115,41 @@ class PVWallboxManager extends IPSModule
     {
         parent::ApplyChanges();
 
-        $interval = $this->ReadPropertyInteger('RefreshInterval'); 
-        $this->LogTemplate('debug', "Timer-Intervall: $interval Sekunden");
+        $interval = intval($this->ReadPropertyInteger('RefreshInterval')); 
+        $initialInterval = intval($this->GetInitialCheckInterval());
 
         $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
-        if ($aktiv) {
-            $this->SetTimerInterval('PVWM_UpdateStatus', $interval * 1000);
-        } else {
-            $this->SetTimerInterval('PVWM_UpdateStatus', 0); // Timer AUS
+        $carStatus = @$this->GetValue('Status');
+
+        // **Immer zuerst beide Haupt-Timer auf AUS**
+        $this->SetTimerInterval('PVWM_UpdateStatus', 0);
+        $this->SetTimerInterval('PVWM_InitialCheck', 0);
+
+        if (!$aktiv) {
+            $this->LogTemplate('debug', "Modul nicht aktiv, alle Timer gestoppt.");
+            // Strompreis-Timer auch aus:
+            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
+            return;
         }
 
-        // --- InitialCheck-Intervall zentral aus Methode lesen ---
-        $initialInterval = $this->GetInitialCheckInterval();
-
-        $carStatus = @$this->GetValue('Status');
-        if ($aktiv && ($carStatus === false || $carStatus <= 1) && $initialInterval > 0) {
-            $this->SetTimerInterval('PVWM_InitialCheck', $initialInterval * 1000);
-            $this->LogTemplate('debug', "InitialCheck-Timer gestartet (alle $initialInterval Sekunden, bis Fahrzeug erkannt)");
+        // **Genau EINEN Timer setzen – je nach Fahrzeugstatus**
+        if ($carStatus === false || $carStatus <= 1) {
+            // Kein Fahrzeug: InitialCheck aktivieren, UpdateStatus aus
+            if ($initialInterval > 0) {
+                $this->SetTimerInterval('PVWM_InitialCheck', $initialInterval * 1000);
+                $this->LogTemplate('debug', "InitialCheck-Timer gestartet (alle $initialInterval Sekunden, bis Fahrzeug erkannt)");
+            } else {
+                $this->LogTemplate('debug', "InitialCheck-Intervall ist 0 – kein Schnellpoll.");
+            }
+            $this->SetTimerInterval('PVWM_UpdateStatus', 0);
         } else {
+            // Fahrzeug erkannt: UpdateStatus aktivieren, InitialCheck aus
+            $this->SetTimerInterval('PVWM_UpdateStatus', $interval * 1000);
+            $this->LogTemplate('debug', "PVWM_UpdateStatus-Timer gestartet (alle $interval Sekunden)");
             $this->SetTimerInterval('PVWM_InitialCheck', 0);
         }
 
-        // Strompreis-Update-Timer steuern
+        // --- Strompreis-Update-Timer wie gehabt ---
         if ($this->ReadPropertyBoolean('UseMarketPrices')) {
             $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval')); // Minimum 5 Minuten
             $this->SetTimerInterval('PVWM_UpdateMarketPrices', $marketInterval * 60 * 1000);
@@ -250,18 +263,13 @@ class PVWallboxManager extends IPSModule
                 $this->InitialCheck();
                 break;
             case "ManuellLaden":
-                $this->SetValue('ManuellLaden', $Value);
-                if (!$Value) {
-                    $this->LogTemplate('info', "🔌 Manuelles Vollladen deaktiviert – zurück in PVonly-Modus.");
-                    // Prüfen ob Fahrzeug da ist
-                    if ($this->GetValue('Status') > 1) {
-                        $mainInterval = intval($this->ReadPropertyInteger('RefreshInterval'));
-                        $this->SetTimerInterval('PVWM_UpdateStatus', $mainInterval * 1000);
-                        $this->LogTemplate('debug', "PVWM_UpdateStatus-Timer wieder aktiviert ($mainInterval Sekunden)");
-                    }
-                    $this->UpdateStatus('pvonly');
-                }
-                break;
+            $this->SetValue('ManuellLaden', $Value);
+            if (!$Value) {
+                $this->LogTemplate('info', "🔌 Manuelles Vollladen deaktiviert – zurück in PVonly-Modus.");
+                $this->SetTimerNachModusUndAuto();   // <-- immer Timer neu setzen!
+                $this->UpdateStatus('pvonly');
+            }
+            break;
             // ... weitere cases ...
             default:
                 throw new Exception("Invalid Ident: $Ident");
@@ -1061,7 +1069,7 @@ class PVWallboxManager extends IPSModule
         ];
     }
 
-    public function InitialCheck()
+    /*public function InitialCheck()
     {
         $carStatus = @$this->GetValue('Status');
         $interval = $this->GetInitialCheckInterval();
@@ -1076,26 +1084,25 @@ class PVWallboxManager extends IPSModule
             $this->LogTemplate('ok', "🚗 Fahrzeug erkannt – InitialCheck gestoppt, Haupt-Timer läuft ($mainInterval Sekunden).");
             $this->UpdateStatus(); // Einmal Hauptlogik anwerfen
         }
-    }
+    }*/
 
     // Hilfsfunktion: Setzt Timer richtig je nach Status und Modus
-    private function SetTimerNachModusUndAuto($car = null)
+    private function SetTimerNachModusUndAuto()
     {
-        if ($car === null) {
-            $car = @$this->GetValue('Status');
-        }
+        $car = @$this->GetValue('Status');
+        $mainInterval = intval($this->ReadPropertyInteger('RefreshInterval'));
+        $initialInterval = $this->GetInitialCheckInterval();
+
         if ($car > 1) {
-            // Auto erkannt: Haupttimer aktivieren, InitialCheck aus
-            $mainInterval = intval($this->ReadPropertyInteger('RefreshInterval'));
+            // Fahrzeug erkannt: Haupt-Timer aktiv!
             $this->SetTimerInterval('PVWM_UpdateStatus', $mainInterval * 1000);
             $this->SetTimerInterval('PVWM_InitialCheck', 0);
-            $this->LogTemplate('debug', "PVWM_UpdateStatus-Timer gesetzt ($mainInterval Sekunden), InitialCheck aus.");
+            $this->LogTemplate('debug', "🚗 Auto erkannt – UpdateStatus-Timer auf $mainInterval Sekunden, InitialCheck aus.");
         } else {
-            // Kein Auto: InitialCheck aktivieren, Haupttimer aus
-            $initialInterval = $this->GetInitialCheckInterval();
-            $this->SetTimerInterval('PVWM_InitialCheck', $initialInterval * 1000);
+            // Kein Fahrzeug: Nur InitialCheck aktiv!
             $this->SetTimerInterval('PVWM_UpdateStatus', 0);
-            $this->LogTemplate('debug', "InitialCheck-Timer gesetzt ($initialInterval Sekunden), UpdateStatus aus.");
+            $this->SetTimerInterval('PVWM_InitialCheck', $initialInterval * 1000);
+            $this->LogTemplate('debug', "💤 Kein Auto – InitialCheck-Timer auf $initialInterval Sekunden, UpdateStatus aus.");
         }
     }
 
