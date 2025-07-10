@@ -25,7 +25,14 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('MaxAmpere', 16);  // Maximal möglicher Ladestrom
         $this->RegisterPropertyInteger('Phasen1Schwelle', 1400); // Beispiel: 1-phasig ab < 1.400 W
         $this->RegisterPropertyInteger('Phasen3Schwelle', 3700); // Beispiel: 3-phasig ab > 3.700 W
+        // Hysterese-Zyklen als Properties
+        $this->RegisterPropertyInteger('Phasen1Limit', 3); // z.B. 3 = nach 3x Umschalten
+        $this->RegisterPropertyInteger('Phasen3Limit', 3);
         $this->RegisterPropertyInteger('MinLadeWatt', 1400);
+
+        // Hysterese-Zähler (werden NICHT im WebFront angezeigt)
+        $this->RegisterAttributeInteger('Phasen1Zaehler', 0);
+        $this->RegisterAttributeInteger('Phasen3Zaehler', 0);
 
         // Variablen nach API v2
         $this->RegisterVariableInteger('Status',        'Status',                                   'PVWM.CarStatus',       1);
@@ -366,7 +373,6 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('AccessStateV2', $accessStateV2, 'Wallbox Modus');
         $this->SetValueAndLogChange('Leistung',    $leistung,    'Aktuelle Ladeleistung zum Fahrzeug', 'W');
         $this->SetValueAndLogChange('Ampere',      $ampere,      'Maximaler Ladestrom', 'A');
-//        $this->SetValueAndLogChange('Phasenmodus', $psm,         'Phasenmodus');
         $this->SetValueAndLogChange('Energie',     $energie,     'Geladene Energie', 'Wh');
         $this->SetValueAndLogChange('Freigabe',    $freigabe,    'Ladefreigabe');
         $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom,  'Kabeltyp');
@@ -566,21 +572,45 @@ class PVWallboxManager extends IPSModule
     {
         $schwelle1 = $this->ReadPropertyInteger('Phasen1Schwelle');
         $schwelle3 = $this->ReadPropertyInteger('Phasen3Schwelle');
-        $aktuellerPhasenmodus = $this->GetValue('Phasenmodus');
+        $limit1    = $this->ReadPropertyInteger('Phasen1Limit');
+        $limit3    = $this->ReadPropertyInteger('Phasen3Limit');
+        $aktModus  = $this->GetValue('Phasenmodus');
 
-        if ($pvUeberschuss >= $schwelle3 && $aktuellerPhasenmodus != 2) {
-            $this->SetValueAndLogChange('Phasenmodus', 2, 'Phasenumschaltung', '', 'ok');
-            $ok = $this->SetPhaseMode(2);
-            if (!$ok) {
-                $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 3-phasig fehlgeschlagen!');
+        // === Auf 3-phasig umschalten, wenn Überschuss oft genug überschritten ===
+        if ($pvUeberschuss >= $schwelle3 && $aktModus != 2) {
+            $zaehler = $this->ReadAttributeInteger('Phasen3Zaehler') + 1;
+            $this->WriteAttributeInteger('Phasen3Zaehler', $zaehler);
+            $this->WriteAttributeInteger('Phasen1Zaehler', 0); // Anderen Zähler resetten
+
+            $this->LogTemplate('debug', "Phasen-Hysterese: $zaehler/$limit3 Zyklen > Schwelle3");
+            if ($zaehler >= $limit3) {
+                $this->SetValueAndLogChange('Phasenmodus', 2, 'Phasenumschaltung', '', 'ok');
+                $ok = $this->SetPhaseMode(2); // Wallbox: 2 = 3-phasig
+                if (!$ok) $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 3-phasig fehlgeschlagen!');
+                $this->WriteAttributeInteger('Phasen3Zaehler', 0); // Zähler zurücksetzen!
             }
-        } elseif ($pvUeberschuss <= $schwelle1 && $aktuellerPhasenmodus != 1) {
-            $this->SetValueAndLogChange('Phasenmodus', 1, 'Phasenumschaltung', '', 'warn');
-            $ok = $this->SetPhaseMode(1);
-            if (!$ok) {
-                $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 1-phasig fehlgeschlagen!');
-            }
+            return;
         }
+
+        // === Auf 1-phasig umschalten, wenn Überschuss oft genug unterschritten ===
+        if ($pvUeberschuss <= $schwelle1 && $aktModus != 1) {
+            $zaehler = $this->ReadAttributeInteger('Phasen1Zaehler') + 1;
+            $this->WriteAttributeInteger('Phasen1Zaehler', $zaehler);
+            $this->WriteAttributeInteger('Phasen3Zaehler', 0);
+
+            $this->LogTemplate('debug', "Phasen-Hysterese: $zaehler/$limit1 Zyklen < Schwelle1");
+            if ($zaehler >= $limit1) {
+                $this->SetValueAndLogChange('Phasenmodus', 1, 'Phasenumschaltung', '', 'warn');
+                $ok = $this->SetPhaseMode(1); // Wallbox: 1 = 1-phasig
+                if (!$ok) $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 1-phasig fehlgeschlagen!');
+                $this->WriteAttributeInteger('Phasen1Zaehler', 0); // Zähler zurücksetzen!
+            }
+            return;
+        }
+
+        // Kein Umschaltgrund: Zähler zurücksetzen
+        $this->WriteAttributeInteger('Phasen3Zaehler', 0);
+        $this->WriteAttributeInteger('Phasen1Zaehler', 0);
     }
 
     private function SteuerungLadefreigabe($pvUeberschuss, $modus = 'pvonly', $ampere = 0, $anzPhasen = 1)
