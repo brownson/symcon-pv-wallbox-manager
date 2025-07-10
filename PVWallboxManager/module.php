@@ -102,6 +102,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Phasenmodus', 'Genutzte Phasen', '', 51);
         IPS_SetIcon($this->GetIDForIdent('Phasenmodus'), 'Lightning');
 
+        // Schnell-Poll-Timer für Initialstatus
+        $this->RegisterTimer('PVWM_InitialStatusCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "InitialStatusCheck", "");');
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
@@ -121,6 +123,18 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->SetTimerInterval('PVWM_UpdateStatus', 0); // Timer AUS
         }
+
+        // InitialCheck-Timer (5 Sek) nur aktivieren, wenn kein Fahrzeug erkannt
+        $carStatus = @$this->GetValue('Status');
+        if ($aktiv && ($carStatus === false || $carStatus <= 1)) {
+            // Kein Auto angesteckt: InitialCheck-Timer alle 5 Sek. aktivieren
+            $this->SetTimerInterval('PVWM_InitialCheck', 5000);
+            $this->LogTemplate('debug', "InitialCheck-Timer gestartet (alle 5 Sekunden, bis Fahrzeug erkannt)");
+        } else {
+            // Fahrzeug erkannt: InitialCheck-Timer stoppen
+            $this->SetTimerInterval('PVWM_InitialCheck', 0);
+        }
+
         // Strompreis-Update-Timer steuern
         if ($this->ReadPropertyBoolean('UseMarketPrices')) {
             $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval')); // Minimum 5 Minuten
@@ -227,6 +241,9 @@ class PVWallboxManager extends IPSModule
         switch ($Ident) {
             case "UpdateStatus":
                 $this->UpdateStatus($Value);
+                break;
+            case "InitialStatusCheck":
+                $this->InitialStatusCheck();
                 break;
             case "UpdateMarketPrices":
                 $this->AktualisiereMarktpreise();
@@ -355,6 +372,17 @@ class PVWallboxManager extends IPSModule
         }
 
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
+
+        // === Initial-Schnellpoll: Kein Fahrzeug erkannt ===
+        if ($car <= 1) {
+            $this->LogTemplate(
+                'info',
+                "💤 Kein Fahrzeug erkannt (Status $car ≤ 1) – erneuter Check in 5 Sekunden aktiviert."
+            );
+            $this->SetTimerInterval('PVWM_InitialStatusCheck', 5000);     // Schnellpoll aktivieren
+            $this->SetTimerInterval('PVWM_UpdateStatus', 0);              // Haupt-Timer deaktivieren
+            return;                                                       // Abbruch – nichts weiter machen!
+        }   
 
         // Kompatibel beide Felder für forceState/AccessStateV2 abfragen
         $accessStateV2 = 0;
@@ -679,7 +707,7 @@ class PVWallboxManager extends IPSModule
         }
 
         // Wenn identisch, nichts tun
-        if ($oldValue === $newValue) {
+        if (round(floatval($oldValue), 2) == round(floatval($newValue), 2)) {
             return;
         }
 
@@ -973,6 +1001,22 @@ class PVWallboxManager extends IPSModule
             'leistung'       => $P_total, // Gesamtleistung in Watt
             'strom_je_phase' => [$I_L1, $I_L2, $I_L3]
         ];
+    }
+
+    public function InitialStatusCheck()
+    {
+        // Nur Schnellabfrage, bis Auto erkannt wird
+        $this->UpdateStatus(); // Prüft und schreibt den Status
+
+        $carStatus = $this->GetValue('Status');
+        if ($carStatus > 1) {
+            // Auto jetzt erkannt → auf Normalintervall schalten
+            $interval = $this->ReadPropertyInteger('RefreshInterval');
+            $this->SetTimerInterval('PVWM_InitialStatusCheck', 0);
+            $this->SetTimerInterval('PVWM_UpdateStatus', $interval * 1000);
+            $this->LogTemplate('ok', "Auto erkannt! Wechsel auf normalen Status-Intervall ({$interval}s).");
+        }
+        // sonst: Timer bleibt auf 5s
     }
 
 }
