@@ -102,12 +102,12 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Phasenmodus', 'Genutzte Phasen', '', 51);
         IPS_SetIcon($this->GetIDForIdent('Phasenmodus'), 'Lightning');
 
-        // Schnell-Poll-Timer für Initialstatus
-        $this->RegisterTimer('PVWM_InitialStatusCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "InitialStatusCheck", "");');
-
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
         $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
+        
+        // Schnell-Poll-Timer für Initialstatus
+        $this->RegisterTimer('PVWM_InitialStatusCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "InitialStatusCheck", "");');
     }
 
     public function ApplyChanges()
@@ -242,11 +242,11 @@ class PVWallboxManager extends IPSModule
             case "UpdateStatus":
                 $this->UpdateStatus($Value);
                 break;
-            case "InitialStatusCheck":
-                $this->InitialStatusCheck();
-                break;
             case "UpdateMarketPrices":
                 $this->AktualisiereMarktpreise();
+                break;
+            case "InitialStatusCheck":
+                $this->InitialStatusCheck();
                 break;
             case "ManuellLaden":
                 $this->SetValue('ManuellLaden', $Value);
