@@ -465,9 +465,10 @@ class PVWallboxManager extends IPSModule
         // Logging
         $this->LogTemplate('ok', "🔌 Manuelles Vollladen aktiv (Phasen: $anzPhasen, $maxAmp A, max. Leistung auf Fahrzeug).");
 
-        // Nichts weiter tun – keine weitere Logik!
-    }
-
+        // Nach Setzen immer Timer prüfen: 
+        // Falls Auto abgesteckt wird, InitialCheck aktivieren; sonst bleibt UpdateStatus aktiv!
+        $this->SetTimerNachModusUndAuto($car); // Hilfsfunktion siehe unten!
+}
 
     // =========================================================================
     // 6. WALLBOX STEUERN (SET-FUNKTIONEN)
@@ -1074,6 +1075,27 @@ class PVWallboxManager extends IPSModule
             $this->SetTimerInterval('PVWM_UpdateStatus', $mainInterval * 1000);
             $this->LogTemplate('ok', "🚗 Fahrzeug erkannt – InitialCheck gestoppt, Haupt-Timer läuft ($mainInterval Sekunden).");
             $this->UpdateStatus(); // Einmal Hauptlogik anwerfen
+        }
+    }
+
+    // Hilfsfunktion: Setzt Timer richtig je nach Status und Modus
+    private function SetTimerNachModusUndAuto($car = null)
+    {
+        if ($car === null) {
+            $car = @$this->GetValue('Status');
+        }
+        if ($car > 1) {
+            // Auto erkannt: Haupttimer aktivieren, InitialCheck aus
+            $mainInterval = intval($this->ReadPropertyInteger('RefreshInterval'));
+            $this->SetTimerInterval('PVWM_UpdateStatus', $mainInterval * 1000);
+            $this->SetTimerInterval('PVWM_InitialCheck', 0);
+            $this->LogTemplate('debug', "PVWM_UpdateStatus-Timer gesetzt ($mainInterval Sekunden), InitialCheck aus.");
+        } else {
+            // Kein Auto: InitialCheck aktivieren, Haupttimer aus
+            $initialInterval = $this->GetInitialCheckInterval();
+            $this->SetTimerInterval('PVWM_InitialCheck', $initialInterval * 1000);
+            $this->SetTimerInterval('PVWM_UpdateStatus', 0);
+            $this->LogTemplate('debug', "InitialCheck-Timer gesetzt ($initialInterval Sekunden), UpdateStatus aus.");
         }
     }
 
