@@ -379,7 +379,7 @@ class PVWallboxManager extends IPSModule
 
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
 
-        // === Initial-Schnellpoll: Kein Fahrzeug erkannt ===
+/*        // === Initial-Schnellpoll: Kein Fahrzeug erkannt ===
         if ($car <= 1) {
             $this->LogTemplate(
                 'info',
@@ -388,8 +388,8 @@ class PVWallboxManager extends IPSModule
             $this->SetTimerInterval('PVWM_InitialCheck', 5000);     // Schnellpoll aktivieren
             $this->SetTimerInterval('PVWM_UpdateStatus', 0);              // Haupt-Timer deaktivieren
             return;                                                       // Abbruch – nichts weiter machen!
-        }   
-
+      }   
+*/
         // Kompatibel beide Felder für forceState/AccessStateV2 abfragen
         $accessStateV2 = 0;
         if (isset($data['frc'])) {
@@ -1019,7 +1019,7 @@ class PVWallboxManager extends IPSModule
         if ($carStatus === false || $carStatus <= 1) {
             // Weiterhin kein Fahrzeug: Timer aufrechterhalten
             $this->SetTimerInterval('PVWM_InitialCheck', $interval * 1000);
-            $this->LogTemplate('info', "🚗 Kein Fahrzeug erkannt – InitialCheck läuft weiter (alle $interval Sekunden).");
+            $this->LogTemplate('info', "💤 Kein Fahrzeug erkannt – InitialCheck läuft weiter (alle $interval Sekunden).");
         } else {
             // Fahrzeug erkannt, InitialCheck stoppen & Haupt-Timer starten
             $this->SetTimerInterval('PVWM_InitialCheck', 0);
