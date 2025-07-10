@@ -1069,7 +1069,7 @@ class PVWallboxManager extends IPSModule
         ];
     }
 
-    /*public function InitialCheck()
+    public function InitialCheck()
     {
         $carStatus = @$this->GetValue('Status');
         $interval = $this->GetInitialCheckInterval();
@@ -1084,7 +1084,7 @@ class PVWallboxManager extends IPSModule
             $this->LogTemplate('ok', "🚗 Fahrzeug erkannt – InitialCheck gestoppt, Haupt-Timer läuft ($mainInterval Sekunden).");
             $this->UpdateStatus(); // Einmal Hauptlogik anwerfen
         }
-    }*/
+    }
 
     // Hilfsfunktion: Setzt Timer richtig je nach Status und Modus
     private function SetTimerNachModusUndAuto()
