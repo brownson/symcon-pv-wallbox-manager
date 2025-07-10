@@ -109,7 +109,6 @@ class PVWallboxManager extends IPSModule
         
         // Schnell-Poll-Timer für Initialcheck
         $this->RegisterTimer('PVWM_InitialCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "InitialCheck", "");');
-
     }
 
     public function ApplyChanges()
