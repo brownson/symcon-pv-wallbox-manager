@@ -19,7 +19,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyString('WallboxAPIKey', '');
         $this->RegisterPropertyInteger('RefreshInterval', 30);
         $this->RegisterPropertyBoolean('ModulAktiv', true);
-        $this->RegisterPropertyBoolean('DebugLogging', false);
         $this->RegisterVariableString('Log', 'Modul-Log', '', 99);
         $this->RegisterPropertyInteger('MinAmpere', 6);   // Minimal möglicher Ladestrom
         $this->RegisterPropertyInteger('MaxAmpere', 16);  // Maximal möglicher Ladestrom
@@ -127,11 +126,8 @@ class PVWallboxManager extends IPSModule
             $this->SetTimerInterval('PVWM_UpdateStatus', 0); // Timer AUS
         }
 
-        // --- InitialCheck-Intervall aus Property lesen und prüfen ---
-        $initialInterval = intval($this->ReadPropertyInteger('InitialCheckInterval'));
-        if ($initialInterval !== 0 && ($initialInterval < 5 || $initialInterval > 60)) {
-            $initialInterval = 5;
-        }
+        // --- InitialCheck-Intervall zentral aus Methode lesen ---
+        $initialInterval = $this->GetInitialCheckInterval();
 
         $carStatus = @$this->GetValue('Status');
         if ($aktiv && ($carStatus === false || $carStatus <= 1) && $initialInterval > 0) {
@@ -256,6 +252,10 @@ class PVWallboxManager extends IPSModule
                 break;
             case "ManuellLaden":
                 $this->SetValue('ManuellLaden', $Value);
+                if (!$Value) {
+                    $this->LogTemplate('info', "🔌 Manuelles Vollladen deaktiviert – zurück in PVonly-Modus.");
+                    $this->UpdateStatus('pvonly');
+                }
                 break;
             // ... weitere cases ...
             default:
@@ -347,6 +347,11 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
+        if ($this->GetValue('ManuellLaden')) {
+            $this->ModusManuellVollladen($data); // $data aus getStatusFromCharger()
+            return; // Rest abbrechen!
+        }
+
         // Defensive Daten-Extraktion
         $car = isset($data['car']) ? intval($data['car']) : 0;
         $leistung = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
@@ -379,17 +384,17 @@ class PVWallboxManager extends IPSModule
 
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
 
-/*        // === Initial-Schnellpoll: Kein Fahrzeug erkannt ===
+        // === Initial-Schnellpoll: Kein Fahrzeug erkannt ===
         if ($car <= 1) {
             $this->LogTemplate(
                 'info',
                 "💤 Kein Fahrzeug erkannt (Status $car ≤ 1) – erneuter Check in 5 Sekunden aktiviert."
             );
-            $this->SetTimerInterval('PVWM_InitialCheck', 5000);     // Schnellpoll aktivieren
-            $this->SetTimerInterval('PVWM_UpdateStatus', 0);              // Haupt-Timer deaktivieren
-            return;                                                       // Abbruch – nichts weiter machen!
-      }   
-*/
+            $this->SetTimerInterval('PVWM_InitialCheck', $this->GetInitialCheckInterval() * 1000);
+            $this->SetTimerInterval('PVWM_UpdateStatus', 0);
+            return;
+        }
+
         // Kompatibel beide Felder für forceState/AccessStateV2 abfragen
         $accessStateV2 = 0;
         if (isset($data['frc'])) {
@@ -424,6 +429,51 @@ class PVWallboxManager extends IPSModule
         // Ladefreigabe steuern (z.B. im pvonly Modus)
         $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasen);
     }
+
+    private function ModusManuellVollladen($data)
+    {
+        // Defensive Extraktion
+        $car = isset($data['car']) ? intval($data['car']) : 0;
+
+        // Auto abgesteckt? -> Manuell aus, PVonly/Initialcheck
+        if ($car <= 1) {
+            $this->SetValue('ManuellLaden', false);
+            $this->LogTemplate('ok', "🔌 Manuelles Vollladen gestoppt (Fahrzeug nicht verbunden). Wechsle in PVonly-Modus.");
+            $this->SetTimerInterval('PVWM_InitialCheck', $this->GetInitialCheckInterval() * 1000);
+            $this->SetTimerInterval('PVWM_UpdateStatus', 0);
+            return;
+        }
+
+        // Phasen anhand nrg-Array zählen (wie bisher)
+        $anzPhasen = 0;
+        if (isset($data['nrg'][4]) && isset($data['nrg'][5]) && isset($data['nrg'][6])) {
+            $phasenAmpere = [
+                abs(floatval($data['nrg'][4])),
+                abs(floatval($data['nrg'][5])),
+                abs(floatval($data['nrg'][6]))
+            ];
+            foreach ($phasenAmpere as $a) {
+                if ($a > 1.5) $anzPhasen++;
+            }
+            if ($anzPhasen === 0) $anzPhasen = 1;
+        } else {
+            $anzPhasen = 1;
+        }
+        $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
+
+        // Maximalen Ampere-Wert aus Property
+        $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+        // Ladefreigabe erteilen (ForceState 2)
+        $this->SetForceState(2);
+        // Maximalen Ladestrom setzen
+        $this->SetChargingCurrent($maxAmp);
+
+        // Logging
+        $this->LogTemplate('ok', "🔌 Manuelles Vollladen aktiv (Phasen: $anzPhasen, $maxAmp A, max. Leistung auf Fahrzeug).");
+
+        // Nichts weiter tun – keine weitere Logik!
+    }
+
 
     // =========================================================================
     // 6. WALLBOX STEUERN (SET-FUNKTIONEN)
@@ -820,6 +870,13 @@ class PVWallboxManager extends IPSModule
             default: return 'Unbekannt (' . $frc . ')';
         }
     }
+
+    private function GetInitialCheckInterval() {
+        $val = intval($this->ReadPropertyInteger('InitialCheckInterval'));
+        if ($val < 5 || $val > 60) $val = 5;
+        return $val;
+    }
+
     
     // =========================================================================
     // 8. LOGGING / DEBUG / STATUSMELDUNGEN
@@ -1012,12 +1069,8 @@ class PVWallboxManager extends IPSModule
     public function InitialCheck()
     {
         $carStatus = @$this->GetValue('Status');
-        $interval = intval($this->ReadPropertyInteger('InitialCheckInterval'));
-        if ($interval !== 0 && ($interval < 5 || $interval > 60)) {
-            $interval = 5;
-        }
+        $interval = $this->GetInitialCheckInterval();
         if ($carStatus === false || $carStatus <= 1) {
-            // Weiterhin kein Fahrzeug: Timer aufrechterhalten
             $this->SetTimerInterval('PVWM_InitialCheck', $interval * 1000);
             $this->LogTemplate('info', "💤 Kein Fahrzeug erkannt – InitialCheck läuft weiter (alle $interval Sekunden).");
         } else {
