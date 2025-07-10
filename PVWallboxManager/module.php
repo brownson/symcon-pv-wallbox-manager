@@ -326,15 +326,11 @@ class PVWallboxManager extends IPSModule
         $kabelstrom = isset($data['cbl']) ? intval($data['cbl']) : 0;
         $fehlercode = isset($data['err']) ? intval($data['err']) : 0;
         $psm = isset($data['psm']) ? intval($data['psm']) : 0;
-//        $pha = $data['pha'] ?? [];
-//        $accessStateV2 = isset($data['accessStateV2']) ? intval($data['accessStateV2']) : 0;
 
         $this->SetValueAndLogChange('PhasenmodusEinstellung', $psm, 'Phasenmodus (Einstellung)', '', 'debug');
 
         // Tatsächlich genutzte Phasen ermitteln aus nrg[4..6]
         $phasenSchwelle = 1.5; // 1.5A als Schwelle zur Phasenerkennung (hartcodiert)
-
-//        if ($phasenSchwelle <= 0) $phasenSchwelle = 1.5;
 
         $anzPhasen = 0;
         if (isset($data['nrg'][4]) && isset($data['nrg'][5]) && isset($data['nrg'][6])) {
@@ -350,9 +346,8 @@ class PVWallboxManager extends IPSModule
         } else {
             $anzPhasen = 1;
         }
-//        $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Aktiv genutzte Phasen', '', 'debug');
-        $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
 
+        $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
 
         // Kompatibel beide Felder für forceState/AccessStateV2 abfragen
         $accessStateV2 = 0;
@@ -378,7 +373,6 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('Fehlercode',  $fehlercode,  'Fehlercode', '', 'warn');
 
         // --- PV-Überschuss neu berechnen (hier ggf. $anzPhasen übergeben, falls relevant) ---
-//        $berechnung = $this->BerechnePVUeberschuss();
         $berechnung    = $this->BerechnePVUeberschuss($anzPhasen); 
         $pvUeberschuss = $berechnung['ueberschuss_w'];
         $ampere        = $berechnung['ueberschuss_a'];
@@ -924,11 +918,6 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
     }
 
-    /**
-     * Ermittelt die aktiven Phasen und reale Ladeleistung aus dem nrg-Array der go-e Wallbox
-     * @param array $nrg Das nrg-Array aus der /api/status-Abfrage
-     * @return array ['phasen' => int, 'aktive_phasen' => array, 'leistung' => float, 'strom_je_phase' => array]
-     */
     private function AnalysiereGoENrgArray($nrg)
     {
         // Indizes je nach go-e Firmware
