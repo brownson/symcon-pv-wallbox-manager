@@ -39,6 +39,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeInteger('Phasen3Zaehler', 0);
         $this->RegisterAttributeInteger('LadeStartZaehler', 0);
         $this->RegisterAttributeInteger('LadeStopZaehler', 0);
+        $this->RegisterAttributeString('HausverbrauchAbzWallboxBuffer', '[]');
+        $this->RegisterAttributeFloat('HausverbrauchAbzWallboxLast', 0.0);
+
 
         // Variablen nach API v2
         $this->RegisterVariableInteger('Status',        'Status',                                   'PVWM.CarStatus',       1);
@@ -921,6 +924,12 @@ class PVWallboxManager extends IPSModule
         $pv = ($pvID > 0) ? GetValueFloat($pvID) : 0;
         if ($pvEinheit == "kW") $pv *= 1000;
 
+        // Wallbox-Leistung (direkt an Auto, nur für Visualisierung)
+        $ladeleistung = round($this->GetValue('Leistung'));
+        
+        // --- 2. 0,5 SEKUNDEN PAUSE ---
+        IPS_Sleep(500);
+        
         // Hausverbrauch holen (inkl. Wallbox-Leistung)
         $hvID = $this->ReadPropertyInteger('HausverbrauchID');
         $hvEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
@@ -930,9 +939,38 @@ class PVWallboxManager extends IPSModule
         if ($invertHV) $hausverbrauch *= -1;
         $hausverbrauch = round($hausverbrauch);
 
-        // Wallbox-Leistung (direkt an Auto, nur für Visualisierung)
-        $ladeleistung = round($this->GetValue('Leistung'));
         $hausverbrauchAbzWallbox = round($hausverbrauch - $ladeleistung);
+
+        // --- GLAETTUNG & SPIKE-FILTER ---
+        $buffer = json_decode($this->ReadAttributeString('HausverbrauchAbzWallboxBuffer'), true);
+        if (!is_array($buffer)) $buffer = [];
+
+        // Neuen Wert anhängen, max. 3 Werte behalten
+        $buffer[] = $hausverbrauchAbzWallbox;
+        if (count($buffer) > 3) array_shift($buffer);
+
+        // Mittelwert berechnen
+        $mittelwert = array_sum($buffer) / count($buffer);
+
+        // Schwelle für Spike-Erkennung (z. B. 1,5 × Wallbox-Maximalleistung)
+        $spikeSchwelle = 1.5 * $this->ReadPropertyInteger('MaxAmpere') * 230; // z. B. 16A * 230V = 3680W
+
+        // Vorheriger Wert (letzter sauberer Wert)
+        $letzterWert = floatval($this->ReadAttributeFloat('HausverbrauchAbzWallboxLast'));
+
+        // Wenn Sprung größer als $spikeSchwelle, dann Wert ignorieren und letzten gültigen nehmen
+        if ($letzterWert > 0 && abs($hausverbrauchAbzWallbox - $letzterWert) > $spikeSchwelle) {
+            $hausverbrauchAbzWallboxGlaettet = $letzterWert;
+            $this->LogTemplate('warn', "Spike erkannt: $hausverbrauchAbzWallbox W (letzter Wert: $letzterWert W, Schwelle: $spikeSchwelle W) – Wert wird NICHT gespeichert!");
+        } else {
+            $hausverbrauchAbzWallboxGlaettet = $mittelwert;
+            // Buffer und letzten Wert nur aktualisieren, wenn kein Ausreißer
+            $this->WriteAttributeString('HausverbrauchAbzWallboxBuffer', json_encode($buffer));
+            $this->WriteAttributeFloat('HausverbrauchAbzWallboxLast', $hausverbrauchAbzWallboxGlaettet);
+        }
+
+        // Für Anzeige/Log den geglätteten/spikegefilterten Wert nehmen:
+        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallboxGlaettet, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
 
         // Batterie-Ladung (positiv = lädt, negativ = entlädt)
         $batID = $this->ReadPropertyInteger('BatterieladungID');
