@@ -108,6 +108,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableBoolean('ZielzeitLaden', '⏰ Zielzeit-Ladung', '~Switch', 42);
         $this->RegisterVariableInteger('PVAnteil',    'PV-Anteil (%)',                                      'PVWM.Percent',43);
         IPS_SetIcon($this->GetIDForIdent('PVAnteil'), 'Percent');
+        $this->EnableAction('PVAnteil');
 
         // Im Create()-Bereich, nach den anderen Variablen
         $this->RegisterVariableInteger('PhasenmodusEinstellung', 'Phasenmodus (Einstellung)', 'PVWM.PSM', 50);
@@ -252,7 +253,6 @@ class PVWallboxManager extends IPSModule
             if ($Value) {
                 $this->SetValue('PV2CarModus', true);
                 $this->SetValue('ManuellLaden', false);
-                // (später: weitere Modi hier deaktivieren)
                 $this->LogTemplate('info', "🌞 PV-Anteil laden aktiviert.");
             } else {
                 $this->SetValue('PV2CarModus', false);
@@ -262,7 +262,17 @@ class PVWallboxManager extends IPSModule
             $this->UpdateStatus('pv2car');
             break;
 
-        // KEIN Fall mehr für "InitialCheck"!
+        case "PVAnteil":
+            // Wertebereich checken (0-100%)
+            $value = max(0, min(100, intval($Value)));
+            $this->SetValue('PVAnteil', $value);
+            $this->LogTemplate('info', "🌞 PV-Anteil geändert: {$value}%");
+            // Sofortige Wirkung, wenn PV2Car aktiv ist
+            if ($this->GetValue('PV2CarModus')) {
+                $this->UpdateStatus('pv2car');
+            }
+            break;
+
         default:
             throw new Exception("Invalid Ident: $Ident");
         }
