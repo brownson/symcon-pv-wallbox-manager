@@ -101,7 +101,10 @@ class PVWallboxManager extends IPSModule
         // Lademodi
         $this->RegisterVariableBoolean('ManuellLaden', '🔌 Manuell: Vollladen aktiv', '~Switch', 40);
         $this->EnableAction('ManuellLaden');
-        $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV2Car-Modus', '~Switch', 41);
+//        $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV2Car-Modus', '~Switch', 41);
+        $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV-Anteil laden', '~Switch', 41);
+        IPS_SetIcon($this->GetIDForIdent('PV2CarModus'), 'SolarPanel');
+        $this->EnableAction('PV2CarModus');
         $this->RegisterVariableBoolean('ZielzeitLaden', '⏰ Zielzeit-Ladung', '~Switch', 42);
         $this->RegisterVariableInteger('PVAnteil',    'PV-Anteil (%)',                                      'PVWM.Percent',43);
         IPS_SetIcon($this->GetIDForIdent('PVAnteil'), 'Percent');
@@ -228,17 +231,40 @@ class PVWallboxManager extends IPSModule
             case "UpdateMarketPrices":
                 $this->AktualisiereMarktpreise();
                 break;
-            case "ManuellLaden":
-                $this->SetValue('ManuellLaden', $Value);
-                if (!$Value) {
-                    $this->LogTemplate('info', "🔌 Manuelles Vollladen deaktiviert – zurück in PVonly-Modus.");
-                    $this->SetTimerNachModusUndAuto();   // <-- immer Timer neu setzen!
-                    $this->UpdateStatus('pvonly');
-                }
-                break;
-            // KEIN Fall mehr für "InitialCheck"!
-            default:
-                throw new Exception("Invalid Ident: $Ident");
+
+        case "ManuellLaden":
+            // Nur EIN Modus darf aktiv sein!
+            if ($Value) {
+                $this->SetValue('ManuellLaden', true);
+                $this->SetValue('PV2CarModus', false);
+                // (später: weitere Modi hier deaktivieren)
+                $this->LogTemplate('info', "🔌 Manuelles Vollladen aktiviert.");
+            } else {
+                $this->SetValue('ManuellLaden', false);
+                $this->LogTemplate('info', "🔌 Manuelles Vollladen deaktiviert – zurück in PVonly-Modus.");
+            }
+            $this->SetTimerNachModusUndAuto();
+            $this->UpdateStatus('pvonly');
+            break;
+
+        case "PV2CarModus":
+            // Nur EIN Modus darf aktiv sein!
+            if ($Value) {
+                $this->SetValue('PV2CarModus', true);
+                $this->SetValue('ManuellLaden', false);
+                // (später: weitere Modi hier deaktivieren)
+                $this->LogTemplate('info', "🌞 PV-Anteil laden aktiviert.");
+            } else {
+                $this->SetValue('PV2CarModus', false);
+                $this->LogTemplate('info', "🌞 PV-Anteil laden deaktiviert – zurück in PVonly-Modus.");
+            }
+            $this->SetTimerNachModusUndAuto();
+            $this->UpdateStatus('pv2car');
+            break;
+
+        // KEIN Fall mehr für "InitialCheck"!
+        default:
+            throw new Exception("Invalid Ident: $Ident");
         }
     }
 
@@ -386,13 +412,22 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom,  'Kabeltyp');
         $this->SetValueAndLogChange('Fehlercode',  $fehlercode,  'Fehlercode', '', 'warn');
 
-        // Wenn manueller Modus → Sonderlogik
+        // === Lademodi: Reihenfolge der Prio beachten! ===
+
+        // 1. Manueller Modus
         if ($this->GetValue('ManuellLaden')) {
-            $this->ModusManuellVollladen($data); // $data aus getStatusFromCharger()
-            return; // Rest abbrechen!
+            $this->ModusManuellVollladen($data);
+            return;
+        }
+    
+        // 2. PV2Car-Modus (PV-Anteil laden)
+        if ($this->GetValue('PV2CarModus')) {
+            $this->ModusPV2CarLaden($data);
+            return;
         }
 
-            // --- Ladefreigabe-Hysterese ---
+        // 3. Standard PVonly-Modus: mit Hysterese!
+        // --- Ladefreigabe-Hysterese ---
         $minLadeWatt    = $this->ReadPropertyInteger('MinLadeWatt');      // Start-Schwelle (W)
         $minStopWatt    = $this->ReadPropertyInteger('MinStopWatt');      // Stop-Schwelle (W)
         $startHysterese = $this->ReadPropertyInteger('StartLadeHysterese'); // Zyklen Start
@@ -484,7 +519,52 @@ class PVWallboxManager extends IPSModule
         // Nach Setzen immer Timer prüfen: 
         // Falls Auto abgesteckt wird, InitialCheck aktivieren; sonst bleibt UpdateStatus aktiv!
         $this->SetTimerNachModusUndAuto($car); // Hilfsfunktion siehe unten!
-}
+    }
+
+    private function ModusPV2CarLaden($data)
+    {
+        // Prüfen, ob Modus aktiv
+        if (!$this->GetValue('PV2CarModus')) {
+            $this->LogTemplate('debug', "PV2Car-Modus ist nicht aktiv.");
+            return;
+        }
+
+        // PV-Anteil aus Variable holen (0..100)
+        $anteil = $this->GetValue('PVAnteil');
+        $anteil = max(0, min(100, intval($anteil)));
+
+        // Berechne aktuellen PV-Überschuss
+        $anzPhasen = $this->GetValue('Phasenmodus');
+        $berechnung = $this->BerechnePVUeberschuss($anzPhasen); 
+        $pvUeberschuss = $berechnung['ueberschuss_w'];
+
+        // Anteil berechnen
+        $anteilWatt = intval(round($pvUeberschuss * $anteil / 100));
+
+        $this->LogTemplate('debug', "🌞 PV2Car: PV-Überschuss=$pvUeberschuss W, Anteil für Auto: $anteil% = $anteilWatt W");
+
+        // Mindestleistung/Schwellwert
+        $minWatt = $this->ReadPropertyInteger('MinLadeWatt');
+        if ($anteilWatt < $minWatt) {
+            $this->SetForceState(1); // Nicht laden
+            $this->SetChargingCurrent($this->ReadPropertyInteger('MinAmpere'));
+            $this->LogTemplate('info', "PV2Car: Anteil $anteilWatt W < MinLadeWatt ($minWatt W) – Keine Ladefreigabe.");
+            return;
+        }
+
+        // In Ampere umrechnen (rundend, auf Phasen verteilen)
+        $ampere = ceil($anteilWatt / (230 * max(1, $anzPhasen)));
+        $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
+
+        // Setzen, nur wenn Freigabe nötig!
+        if ($this->GetValue('AccessStateV2') != 2) {
+            $this->SetForceState(2);
+            IPS_Sleep(500);
+        }
+        $this->SetChargingCurrent($ampere);
+
+        $this->LogTemplate('ok', "🌞 PV2Car: Ladefreigabe aktiv, $ampere A gesetzt (Anteil: $anteil%, $anteilWatt W).");
+    }
 
     // =========================================================================
     // 6. WALLBOX STEUERN (SET-FUNKTIONEN)
@@ -929,7 +1009,7 @@ class PVWallboxManager extends IPSModule
         
         // --- 2. 0,5 SEKUNDEN PAUSE ---
         IPS_Sleep(500);
-        
+
         // Hausverbrauch holen (inkl. Wallbox-Leistung)
         $hvID = $this->ReadPropertyInteger('HausverbrauchID');
         $hvEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
