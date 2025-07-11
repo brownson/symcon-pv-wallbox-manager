@@ -108,7 +108,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
         
         // Schnell-Poll-Timer für Initialcheck
-        $this->RegisterTimer('PVWM_InitialCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "InitialCheck", "");');
+        $this->RegisterTimer('PVWM_InitialCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "pvonly", "");');
+        //$this->RegisterTimer('PVWM_InitialCheck', 0, 'IPS_RequestAction($InstanceID, "UpdateStatus", "pvonly");');
+
     }
 
     public function ApplyChanges()
@@ -259,18 +261,15 @@ class PVWallboxManager extends IPSModule
             case "UpdateMarketPrices":
                 $this->AktualisiereMarktpreise();
                 break;
-            case "InitialCheck":
-                $this->InitialCheck();
-                break;
             case "ManuellLaden":
-            $this->SetValue('ManuellLaden', $Value);
-            if (!$Value) {
-                $this->LogTemplate('info', "🔌 Manuelles Vollladen deaktiviert – zurück in PVonly-Modus.");
-                $this->SetTimerNachModusUndAuto();   // <-- immer Timer neu setzen!
-                $this->UpdateStatus('pvonly');
-            }
-            break;
-            // ... weitere cases ...
+                $this->SetValue('ManuellLaden', $Value);
+                if (!$Value) {
+                    $this->LogTemplate('info', "🔌 Manuelles Vollladen deaktiviert – zurück in PVonly-Modus.");
+                    $this->SetTimerNachModusUndAuto();   // <-- immer Timer neu setzen!
+                    $this->UpdateStatus('pvonly');
+                }
+                break;
+            // KEIN Fall mehr für "InitialCheck"!
             default:
                 throw new Exception("Invalid Ident: $Ident");
         }
@@ -1068,7 +1067,7 @@ class PVWallboxManager extends IPSModule
             'strom_je_phase' => [$I_L1, $I_L2, $I_L3]
         ];
     }
-
+/*
     public function InitialCheck()
     {
         $carStatus = @$this->GetValue('Status');
@@ -1085,7 +1084,7 @@ class PVWallboxManager extends IPSModule
             $this->UpdateStatus(); // Einmal Hauptlogik anwerfen
         }
     }
-
+*/
     // Hilfsfunktion: Setzt Timer richtig je nach Status und Modus
     private function SetTimerNachModusUndAuto()
     {
