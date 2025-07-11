@@ -1065,6 +1065,9 @@ class PVWallboxManager extends IPSModule
 
         // --- PV-Überschuss berechnen ---
         $pvUeberschuss = max(0, $pv - $verbrauchGesamt);
+        if (abs($pvUeberschuss) < 1) {
+            $pvUeberschuss = 0.0;
+        }
 
         // --- LADENSTROM (AMPERE) BERECHNEN ---
         $minAmp = $this->ReadPropertyInteger('MinAmpere');
