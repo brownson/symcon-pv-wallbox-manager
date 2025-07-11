@@ -101,7 +101,6 @@ class PVWallboxManager extends IPSModule
         // Lademodi
         $this->RegisterVariableBoolean('ManuellLaden', '🔌 Manuell: Vollladen aktiv', '~Switch', 40);
         $this->EnableAction('ManuellLaden');
-//        $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV2Car-Modus', '~Switch', 41);
         $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV-Anteil laden', '~Switch', 41);
         IPS_SetIcon($this->GetIDForIdent('PV2CarModus'), 'SolarPanel');
         $this->EnableAction('PV2CarModus');
