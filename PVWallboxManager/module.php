@@ -555,8 +555,14 @@ class PVWallboxManager extends IPSModule
         // Mindestleistung/Schwellwert
         $minWatt = $this->ReadPropertyInteger('MinLadeWatt');
         if ($anteilWatt < $minWatt) {
-            $this->SetForceState(1); // Nicht laden
-            $this->SetChargingCurrent($this->ReadPropertyInteger('MinAmpere'));
+            // Nur setzen, wenn nötig!
+            if ($this->GetValue('AccessStateV2') != 1) {
+                $this->SetForceState(1); // Nur wenn nicht schon gesperrt!
+            }
+            $minAmp = $this->ReadPropertyInteger('MinAmpere');
+            if ($this->GetValue('Ampere') != $minAmp) {
+                $this->SetChargingCurrent($minAmp);
+            }
             $this->LogTemplate('info', "PV2Car: Anteil $anteilWatt W < MinLadeWatt ($minWatt W) – Keine Ladefreigabe.");
             return;
         }
