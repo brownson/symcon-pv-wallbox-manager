@@ -532,13 +532,13 @@ class PVWallboxManager extends IPSModule
 
     private function ModusPV2CarLaden($data)
     {
-        // 1. Prüfen, ob Modus aktiv (zur Sicherheit)
+        // 1. Prüfen, ob Modus aktiv
         if (!$this->GetValue('PV2CarModus')) {
             $this->LogTemplate('debug', "PV2Car-Modus ist nicht aktiv.");
             return;
         }
 
-        // 2. Prozentwert aus Variable holen (0..100)
+        // 2. Prozentwert holen
         $anteil = $this->GetValue('PVAnteil');
         $anteil = max(0, min(100, intval($anteil)));
 
@@ -548,33 +548,45 @@ class PVWallboxManager extends IPSModule
         $pv = ($pvID > 0) ? GetValueFloat($pvID) : 0;
         if ($pvEinheit == "kW") $pv *= 1000;
 
-        // 4. Anteil berechnen
-        $anteilWatt = intval(round($pv * $anteil / 100));
+        // 4. Hausverbrauch holen
+        $hvID = $this->ReadPropertyInteger('HausverbrauchID');
+        $hvEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
+        $invertHV = $this->ReadPropertyBoolean('InvertHausverbrauch');
+        $hausverbrauch = ($hvID > 0) ? GetValueFloat($hvID) : 0;
+        if ($hvEinheit == "kW") $hausverbrauch *= 1000;
+        if ($invertHV) $hausverbrauch *= -1;
+        $hausverbrauch = round($hausverbrauch);
 
-        $this->LogTemplate('debug', "🌞 PV-Anteil-Modus: PV-Erzeugung=$pv W, Anteil=$anteil% → Ladeleistung=$anteilWatt W");
+        // 5. Überschuss berechnen
+        $pvUeberschuss = max(0, $pv - $hausverbrauch);
 
-        // 5. Einschaltwert prüfen (MinLadeWatt)
+        // 6. Prozentualen Anteil berechnen
+        $anteilWatt = intval(round($pvUeberschuss * $anteil / 100));
+
+        $this->LogTemplate('debug', "🌞 PV2Car: PV=$pv W, Haus=$hausverbrauch W, Überschuss=$pvUeberschuss W, Anteil für Auto: $anteil% = $anteilWatt W");
+
+        // 7. Einschaltwert prüfen
         $minWatt = $this->ReadPropertyInteger('MinLadeWatt');
         if ($anteilWatt < $minWatt) {
             $this->SetForceState(1); // Nicht laden
             $this->SetChargingCurrent($this->ReadPropertyInteger('MinAmpere'));
-            $this->LogTemplate('info', "PV-Anteil-Modus: Anteil $anteilWatt W < MinLadeWatt ($minWatt W) – Keine Ladefreigabe.");
+            $this->LogTemplate('info', "PV2Car: Anteil $anteilWatt W < MinLadeWatt ($minWatt W) – Keine Ladefreigabe.");
             return;
         }
 
-        // 6. Ampere berechnen (Phasen beachten)
+        // 8. Ampere berechnen
         $anzPhasen = $this->GetValue('Phasenmodus');
         $ampere = ceil($anteilWatt / (230 * max(1, $anzPhasen)));
         $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
 
-        // 7. Ladefreigabe erteilen (falls nötig)
+        // 9. Ladefreigabe setzen (falls nötig)
         if ($this->GetValue('AccessStateV2') != 2) {
             $this->SetForceState(2);
             IPS_Sleep(500);
         }
         $this->SetChargingCurrent($ampere);
 
-        $this->LogTemplate('ok', "🌞 PV-Anteil-Modus: Ladefreigabe aktiv, $ampere A gesetzt (Anteil: $anteil%, $anteilWatt W).");
+        $this->LogTemplate('ok', "🌞 PV2Car: Ladefreigabe aktiv, $ampere A gesetzt (Anteil: $anteil%, $anteilWatt W).");
     }
 
 
