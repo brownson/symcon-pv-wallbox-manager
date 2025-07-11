@@ -27,13 +27,18 @@ class PVWallboxManager extends IPSModule
         // Hysterese-Zyklen als Properties
         $this->RegisterPropertyInteger('Phasen1Limit', 3); // z.B. 3 = nach 3x Umschalten
         $this->RegisterPropertyInteger('Phasen3Limit', 3);
-        $this->RegisterPropertyInteger('MinLadeWatt', 1400);
+        $this->RegisterPropertyInteger('MinLadeWatt', 1400);      // Schwelle zum Starten (W)
+        $this->RegisterPropertyInteger('MinStopWatt', 1100);      // Schwelle zum Stoppen (W)
+        $this->RegisterPropertyInteger('StartLadeHysterese', 3);  // Zyklen Start-Hysterese
+        $this->RegisterPropertyInteger('StopLadeHysterese', 3);   // Zyklen Stop-Hysterese
         $this->RegisterPropertyInteger('InitialCheckInterval', 0); // 0 = deaktiviert, 5–60 Sek.
 
 
         // Hysterese-Zähler (werden NICHT im WebFront angezeigt)
         $this->RegisterAttributeInteger('Phasen1Zaehler', 0);
         $this->RegisterAttributeInteger('Phasen3Zaehler', 0);
+        $this->RegisterAttributeInteger('LadeStartZaehler', 0);
+        $this->RegisterAttributeInteger('LadeStopZaehler', 0);
 
         // Variablen nach API v2
         $this->RegisterVariableInteger('Status',        'Status',                                   'PVWM.CarStatus',       1);
@@ -111,7 +116,6 @@ class PVWallboxManager extends IPSModule
         // Schnell-Poll-Timer für Initialcheck
         $this->RegisterTimer('PVWM_InitialCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
 
-
     }
 
     public function ApplyChanges()
@@ -119,56 +123,7 @@ class PVWallboxManager extends IPSModule
         parent::ApplyChanges();
         $this->SetTimerNachModusUndAuto();
     }
-/*
-    public function ApplyChanges()
-    {
-        parent::ApplyChanges();
 
-        $interval = intval($this->ReadPropertyInteger('RefreshInterval')); 
-        $initialInterval = intval($this->GetInitialCheckInterval());
-        $this->SetTimerNachModusUndAuto();
-
-
-        $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
-        $carStatus = @$this->GetValue('Status');
-
-        // **Immer zuerst beide Haupt-Timer auf AUS**
-        $this->SetTimerInterval('PVWM_UpdateStatus', 0);
-        $this->SetTimerInterval('PVWM_InitialCheck', 0);
-
-        if (!$aktiv) {
-            $this->LogTemplate('debug', "Modul nicht aktiv, alle Timer gestoppt.");
-            // Strompreis-Timer auch aus:
-            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
-            return;
-        }
-
-        // **Genau EINEN Timer setzen – je nach Fahrzeugstatus**
-        if ($carStatus === false || $carStatus <= 1) {
-            // Kein Fahrzeug: InitialCheck aktivieren, UpdateStatus aus
-            if ($initialInterval > 0) {
-                $this->SetTimerInterval('PVWM_InitialCheck', $initialInterval * 1000);
-                $this->LogTemplate('debug', "InitialCheck-Timer gestartet (alle $initialInterval Sekunden, bis Fahrzeug erkannt)");
-            } else {
-                $this->LogTemplate('debug', "InitialCheck-Intervall ist 0 – kein Schnellpoll.");
-            }
-            $this->SetTimerInterval('PVWM_UpdateStatus', 0);
-        } else {
-            // Fahrzeug erkannt: UpdateStatus aktivieren, InitialCheck aus
-            $this->SetTimerInterval('PVWM_UpdateStatus', $interval * 1000);
-            $this->LogTemplate('debug', "PVWM_UpdateStatus-Timer gestartet (alle $interval Sekunden)");
-            $this->SetTimerInterval('PVWM_InitialCheck', 0);
-        }
-
-        // --- Strompreis-Update-Timer wie gehabt ---
-        if ($this->ReadPropertyBoolean('UseMarketPrices')) {
-            $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval')); // Minimum 5 Minuten
-            $this->SetTimerInterval('PVWM_UpdateMarketPrices', $marketInterval * 60 * 1000);
-        } else {
-            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0); // Timer AUS
-        }
-    }
-*/
     // =========================================================================
     // 2. PROFILE & VARIABLEN-PROFILE
     // =========================================================================
@@ -434,88 +389,45 @@ class PVWallboxManager extends IPSModule
             return; // Rest abbrechen!
         }
 
-        // Phasenumschaltung
-        $this->PruefeUndSetzePhasenmodus($pvUeberschuss);
+            // --- Ladefreigabe-Hysterese ---
+        $minLadeWatt    = $this->ReadPropertyInteger('MinLadeWatt');      // Start-Schwelle (W)
+        $minStopWatt    = $this->ReadPropertyInteger('MinStopWatt');      // Stop-Schwelle (W)
+        $startHysterese = $this->ReadPropertyInteger('StartLadeHysterese'); // Zyklen Start
+        $stopHysterese  = $this->ReadPropertyInteger('StopLadeHysterese');  // Zyklen Stop
 
-        // Ladefreigabe steuern (z.B. im pvonly Modus)
-        $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasen);
-    }
+        $startZaehler = $this->ReadAttributeInteger('LadeStartZaehler');
+        $stopZaehler  = $this->ReadAttributeInteger('LadeStopZaehler');
 
+        // Aktueller Zustand (AccessStateV2: 2 = Freigabe, 1 = kein Laden)
+        $aktFreigabe = ($accessStateV2 == 2);
 
-    /* AAAAAAAALLLLLLLLLLLTTTTTTTT
-    public function UpdateStatus(string $mode = 'pvonly')
-    {
-        $this->LogTemplate('debug', "UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")");
+        // --- Start-Hysterese prüfen ---
+        if ($pvUeberschuss >= $minLadeWatt) {
+            $startZaehler++;
+            $this->WriteAttributeInteger('LadeStartZaehler', $startZaehler);
+            $this->WriteAttributeInteger('LadeStopZaehler', 0); // Stop-Zähler rücksetzen
 
-        $data = $this->getStatusFromCharger();
-        if ($data === false) {
-            // Fehler wurde schon geloggt
-            return;
-        }
-
-        // Defensive Daten-Extraktion
-        $car = isset($data['car']) ? intval($data['car']) : 0;
-        $leistung = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
-        $ampere = isset($data['amp']) ? intval($data['amp']) : 0;
-        $energie = isset($data['wh']) ? intval($data['wh']) : 0;
-        $freigabe = isset($data['alw']) ? (bool)$data['alw'] : false;
-        $kabelstrom = isset($data['cbl']) ? intval($data['cbl']) : 0;
-        $fehlercode = isset($data['err']) ? intval($data['err']) : 0;
-        $psm = isset($data['psm']) ? intval($data['psm']) : 0;
-
-        $this->SetValueAndLogChange('PhasenmodusEinstellung', $psm, 'Phasenmodus (Einstellung)', '', 'debug');
-
-        // Tatsächlich genutzte Phasen ermitteln aus nrg[4..6]
-        $phasenSchwelle = 1.5; // 1.5A als Schwelle zur Phasenerkennung (hartcodiert)
-
-        $anzPhasen = 0;
-        if (isset($data['nrg'][4]) && isset($data['nrg'][5]) && isset($data['nrg'][6])) {
-            $phasenAmpere = [
-                abs(floatval($data['nrg'][4])),
-                abs(floatval($data['nrg'][5])),
-                abs(floatval($data['nrg'][6]))
-            ];
-            foreach ($phasenAmpere as $a) {
-                if ($a > $phasenSchwelle) $anzPhasen++;
+            if ($startZaehler >= $startHysterese && !$aktFreigabe) {
+                $this->LogTemplate('ok', "Ladefreigabe: Start-Hysterese erreicht ($startZaehler x >= $minLadeWatt W). Ladefreigabe aktivieren.");
+                $this->SetForceState(2); // Laden aktivieren
+                // Optional: hier weitere Logik (z. B. aktuelle Ladeleistung anpassen)
             }
-            if ($anzPhasen === 0) $anzPhasen = 1;
         } else {
-            $anzPhasen = 1;
+            $this->WriteAttributeInteger('LadeStartZaehler', 0);
         }
 
-        $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
+        // --- Stop-Hysterese prüfen ---
+        if ($pvUeberschuss <= $minStopWatt) {
+            $stopZaehler++;
+            $this->WriteAttributeInteger('LadeStopZaehler', $stopZaehler);
+            $this->WriteAttributeInteger('LadeStartZaehler', 0); // Start-Zähler rücksetzen
 
-        // Kompatibel beide Felder für forceState/AccessStateV2 abfragen
-        $accessStateV2 = 0;
-        if (isset($data['frc'])) {
-            $accessStateV2 = intval($data['frc']);
-        } elseif (isset($data['accessStateV2'])) {
-            $accessStateV2 = intval($data['accessStateV2']);
-        }
-        $this->LogTemplate(
-            'debug',
-            "Status: forceState (frc)=" . (isset($data['frc']) ? $data['frc'] . ' (' . $this->ProfileValueText('PVWM.AccessStateV2', $data['frc']) . ')' : 'n/a')
-        );
-
-        // Jetzt Werte NUR bei Änderung schreiben und loggen:
-        $this->SetValueAndLogChange('Status',      $car,         'Status');
-        $this->SetValueAndLogChange('AccessStateV2', $accessStateV2, 'Wallbox Modus');
-        $this->SetValueAndLogChange('Leistung',    $leistung,    'Aktuelle Ladeleistung zum Fahrzeug', 'W');
-        $this->SetValueAndLogChange('Ampere',      $ampere,      'Maximaler Ladestrom', 'A');
-        $this->SetValueAndLogChange('Energie',     $energie,     'Geladene Energie', 'Wh');
-        $this->SetValueAndLogChange('Freigabe',    $freigabe,    'Ladefreigabe');
-        $this->SetValueAndLogChange('Kabelstrom',  $kabelstrom,  'Kabeltyp');
-        $this->SetValueAndLogChange('Fehlercode',  $fehlercode,  'Fehlercode', '', 'warn');
-
-        // --- PV-Überschuss neu berechnen (hier ggf. $anzPhasen übergeben, falls relevant) ---
-        $berechnung    = $this->BerechnePVUeberschuss($anzPhasen); 
-        $pvUeberschuss = $berechnung['ueberschuss_w'];
-        $ampere        = $berechnung['ueberschuss_a'];
-        $anzPhasen     = $berechnung['phasenmodus'];
-
-        if ($this->GetValue('ManuellLaden')) {
-            $this->ModusManuellVollladen($data); // $data aus getStatusFromCharger()
-            return; // Rest abbrechen!
+            if ($stopZaehler >= $stopHysterese && $aktFreigabe) {
+                $this->LogTemplate('warn', "Ladefreigabe: Stop-Hysterese erreicht ($stopZaehler x <= $minStopWatt W). Ladefreigabe deaktivieren.");
+                $this->SetForceState(1); // Laden deaktivieren
+            }
+        } else {
+            $this->WriteAttributeInteger('LadeStopZaehler', 0);
         }
 
         // Phasenumschaltung
@@ -524,7 +436,7 @@ class PVWallboxManager extends IPSModule
         // Ladefreigabe steuern (z.B. im pvonly Modus)
         $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasen);
     }
-*/
+
     private function ModusManuellVollladen($data)
     {
         // Defensive Extraktion
