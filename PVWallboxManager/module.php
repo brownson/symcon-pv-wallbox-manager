@@ -591,7 +591,10 @@ class PVWallboxManager extends IPSModule
         $this->SetChargingCurrent($ampere);
 
         // 10. Logging
-        $this->LogTemplate('ok', "🌞 PV2Car: PV=$pv W, Haus=$hausverbrauch W, Überschuss=$pvUeberschuss W, SoC Hausakku=$socText, Anteil=$anteil% → $anteilWatt W / $ampere A ans Auto.");
+        $this->LogTemplate(
+            'debug',
+            "PV2Car: PV={$pv} W, Haus={$hausverbrauch} W, Überschuss={$pvUeberschuss} W, Anteil={$anteil}% ({$anteilWatt} W), {$ampere} A"
+        );
     }
 
     // =========================================================================
