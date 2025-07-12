@@ -571,38 +571,39 @@ class PVWallboxManager extends IPSModule
         $anteilWatt = intval(round($pvUeberschuss * $anteil / 100));
 
         // 7. Hysterese-Parameter holen
-        $minWatt = $this->ReadPropertyInteger('MinLadeWatt');
+        $minLadeWatt    = $this->ReadPropertyInteger('MinLadeWatt');
+        $minStopWatt    = $this->ReadPropertyInteger('MinStopWatt');
         $startHysterese = $this->ReadPropertyInteger('StartLadeHysterese');
-        $stopHysterese = $this->ReadPropertyInteger('StopLadeHysterese');
-        $startZaehler = $this->ReadAttributeInteger('PV2CarStartZaehler');
-        $stopZaehler  = $this->ReadAttributeInteger('PV2CarStopZaehler');
-        $aktFreigabe = ($this->GetValue('AccessStateV2') == 2);
+        $stopHysterese  = $this->ReadPropertyInteger('StopLadeHysterese');
+        $startZaehler   = $this->ReadAttributeInteger('PV2CarStartZaehler');
+        $stopZaehler    = $this->ReadAttributeInteger('PV2CarStopZaehler');
+        $aktFreigabe    = ($this->GetValue('AccessStateV2') == 2);
 
         // --- Start-Hysterese prüfen ---
-        if ($anteilWatt >= $minWatt) {
+        if ($anteilWatt >= $minLadeWatt) {
             $startZaehler++;
             $this->WriteAttributeInteger('PV2CarStartZaehler', $startZaehler);
             $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
 
             if ($startZaehler >= $startHysterese && !$aktFreigabe) {
-                $this->LogTemplate('ok', "PV2Car: Start-Hysterese erreicht ({$startZaehler} x >= {$minWatt} W). Ladefreigabe aktivieren.");
-                $this->SetForceState(2);
+                $this->LogTemplate('ok', "PV2Car: Start-Hysterese erreicht ({$startZaehler} x >= {$minLadeWatt} W). Ladefreigabe aktivieren.");
+                $this->SetForceState(2); // Freigabe aktivieren
                 IPS_Sleep(500);
-                // Ampere berechnen wie unten
+                $aktFreigabe = true;
             }
         } else {
             $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
         }
 
         // --- Stop-Hysterese prüfen ---
-        if ($anteilWatt < $minWatt) {
+        if ($anteilWatt <= $minStopWatt) {
             $stopZaehler++;
             $this->WriteAttributeInteger('PV2CarStopZaehler', $stopZaehler);
             $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
 
             if ($stopZaehler >= $stopHysterese && $aktFreigabe) {
-                $this->LogTemplate('warn', "PV2Car: Stop-Hysterese erreicht ({$stopZaehler} x < {$minWatt} W). Ladefreigabe deaktivieren.");
-                $this->SetForceState(1);
+                $this->LogTemplate('warn', "PV2Car: Stop-Hysterese erreicht ({$stopZaehler} x <= {$minStopWatt} W). Ladefreigabe deaktivieren.");
+                $this->SetForceState(1); // Freigabe deaktivieren
                 $this->SetChargingCurrent($this->ReadPropertyInteger('MinAmpere'));
                 return;
             }
@@ -616,7 +617,7 @@ class PVWallboxManager extends IPSModule
         $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
 
         // 9. Ladefreigabe/Ladestrom setzen (nur wenn erlaubt)
-        if ($anteilWatt >= $minWatt && $this->GetValue('AccessStateV2') == 2) {
+        if ($anteilWatt >= $minLadeWatt && $this->GetValue('AccessStateV2') == 2) {
             $this->SetChargingCurrent($ampere);
             $this->LogTemplate(
                 'ok',
@@ -625,7 +626,7 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->LogTemplate(
                 'debug',
-                "PV2Car: Anteil {$anteilWatt} W < MinLadeWatt ({$minWatt} W) oder Freigabe nicht aktiv – keine Änderung."
+                "PV2Car: Anteil {$anteilWatt} W < MinLadeWatt ({$minLadeWatt} W) oder Freigabe nicht aktiv – keine Änderung."
             );
         }
     }
