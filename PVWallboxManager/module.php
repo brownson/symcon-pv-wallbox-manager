@@ -557,12 +557,12 @@ class PVWallboxManager extends IPSModule
         $socID = $this->ReadPropertyInteger('HausakkuSOCID');
         $socSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
         $soc = ($socID > 0) ? @GetValue($socID) : false;
-        $socText = ($soc !== false) ? "$soc %" : "(nicht gesetzt)";
+        $socText = ($soc !== false) ? $soc . "%" : "(nicht gesetzt)";
 
         // 5. Logik: Wenn Hausakku voll, dann 100%, sonst Anteil aus Variable
         if ($soc !== false && $soc >= $socSchwelle) {
             $anteil = 100;
-            $this->LogTemplate('ok', "Hausakku voll (SoC=$socText, Schwelle=$socSchwelle %). 100% PV-Überschuss wird geladen.");
+            $this->LogTemplate('ok', "Hausakku voll (SoC=$socText, Schwelle=$socSchwelle%). 100% PV-Überschuss wird geladen.");
         }
 
         // 6. Ladeleistung fürs Auto berechnen
@@ -574,7 +574,6 @@ class PVWallboxManager extends IPSModule
             $this->SetForceState(1); // Nicht laden
             $this->SetChargingCurrent($this->ReadPropertyInteger('MinAmpere'));
             $this->LogTemplate('info', "PV2Car: Anteil {$anteilWatt} W < MinLadeWatt ({$minWatt} W) – Keine Ladefreigabe.");
-
             return;
         }
 
