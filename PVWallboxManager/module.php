@@ -544,22 +544,31 @@ class PVWallboxManager extends IPSModule
         $anteil = $this->GetValue('PVAnteil');
         $anteil = max(0, min(100, intval($anteil)));
 
-        // 2. PV-Erzeugung und Hausverbrauch holen (und Einheiten berücksichtigen)
-        $pvID = $this->ReadPropertyInteger('PVErzeugungID');
-        $hvID = $this->ReadPropertyInteger('HausverbrauchID');
-        $pv = ($pvID > 0) ? GetValueFloat($pvID) : 0;
+        // 2. PV-Erzeugung, Hausverbrauch und Wallbox-Leistung holen
+        $pvID  = $this->ReadPropertyInteger('PVErzeugungID');
+        $hvID  = $this->ReadPropertyInteger('HausverbrauchID');
+        $pv    = ($pvID > 0) ? GetValueFloat($pvID) : 0;
         $hausverbrauch = ($hvID > 0) ? GetValueFloat($hvID) : 0;
         if ($this->ReadPropertyString('PVErzeugungEinheit') == "kW") $pv *= 1000;
         if ($this->ReadPropertyString('HausverbrauchEinheit') == "kW") $hausverbrauch *= 1000;
 
-        // 3. PV-Überschuss berechnen (nur positiv)
-        $pvUeberschuss = max(0, $pv - $hausverbrauch);
+        // Wallbox-Leistung holen (kannst du anpassen – z.B. von 'Leistung' oder direkt aus $data['nrg'][11])
+        $wbLeistung = 0;
+        if (isset($data['nrg'][11])) {
+            $wbLeistung = floatval($data['nrg'][11]);
+        } else if ($this->GetIDForIdent('Leistung') > 0) {
+            $wbLeistung = floatval($this->GetValue('Leistung'));
+        }
+
+        // 3. PV-Überschuss korrekt berechnen!
+        $pvUeberschuss = max(0, $pv - $hausverbrauch + $wbLeistung);
+        $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
 
         // 4. Hausakku-SOC prüfen
-        $socID = $this->ReadPropertyInteger('HausakkuSOCID');
+        $socID      = $this->ReadPropertyInteger('HausakkuSOCID');
         $socSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
-        $soc = ($socID > 0) ? @GetValue($socID) : false;
-        $socText = ($soc !== false) ? $soc . "%" : "(nicht gesetzt)";
+        $soc        = ($socID > 0) ? @GetValue($socID) : false;
+        $socText    = ($soc !== false) ? $soc . "%" : "(nicht gesetzt)";
 
         // 5. Logik: Wenn Hausakku voll, dann 100%, sonst Anteil aus Variable
         if ($soc !== false && $soc >= $socSchwelle) {
@@ -621,7 +630,7 @@ class PVWallboxManager extends IPSModule
             $this->SetChargingCurrent($ampere);
             $this->LogTemplate(
                 'ok',
-                "PV2Car: PV={$pv} W, Haus={$hausverbrauch} W, Überschuss={$pvUeberschuss} W, Anteil={$anteil}% ({$anteilWatt} W), {$ampere} A"
+                "PV2Car: PV={$pv} W, Haus={$hausverbrauch} W, Wallbox={$wbLeistung} W, Überschuss={$pvUeberschuss} W, Anteil={$anteil}% ({$anteilWatt} W), {$ampere} A"
             );
         } else {
             $this->LogTemplate(
