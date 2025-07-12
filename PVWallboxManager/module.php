@@ -24,6 +24,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('MaxAmpere', 16);  // Maximal möglicher Ladestrom
         $this->RegisterPropertyInteger('Phasen1Schwelle', 1400); // Beispiel: 1-phasig ab < 1.400 W
         $this->RegisterPropertyInteger('Phasen3Schwelle', 3700); // Beispiel: 3-phasig ab > 3.700 W
+        $this->RegisterAttributeInteger('PV2CarStartZaehler', 0);
+        $this->RegisterAttributeInteger('PV2CarStopZaehler', 0);
 
         // Property für Hausakku SoC und Schwelle
         $this->RegisterPropertyInteger('HausakkuSOCID', 0); // VariableID für SoC des Hausakkus (Prozent)
