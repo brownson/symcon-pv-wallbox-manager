@@ -544,12 +544,11 @@ class PVWallboxManager extends IPSModule
         $anteil = $this->GetValue('PVAnteil');
         $anteil = max(0, min(100, intval($anteil)));
 
-        // 2. Datenbasis einmalig holen
-        $berechnung = $this->BerechnePVUeberschussKomplett($this->GetValue('Phasenmodus'));
-        // Achtung: "ladeleistung" ist Wallbox → wird im PV2Car explizit dazugerechnet
+        // 2. Datenbasis holen
+        $werte = $this->BerechnePVUeberschussKomplett($this->GetValue('Phasenmodus'));
 
-        // 3. Ladeleistung für PV2Car bestimmen (KEIN Batterieabzug)
-        $pv2car = $this->BerechnePV2CarLadeleistung($berechnung, $anteil);
+        // 3. PV2Car berechnen
+        $pv2car = $this->BerechnePV2CarLadeleistung($werte, $anteil);
         $pvUeberschussPV2Car = $pv2car['roh_ueber'];
         $anteilWatt = $pv2car['anteil_watt'];
 
@@ -559,14 +558,14 @@ class PVWallboxManager extends IPSModule
         $soc = ($socID > 0) ? @GetValue($socID) : false;
         $socText = ($soc !== false) ? $soc . "%" : "(nicht gesetzt)";
 
-        // 5. Logik: Hausakku voll → 100%
+        // 5. Hausakku voll? → 100%
         if ($soc !== false && $soc >= $socSchwelle) {
             $anteil = 100;
             $anteilWatt = $pvUeberschussPV2Car;
             $this->LogTemplate('ok', "Hausakku voll (SoC=$socText, Schwelle=$socSchwelle%). 100% PV-Überschuss wird geladen.");
         }
 
-        // 6. Hysterese-Parameter holen
+        // 6. Hysterese-Parameter
         $minLadeWatt    = $this->ReadPropertyInteger('MinLadeWatt');
         $minStopWatt    = $this->ReadPropertyInteger('MinStopWatt');
         $startHysterese = $this->ReadPropertyInteger('StartLadeHysterese');
@@ -575,7 +574,7 @@ class PVWallboxManager extends IPSModule
         $stopZaehler    = $this->ReadAttributeInteger('PV2CarStopZaehler');
         $aktFreigabe    = ($this->GetValue('AccessStateV2') == 2);
 
-        // --- Start-Hysterese prüfen ---
+        // --- Start-Hysterese
         if ($anteilWatt >= $minLadeWatt) {
             $startZaehler++;
             $this->WriteAttributeInteger('PV2CarStartZaehler', $startZaehler);
@@ -591,7 +590,7 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
         }
 
-        // --- Stop-Hysterese prüfen ---
+        // --- Stop-Hysterese
         if ($anteilWatt <= $minStopWatt) {
             $stopZaehler++;
             $this->WriteAttributeInteger('PV2CarStopZaehler', $stopZaehler);
@@ -607,17 +606,17 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
         }
 
-        // 7. Phasen & Ladestrom berechnen (immer nach den Hysteresen)
+        // 7. Phasen & Ladestrom berechnen
         $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
         $ampere = ceil($anteilWatt / (230 * $anzPhasen));
         $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
 
-        // 8. Ladefreigabe/Ladestrom setzen (nur wenn erlaubt)
+        // 8. Laden (nur wenn erlaubt)
         if ($anteilWatt >= $minLadeWatt && $this->GetValue('AccessStateV2') == 2) {
             $this->SetChargingCurrent($ampere);
             $this->LogTemplate(
                 'ok',
-                "PV2Car: PV={$pv2car['pv']} W, Haus={$pv2car['haus']} W, Wallbox={$pv2car['wallbox']} W, Überschuss={$pvUeberschussPV2Car} W, Anteil={$anteil}% ({$anteilWatt} W), {$ampere} A"
+                "PV2Car: PV={$pv2car['pv']} W, HausOhneWB={$pv2car['haus']} W, Wallbox={$pv2car['wallbox']} W, Überschuss={$pvUeberschussPV2Car} W, Anteil={$anteil}% ({$anteilWatt} W), {$ampere} A"
             );
         } else {
             $this->LogTemplate(
@@ -1160,75 +1159,52 @@ class PVWallboxManager extends IPSModule
     // Zentrale PV-Überschussberechnung: IMMER korrekt (inkl. Haus, Batterie, Wallbox)
     private function BerechnePVUeberschussKomplett($anzPhasen = 1)
     {
+        // --- PV-Leistung ---
         $pvID = $this->ReadPropertyInteger('PVErzeugungID');
-        $pvEinheit = $this->ReadPropertyString('PVErzeugungEinheit');
         $pv = ($pvID > 0) ? GetValueFloat($pvID) : 0;
-        if ($pvEinheit == "kW") $pv *= 1000;
+        if ($this->ReadPropertyString('PVErzeugungEinheit') == "kW") $pv *= 1000;
 
-        // Wallbox-Leistung direkt am Fahrzeug (Visualisierung)
-        $ladeleistung = round($this->GetValue('Leistung'));
+        // --- Wallbox-Leistung ---
+        $ladeleistung = round($this->GetValue('Leistung')); // immer die aktuelle Fahrzeugladung
 
-        // Hausverbrauch (inkl. Wallbox)
+        // --- Hausverbrauch (inkl. Wallbox, wie geliefert) ---
         $hvID = $this->ReadPropertyInteger('HausverbrauchID');
-        $hvEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
-        $invertHV = $this->ReadPropertyBoolean('InvertHausverbrauch');
         $hausverbrauch = ($hvID > 0) ? GetValueFloat($hvID) : 0;
-        if ($hvEinheit == "kW") $hausverbrauch *= 1000;
-        if ($invertHV) $hausverbrauch *= -1;
-        $hausverbrauch = round($hausverbrauch);
+        if ($this->ReadPropertyString('HausverbrauchEinheit') == "kW") $hausverbrauch *= 1000;
 
-        // Batterie-Ladung (positiv = lädt)
+        // --- Hausverbrauch ohne Wallbox (für Visualisierung und PV2Car!) ---
+        $hausverbrauchOhneWB = $hausverbrauch - $ladeleistung;
+
+        // --- Batterieladung ---
         $batID = $this->ReadPropertyInteger('BatterieladungID');
-        $batEinheit = $this->ReadPropertyString('BatterieladungEinheit');
-        $invertBat = $this->ReadPropertyBoolean('InvertBatterieladung');
         $batterieladung = ($batID > 0) ? GetValueFloat($batID) : 0;
-        if ($batEinheit == "kW") $batterieladung *= 1000;
-        if ($invertBat) $batterieladung *= -1;
-
-        // Visualisierung + Berechnung für "PV-only"
-        $verbrauchGesamt = $hausverbrauch + $batterieladung;
-        $pvUeberschuss = max(0, $pv - $verbrauchGesamt);
-
-        // Visualisierung
-        $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', 'W', 'debug');
-        $this->SetValueAndLogChange('Hausverbrauch_W', $hausverbrauch, 'Hausverbrauch', 'W', 'debug');
-
-        // Ladeampere berechnen
-        $anzPhasen = max(1, $anzPhasen);
-        $ampere = ceil($pvUeberschuss / (230 * $anzPhasen));
-        $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
+        if ($this->ReadPropertyString('BatterieladungEinheit') == "kW") $batterieladung *= 1000;
+        if ($this->ReadPropertyBoolean('InvertBatterieladung')) $batterieladung *= -1;
 
         return [
-            'ueberschuss_w' => $pvUeberschuss,
-            'ueberschuss_a' => $ampere,
-            'phasenmodus'   => $anzPhasen,
-            'pv'            => $pv,
-            'haus'          => $hausverbrauch,
-            'batterie'      => $batterieladung,
-            'ladeleistung'  => $ladeleistung,
+            'pv'          => $pv,
+            'wallbox'     => $ladeleistung,
+            'haus'        => $hausverbrauch,
+            'hausOhneWB'  => $hausverbrauchOhneWB,
+            'batterie'    => $batterieladung
         ];
     }
 
-    // *** NEU für PV2Car: Gleiche Berechnung wie oben – ABER anteiliger Überschuss ***
-    private function BerechnePV2CarLadeleistung($daten, $anteil)
-    {
-        // Nutze immer: PV - Hausverbrauch + Wallbox-Leistung (KEIN Batterieabzug!)
-        $pv = $daten['pv'];
-        $haus = $daten['haus'];
-        $wb = $daten['ladeleistung'];
-        $rohUeberschuss = max(0, $pv - $haus + $wb);
+    private function BerechnePV2CarLadeleistung($werte, $anteil)
+{
+    // PV2Car: PV - Hausverbrauch OHNE Wallbox
+    $rohUeberschuss = max(0, $werte['pv'] - $werte['hausOhneWB']);
+    $anteilWatt = intval(round($rohUeberschuss * $anteil / 100));
 
-        $anteil = max(0, min(100, intval($anteil)));
-        $anteilWatt = intval(round($rohUeberschuss * $anteil / 100));
-        return [
-            'anteil_watt'   => $anteilWatt,
-            'roh_ueber'     => $rohUeberschuss,
-            'pv'            => $pv,
-            'haus'          => $haus,
-            'wallbox'       => $wb,
-        ];
-    }
-
+    return [
+        'roh_ueber'   => $rohUeberschuss,
+        'anteil_watt' => $anteilWatt,
+        'pv'          => $werte['pv'],
+        'haus'        => $werte['hausOhneWB'], // für Logging
+        'wallbox'     => $werte['wallbox'],
+        'batterie'    => $werte['batterie'],
+    ];
+}
     
     //=========================================================================
     // 10. EXTERNE SCHNITTSTELLEN & FORECAST
