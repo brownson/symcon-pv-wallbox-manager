@@ -381,6 +381,7 @@ class PVWallboxManager extends IPSModule
         }
 
         // 2. Im PVonly-Modus NUR BerechnePVUeberschuss verwenden!
+        $berechnung = null;
         if ($this->GetValue('PV2CarModus')) {
             // Im PV2Car-Modus → KEINE Überschusswerte hier berechnen/setzen!
             // Das erledigt ModusPV2CarLaden() sauber nach Phasenumschaltung usw.
@@ -448,11 +449,11 @@ class PVWallboxManager extends IPSModule
         // Prüfen, ob sich der Phasenmodus geändert hat (nur im PVonly-Modus relevant)
         if (!$this->GetValue('PV2CarModus')) {
             $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
-            if ($anzPhasenNeu !== $anzPhasenAlt) {
-                $berechnung = $this->BerechnePVUeberschuss($anzPhasenNeu);
-                $pvUeberschuss = $berechnung['ueberschuss_w'];
-                $ampere        = $berechnung['ueberschuss_a'];
-            }
+
+            // IMMER neu berechnen!
+            $berechnung = $this->BerechnePVUeberschuss($anzPhasenNeu);
+            $pvUeberschuss = $berechnung['ueberschuss_w'];
+            $ampere        = $berechnung['ueberschuss_a'];
 
             // Visualisierungswerte setzen
             $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
