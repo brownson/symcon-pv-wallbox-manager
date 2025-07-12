@@ -380,14 +380,15 @@ class PVWallboxManager extends IPSModule
             if ($anzPhasenAlt === 0) $anzPhasenAlt = 1;
         }
 
-        // 2. Im PVonly-Modus NUR BerechnePVUeberschuss verwenden!
+        // 2. Berechnung initialisieren
         $berechnung = null;
+        $pvUeberschuss = null;
+        $ampere = null;
         if ($this->GetValue('PV2CarModus')) {
             // Im PV2Car-Modus → KEINE Überschusswerte hier berechnen/setzen!
             // Das erledigt ModusPV2CarLaden() sauber nach Phasenumschaltung usw.
             $werte = $this->BerechnePVUeberschussKomplett($anzPhasenAlt); // nur für Log
-            $pvUeberschuss = null;
-            $ampere        = null;
+            // $pvUeberschuss und $ampere werden im PV2Car-Modus hier nicht gebraucht
         } else {
             // PVonly-Standardmodus → Korrekt mit Standardfunktion!
             $berechnung = $this->BerechnePVUeberschuss($anzPhasenAlt);
@@ -449,7 +450,6 @@ class PVWallboxManager extends IPSModule
         // Prüfen, ob sich der Phasenmodus geändert hat (nur im PVonly-Modus relevant)
         if (!$this->GetValue('PV2CarModus')) {
             $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
-
             // IMMER neu berechnen!
             $berechnung = $this->BerechnePVUeberschuss($anzPhasenNeu);
             $pvUeberschuss = $berechnung['ueberschuss_w'];
@@ -459,11 +459,13 @@ class PVWallboxManager extends IPSModule
             $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
             $this->SetValue('PV_Ueberschuss_A', $ampere);
 
-            // Debug-Log
-            $this->LogTemplate(
-                'debug',
-                "PV-Überschuss: PV={$berechnung['pv']} W, HausOhneWB={$berechnung['haus']} W, Wallbox={$berechnung['wallbox']} W, Batterie={$berechnung['batterie']} W, Phasenmodus=$anzPhasenNeu → Überschuss=$pvUeberschuss W / $ampere A"
-            );
+            // Debug-Log – robust, nur wenn Array vorhanden!
+            if (is_array($berechnung)) {
+                $this->LogTemplate(
+                    'debug',
+                    "PV-Überschuss: PV={$berechnung['pv']} W, HausOhneWB={$berechnung['haus']} W, Wallbox={$berechnung['wallbox']} W, Batterie={$berechnung['batterie']} W, Phasenmodus=$anzPhasenNeu → Überschuss=$pvUeberschuss W / $ampere A"
+                );
+            }
         }
 
         // === Lademodi: Reihenfolge der Prio beachten! ===
