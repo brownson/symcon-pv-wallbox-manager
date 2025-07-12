@@ -460,7 +460,10 @@ class PVWallboxManager extends IPSModule
             $this->SetValue('PV_Ueberschuss_A', $ampere);
 
             // Debug-Log – robust, nur wenn Array vorhanden!
-            if (is_array($berechnung)) {
+            if (
+                is_array($berechnung)
+                && isset($berechnung['pv'], $berechnung['haus'], $berechnung['wallbox'], $berechnung['batterie'])
+            ) {
                 $this->LogTemplate(
                     'debug',
                     "PV-Überschuss: PV={$berechnung['pv']} W, HausOhneWB={$berechnung['haus']} W, Wallbox={$berechnung['wallbox']} W, Batterie={$berechnung['batterie']} W, Phasenmodus=$anzPhasenNeu → Überschuss=$pvUeberschuss W / $ampere A"
