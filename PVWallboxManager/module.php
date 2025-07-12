@@ -407,12 +407,15 @@ class PVWallboxManager extends IPSModule
         }
 
         $car = isset($data['car']) ? intval($data['car']) : 0;
+        $minAmpere = $this->ReadPropertyInteger('MinAmpere');
         if ($car <= 1) {
-            $this->SetForceStateAndAmpereIfChanged(1, $this->ReadPropertyInteger('MinAmpere')); // Sperren & minimaler Strom
+            // Kein Fahrzeug -> Wallbox sofort sperren, Hysterese zurücksetzen!
+            $this->SetForceStateAndAmpereIfChanged(1, $minAmpere); // Sperren & minimaler Strom
             $this->SetTimerNachModusUndAuto($car);
             $this->LogTemplate('info', "Kein Fahrzeug verbunden – Wallbox bleibt gesperrt.");
+            // Visualisierung auf Minimalwert setzen, **nie auf 0A!**
             $this->SetValue('PV_Ueberschuss', 0);
-            $this->SetValue('PV_Ueberschuss_A', 0);
+            $this->SetValue('PV_Ueberschuss_A', $minAmpere);
             return;
         }
 
@@ -540,11 +543,16 @@ class PVWallboxManager extends IPSModule
     private function ModusManuellVollladen($data)
     {
         $car = isset($data['car']) ? intval($data['car']) : 0;
+        $minAmpere = $this->ReadPropertyInteger('MinAmpere');
         if ($car <= 1) {
             $this->SetValue('ManuellLaden', false);
-            $this->LogTemplate('ok', "🔌 Manuelles Vollladen gestoppt (Fahrzeug nicht verbunden). Wechsle in PVonly-Modus.");
+            $this->SetForceStateAndAmpereIfChanged(1, $minAmpere); // Gesperrt & 6A setzen (zentrale Funktion)
             $this->SetTimerInterval('PVWM_InitialCheck', $this->GetInitialCheckInterval() * 1000);
             $this->SetTimerInterval('PVWM_UpdateStatus', 0);
+            // Visualisierung: Minimalwert für Ampere
+            $this->SetValue('PV_Ueberschuss', 0);
+            $this->SetValue('PV_Ueberschuss_A', $minAmpere);
+            $this->LogTemplate('ok', "🔌 Manuelles Vollladen gestoppt (Fahrzeug nicht verbunden). Wechsle in PVonly-Modus.");
             return;
         }
 
@@ -599,11 +607,16 @@ class PVWallboxManager extends IPSModule
     private function ModusPV2CarLaden($data)
     {
         $car = isset($data['car']) ? intval($data['car']) : 0;
+        $minAmpere = $this->ReadPropertyInteger('MinAmpere');
         if ($car <= 1) {
             $this->SetValue('PV2CarModus', false);
-            $this->LogTemplate('ok', "PV2Car-Modus gestoppt (Fahrzeug nicht verbunden). Wechsle in PVonly-Modus.");
+            $this->SetForceStateAndAmpereIfChanged(1, $minAmpere); // Zentral geregelt!
             $this->SetTimerInterval('PVWM_InitialCheck', $this->GetInitialCheckInterval() * 1000);
             $this->SetTimerInterval('PVWM_UpdateStatus', 0);
+            // Visualisierung auf sinnvolle Werte (0W, Minimalstrom)
+            $this->SetValue('PV_Ueberschuss', 0);
+            $this->SetValue('PV_Ueberschuss_A', $minAmpere);
+            $this->LogTemplate('ok', "PV2Car-Modus gestoppt (Fahrzeug nicht verbunden). Wechsle in PVonly-Modus.");
             return;
         }
 
@@ -1112,20 +1125,15 @@ class PVWallboxManager extends IPSModule
         $currentForceState = $this->GetValue('AccessStateV2');
         $currentAmpere = $this->GetValue('Ampere');
 
-        $changed = false;
         if ($currentForceState !== $forceState) {
             $this->SetForceState($forceState);
-            $changed = true;
+            $this->LogTemplate('debug', "ForceState geändert: $currentForceState → $forceState");
         }
         if ($currentAmpere !== $ampere) {
             $this->SetChargingCurrent($ampere);
-            $changed = true;
-        }
-        if ($changed) {
-            $this->LogTemplate('debug', "ForceState/Ampere geändert: ForceState=$forceState, Ampere=$ampere");
+            $this->LogTemplate('debug', "Ampere geändert: $currentAmpere → $ampere");
         }
     }
-
     
     // =========================================================================
     // 8. LOGGING / DEBUG / STATUSMELDUNGEN
