@@ -24,6 +24,11 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('MaxAmpere', 16);  // Maximal möglicher Ladestrom
         $this->RegisterPropertyInteger('Phasen1Schwelle', 1400); // Beispiel: 1-phasig ab < 1.400 W
         $this->RegisterPropertyInteger('Phasen3Schwelle', 3700); // Beispiel: 3-phasig ab > 3.700 W
+
+        // Property für Hausakku SoC und Schwelle
+        $this->RegisterPropertyInteger('HausakkuSOCID', 0); // VariableID für SoC des Hausakkus (Prozent)
+        $this->RegisterPropertyInteger('HausakkuSOCVollSchwelle', 95); // Schwelle ab wann als „voll“ gilt (Prozent)
+
         // Hysterese-Zyklen als Properties
         $this->RegisterPropertyInteger('Phasen1Limit', 3); // z.B. 3 = nach 3x Umschalten
         $this->RegisterPropertyInteger('Phasen3Limit', 3);
@@ -32,6 +37,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('StartLadeHysterese', 3);  // Zyklen Start-Hysterese
         $this->RegisterPropertyInteger('StopLadeHysterese', 3);   // Zyklen Stop-Hysterese
         $this->RegisterPropertyInteger('InitialCheckInterval', 0); // 0 = deaktiviert, 5–60 Sek.
+    
 
 
         // Hysterese-Zähler (werden NICHT im WebFront angezeigt)
@@ -532,63 +538,60 @@ class PVWallboxManager extends IPSModule
 
     private function ModusPV2CarLaden($data)
     {
-        // 1. Prüfen, ob Modus aktiv
-        if (!$this->GetValue('PV2CarModus')) {
-            $this->LogTemplate('debug', "PV2Car-Modus ist nicht aktiv.");
-            return;
-        }
-
-        // 2. Prozentwert holen
+        // 1. Einstellungen/Prozentwert holen
         $anteil = $this->GetValue('PVAnteil');
         $anteil = max(0, min(100, intval($anteil)));
 
-        // 3. PV-Erzeugung holen
+        // 2. PV-Erzeugung und Hausverbrauch holen (und Einheiten berücksichtigen)
         $pvID = $this->ReadPropertyInteger('PVErzeugungID');
-        $pvEinheit = $this->ReadPropertyString('PVErzeugungEinheit');
-        $pv = ($pvID > 0) ? GetValueFloat($pvID) : 0;
-        if ($pvEinheit == "kW") $pv *= 1000;
-
-        // 4. Hausverbrauch holen
         $hvID = $this->ReadPropertyInteger('HausverbrauchID');
-        $hvEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
-        $invertHV = $this->ReadPropertyBoolean('InvertHausverbrauch');
+        $pv = ($pvID > 0) ? GetValueFloat($pvID) : 0;
         $hausverbrauch = ($hvID > 0) ? GetValueFloat($hvID) : 0;
-        if ($hvEinheit == "kW") $hausverbrauch *= 1000;
-        if ($invertHV) $hausverbrauch *= -1;
-        $hausverbrauch = round($hausverbrauch);
+        if ($this->ReadPropertyString('PVErzeugungEinheit') == "kW") $pv *= 1000;
+        if ($this->ReadPropertyString('HausverbrauchEinheit') == "kW") $hausverbrauch *= 1000;
 
-        // 5. Überschuss berechnen
+        // 3. PV-Überschuss berechnen (nur positiv)
         $pvUeberschuss = max(0, $pv - $hausverbrauch);
 
-        // 6. Prozentualen Anteil berechnen
+        // 4. Hausakku-SOC prüfen
+        $socID = $this->ReadPropertyInteger('HausakkuSOCID');
+        $socSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
+        $soc = ($socID > 0) ? @GetValue($socID) : false;
+        $socText = ($soc !== false) ? "$soc %" : "(nicht gesetzt)";
+
+        // 5. Logik: Wenn Hausakku voll, dann 100%, sonst Anteil aus Variable
+        if ($soc !== false && $soc >= $socSchwelle) {
+            $anteil = 100;
+            $this->LogTemplate('ok', "Hausakku voll (SoC=$socText, Schwelle=$socSchwelle %). 100% PV-Überschuss wird geladen.");
+        }
+
+        // 6. Ladeleistung fürs Auto berechnen
         $anteilWatt = intval(round($pvUeberschuss * $anteil / 100));
 
-        $this->LogTemplate('debug', "🌞 PV2Car: PV=$pv W, Haus=$hausverbrauch W, Überschuss=$pvUeberschuss W, Anteil für Auto: $anteil% = $anteilWatt W");
-
-        // 7. Einschaltwert prüfen
+        // 7. Mindestleistung prüfen
         $minWatt = $this->ReadPropertyInteger('MinLadeWatt');
         if ($anteilWatt < $minWatt) {
             $this->SetForceState(1); // Nicht laden
             $this->SetChargingCurrent($this->ReadPropertyInteger('MinAmpere'));
-            $this->LogTemplate('info', "PV2Car: Anteil $anteilWatt W < MinLadeWatt ($minWatt W) – Keine Ladefreigabe.");
+            $this->LogTemplate('info', "PV2Car: Anteil $anteil% ($anteilWatt W) < MinLadeWatt ($minWatt W) – Keine Ladefreigabe.");
             return;
         }
 
-        // 8. Ampere berechnen
-        $anzPhasen = $this->GetValue('Phasenmodus');
-        $ampere = ceil($anteilWatt / (230 * max(1, $anzPhasen)));
+        // 8. Phasen & Ladestrom berechnen
+        $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
+        $ampere = ceil($anteilWatt / (230 * $anzPhasen));
         $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
 
-        // 9. Ladefreigabe setzen (falls nötig)
+        // 9. Ladefreigabe erteilen (nur wenn nötig)
         if ($this->GetValue('AccessStateV2') != 2) {
             $this->SetForceState(2);
             IPS_Sleep(500);
         }
         $this->SetChargingCurrent($ampere);
 
-        $this->LogTemplate('ok', "🌞 PV2Car: Ladefreigabe aktiv, $ampere A gesetzt (Anteil: $anteil%, $anteilWatt W).");
+        // 10. Logging
+        $this->LogTemplate('ok', "🌞 PV2Car: PV=$pv W, Haus=$hausverbrauch W, Überschuss=$pvUeberschuss W, SoC Hausakku=$socText, Anteil=$anteil% → $anteilWatt W / $ampere A ans Auto.");
     }
-
 
     // =========================================================================
     // 6. WALLBOX STEUERN (SET-FUNKTIONEN)
