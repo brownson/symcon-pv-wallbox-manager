@@ -364,7 +364,7 @@ class PVWallboxManager extends IPSModule
 
         $data = $this->getStatusFromCharger();
 
-        // --- Phasenanzahl aus Wallbox oder Default ---
+        // 1. Phasenanzahl initial ermitteln (aus Wallbox, sonst Default 1)
         $anzPhasenAlt = 1;
         if ($data !== false && isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
             $phasenSchwelle = 1.5;
@@ -380,20 +380,31 @@ class PVWallboxManager extends IPSModule
             if ($anzPhasenAlt === 0) $anzPhasenAlt = 1;
         }
 
-        // --- 1. Initiale Überschussberechnung mit aktuellem Phasenmodus ---
-        $werte = $this->BerechnePVUeberschussKomplett($anzPhasenAlt);
-        $pvUeberschuss = $werte['ueberschuss_w'];
-        $ampere        = $werte['ueberschuss_a'];
+        // 2. Im PVonly-Modus NUR BerechnePVUeberschuss verwenden!
+        if ($this->GetValue('PV2CarModus')) {
+            // Im PV2Car-Modus → KEINE Überschusswerte hier berechnen/setzen!
+            // Das erledigt ModusPV2CarLaden() sauber nach Phasenumschaltung usw.
+            $werte = $this->BerechnePVUeberschussKomplett($anzPhasenAlt); // nur für Log
+            $pvUeberschuss = null;
+            $ampere        = null;
+        } else {
+            // PVonly-Standardmodus → Korrekt mit Standardfunktion!
+            $berechnung = $this->BerechnePVUeberschuss($anzPhasenAlt);
+            $pvUeberschuss = $berechnung['ueberschuss_w'];
+            $ampere        = $berechnung['ueberschuss_a'];
+        }
 
         // --- Wenn KEINE Wallbox-Daten, KEIN Fahrzeug – nur Visualisierung updaten, dann return! ---
         if ($data === false) {
-            $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
-            $this->SetValue('PV_Ueberschuss_A', $ampere);
+            if ($pvUeberschuss !== null && $ampere !== null) {
+                $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
+                $this->SetValue('PV_Ueberschuss_A', $ampere);
+            }
             $this->LogTemplate('debug', "Wallbox nicht erreichbar/kein Fahrzeug – Visualisierungswerte trotzdem aktualisiert.");
             return;
         }
 
-        // --- Defensive Extraktion ---
+        // Defensive Extraktion
         $car        = isset($data['car']) ? intval($data['car']) : 0;
         $leistung   = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
         $ampereWB   = isset($data['amp']) ? intval($data['amp']) : 0;
@@ -406,7 +417,7 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('PhasenmodusEinstellung', $psm, 'Phasenmodus (Einstellung)', '', 'debug');
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasenAlt, 'Genutzte Phasen', '', 'debug');
 
-        // Kompatibel beide Felder für forceState/AccessStateV2 abfragen
+        // forceState/AccessStateV2
         $accessStateV2 = 0;
         if (isset($data['frc'])) {
             $accessStateV2 = intval($data['frc']);
@@ -428,27 +439,31 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('Kabelstrom',    $kabelstrom, 'Kabeltyp');
         $this->SetValueAndLogChange('Fehlercode',    $fehlercode, 'Fehlercode', '', 'warn');
 
-        // --- 2. Phasenumschaltung prüfen (NACH der ersten Berechnung) ---
-        $this->PruefeUndSetzePhasenmodus($pvUeberschuss);
-
-        // --- 3. Prüfen, ob sich der Phasenmodus geändert hat! ---
-        $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
-        if ($anzPhasenNeu !== $anzPhasenAlt) {
-            // Neu berechnen mit geändertem Phasenmodus
-            $werte = $this->BerechnePVUeberschussKomplett($anzPhasenNeu);
-            $pvUeberschuss = $werte['ueberschuss_w'];
-            $ampere        = $werte['ueberschuss_a'];
+        // --- Phasenumschaltung prüfen ---
+        if (!$this->GetValue('PV2CarModus')) {
+            // Im PV2Car-Modus erledigt ModusPV2CarLaden() die Phasenumschaltung korrekt selbst!
+            $this->PruefeUndSetzePhasenmodus($pvUeberschuss);
         }
 
-        // --- 4. Visualisierungswerte setzen (jetzt immer korrekt!) ---
-        $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
-        $this->SetValue('PV_Ueberschuss_A', $ampere);
+        // Prüfen, ob sich der Phasenmodus geändert hat (nur im PVonly-Modus relevant)
+        if (!$this->GetValue('PV2CarModus')) {
+            $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
+            if ($anzPhasenNeu !== $anzPhasenAlt) {
+                $berechnung = $this->BerechnePVUeberschuss($anzPhasenNeu);
+                $pvUeberschuss = $berechnung['ueberschuss_w'];
+                $ampere        = $berechnung['ueberschuss_a'];
+            }
 
-        // Optional: sauberes Debug-Log für Visualisierung
-        $this->LogTemplate(
-            'debug',
-            "PV-Überschuss: PV={$werte['pv']} W, HausOhneWB={$werte['haus']} W, Wallbox={$werte['wallbox']} W, Batterie={$werte['batterie']} W, Phasenmodus=$anzPhasenNeu → Überschuss=$pvUeberschuss W / $ampere A"
-        );
+            // Visualisierungswerte setzen
+            $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
+            $this->SetValue('PV_Ueberschuss_A', $ampere);
+
+            // Debug-Log
+            $this->LogTemplate(
+                'debug',
+                "PV-Überschuss: PV={$berechnung['pv']} W, HausOhneWB={$berechnung['haus']} W, Wallbox={$berechnung['wallbox']} W, Batterie={$berechnung['batterie']} W, Phasenmodus=$anzPhasenNeu → Überschuss=$pvUeberschuss W / $ampere A"
+            );
+        }
 
         // === Lademodi: Reihenfolge der Prio beachten! ===
 
@@ -465,49 +480,47 @@ class PVWallboxManager extends IPSModule
         }
 
         // 3. Standard PVonly-Modus: mit Hysterese!
-        // --- Ladefreigabe-Hysterese ---
-        $minLadeWatt    = $this->ReadPropertyInteger('MinLadeWatt');      // Start-Schwelle (W)
-        $minStopWatt    = $this->ReadPropertyInteger('MinStopWatt');      // Stop-Schwelle (W)
-        $startHysterese = $this->ReadPropertyInteger('StartLadeHysterese'); // Zyklen Start
-        $stopHysterese  = $this->ReadPropertyInteger('StopLadeHysterese');  // Zyklen Stop
+        // Ladefreigabe-Hysterese
+        $minLadeWatt    = $this->ReadPropertyInteger('MinLadeWatt');
+        $minStopWatt    = $this->ReadPropertyInteger('MinStopWatt');
+        $startHysterese = $this->ReadPropertyInteger('StartLadeHysterese');
+        $stopHysterese  = $this->ReadPropertyInteger('StopLadeHysterese');
+        $startZaehler   = $this->ReadAttributeInteger('LadeStartZaehler');
+        $stopZaehler    = $this->ReadAttributeInteger('LadeStopZaehler');
+        $aktFreigabe    = ($accessStateV2 == 2);
 
-        $startZaehler = $this->ReadAttributeInteger('LadeStartZaehler');
-        $stopZaehler  = $this->ReadAttributeInteger('LadeStopZaehler');
-
-        // Aktueller Zustand (AccessStateV2: 2 = Freigabe, 1 = kein Laden)
-        $aktFreigabe = ($accessStateV2 == 2);
-
-        // --- Start-Hysterese prüfen ---
+        // Start-Hysterese
         if ($pvUeberschuss >= $minLadeWatt) {
             $startZaehler++;
             $this->WriteAttributeInteger('LadeStartZaehler', $startZaehler);
-            $this->WriteAttributeInteger('LadeStopZaehler', 0); // Stop-Zähler rücksetzen
+            $this->WriteAttributeInteger('LadeStopZaehler', 0);
 
             if ($startZaehler >= $startHysterese && !$aktFreigabe) {
                 $this->LogTemplate('ok', "Ladefreigabe: Start-Hysterese erreicht ($startZaehler x >= $minLadeWatt W). Ladefreigabe aktivieren.");
-                $this->SetForceState(2); // Laden aktivieren
+                $this->SetForceState(2);
             }
         } else {
             $this->WriteAttributeInteger('LadeStartZaehler', 0);
         }
 
-        // --- Stop-Hysterese prüfen ---
+        // Stop-Hysterese
         if ($pvUeberschuss <= $minStopWatt) {
             $stopZaehler++;
             $this->WriteAttributeInteger('LadeStopZaehler', $stopZaehler);
-            $this->WriteAttributeInteger('LadeStartZaehler', 0); // Start-Zähler rücksetzen
+            $this->WriteAttributeInteger('LadeStartZaehler', 0);
 
             if ($stopZaehler >= $stopHysterese && $aktFreigabe) {
                 $this->LogTemplate('warn', "Ladefreigabe: Stop-Hysterese erreicht ($stopZaehler x <= $minStopWatt W). Ladefreigabe deaktivieren.");
-                $this->SetForceState(1); // Laden deaktivieren
+                $this->SetForceState(1);
             }
         } else {
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
         }
 
-        // Ladefreigabe steuern (z.B. im pvonly Modus)
-        $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasenNeu);
+        // Ladefreigabe steuern (im pvonly Modus)
+        $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasenNeu ?? $anzPhasenAlt);
     }
+
 
     private function ModusManuellVollladen($data)
     {
@@ -525,7 +538,7 @@ class PVWallboxManager extends IPSModule
 
         // 3. Phasen anhand nrg-Array zählen (wie bisher)
         $anzPhasenAlt = 1;
-        if (isset($data['nrg'][4]) && isset($data['nrg'][5]) && isset($data['nrg'][6])) {
+        if (isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
             $phasenAmpere = [
                 abs(floatval($data['nrg'][4])),
                 abs(floatval($data['nrg'][5])),
@@ -538,21 +551,23 @@ class PVWallboxManager extends IPSModule
             if ($anzPhasenAlt === 0) $anzPhasenAlt = 1;
         }
 
-        // 4. Zuerst berechnen – wichtig für Visualisierung, bevor evtl. umgeschaltet wird
+        // 4. Werte berechnen für aktuelle Phasenanzahl (Visualisierung)
         $werte = $this->BerechnePVUeberschussKomplett($anzPhasenAlt);
 
-        // 5. Phasenumschaltung prüfen (falls z.B. Maximalwert nicht zu aktuellem Modus passt)
-        $this->PruefeUndSetzePhasenmodus($werte['ueberschuss_w']);
+        // 5. Phasenumschaltung prüfen (maximale Leistung → immer 3-phasig, wenn verfügbar)
+        $this->PruefeUndSetzePhasenmodus($werte['ueberschuss_w']); // Im Zweifel kann hier immer auch ein fixer hoher Wert gesetzt werden
 
-        // 6. Prüfen, ob Phasenmodus durch Umschaltung geändert wurde – dann neu berechnen!
+        // 6. Prüfen, ob sich der Phasenmodus durch Umschaltung geändert hat – dann neu berechnen!
         $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
         if ($anzPhasenNeu !== $anzPhasenAlt) {
             $werte = $this->BerechnePVUeberschussKomplett($anzPhasenNeu);
         }
 
         // 7. Visualisierungswerte setzen
-        $this->SetValue('PV_Ueberschuss', $werte['ueberschuss_w']);
-        $this->SetValue('PV_Ueberschuss_A', $werte['ueberschuss_a']);
+        if (isset($werte['ueberschuss_w']) && isset($werte['ueberschuss_a'])) {
+            $this->SetValue('PV_Ueberschuss', $werte['ueberschuss_w']);
+            $this->SetValue('PV_Ueberschuss_A', $werte['ueberschuss_a']);
+        }
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasenNeu, 'Genutzte Phasen', '', 'debug');
 
         // 8. Maximalen Ampere-Wert aus Property holen und setzen
@@ -570,42 +585,42 @@ class PVWallboxManager extends IPSModule
         $this->SetTimerNachModusUndAuto($car);
     }
 
+
     private function ModusPV2CarLaden($data)
     {
-        // 1. Prozentwert holen
+        // 1. Prozentwert holen (zwischen 0–100)
         $anteil = $this->GetValue('PVAnteil');
         $anteil = max(0, min(100, intval($anteil)));
 
-        // 2. Datenbasis holen (immer auf aktuellem Phasenmodus!)
+        // 2. Datenbasis mit aktueller Phasenanzahl holen
         $anzPhasenAlt = max(1, $this->GetValue('Phasenmodus'));
         $werte = $this->BerechnePVUeberschussKomplett($anzPhasenAlt);
 
-        // 3. PV2Car berechnen (Anteil+Rest)
+        // 3. PV2Car-Ladeleistung berechnen
         $pv2car = $this->BerechnePV2CarLadeleistung($werte, $anteil);
         $pvUeberschussPV2Car = $pv2car['roh_ueber'];
         $anteilWatt = $pv2car['anteil_watt'];
 
-        // 4. Phasenumschaltung prüfen (auf Basis des neuen PV2Car-Überschusses!)
+        // 4. Phasenumschaltung prüfen (immer auf aktuellem Überschuss!)
         $this->PruefeUndSetzePhasenmodus($pvUeberschussPV2Car);
 
-        // 5. Phasenanzahl ggf. NEU holen nach Umschaltung!
+        // 5. Phasenanzahl ggf. nach Umschaltung neu holen und neu berechnen!
         $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
         if ($anzPhasen !== $anzPhasenAlt) {
-            // Nach Umschalten: Datenbasis mit NEUER Phasenzahl neu holen!
             $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
             $pv2car = $this->BerechnePV2CarLadeleistung($werte, $anteil);
             $pvUeberschussPV2Car = $pv2car['roh_ueber'];
             $anteilWatt = $pv2car['anteil_watt'];
         }
 
-        // 6. Visualisierung immer JETZT korrekt setzen!
+        // 6. Visualisierungswerte IMMER korrekt setzen
         $ampere = ceil($anteilWatt / (230 * $anzPhasen));
         $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
         $this->SetValue('PV_Ueberschuss', $pvUeberschussPV2Car);
         $this->SetValue('PV_Ueberschuss_A', $ampere);
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
 
-        // 7. Hausakku-SOC prüfen
+        // 7. Hausakku-SOC prüfen (falls aktiv)
         $socID = $this->ReadPropertyInteger('HausakkuSOCID');
         $socSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
         $soc = ($socID > 0) ? @GetValue($socID) : false;
@@ -625,6 +640,7 @@ class PVWallboxManager extends IPSModule
         $stopZaehler    = $this->ReadAttributeInteger('PV2CarStopZaehler');
         $aktFreigabe    = ($this->GetValue('AccessStateV2') == 2);
 
+        // --- Start-Hysterese
         if ($anteilWatt >= $minLadeWatt) {
             $startZaehler++;
             $this->WriteAttributeInteger('PV2CarStartZaehler', $startZaehler);
@@ -640,6 +656,7 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
         }
 
+        // --- Stop-Hysterese
         if ($anteilWatt <= $minStopWatt) {
             $stopZaehler++;
             $this->WriteAttributeInteger('PV2CarStopZaehler', $stopZaehler);
@@ -1108,10 +1125,10 @@ class PVWallboxManager extends IPSModule
         $pv = ($pvID > 0) ? GetValueFloat($pvID) : 0;
         if ($pvEinheit == "kW") $pv *= 1000;
 
-        // Wallbox-Leistung (direkt an Auto, nur für Visualisierung)
+        // Wallbox-Leistung (direkt am Auto, nur für Visualisierung)
         $ladeleistung = round($this->GetValue('Leistung'));
-        
-        // --- 2. 0,5 SEKUNDEN PAUSE ---
+
+        // Kurzes Delay für stabilere Werte (optional)
         IPS_Sleep(500);
 
         // Hausverbrauch holen (inkl. Wallbox-Leistung)
@@ -1123,32 +1140,24 @@ class PVWallboxManager extends IPSModule
         if ($invertHV) $hausverbrauch *= -1;
         $hausverbrauch = round($hausverbrauch);
 
+        // Hausverbrauch ABZÜGLICH Wallbox-Leistung (für Visualisierung)
         $hausverbrauchAbzWallbox = round($hausverbrauch - $ladeleistung);
 
-        // --- GLAETTUNG & SPIKE-FILTER ---
+        // --- Glättung & Spike-Filter ---
         $buffer = json_decode($this->ReadAttributeString('HausverbrauchAbzWallboxBuffer'), true);
         if (!is_array($buffer)) $buffer = [];
-
-        // Neuen Wert anhängen, max. 3 Werte behalten
         $buffer[] = $hausverbrauchAbzWallbox;
         if (count($buffer) > 3) array_shift($buffer);
 
-        // Mittelwert berechnen
         $mittelwert = array_sum($buffer) / count($buffer);
-
-        // Schwelle für Spike-Erkennung (z. B. 1,5 × Wallbox-Maximalleistung)
-        $spikeSchwelle = 1.5 * $this->ReadPropertyInteger('MaxAmpere') * 230; // z. B. 16A * 230V = 3680W
-
-        // Vorheriger Wert (letzter sauberer Wert)
+        $spikeSchwelle = 1.5 * $this->ReadPropertyInteger('MaxAmpere') * 230;
         $letzterWert = floatval($this->ReadAttributeFloat('HausverbrauchAbzWallboxLast'));
 
-        // Wenn Sprung größer als $spikeSchwelle, dann Wert ignorieren und letzten gültigen nehmen
         if ($letzterWert > 0 && abs($hausverbrauchAbzWallbox - $letzterWert) > $spikeSchwelle) {
             $hausverbrauchAbzWallboxGlaettet = $letzterWert;
             $this->LogTemplate('warn', "Spike erkannt: $hausverbrauchAbzWallbox W (letzter Wert: $letzterWert W, Schwelle: $spikeSchwelle W) – Wert wird NICHT gespeichert!");
         } else {
             $hausverbrauchAbzWallboxGlaettet = $mittelwert;
-            // Buffer und letzten Wert nur aktualisieren, wenn kein Ausreißer
             $this->WriteAttributeString('HausverbrauchAbzWallboxBuffer', json_encode($buffer));
             $this->WriteAttributeFloat('HausverbrauchAbzWallboxLast', $hausverbrauchAbzWallboxGlaettet);
         }
@@ -1167,20 +1176,17 @@ class PVWallboxManager extends IPSModule
         // Verbrauch gesamt (Batterie positiv = lädt, negativ = entlädt)
         $verbrauchGesamt = $hausverbrauch + $batterieladung;
 
-        // --- PV-Überschuss berechnen ---
+        // --- PV-Überschuss berechnen (Standardformel: PV – Hausverbrauch – Batterie) ---
         $pvUeberschuss = max(0, $pv - $verbrauchGesamt);
-        if (abs($pvUeberschuss) < 1) {
-            $pvUeberschuss = 0.0;
-        }
+        if (abs($pvUeberschuss) < 1) $pvUeberschuss = 0.0;
 
-        // --- LADENSTROM (AMPERE) BERECHNEN ---
+        // --- Ladestrom (Ampere) berechnen ---
         $minAmp = $this->ReadPropertyInteger('MinAmpere');
         $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
-        // Division durch die tatsächlich genutzte Phasenzahl
-        $ampere = ceil($pvUeberschuss / (230 * $anzPhasen));   // floor() = Abrunden  //  round() = Mittelweg  //  ceil() = Aufrunden
+        $ampere = ceil($pvUeberschuss / (230 * $anzPhasen));
         $ampere = max($minAmp, min($maxAmp, $ampere));
 
-        // === ALLE Variablen setzen ===
+        // Visualisierung
         $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', 'W', 'debug');
         $this->SetValueAndLogChange('Hausverbrauch_W', $hausverbrauch, 'Hausverbrauch', 'W', 'debug');
         $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallbox, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
@@ -1200,6 +1206,7 @@ class PVWallboxManager extends IPSModule
         ];
     }
 
+
     // Zentrale PV-Überschussberechnung: IMMER korrekt (inkl. Haus, Batterie, Wallbox)
     private function BerechnePVUeberschussKomplett($anzPhasen = 1)
     {
@@ -1208,47 +1215,49 @@ class PVWallboxManager extends IPSModule
         $pv = ($pvID > 0) ? GetValueFloat($pvID) : 0;
         if ($this->ReadPropertyString('PVErzeugungEinheit') == "kW") $pv *= 1000;
 
-        // --- Wallbox-Leistung ---
-        $ladeleistung = round($this->GetValue('Leistung')); // immer die aktuelle Fahrzeugladung
+        // --- Wallbox-Leistung (was am Auto ankommt!) ---
+        $ladeleistung = round($this->GetValue('Leistung'));
 
-        // --- Hausverbrauch (inkl. Wallbox, wie geliefert) ---
+        // --- Hausverbrauch (inkl. Wallbox) ---
         $hvID = $this->ReadPropertyInteger('HausverbrauchID');
         $hausverbrauch = ($hvID > 0) ? GetValueFloat($hvID) : 0;
         if ($this->ReadPropertyString('HausverbrauchEinheit') == "kW") $hausverbrauch *= 1000;
 
-        // --- Hausverbrauch ohne Wallbox (für Visualisierung und PV2Car!) ---
+        // --- Hausverbrauch OHNE Wallbox (für PV2Car-Aufteilung & Visualisierung) ---
         $hausverbrauchOhneWB = $hausverbrauch - $ladeleistung;
 
-        // --- Batterieladung ---
+        // --- Batterieladung (Vorzeichen prüfen!) ---
         $batID = $this->ReadPropertyInteger('BatterieladungID');
         $batterieladung = ($batID > 0) ? GetValueFloat($batID) : 0;
         if ($this->ReadPropertyString('BatterieladungEinheit') == "kW") $batterieladung *= 1000;
         if ($this->ReadPropertyBoolean('InvertBatterieladung')) $batterieladung *= -1;
 
+        // Rückgabe für alle folgenden Berechnungen:
         return [
-            'pv'          => $pv,
-            'wallbox'     => $ladeleistung,
-            'haus'        => $hausverbrauch,
-            'hausOhneWB'  => $hausverbrauchOhneWB,
-            'batterie'    => $batterieladung
+            'pv'         => $pv,                   // PV-Leistung in W
+            'wallbox'    => $ladeleistung,         // aktuelle Ladeleistung Auto in W
+            'haus'       => $hausverbrauch,        // Hausverbrauch GESAMT (inkl. Wallbox) in W
+            'hausOhneWB' => $hausverbrauchOhneWB,  // Hausverbrauch OHNE Wallbox in W
+            'batterie'   => $batterieladung        // Batterie-Leistung (Vorzeichen wie in Variable)
         ];
     }
 
-    private function BerechnePV2CarLadeleistung($werte, $anteil)
-{
-    // PV2Car: PV - Hausverbrauch OHNE Wallbox
-    $rohUeberschuss = max(0, $werte['pv'] - $werte['hausOhneWB']);
-    $anteilWatt = intval(round($rohUeberschuss * $anteil / 100));
 
-    return [
-        'roh_ueber'   => $rohUeberschuss,
-        'anteil_watt' => $anteilWatt,
-        'pv'          => $werte['pv'],
-        'haus'        => $werte['hausOhneWB'], // für Logging
-        'wallbox'     => $werte['wallbox'],
-        'batterie'    => $werte['batterie'],
-    ];
-}
+    private function BerechnePV2CarLadeleistung($werte, $anteil)
+    {
+        // PV2Car: PV - Hausverbrauch OHNE Wallbox
+        $rohUeberschuss = max(0, $werte['pv'] - $werte['hausOhneWB']);
+        $anteilWatt = intval(round($rohUeberschuss * $anteil / 100));
+
+        return [
+            'roh_ueber'   => $rohUeberschuss,        // max. möglicher Überschuss für Verteilung (W)
+            'anteil_watt' => $anteilWatt,            // davon der Anteil für das Auto (W)
+            'pv'          => $werte['pv'],           // PV-Leistung (W)
+            'haus'        => $werte['hausOhneWB'],   // Hausverbrauch ohne Wallbox (W)
+            'wallbox'     => $werte['wallbox'],      // aktuelle Ladeleistung (W)
+            'batterie'    => $werte['batterie'],     // Batterie-Leistung (W)
+        ];
+    }
     
     //=========================================================================
     // 10. EXTERNE SCHNITTSTELLEN & FORECAST
