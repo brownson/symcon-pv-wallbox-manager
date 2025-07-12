@@ -406,6 +406,20 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
+        // Fahrzeugprüfung
+        $car = isset($data['car']) ? intval($data['car']) : 0;
+        if ($car <= 1) {
+            // Kein Fahrzeug -> Wallbox sofort sperren, Hysterese zurücksetzen!
+            $this->SetForceState(1); // Nicht Laden
+            $this->SetChargingCurrent($this->ReadPropertyInteger('MinAmpere')); // Sicher kleinster Wert
+            $this->SetTimerNachModusUndAuto($car);
+            $this->LogTemplate('info', "Kein Fahrzeug verbunden – Wallbox bleibt gesperrt.");
+            // Optional: Visualisierungswerte zurücksetzen
+            $this->SetValue('PV_Ueberschuss', 0);
+            $this->SetValue('PV_Ueberschuss_A', 0);
+            return; // Abbrechen!
+        }
+
         // Defensive Extraktion
         $car        = isset($data['car']) ? intval($data['car']) : 0;
         $leistung   = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
@@ -535,9 +549,14 @@ class PVWallboxManager extends IPSModule
         // 2. Auto abgesteckt? -> Manuell aus, PVonly/Initialcheck
         if ($car <= 1) {
             $this->SetValue('ManuellLaden', false);
+            $this->SetForceState(1); // Wallbox sofort sperren
+            $this->SetChargingCurrent($this->ReadPropertyInteger('MinAmpere')); // Sicher kleinster Wert
             $this->LogTemplate('ok', "🔌 Manuelles Vollladen gestoppt (Fahrzeug nicht verbunden). Wechsle in PVonly-Modus.");
             $this->SetTimerInterval('PVWM_InitialCheck', $this->GetInitialCheckInterval() * 1000);
             $this->SetTimerInterval('PVWM_UpdateStatus', 0);
+            // Visualisierung zurücksetzen (optional)
+            $this->SetValue('PV_Ueberschuss', 0);
+            $this->SetValue('PV_Ueberschuss_A', 0);
             return;
         }
 
@@ -590,9 +609,23 @@ class PVWallboxManager extends IPSModule
         $this->SetTimerNachModusUndAuto($car);
     }
 
-
     private function ModusPV2CarLaden($data)
     {
+        // 0. Fahrzeugprüfung: Sofort beenden, wenn kein Fahrzeug angesteckt!
+        $car = isset($data['car']) ? intval($data['car']) : 0;
+        if ($car <= 1) {
+            $this->SetValue('PV2CarModus', false);
+            $this->SetForceState(1); // Wallbox sperren
+            $this->SetChargingCurrent($this->ReadPropertyInteger('MinAmpere'));
+            $this->LogTemplate('ok', "PV2Car-Modus gestoppt (Fahrzeug nicht verbunden). Wechsle in PVonly-Modus.");
+            $this->SetTimerInterval('PVWM_InitialCheck', $this->GetInitialCheckInterval() * 1000);
+            $this->SetTimerInterval('PVWM_UpdateStatus', 0);
+            // Visualisierung zurücksetzen (optional)
+            $this->SetValue('PV_Ueberschuss', 0);
+            $this->SetValue('PV_Ueberschuss_A', 0);
+            return;
+        }
+
         // 1. Prozentwert holen (zwischen 0–100)
         $anteil = $this->GetValue('PVAnteil');
         $anteil = max(0, min(100, intval($anteil)));
@@ -1365,24 +1398,7 @@ class PVWallboxManager extends IPSModule
             'strom_je_phase' => [$I_L1, $I_L2, $I_L3]
         ];
     }
-/*
-    public function InitialCheck()
-    {
-        $carStatus = @$this->GetValue('Status');
-        $interval = $this->GetInitialCheckInterval();
-        if ($carStatus === false || $carStatus <= 1) {
-            $this->SetTimerInterval('PVWM_InitialCheck', $interval * 1000);
-            $this->LogTemplate('info', "💤 Kein Fahrzeug erkannt – InitialCheck läuft weiter (alle $interval Sekunden).");
-        } else {
-            // Fahrzeug erkannt, InitialCheck stoppen & Haupt-Timer starten
-            $this->SetTimerInterval('PVWM_InitialCheck', 0);
-            $mainInterval = intval($this->ReadPropertyInteger('RefreshInterval'));
-            $this->SetTimerInterval('PVWM_UpdateStatus', $mainInterval * 1000);
-            $this->LogTemplate('ok', "🚗 Fahrzeug erkannt – InitialCheck gestoppt, Haupt-Timer läuft ($mainInterval Sekunden).");
-            $this->UpdateStatus(); // Einmal Hauptlogik anwerfen
-        }
-    }
-*/
+
     // Hilfsfunktion: Setzt Timer richtig je nach Status und Modus
     private function SetTimerNachModusUndAuto()
     {
