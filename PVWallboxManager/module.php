@@ -1178,10 +1178,11 @@ class PVWallboxManager extends IPSModule
         if ($batEinheit == "kW") $batterieladung *= 1000;
         if ($invertBat) $batterieladung *= -1;
 
-        // Verbrauch gesamt (Batterie positiv = lädt, negativ = entlädt)
-//        $verbrauchGesamt = $hausverbrauch + $batterieladung;
-        $verbrauchGesamt = $hausverbrauchAbzWallbox + $batterieladung;
+        // Batterie-Entladung NICHT als Überschuss behandeln!
+        if ($batterieladung < 0) $batterieladung = 0; // Nur Laden zählt
 
+        // Verbrauch gesamt (Batterie positiv = lädt, negativ = entlädt)
+        $verbrauchGesamt = $hausverbrauchAbzWallbox + $batterieladung;
 
         // --- PV-Überschuss berechnen (Standardformel: PV – Hausverbrauch – Batterie) ---
         $pvUeberschuss = max(0, $pv - $verbrauchGesamt);
