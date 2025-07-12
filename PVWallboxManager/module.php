@@ -543,38 +543,47 @@ class PVWallboxManager extends IPSModule
         $anteil = $this->GetValue('PVAnteil');
         $anteil = max(0, min(100, intval($anteil)));
 
-        // 2. Datenbasis holen
-        $werte = $this->BerechnePVUeberschussKomplett($this->GetValue('Phasenmodus'));
+        // 2. Datenbasis holen (immer auf aktuellem Phasenmodus!)
+        $anzPhasenAlt = max(1, $this->GetValue('Phasenmodus'));
+        $werte = $this->BerechnePVUeberschussKomplett($anzPhasenAlt);
 
         // 3. PV2Car berechnen
         $pv2car = $this->BerechnePV2CarLadeleistung($werte, $anteil);
         $pvUeberschussPV2Car = $pv2car['roh_ueber'];
         $anteilWatt = $pv2car['anteil_watt'];
 
-        // **Visualisierung aktualisieren**
+        // **Phasenumschaltung prüfen** (darf auf Basis des aktuellen PV2Car-Überschusses laufen)
+        $this->PruefeUndSetzePhasenmodus($pvUeberschussPV2Car);
+
+        // **Phasenanzahl ggf. NEU holen nach Umschaltung!**
         $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
+        if ($anzPhasen !== $anzPhasenAlt) {
+            // Nach Umschalten: **Datenbasis mit NEUER Phasenzahl** neu holen und alles nochmal berechnen!
+            $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
+            $pv2car = $this->BerechnePV2CarLadeleistung($werte, $anteil);
+            $pvUeberschussPV2Car = $pv2car['roh_ueber'];
+            $anteilWatt = $pv2car['anteil_watt'];
+        }
+
+        // Visualisierung **jetzt** korrekt setzen:
         $ampere = ceil($anteilWatt / (230 * $anzPhasen));
         $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
         $this->SetValue('PV_Ueberschuss', $pvUeberschussPV2Car);
         $this->SetValue('PV_Ueberschuss_A', $ampere);
 
-        // **Phasenumschaltung prüfen (auf Basis des PV2Car-Überschusses)**
-        $this->PruefeUndSetzePhasenmodus($pvUeberschussPV2Car);
-
-        // 4. Hausakku-SOC prüfen
+        // Hausakku-SOC prüfen (wie gehabt)...
         $socID = $this->ReadPropertyInteger('HausakkuSOCID');
         $socSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
         $soc = ($socID > 0) ? @GetValue($socID) : false;
         $socText = ($soc !== false) ? $soc . "%" : "(nicht gesetzt)";
 
-        // 5. Hausakku voll? → 100%
         if ($soc !== false && $soc >= $socSchwelle) {
             $anteil = 100;
             $anteilWatt = $pvUeberschussPV2Car;
             $this->LogTemplate('ok', "Hausakku voll (SoC=$socText, Schwelle=$socSchwelle%). 100% PV-Überschuss wird geladen.");
         }
 
-        // 6. Hysterese-Parameter
+        // Hysterese, Start/Stop wie gehabt...
         $minLadeWatt    = $this->ReadPropertyInteger('MinLadeWatt');
         $minStopWatt    = $this->ReadPropertyInteger('MinStopWatt');
         $startHysterese = $this->ReadPropertyInteger('StartLadeHysterese');
@@ -583,7 +592,6 @@ class PVWallboxManager extends IPSModule
         $stopZaehler    = $this->ReadAttributeInteger('PV2CarStopZaehler');
         $aktFreigabe    = ($this->GetValue('AccessStateV2') == 2);
 
-        // --- Start-Hysterese
         if ($anteilWatt >= $minLadeWatt) {
             $startZaehler++;
             $this->WriteAttributeInteger('PV2CarStartZaehler', $startZaehler);
@@ -599,7 +607,6 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
         }
 
-        // --- Stop-Hysterese
         if ($anteilWatt <= $minStopWatt) {
             $stopZaehler++;
             $this->WriteAttributeInteger('PV2CarStopZaehler', $stopZaehler);
@@ -615,7 +622,7 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
         }
 
-        // 8. Laden (nur wenn erlaubt)
+        // Laden (nur wenn erlaubt)
         if ($anteilWatt >= $minLadeWatt && $this->GetValue('AccessStateV2') == 2) {
             $this->SetChargingCurrent($ampere);
             $this->LogTemplate(
