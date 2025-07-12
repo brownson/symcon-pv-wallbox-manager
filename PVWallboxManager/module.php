@@ -521,7 +521,6 @@ class PVWallboxManager extends IPSModule
         $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasenNeu ?? $anzPhasenAlt);
     }
 
-
     private function ModusManuellVollladen($data)
     {
         // 1. Defensive Extraktion
@@ -1174,7 +1173,9 @@ class PVWallboxManager extends IPSModule
         if ($invertBat) $batterieladung *= -1;
 
         // Verbrauch gesamt (Batterie positiv = lädt, negativ = entlädt)
-        $verbrauchGesamt = $hausverbrauch + $batterieladung;
+//        $verbrauchGesamt = $hausverbrauch + $batterieladung;
+        $verbrauchGesamt = $hausverbrauchAbzWallbox + $batterieladung;
+
 
         // --- PV-Überschuss berechnen (Standardformel: PV – Hausverbrauch – Batterie) ---
         $pvUeberschuss = max(0, $pv - $verbrauchGesamt);
