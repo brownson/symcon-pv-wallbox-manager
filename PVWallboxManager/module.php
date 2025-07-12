@@ -537,7 +537,6 @@ class PVWallboxManager extends IPSModule
         // Falls Auto abgesteckt wird, InitialCheck aktivieren; sonst bleibt UpdateStatus aktiv!
         $this->SetTimerNachModusUndAuto($car); // Hilfsfunktion siehe unten!
     }
-
     private function ModusPV2CarLaden($data)
     {
         // 1. Prozentwert holen
@@ -551,6 +550,16 @@ class PVWallboxManager extends IPSModule
         $pv2car = $this->BerechnePV2CarLadeleistung($werte, $anteil);
         $pvUeberschussPV2Car = $pv2car['roh_ueber'];
         $anteilWatt = $pv2car['anteil_watt'];
+
+        // **Visualisierung aktualisieren**
+        $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
+        $ampere = ceil($anteilWatt / (230 * $anzPhasen));
+        $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
+        $this->SetValue('PV_Ueberschuss', $pvUeberschussPV2Car);
+        $this->SetValue('PV_Ueberschuss_A', $ampere);
+
+        // **Phasenumschaltung prüfen (auf Basis des PV2Car-Überschusses)**
+        $this->PruefeUndSetzePhasenmodus($pvUeberschussPV2Car);
 
         // 4. Hausakku-SOC prüfen
         $socID = $this->ReadPropertyInteger('HausakkuSOCID');
@@ -605,11 +614,6 @@ class PVWallboxManager extends IPSModule
         } else {
             $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
         }
-
-        // 7. Phasen & Ladestrom berechnen
-        $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
-        $ampere = ceil($anteilWatt / (230 * $anzPhasen));
-        $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
 
         // 8. Laden (nur wenn erlaubt)
         if ($anteilWatt >= $minLadeWatt && $this->GetValue('AccessStateV2') == 2) {
