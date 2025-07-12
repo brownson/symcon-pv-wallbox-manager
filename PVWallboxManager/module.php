@@ -410,7 +410,7 @@ class PVWallboxManager extends IPSModule
         $minAmpere = $this->ReadPropertyInteger('MinAmpere');
         if ($car <= 1) {
             // Kein Fahrzeug -> Wallbox sofort sperren, Hysterese zurücksetzen!
-            $this->SetForceStateAndAmpereIfChanged(1, $minAmpere); // Sperren & minimaler Strom
+            $this->SetForceStateAndAmpereIfChanged(1, $this->ReadPropertyInteger('MinAmpere')); // Sperren & minimaler Strom
             $this->SetTimerNachModusUndAuto($car);
             $this->LogTemplate('info', "Kein Fahrzeug verbunden – Wallbox bleibt gesperrt.");
             // Visualisierung auf Minimalwert setzen, **nie auf 0A!**
@@ -546,7 +546,7 @@ class PVWallboxManager extends IPSModule
         $minAmpere = $this->ReadPropertyInteger('MinAmpere');
         if ($car <= 1) {
             $this->SetValue('ManuellLaden', false);
-            $this->SetForceStateAndAmpereIfChanged(1, $minAmpere); // Gesperrt & 6A setzen (zentrale Funktion)
+            $this->SetForceStateAndAmpereIfChanged(1, $this->ReadPropertyInteger('MinAmpere')); // Sperren & minimaler Strom
             $this->SetTimerInterval('PVWM_InitialCheck', $this->GetInitialCheckInterval() * 1000);
             $this->SetTimerInterval('PVWM_UpdateStatus', 0);
             // Visualisierung: Minimalwert für Ampere
@@ -610,7 +610,7 @@ class PVWallboxManager extends IPSModule
         $minAmpere = $this->ReadPropertyInteger('MinAmpere');
         if ($car <= 1) {
             $this->SetValue('PV2CarModus', false);
-            $this->SetForceStateAndAmpereIfChanged(1, $minAmpere); // Zentral geregelt!
+            $$this->SetForceStateAndAmpereIfChanged(1, $this->ReadPropertyInteger('MinAmpere')); // Sperren & minimaler Strom
             $this->SetTimerInterval('PVWM_InitialCheck', $this->GetInitialCheckInterval() * 1000);
             $this->SetTimerInterval('PVWM_UpdateStatus', 0);
             // Visualisierung auf sinnvolle Werte (0W, Minimalstrom)
