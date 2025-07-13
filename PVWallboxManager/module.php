@@ -128,6 +128,7 @@ class PVWallboxManager extends IPSModule
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
         $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
+
         
         // Schnell-Poll-Timer für Initialcheck
         $this->RegisterTimer('PVWM_InitialCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
@@ -1194,13 +1195,19 @@ class PVWallboxManager extends IPSModule
         // -------------------------------
         if ($this->ReadPropertyBoolean('UseMarketPrices')) {
             $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval'));
-            $this->SetTimerInterval('PVWM_UpdateMarketPrices', $marketInterval * 60 * 1000);
-            $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer gesetzt (alle $marketInterval min)");
+            $timerID = IPS_GetObjectIDByIdent('PVWM_UpdateMarketPrices', $this->InstanceID);
+            $currInterval = IPS_GetTimerInterval($timerID);
+            $newInterval = $marketInterval * 60 * 1000;
+
+            if ($currInterval != $newInterval) {
+                $this->SetTimerInterval('PVWM_UpdateMarketPrices', $newInterval);
+                $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer **neu gesetzt** (alle $marketInterval min)");
+            }
+            // else: Nicht immer neu setzen! (Sonst wird next_run verschoben!)
         } else {
             $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
             $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer gestoppt (UseMarketPrices = false)");
         }
-    }
 
     private function ResetLademodiWennKeinFahrzeug()
     {
