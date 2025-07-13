@@ -86,6 +86,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableFloat('CurrentSpotPrice','Aktueller Börsenpreis (ct/kWh)',                   'PVWM.CentPerKWh', 30);
         $this->RegisterVariableString('MarketPrices', 'Börsenpreis-Vorschau', '', 31);
 
+        $this->RegisterVariableString('MarketPricesPreview', '📊 Börsenpreis-Vorschau (HTML)', '~HTMLBox', 32);
+
         // Zielzeit für Zielzeitladung
         $this->RegisterVariableInteger('TargetTime', 'Zielzeit', '~UnixTimestampTime', 20);
         IPS_SetIcon($this->GetIDForIdent('TargetTime'), 'clock');
@@ -1452,8 +1454,40 @@ class PVWallboxManager extends IPSModule
 
         // Forecast als JSON speichern
         $this->SetValueAndLogChange('MarketPrices', json_encode($preise));
-
         $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
+
+        $this->SetValue('MarketPricesPreview', $this->FormatMarketPricesPreviewHTML(12));
+        $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
+    }
+
+    private function FormatMarketPricesPreviewHTML($maxRows = 12)
+    {
+        $json = $this->GetValue('MarketPrices');
+        $preise = json_decode($json, true);
+        if (!is_array($preise) || count($preise) === 0) return "<b>Keine Preisdaten verfügbar.</b>";
+
+        // MwSt-Logik: Hole Land/Option aus Property, Standard Österreich (20%)
+        $land = strtolower($this->ReadPropertyString('MarketPriceProvider'));
+        $mwst = 0.0;
+        if (strpos($land, 'at') !== false) $mwst = 0.20;
+        if (strpos($land, 'de') !== false) $mwst = 0.19;
+
+        // Tabelle bauen
+        $html  = '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+        $html .= '<tr style="background:#e6e6e6;"><th style="text-align:left;">Zeit</th><th style="text-align:right;">Preis (ct/kWh)</th><th style="text-align:right;">mit MwSt.</th></tr>';
+
+        foreach (array_slice($preise, 0, $maxRows) as $row) {
+            $dt = date('d.m. H:i', $row['timestamp']);
+            $p  = floatval($row['price']);
+            $pm = $p * (1 + $mwst);
+            $pText = number_format($p, 3, ',', '.');
+            $pmText = number_format($pm, 3, ',', '.');
+            $html .= "<tr><td>$dt</td><td style=\"text-align:right;\">$pText</td><td style=\"text-align:right;\">$pmText</td></tr>";
+        }
+        $html .= '</table>';
+        $html .= '<div style="font-size:11px; color:#888;">* Preise inkl. MwSt. ('.($mwst*100).'%); Quelle: awattar</div>';
+
+        return $html;
     }
 
     private function AnalysiereGoENrgArray($nrg)
