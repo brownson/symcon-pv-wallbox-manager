@@ -1539,45 +1539,40 @@ class PVWallboxManager extends IPSModule
         $min = min($allePreise);
         $maxPrice = max($allePreise);
 
-        // HTML aufbauen
-        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:12px;line-height:1.5;width:100%;max-width:540px;">';
-        $html .= '<b>Börsenpreis-Vorschau:</b><br>';
+        // Layout: vertikale Balken nebeneinander
+        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:12px;line-height:1.3;width:100%;max-width:620px;overflow-x:auto;padding-bottom:6px;">';
+        $html .= '<div style="display:flex;align-items:flex-end;height:190px;">';
 
         foreach ($preise as $i => $dat) {
-            $time = date('H:i', $dat['timestamp']);
-            $price = number_format($dat['price'], 3, ',', '.');
-
-            // Balkenlänge und Farbverlauf (min→max)
+            $price = number_format($dat['price'], 2, ',', '.');
             $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min)); // von 0 (min) bis 1 (max)
+            $barHeight = intval(50 + $percent * 120); // Balkenhöhe 50-170px
 
-            // Farbverlauf grün→gelb→orange
-            if ($percent < 0.5) {
-                // grün (#38b000) nach gelb (#ffcc00)
-                $local = $percent * 2;
-                $r = 56 + intval($local * (255-56));   // 56 → 255
-                $g = 176 + intval($local * (204-176)); // 176 → 204
-                $b = 0;                               // bleibt 0
-            } else {
-                // gelb (#ffcc00) nach orange (#ff6a00)
-                $local = ($percent-0.5) * 2;
-                $r = 255;
-                $g = 204 + intval($local * (106-204)); // 204 → 106
-                $b = 0;
-            }
-            $color = sprintf("#%02x%02x%02x", $r, $g, $b);
+            // Farbverlauf: von grün zu orange im Balken
+            // Unten: #38b000 (grün), oben: #ff6a00 (orange)
+            $gradient = 'linear-gradient(to top, #38b000 0%, #ffcc00 60%, #ff6a00 100%)';
 
-            $barWidth = intval(150 + $percent * 130); // Balkenbreite 150-280px
-
-            $html .= "<div style='margin:2px 0 4px 0;width:100%;'>
-                <span style='display:inline-block;width:36px;color:#888;'>$time</span>
-                <span style='display:inline-block;width:65px;font-variant-numeric:tabular-nums;'><b>$price ct</b></span>
-                <span style='display:inline-block;vertical-align:middle;width:290px;'>
-                    <span style='display:inline-block;height:18px;width:{$barWidth}px;background:{$color};border-radius:4px;box-shadow:0 1px 2px #0001;'></span>
-                </span>
-            </div>";
+            $html .= "
+                <div style='flex:0 0 38px;display:flex;flex-direction:column;align-items:center;margin:0 2px;'>
+                    <div style='
+                        height:{$barHeight}px;width:32px;
+                        background:{$gradient};
+                        border-radius:7px 7px 4px 4px;
+                        box-shadow:0 1px 3px #0002; 
+                        position:relative;
+                        display:flex;align-items:flex-end;justify-content:center;'>
+                        <span style='
+                            color:#fff;font-weight:bold;font-size:11px;
+                            text-shadow:0 1px 4px #000a,0 0 3px #000a;
+                            position:absolute;bottom:5px;width:100%;left:0;right:0;text-align:center;line-height:1.1;
+                            word-break:break-all;
+                        '>{$price} ct</span>
+                    </div>
+                    <div style='margin-top:5px;font-size:10px;color:#888;'>".date('H:i', $dat['timestamp'])."</div>
+                </div>
+            ";
         }
-        $html .= '</div>';
-
+        $html .= '</div></div>';
         return $html;
     }
 
