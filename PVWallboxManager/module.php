@@ -1535,43 +1535,48 @@ class PVWallboxManager extends IPSModule
         $min = min($allePreise);
         $maxPrice = max($allePreise);
 
-        // Optionale Maximalbreite für schöne Anzeige
-        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;max-width:540px;">';
+        // Schwelle, ab der es orange wird (z.B. 75% vom Preisspektrum)
+        $orangeThreshold = $min + 0.75 * ($maxPrice - $min);
+
+        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;max-width:520px;">';
         $html .= '<b>Börsenpreis-Vorschau</b><br>';
 
         foreach ($preise as $i => $dat) {
             $time = date('H:i', $dat['timestamp']);
             $price = number_format($dat['price'], 3, ',', '.');
             $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min));
-            $barWidth = intval(80 + $percent * 320); // Breite: 80–400px
+            $barWidth = intval(80 + $percent * 320);
 
-            // Farbverlauf: je höher der Preis, desto weiter orange
-            // Grün (günstig): #38b000, Orange (teuer): #ff6a00
-            $cut = 55 + intval($percent * 35); // 55-90%
-            $gradient = "linear-gradient(90deg, #38b000 0%, #38b000 {$cut}%, #ff6a00 100%)";
+            // --- Farbverlauf nur im oberen Preisdrittel ---
+            if ($dat['price'] <= $orangeThreshold) {
+                // Komplett grün (#38b000)
+                $gradient = "#38b000";
+            } else {
+                // Anteil von orange je nach "Wie weit über Schwelle"
+                $over = ($dat['price'] - $orangeThreshold) / max(1, $maxPrice - $orangeThreshold);
+                // 0 = Schwelle erreicht (noch grün), 1 = Maxpreis (voll orange)
+                $orange = intval(255 * $over);
+                // Wir mischen von grün (#38b000) nach orange (#ff6a00)
+                // Man kann hier einen CSS-Gradienten machen:
+                $gradient = "linear-gradient(90deg, #38b000 0%, #38b000 " . intval((1-$over)*80) . "%, #ff6a00 100%)";
+            }
 
             $html .= "
             <div style='margin:6px 0;display:flex;align-items:center;'>
                 <span style='display:inline-block;width:45px;color:#666;font-size:12px;'>$time</span>
-                <span style='display:inline-block;width:65px;font-weight:bold;color:#fff;position:relative;z-index:2;text-shadow:0 1px 4px #0007;'>
-                    <span style='position:absolute;left:10px;'>{$price} ct</span>
-                </span>
                 <span style='
                     display:inline-block;
-                    height:28px;width:{$barWidth}px;
-                    margin-left:-40px;margin-right:10px;
+                    height:24px;width:{$barWidth}px;
                     background:{$gradient};
                     border-radius:6px;
                     box-shadow:0 1px 4px #0001;
-                    line-height:28px;
                     font-weight:bold;
                     color:#fff;
-                    text-align:left;
-                    padding-left:56px;
-                    letter-spacing:0.5px;
-                    overflow:hidden;
+                    line-height:24px;
+                    text-align:center;
                     position:relative;
                     '>
+                    <span style='position:absolute;left:12px;top:0;width:70px;text-align:left;font-size:14px;'>$price ct</span>
                 </span>
             </div>
             ";
