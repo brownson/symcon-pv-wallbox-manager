@@ -1535,50 +1535,50 @@ class PVWallboxManager extends IPSModule
         $min = min($allePreise);
         $maxPrice = max($allePreise);
 
-        $minBarHeight = 48;  // Minimalhöhe
-        $maxBarHeight = 150; // Maximalhöhe
+        // Farben: Von türkis (#16db93) bis orange (#ffae00)
+        $colorFrom = [22, 219, 147];  // #16db93
+        $colorTo   = [255, 174, 0];   // #ffae00
+
+        $minBarHeight = 36;
+        $maxBarHeight = 120;
 
         $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;">';
         $html .= '<b>Börsenpreis-Vorschau</b><br>';
-        $html .= '<div style="display:flex;flex-direction:column;gap:14px;margin-left:10px;">';
+        $html .= '<div style="display:flex;flex-direction:column;gap:9px;">';
 
-        foreach ($preise as $i => $dat) {
+        foreach ($preise as $dat) {
             $hour = date('H:i', $dat['timestamp']);
             $price = number_format($dat['price'], 3, ',', '.');
 
-            // Höhe nach Preis skalieren
             $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min));
             $barHeight = intval($minBarHeight + $percent * ($maxBarHeight - $minBarHeight));
 
-            // Farbverlauf: immer über 100% der Balkenhöhe
-            $barGradient = "linear-gradient(to top, #ff6a00 0%, #ffcc00 55%, #38b000 100%)";
+            // Interpolierte Farbe
+            $r = intval($colorFrom[0] + ($colorTo[0] - $colorFrom[0]) * $percent);
+            $g = intval($colorFrom[1] + ($colorTo[1] - $colorFrom[1]) * $percent);
+            $b = intval($colorFrom[2] + ($colorTo[2] - $colorFrom[2]) * $percent);
+            $barColor = sprintf("rgb(%d,%d,%d)", $r, $g, $b);
 
             $html .= "
-            <div style='display:flex;align-items:flex-end;gap:12px;height:{$barHeight}px;'>
-                <span style='width:40px;color:#444;text-align:right;font-size:14px;'>$hour</span>
+            <div style='display:flex;align-items:center;gap:10px;'>
+                <span style='width:34px;color:#666;text-align:right;font-size:13px;'>$hour</span>
                 <span style='
                     display:inline-block;
-                    height:{$barHeight}px;width:58px;
-                    background:{$barGradient};
-                    border-radius:12px;
+                    height:{$barHeight}px;width:68px;
+                    background:{$barColor};
+                    border-radius:9px;
                     font-weight:bold;
                     color:#fff;
-                    box-shadow:0 1px 4px #0001;
+                    box-shadow:0 1px 3px #0001;
                     position:relative;
+                    text-align:center;
+                    line-height:{$barHeight}px;
+                    font-size:16px;
+                    letter-spacing:0.5px;
                 '>
-                    <span style='
-                        position:absolute;
-                        left:0;right:0;bottom:10px;
-                        width:100%;
-                        font-size:15px;
-                        font-weight:bold;
-                        color:#fff;
-                        text-shadow:0 1px 2px #0009;
-                        text-align:center;
-                    '>$price ct</span>
+                    $price ct
                 </span>
-            </div>
-            ";
+            </div>";
         }
 
         $html .= '</div></div>';
