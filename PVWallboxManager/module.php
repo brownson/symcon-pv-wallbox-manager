@@ -1540,28 +1540,42 @@ class PVWallboxManager extends IPSModule
         $maxPrice = max($allePreise);
 
         // HTML aufbauen
-        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:12px;line-height:1.5;width:100%;max-width:540px;">';
+        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;width:100%;max-width:540px;">';
         $html .= '<b>Börsenpreis-Vorschau:</b><br>';
 
         foreach ($preise as $i => $dat) {
             $time = date('H:i', $dat['timestamp']);
             $price = number_format($dat['price'], 3, ',', '.');
-            
-            // Balkenlänge und Farbverlauf
-            $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min)); // von 0 (min) bis 1 (max)
-            // Farbverlauf von grün (#38b000) über gelb (#ffcc00) bis orange/rot (#ff6a00)
-            $r = 56 + intval($percent * (255-56));    // von 56 (grün) bis 255 (rot)
-            $g = 176 + intval($percent * (106-176));  // von 176 (grün) zu 106 (orange)
-            $b = 0 + intval($percent * (0-0));        // bleibt 0
+
+            // Prozentualer Wert zwischen min (0) und max (1)
+            $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min));
+
+            // Farbverlauf: 0...0.5 = grün zu gelb, 0.5...1 = gelb zu orange
+            if ($percent < 0.5) {
+                // Von grün (#38b000) zu gelb (#ffe600)
+                $ratio = $percent / 0.5;
+                $r = intval(56 + (255-56)*$ratio);
+                $g = intval(176 + (230-176)*$ratio);
+                $b = intval(0 + (0-0)*$ratio);
+            } else {
+                // Von gelb (#ffe600) zu orange (#ff6a00)
+                $ratio = ($percent-0.5)/0.5;
+                $r = 255;
+                $g = intval(230 + (106-230)*$ratio);
+                $b = intval(0 + (0-0)*$ratio);
+            }
             $color = sprintf("#%02x%02x%02x", $r, $g, $b);
 
-            $barWidth = intval(150 + $percent * 130); // Balkenbreite 150-280px
+            $barWidth = intval(150 + $percent * 130); // Balkenbreite
 
-            $html .= "<div style='margin:2px 0 4px 0;width:100%;'>
+            $html .= "<div style='margin:3px 0;width:100%;'>
                 <span style='display:inline-block;width:36px;'>$time</span>
-                <span style='display:inline-block;width:65px;'>$price ct</span>
+                <span style='display:inline-block;width:70px;'>
+                    <span style='font-weight:bold;'>$price</span> ct
+                </span>
                 <span style='display:inline-block;vertical-align:middle;width:290px;'>
-                    <span style='display:inline-block;height:18px;width:{$barWidth}px;background:{$color};border-radius:4px;box-shadow:0 1px 2px #0001;'></span>
+                    <span style='display:inline-block;height:18px;width:{$barWidth}px;
+                        background:{$color};border-radius:4px;box-shadow:0 1px 2px #0001;'></span>
                 </span>
             </div>";
         }
@@ -1569,8 +1583,6 @@ class PVWallboxManager extends IPSModule
 
         return $html;
     }
-
-
 
     /*private function FormatMarketPricesPreviewHTML($maxRows = 12)
     {
