@@ -1519,7 +1519,58 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
     }
 
-    private function FormatMarketPricesPreviewHTML($maxRows = 12)
+    private function FormatMarketPricesPreviewHTML($max = 12)
+    {
+        // Preise aus JSON holen
+        $preiseRaw = @$this->GetValue('MarketPrices');
+        if (!$preiseRaw) {
+            return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
+        }
+        $preise = json_decode($preiseRaw, true);
+        if (!is_array($preise) || count($preise) === 0) {
+            return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
+        }
+
+        // Nur die ersten $max Werte anzeigen
+        $preise = array_slice($preise, 0, $max);
+
+        // Min/Max für die Farbskala berechnen
+        $allePreise = array_column($preise, 'price');
+        $min = min($allePreise);
+        $maxPrice = max($allePreise);
+
+        // HTML aufbauen
+        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:12px;line-height:1.5;width:100%;max-width:540px;">';
+        $html .= '<b>Börsenpreis-Vorschau:</b><br>';
+
+        foreach ($preise as $i => $dat) {
+            $time = date('H:i', $dat['timestamp']);
+            $price = number_format($dat['price'], 3, ',', '.');
+            
+            // Balkenlänge und Farbverlauf
+            $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min)); // von 0 (min) bis 1 (max)
+            // Farbverlauf von grün (#38b000) über gelb (#ffcc00) bis orange/rot (#ff6a00)
+            $r = 56 + intval($percent * (255-56));    // von 56 (grün) bis 255 (rot)
+            $g = 176 + intval($percent * (106-176));  // von 176 (grün) zu 106 (orange)
+            $b = 0 + intval($percent * (0-0));        // bleibt 0
+            $color = sprintf("#%02x%02x%02x", $r, $g, $b);
+
+            $barWidth = intval(150 + $percent * 130); // Balkenbreite 150-280px
+
+            $html .= "<div style='margin:2px 0 4px 0;width:100%;'>
+                <span style='display:inline-block;width:36px;'>$time</span>
+                <span style='display:inline-block;width:65px;'>$price ct</span>
+                <span style='display:inline-block;vertical-align:middle;width:290px;'>
+                    <span style='display:inline-block;height:18px;width:{$barWidth}px;background:{$color};border-radius:4px;box-shadow:0 1px 2px #0001;'></span>
+                </span>
+            </div>";
+        }
+        $html .= '</div>';
+
+        return $html;
+    }
+
+    /*private function FormatMarketPricesPreviewHTML($maxRows = 12)
     {
         $json = $this->GetValue('MarketPrices');
         $preise = json_decode($json, true);
@@ -1551,6 +1602,6 @@ class PVWallboxManager extends IPSModule
         $html .= '<div style="font-size:11px; color:#888;">* Preise inkl. MwSt. ('.($mwst*100).'%); Quelle: awattar</div>';
 
         return $html;
-    }
+    }*/
 
 }
