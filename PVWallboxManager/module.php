@@ -1419,6 +1419,8 @@ class PVWallboxManager extends IPSModule
     // =========================================================================
     private function AktualisiereMarktpreise()
     {
+        $this->LogTemplate('debug', "AktualisiereMarktpreise wurde aufgerufen."); // NEU!
+
         if (!$this->ReadPropertyBoolean('UseMarketPrices')) {
             $this->LogTemplate('info', "Börsenpreis-Update übersprungen (deaktiviert).");
             return;
@@ -1463,12 +1465,13 @@ class PVWallboxManager extends IPSModule
         foreach ($data['data'] as $item) {
             if (isset($item['start_timestamp'], $item['marketprice'])) {
                 $start = intval($item['start_timestamp'] / 1000);
-                if ($start < $now) continue;            // Nur ZUKÜNFTIGE/aktuelle Preise!
-                if ($start > $maxTimestamp) break;      // Max 36h in die Zukunft
+                if ($start < $now) continue;
+                if ($start > $maxTimestamp) break;
                 $preise[] = [
                     'timestamp' => $start,
-                    'price' => floatval($item['marketprice'] / 10.0) // €/MWh → ct/kWh
+                    'price' => floatval($item['marketprice'] / 10.0)
                 ];
+                $this->LogTemplate('debug', "Preispunkt: ".date('c', $start)." -> ".floatval($item['marketprice'] / 10.0));
             }
         }
 
