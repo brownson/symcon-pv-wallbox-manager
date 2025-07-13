@@ -1521,7 +1521,6 @@ class PVWallboxManager extends IPSModule
 
     private function FormatMarketPricesPreviewHTML($max = 12)
     {
-        // Preise aus JSON holen
         $preiseRaw = @$this->GetValue('MarketPrices');
         if (!$preiseRaw) {
             return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
@@ -1531,50 +1530,49 @@ class PVWallboxManager extends IPSModule
             return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
         }
 
-        // Nur die ersten $max Werte anzeigen
         $preise = array_slice($preise, 0, $max);
 
-        // Min/Max für die Farbskala berechnen
         $allePreise = array_column($preise, 'price');
         $min = min($allePreise);
         $maxPrice = max($allePreise);
 
-        // Layout: vertikale Balken nebeneinander
-        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:12px;line-height:1.3;width:100%;max-width:620px;overflow-x:auto;padding-bottom:6px;">';
+        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:12px;line-height:1.3;width:100%;max-width:700px;overflow-x:auto;padding-bottom:6px;">';
         $html .= '<div style="display:flex;align-items:flex-end;height:190px;">';
 
         foreach ($preise as $i => $dat) {
             $price = number_format($dat['price'], 2, ',', '.');
-            $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min)); // von 0 (min) bis 1 (max)
-            $barHeight = intval(50 + $percent * 120); // Balkenhöhe 50-170px
+            $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min));
+            $barHeight = intval(60 + $percent * 100);
 
-            // Farbverlauf: von grün zu orange im Balken
-            // Unten: #38b000 (grün), oben: #ff6a00 (orange)
-            $gradient = 'linear-gradient(to top, #38b000 0%, #ffcc00 60%, #ff6a00 100%)';
+            // Dynamischer Farbverlauf: je teurer, desto mehr orange
+            // Der "Übergang" nach orange beginnt erst ab etwa 60% Preisniveau
+            $cut = 60 + intval($percent * 35); // Der "Break" von grün zu orange (60%-95% Balkenhöhe)
+            $gradient = "linear-gradient(to top, #38b000 0%, #38b000 {$cut}%, #ff6a00 100%)";
 
             $html .= "
-                <div style='flex:0 0 38px;display:flex;flex-direction:column;align-items:center;margin:0 2px;'>
+                <div style='flex:0 0 40px;display:flex;flex-direction:column;align-items:center;margin:0 3px;'>
                     <div style='
                         height:{$barHeight}px;width:32px;
                         background:{$gradient};
                         border-radius:7px 7px 4px 4px;
-                        box-shadow:0 1px 3px #0002; 
+                        box-shadow:0 1px 3px #0002;
                         position:relative;
                         display:flex;align-items:flex-end;justify-content:center;'>
                         <span style='
                             color:#fff;font-weight:bold;font-size:11px;
                             text-shadow:0 1px 4px #000a,0 0 3px #000a;
-                            position:absolute;bottom:5px;width:100%;left:0;right:0;text-align:center;line-height:1.1;
-                            word-break:break-all;
-                        '>{$price} ct</span>
+                            position:absolute;bottom:6px;width:100%;left:0;right:0;text-align:center;line-height:1.1;'>
+                            {$price} ct
+                        </span>
                     </div>
-                    <div style='margin-top:5px;font-size:10px;color:#888;'>".date('H:i', $dat['timestamp'])."</div>
+                    <div style='margin-top:5px;font-size:11px;color:#888;'>".date('H:i', $dat['timestamp'])."</div>
                 </div>
             ";
         }
         $html .= '</div></div>';
         return $html;
     }
+
 
     /*private function FormatMarketPricesPreviewHTML($maxRows = 12)
     {
