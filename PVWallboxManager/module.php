@@ -1113,6 +1113,10 @@ class PVWallboxManager extends IPSModule
         $this->SetValue('PV_Ueberschuss_A', $minAmpere); // PV-Überschuss (A) – Minimalwert anzeigen
         $this->SetValue('Hausverbrauch_abz_Wallbox', 0); // Hausverbrauch abz. Wallbox
         $this->SetValue('Hausverbrauch_W', 0);           // Hausverbrauch gesamt
+        $this->SetValue('Freigabe', false); // <-- explizit auf false setzen!
+        $this->SetValue('AccessStateV2', 1); // <--- explizit auf 1 = gesperrt!
+        $this->SetValue('Status', 1); // <-- Status für „kein Fahrzeug“ immer setzen!
+        $this->SetTimerNachModusUndAuto();
         // Falls du weitere Visualisierungen hast, hier ergänzen...
     }
 
@@ -1130,6 +1134,51 @@ class PVWallboxManager extends IPSModule
         $this->SetTimerNachModusUndAuto($car);
         $this->ResetWallboxVisualisierungKeinFahrzeug();
         return false;
+    }
+
+    // Hilfsfunktion: Setzt Timer richtig je nach Status und Modus
+    private function SetTimerNachModusUndAuto()
+    {
+        $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
+        $car = @$this->GetValue('Status');
+        $mainInterval = intval($this->ReadPropertyInteger('RefreshInterval'));
+        $initialInterval = $this->GetInitialCheckInterval();
+
+        $this->LogTemplate('debug', "SetTimerNachModusUndAuto: Status=" . print_r($car, true));
+
+        // Immer zuerst alle Timer AUS
+        $this->SetTimerInterval('PVWM_UpdateStatus', 0);
+        $this->SetTimerInterval('PVWM_InitialCheck', 0);
+
+        if (!$aktiv) {
+            $this->LogTemplate('debug', "Modul nicht aktiv, alle Timer gestoppt.");
+            // Strompreis-Timer auch aus:
+            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
+            return;
+        }
+
+        // EINEN Haupttimer setzen – je nach Fahrzeugstatus
+        if ($car === false || $car <= 1) { // 0=unbekannt, 1=kein Fahrzeug
+            if ($initialInterval > 0) {
+                $this->SetTimerInterval('PVWM_InitialCheck', $initialInterval * 1000);
+                $this->LogTemplate('debug', "InitialCheck-Timer gestartet (alle $initialInterval Sekunden, bis Fahrzeug erkannt)");
+            } else {
+                $this->LogTemplate('debug', "InitialCheck-Intervall ist 0 – kein Schnellpoll.");
+            }
+            $this->SetTimerInterval('PVWM_UpdateStatus', 0);
+        } else {
+            $this->SetTimerInterval('PVWM_UpdateStatus', $mainInterval * 1000);
+            $this->LogTemplate('debug', "PVWM_UpdateStatus-Timer gestartet (alle $mainInterval Sekunden)");
+            $this->SetTimerInterval('PVWM_InitialCheck', 0);
+        }
+
+        // Strompreis-Update-Timer wie gehabt
+        if ($this->ReadPropertyBoolean('UseMarketPrices')) {
+            $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval'));
+            $this->SetTimerInterval('PVWM_UpdateMarketPrices', $marketInterval * 60 * 1000);
+        } else {
+            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
+        }
     }
     
     // =========================================================================
@@ -1403,51 +1452,6 @@ class PVWallboxManager extends IPSModule
             'leistung'       => $P_total, // Gesamtleistung in Watt
             'strom_je_phase' => [$I_L1, $I_L2, $I_L3]
         ];
-    }
-
-    // Hilfsfunktion: Setzt Timer richtig je nach Status und Modus
-    private function SetTimerNachModusUndAuto()
-    {
-        $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
-        $car = @$this->GetValue('Status');
-        $mainInterval = intval($this->ReadPropertyInteger('RefreshInterval'));
-        $initialInterval = $this->GetInitialCheckInterval();
-
-        // Immer zuerst alle Timer AUS
-        $this->SetTimerInterval('PVWM_UpdateStatus', 0);
-        $this->SetTimerInterval('PVWM_InitialCheck', 0);
-
-        if (!$aktiv) {
-            $this->LogTemplate('debug', "Modul nicht aktiv, alle Timer gestoppt.");
-            // Strompreis-Timer auch aus:
-            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
-            return;
-        }
-
-        // Genau EINEN Haupttimer setzen – je nach Fahrzeugstatus
-        if ($car === false || $car <= 1) {
-            // Kein Fahrzeug: InitialCheck aktivieren, UpdateStatus aus
-            if ($initialInterval > 0) {
-                $this->SetTimerInterval('PVWM_InitialCheck', $initialInterval * 1000);
-                $this->LogTemplate('debug', "InitialCheck-Timer gestartet (alle $initialInterval Sekunden, bis Fahrzeug erkannt)");
-            } else {
-                $this->LogTemplate('debug', "InitialCheck-Intervall ist 0 – kein Schnellpoll.");
-            }
-            $this->SetTimerInterval('PVWM_UpdateStatus', 0);
-        } else {
-            // Fahrzeug erkannt: UpdateStatus aktivieren, InitialCheck aus
-            $this->SetTimerInterval('PVWM_UpdateStatus', $mainInterval * 1000);
-            $this->LogTemplate('debug', "PVWM_UpdateStatus-Timer gestartet (alle $mainInterval Sekunden)");
-            $this->SetTimerInterval('PVWM_InitialCheck', 0);
-        }
-
-        // --- Strompreis-Update-Timer wie gehabt ---
-        if ($this->ReadPropertyBoolean('UseMarketPrices')) {
-            $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval')); // Minimum 5 Minuten
-            $this->SetTimerInterval('PVWM_UpdateMarketPrices', $marketInterval * 60 * 1000);
-        } else {
-            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0); // Timer AUS
-        }
     }
 
 }
