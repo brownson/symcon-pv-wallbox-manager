@@ -219,10 +219,12 @@ class PVWallboxManager extends IPSModule
         // Die bisherigen Profile
         $create('PVWM.Ampere',      VARIABLETYPE_INTEGER, 0, ' A',      'Energy');
         $create('PVWM.Percent',     VARIABLETYPE_INTEGER, 0, ' %',      'Percent');
+        IPS_SetVariableProfileValues('PVWM.Percent', 0, 100, 1);
         $create('PVWM.Watt',        VARIABLETYPE_FLOAT,   0, ' W',      'Flash');
         $create('PVWM.W',           VARIABLETYPE_FLOAT,   0, ' W',      'Flash');
         $create('PVWM.CentPerKWh',  VARIABLETYPE_FLOAT,   3, ' ct/kWh', 'Euro');
         $create('PVWM.Wh',          VARIABLETYPE_FLOAT,   0, ' Wh',     'Lightning');
+
     }
 
     // =========================================================================
