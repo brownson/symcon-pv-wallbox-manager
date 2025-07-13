@@ -13,6 +13,9 @@ class PVWallboxManager extends IPSModule
         parent::Create();
 
         $this->RegisterCustomProfiles();
+        $this->RegisterAttributeInteger('MarketPricesTimerInterval', 0);
+        $this->RegisterAttributeBoolean('MarketPricesActive', false);
+
 
         // Properties aus form.json
         $this->RegisterPropertyString('WallboxIP', '0.0.0.0');
@@ -1191,33 +1194,27 @@ class PVWallboxManager extends IPSModule
             $this->SetTimerInterval('PVWM_InitialCheck', 0);
         }
 
-        // -------------------------------
-        // STROMPREIS-TIMER IMMER SETZEN!
-        // -------------------------------
-        if ($this->ReadPropertyBoolean('UseMarketPrices')) {
-            $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval'));
-            $newInterval = $marketInterval * 60 * 1000;
+        // --- Hier NEU: MarketPrice Timer nur bei Änderung setzen! ---
+        $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval'));
+        $newInterval = $marketInterval * 60 * 1000;
+        $lastInterval = $this->ReadAttributeInteger('MarketPricesTimerInterval');
+        $active = $this->ReadPropertyBoolean('UseMarketPrices');
+        $lastActive = $this->ReadAttributeBoolean('MarketPricesActive');
 
-            $timerID = @IPS_GetObjectIDByIdent('PVWM_UpdateMarketPrices', $this->InstanceID);
-
-            if ($timerID !== false && IPS_EventExists($timerID)) {
-                $event = IPS_GetEvent($timerID);
-                $currInterval = $event['Interval'];
-
-                // Nur wenn Intervall unterschiedlich oder Timer AUS (Interval==0), dann setzen!
-                if ($currInterval != $newInterval || $currInterval == 0) {
-                    $this->SetTimerInterval('PVWM_UpdateMarketPrices', $newInterval);
-                    $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer (Intervallwechsel oder neu) gesetzt (alle $marketInterval min)");
-                }
-                // Sonst: NICHT neu setzen!
-            } else {
-                // Timer existiert nicht → anlegen
+        if ($active) {
+            // Nur wenn Intervall oder Status sich geändert hat!
+            if ($lastInterval != $newInterval || !$lastActive) {
                 $this->SetTimerInterval('PVWM_UpdateMarketPrices', $newInterval);
-                $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer (erstmalig) gesetzt (alle $marketInterval min)");
+                $this->WriteAttributeInteger('MarketPricesTimerInterval', $newInterval);
+                $this->WriteAttributeBoolean('MarketPricesActive', true);
+                $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer (gesetzt/aktiv) $newInterval ms");
             }
         } else {
-            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
-            $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer gestoppt (UseMarketPrices = false)");
+            if ($lastActive) {
+                $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
+                $this->WriteAttributeBoolean('MarketPricesActive', false);
+                $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer gestoppt");
+            }
         }
     }
 
