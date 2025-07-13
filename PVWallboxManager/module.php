@@ -1212,6 +1212,33 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+    private function AnalysiereGoENrgArray($nrg)
+    {
+        // Indizes je nach go-e Firmware
+        $I_L1 = isset($nrg[4]) ? floatval($nrg[4]) : 0.0;
+        $I_L2 = isset($nrg[5]) ? floatval($nrg[5]) : 0.0;
+        $I_L3 = isset($nrg[6]) ? floatval($nrg[6]) : 0.0;
+
+        $P_L1 = isset($nrg[8])  ? floatval($nrg[8])  : 0.0;
+        $P_L2 = isset($nrg[9])  ? floatval($nrg[9])  : 0.0;
+        $P_L3 = isset($nrg[10]) ? floatval($nrg[10]) : 0.0;
+        $P_total = isset($nrg[11]) ? floatval($nrg[11]) : ($P_L1 + $P_L2 + $P_L3);
+
+        // Welche Phasen sind aktiv? Schwelle > 1A
+        $aktivePhasen = [];
+        if ($I_L1 > 1.0) $aktivePhasen[] = 1;
+        if ($I_L2 > 1.0) $aktivePhasen[] = 2;
+        if ($I_L3 > 1.0) $aktivePhasen[] = 3;
+        $phasen = count($aktivePhasen);
+
+        return [
+            'phasen'         => $phasen,
+            'aktive_phasen'  => $aktivePhasen,
+            'leistung'       => $P_total, // Gesamtleistung in Watt
+            'strom_je_phase' => [$I_L1, $I_L2, $I_L3]
+        ];
+    }
+
     // =========================================================================
     // 8. LOGGING / DEBUG / STATUSMELDUNGEN
     // =========================================================================
@@ -1438,7 +1465,7 @@ class PVWallboxManager extends IPSModule
                 if ($start > $maxTimestamp) break;
                 $preise[] = [
                     'timestamp' => $start,
-                    'price' => floatval($item['marketprice'] / 10.0) // €/MWh → ct/kWh
+                    'price'     => floatval($item['marketprice'] / 10.0), // €/MWh → ct/kWh
                 ];
             }
         }
@@ -1462,6 +1489,7 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
     }
 
+
     private function FormatMarketPricesPreviewHTML($maxRows = 12)
     {
         $json = $this->GetValue('MarketPrices');
@@ -1478,45 +1506,22 @@ class PVWallboxManager extends IPSModule
         $html  = '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
         $html .= '<tr style="background:#e6e6e6;"><th style="text-align:left;">Zeit</th><th style="text-align:right;">Preis (ct/kWh)</th><th style="text-align:right;">mit MwSt.</th></tr>';
 
+        $timezone = new DateTimeZone('Europe/Vienna'); // ggf. dynamisch wählbar
         foreach (array_slice($preise, 0, $maxRows) as $row) {
-            $dt = date('d.m. H:i', $row['timestamp']);
+            $tsUTC = intval($row['timestamp']);
+            $dateObj = new DateTime("@$tsUTC");
+            $dateObj->setTimezone($timezone);
+            $zeitString = $dateObj->format('d.m. H:i');
             $p  = floatval($row['price']);
             $pm = $p * (1 + $mwst);
             $pText = number_format($p, 3, ',', '.');
             $pmText = number_format($pm, 3, ',', '.');
-            $html .= "<tr><td>$dt</td><td style=\"text-align:right;\">$pText</td><td style=\"text-align:right;\">$pmText</td></tr>";
+            $html .= "<tr><td>$zeitString</td><td style=\"text-align:right;\">$pText</td><td style=\"text-align:right;\">$pmText</td></tr>";
         }
         $html .= '</table>';
         $html .= '<div style="font-size:11px; color:#888;">* Preise inkl. MwSt. ('.($mwst*100).'%); Quelle: awattar</div>';
 
         return $html;
-    }
-
-    private function AnalysiereGoENrgArray($nrg)
-    {
-        // Indizes je nach go-e Firmware
-        $I_L1 = isset($nrg[4]) ? floatval($nrg[4]) : 0.0;
-        $I_L2 = isset($nrg[5]) ? floatval($nrg[5]) : 0.0;
-        $I_L3 = isset($nrg[6]) ? floatval($nrg[6]) : 0.0;
-
-        $P_L1 = isset($nrg[8])  ? floatval($nrg[8])  : 0.0;
-        $P_L2 = isset($nrg[9])  ? floatval($nrg[9])  : 0.0;
-        $P_L3 = isset($nrg[10]) ? floatval($nrg[10]) : 0.0;
-        $P_total = isset($nrg[11]) ? floatval($nrg[11]) : ($P_L1 + $P_L2 + $P_L3);
-
-        // Welche Phasen sind aktiv? Schwelle > 1A
-        $aktivePhasen = [];
-        if ($I_L1 > 1.0) $aktivePhasen[] = 1;
-        if ($I_L2 > 1.0) $aktivePhasen[] = 2;
-        if ($I_L3 > 1.0) $aktivePhasen[] = 3;
-        $phasen = count($aktivePhasen);
-
-        return [
-            'phasen'         => $phasen,
-            'aktive_phasen'  => $aktivePhasen,
-            'leistung'       => $P_total, // Gesamtleistung in Watt
-            'strom_je_phase' => [$I_L1, $I_L2, $I_L3]
-        ];
     }
 
 }
