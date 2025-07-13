@@ -997,9 +997,10 @@ class PVWallboxManager extends IPSModule
             $oldValue = null;
         }
 
-        // Wenn identisch, nichts tun
-        if (round(floatval($oldValue), 2) == round(floatval($newValue), 2)) {
-            return;
+        if (is_string($oldValue) || is_string($newValue)) {
+            if ((string)$oldValue === (string)$newValue) return;
+        } else {
+            if (round(floatval($oldValue), 2) == round(floatval($newValue), 2)) return;
         }
 
         // Werte ggf. als Klartext formatieren
