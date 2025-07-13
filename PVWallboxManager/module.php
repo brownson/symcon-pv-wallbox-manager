@@ -363,6 +363,15 @@ class PVWallboxManager extends IPSModule
 
         $data = $this->getStatusFromCharger();
 
+        // Wallbox nicht erreichbar: Visualisierung zurücksetzen und abbrechen
+        if ($data === false) {
+            $this->ResetWallboxVisualisierungKeinFahrzeug();
+            $this->LogTemplate('debug', "Wallbox nicht erreichbar – Visualisierungswerte zurückgesetzt.");
+            return;
+        }
+
+        if (!$this->FahrzeugVerbunden($data)) return;
+
         // 1. Phasenanzahl initial ermitteln (aus Wallbox, sonst Default 1)
         $anzPhasenAlt = 1;
         if ($data !== false && isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
@@ -402,16 +411,6 @@ class PVWallboxManager extends IPSModule
             // Visualisierung zurücksetzen – immer robust!
             $this->ResetWallboxVisualisierungKeinFahrzeug();
             $this->LogTemplate('debug', "Wallbox nicht erreichbar – Visualisierungswerte zurückgesetzt.");
-            return;
-        }
-
-        if ($car <= 1) {
-            if ($this->GetValue('AccessStateV2') != 1) {
-                $this->SetForceState(1);
-                $this->LogTemplate('info', "Kein Fahrzeug verbunden – Wallbox bleibt gesperrt.");
-            }
-            $this->SetTimerNachModusUndAuto($car);
-            $this->ResetWallboxVisualisierungKeinFahrzeug();  // <--- Zentrale neue Funktion!
             return;
         }
 
@@ -456,17 +455,7 @@ class PVWallboxManager extends IPSModule
 
     private function ModusPVonlyLaden($data, $anzPhasenAlt, $mode = 'pvonly')
     {
-        // 1. Fahrzeug-Check (auch bei Datenverlust!)
-        $car = 0;
-        if (is_array($data) && isset($data['car'])) {
-            $car = intval($data['car']);
-        }
-        if ($data === false || $car <= 1) {
-            $this->ResetWallboxVisualisierungKeinFahrzeug();
-            $this->LogTemplate('debug', "PVonly: Kein Fahrzeug verbunden oder keine Daten – Visualisierung zurückgesetzt.");
-            return;
-        }
-        // Standard PVonly-Modus mit Hysterese, Phasenumschaltung, Visualisierung etc.
+        if (!$this->FahrzeugVerbunden($data)) return;
 
         // --- Überschuss neu berechnen (nach eventueller Phasenumschaltung) ---
         $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
@@ -478,15 +467,22 @@ class PVWallboxManager extends IPSModule
         $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
         $this->SetValue('PV_Ueberschuss_A', $ampere);
 
-        // Debug-Log – robust, nur wenn Array vorhanden!
-        if (
-            is_array($berechnung)
-            && isset($berechnung['pv'], $berechnung['haus'], $berechnung['wallbox'], $berechnung['batterie'])
-        ) {
-            $this->LogTemplate(
-                'debug',
-                "PV-Überschuss: PV={$berechnung['pv']} W, Haus={$berechnung['haus']} W, Wallbox={$berechnung['wallbox']} W, Batterie={$berechnung['batterie']} W, Phasenmodus={$berechnung['phasenmodus']} → Überschuss={$berechnung['ueberschuss_w']} W / {$berechnung['ueberschuss_a']} A"
-            );
+        // Debug-Log – robust, mit Hinweis wenn Werte fehlen
+        if (is_array($berechnung)) {
+            $requiredFields = ['pv', 'haus', 'wallbox', 'batterie', 'phasenmodus', 'ueberschuss_w', 'ueberschuss_a'];
+            $missing = array_diff($requiredFields, array_keys($berechnung));
+
+            if (empty($missing)) {
+                $this->LogTemplate(
+                    'debug',
+                    "PV-Überschuss: PV={$berechnung['pv']} W, Haus={$berechnung['haus']} W, Wallbox={$berechnung['wallbox']} W, Batterie={$berechnung['batterie']} W, Phasenmodus={$berechnung['phasenmodus']} → Überschuss={$berechnung['ueberschuss_w']} W / {$berechnung['ueberschuss_a']} A"
+                );
+            } else {
+                $this->LogTemplate(
+                    'warn',
+                    'BerechnePVUeberschuss: Fehlende Felder im Array: ' . implode(', ', $missing)
+                );
+            }
         }
 
         // --- Phasenumschaltung prüfen (immer im PVonly-Modus) ---
@@ -538,16 +534,7 @@ class PVWallboxManager extends IPSModule
 
     private function ModusManuellVollladen($data)
     {
-        $car = isset($data['car']) ? intval($data['car']) : 0;
-        if ($car <= 1) {
-            $this->SetValue('ManuellLaden', false);
-            $this->SetForceStateAndAmpereIfChanged(1, $this->ReadPropertyInteger('MinAmpere'));
-            $this->SetTimerInterval('PVWM_InitialCheck', $this->GetInitialCheckInterval() * 1000);
-            $this->SetTimerInterval('PVWM_UpdateStatus', 0);
-            $this->ResetWallboxVisualisierungKeinFahrzeug(); // <-- jetzt zentrale Visualisierung!
-            $this->LogTemplate('ok', "🔌 Manuelles Vollladen gestoppt (Fahrzeug nicht verbunden). Wechsle in PVonly-Modus.");
-            return;
-        }
+        if (!$this->FahrzeugVerbunden($data)) return;
 
         // Phasen anhand nrg-Array zählen (wie bisher)
         $anzPhasenAlt = 1;
@@ -594,21 +581,12 @@ class PVWallboxManager extends IPSModule
         );
 
         // Timer prüfen/setzen – falls Auto abgesteckt wird, InitialCheck aktivieren
-        $this->SetTimerNachModusUndAuto($car);
+        $this->SetTimerNachModusUndAuto();
     }
 
     private function ModusPV2CarLaden($data)
     {
-        $car = isset($data['car']) ? intval($data['car']) : 0;
-        if ($car <= 1) {
-            $this->SetValue('PV2CarModus', false);
-            $this->SetForceStateAndAmpereIfChanged(1, $this->ReadPropertyInteger('MinAmpere'));
-            $this->SetTimerInterval('PVWM_InitialCheck', $this->GetInitialCheckInterval() * 1000);
-            $this->SetTimerInterval('PVWM_UpdateStatus', 0);
-            $this->ResetWallboxVisualisierungKeinFahrzeug(); // <-- neue zentrale Funktion!
-            $this->LogTemplate('ok', "PV2Car-Modus gestoppt (Fahrzeug nicht verbunden). Wechsle in PVonly-Modus.");
-            return;
-        }
+        if (!$this->FahrzeugVerbunden($data)) return;
 
         // 1. Prozentwert holen (zwischen 0–100)
         $anteil = $this->GetValue('PVAnteil');
@@ -649,7 +627,9 @@ class PVWallboxManager extends IPSModule
         $socText = ($soc !== false) ? $soc . "%" : "(nicht gesetzt)";
         if ($soc !== false && $soc >= $socSchwelle) {
             $anteil = 100;
-            $anteilWatt = $pvUeberschussPV2Car;
+            $pv2car = $this->BerechnePV2CarLadeleistung($werte, $anteil);
+            $pvUeberschussPV2Car = $pv2car['roh_ueber'];
+            $anteilWatt = $pv2car['anteil_watt'];
             $this->LogTemplate('ok', "Hausakku voll (SoC=$socText, Schwelle=$socSchwelle%). 100% PV-Überschuss wird geladen.");
         }
 
@@ -1134,6 +1114,22 @@ class PVWallboxManager extends IPSModule
         $this->SetValue('Hausverbrauch_abz_Wallbox', 0); // Hausverbrauch abz. Wallbox
         $this->SetValue('Hausverbrauch_W', 0);           // Hausverbrauch gesamt
         // Falls du weitere Visualisierungen hast, hier ergänzen...
+    }
+
+    private function FahrzeugVerbunden($data)
+    {
+        // Robust, egal ob false oder Array kommt
+        $car = (is_array($data) && isset($data['car'])) ? intval($data['car']) : 0;
+        if ($car > 1) return true;
+
+        // --- NUR EINMAL zentral alles erledigen ---
+        if ($this->GetValue('AccessStateV2') != 1) {
+            $this->SetForceState(1);
+            $this->LogTemplate('info', "Kein Fahrzeug verbunden – Wallbox bleibt gesperrt.");
+        }
+        $this->SetTimerNachModusUndAuto($car);
+        $this->ResetWallboxVisualisierungKeinFahrzeug();
+        return false;
     }
     
     // =========================================================================
