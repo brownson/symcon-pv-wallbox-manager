@@ -1535,56 +1535,63 @@ class PVWallboxManager extends IPSModule
         $min = min($allePreise);
         $maxPrice = max($allePreise);
 
-        // Schwelle, ab der es orange wird (z.B. 75% vom Preisspektrum)
-        $orangeThreshold = $min + 0.75 * ($maxPrice - $min);
+        // Balkenhöhe: Skaliert nach Preis (z.B. 36px ... 160px)
+        $minBarHeight = 36;
+        $maxBarHeight = 160;
 
-        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;max-width:520px;">';
+        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;width:120px;">';
         $html .= '<b>Börsenpreis-Vorschau</b><br>';
+        $html .= '<div style="display:flex;flex-direction:column;gap:3px;width:120px;">';
 
         foreach ($preise as $i => $dat) {
-            $time = date('H:i', $dat['timestamp']);
+            $hour = date('H:i', $dat['timestamp']);
             $price = number_format($dat['price'], 3, ',', '.');
-            $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min));
-            $barWidth = intval(80 + $percent * 320);
 
-            // --- Farbverlauf nur im oberen Preisdrittel ---
-            if ($dat['price'] <= $orangeThreshold) {
-                // Komplett grün (#38b000)
-                $gradient = "#38b000";
-            } else {
-                // Anteil von orange je nach "Wie weit über Schwelle"
-                $over = ($dat['price'] - $orangeThreshold) / max(1, $maxPrice - $orangeThreshold);
-                // 0 = Schwelle erreicht (noch grün), 1 = Maxpreis (voll orange)
-                $orange = intval(255 * $over);
-                // Wir mischen von grün (#38b000) nach orange (#ff6a00)
-                // Man kann hier einen CSS-Gradienten machen:
-                $gradient = "linear-gradient(90deg, #38b000 0%, #38b000 " . intval((1-$over)*80) . "%, #ff6a00 100%)";
-            }
+            // **Höhe nach Preis skalieren**
+            $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min));
+            $barHeight = intval($minBarHeight + $percent * ($maxBarHeight - $minBarHeight));
+
+            // Farbverlauf immer über 100% der aktuellen Höhe!
+            $barGradient = "linear-gradient(
+                to top,
+                #ff6a00 0%,
+                #ff6a00 20%,
+                #ffcc00 50%,
+                #38b000 50%,
+                #38b000 100%
+            )";
 
             $html .= "
-            <div style='margin:6px 0;display:flex;align-items:center;'>
-                <span style='display:inline-block;width:45px;color:#666;font-size:12px;'>$time</span>
+            <div style='display:flex;align-items:center;gap:6px;'>
+                <span style='width:42px;color:#666;font-size:12px;'>$hour</span>
                 <span style='
                     display:inline-block;
-                    height:24px;width:{$barWidth}px;
-                    background:{$gradient};
-                    border-radius:6px;
-                    box-shadow:0 1px 4px #0001;
+                    height:{$barHeight}px;width:54px;
+                    background:{$barGradient};
+                    border-radius:8px;
                     font-weight:bold;
                     color:#fff;
-                    line-height:24px;
-                    text-align:center;
                     position:relative;
-                    '>
-                    <span style='position:absolute;left:12px;top:0;width:70px;text-align:left;font-size:14px;'>$price ct</span>
+                    box-shadow:0 1px 4px #0002;
+                    text-align:center;
+                    vertical-align:bottom;
+                '>
+                    <span style='
+                        position:absolute;
+                        left:0;right:0;bottom:10px;
+                        font-size:13px;
+                        font-weight:bold;
+                        color:#fff;
+                    '>$price ct</span>
                 </span>
             </div>
             ";
         }
 
-        $html .= '</div>';
+        $html .= '</div></div>';
         return $html;
     }
+
 
     /*private function FormatMarketPricesPreviewHTML($maxRows = 12)
     {
