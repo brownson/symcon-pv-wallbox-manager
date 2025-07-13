@@ -1546,20 +1546,31 @@ class PVWallboxManager extends IPSModule
         foreach ($preise as $i => $dat) {
             $time = date('H:i', $dat['timestamp']);
             $price = number_format($dat['price'], 3, ',', '.');
-            
-            // Balkenlänge und Farbverlauf
+
+            // Balkenlänge und Farbverlauf (min→max)
             $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min)); // von 0 (min) bis 1 (max)
-            // Farbverlauf von grün (#38b000) über gelb (#ffcc00) bis orange/rot (#ff6a00)
-            $r = 56 + intval($percent * (255-56));    // von 56 (grün) bis 255 (rot)
-            $g = 176 + intval($percent * (106-176));  // von 176 (grün) zu 106 (orange)
-            $b = 0 + intval($percent * (0-0));        // bleibt 0
+
+            // Farbverlauf grün→gelb→orange
+            if ($percent < 0.5) {
+                // grün (#38b000) nach gelb (#ffcc00)
+                $local = $percent * 2;
+                $r = 56 + intval($local * (255-56));   // 56 → 255
+                $g = 176 + intval($local * (204-176)); // 176 → 204
+                $b = 0;                               // bleibt 0
+            } else {
+                // gelb (#ffcc00) nach orange (#ff6a00)
+                $local = ($percent-0.5) * 2;
+                $r = 255;
+                $g = 204 + intval($local * (106-204)); // 204 → 106
+                $b = 0;
+            }
             $color = sprintf("#%02x%02x%02x", $r, $g, $b);
 
             $barWidth = intval(150 + $percent * 130); // Balkenbreite 150-280px
 
             $html .= "<div style='margin:2px 0 4px 0;width:100%;'>
-                <span style='display:inline-block;width:36px;'>$time</span>
-                <span style='display:inline-block;width:65px;'>$price ct</span>
+                <span style='display:inline-block;width:36px;color:#888;'>$time</span>
+                <span style='display:inline-block;width:65px;font-variant-numeric:tabular-nums;'><b>$price ct</b></span>
                 <span style='display:inline-block;vertical-align:middle;width:290px;'>
                     <span style='display:inline-block;height:18px;width:{$barWidth}px;background:{$color};border-radius:4px;box-shadow:0 1px 2px #0001;'></span>
                 </span>
