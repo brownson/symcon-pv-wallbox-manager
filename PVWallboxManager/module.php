@@ -1542,18 +1542,18 @@ class PVWallboxManager extends IPSModule
 
             // 0.0 → #16db93  |  0.5 → #ffe066  |  1.0 → #ffae00
             if ($percent < 0.5) {
-                // Grün zu Gelb
-                $ratio = $percent / 0.5;
-                $r = intval(22 + ($255-22)*$ratio);
-                $g = intval(219 + (224-219)*$ratio);
-                $b = intval(147 + (102-147)*$ratio);
-            } else {
-                // Gelb zu Orange
-                $ratio = ($percent-0.5)/0.5;
-                $r = intval(255 + (255-255)*$ratio);
-                $g = intval(224 + (174-224)*$ratio);
-                $b = intval(102 + (0-102)*$ratio);
-            }
+            // Grün zu Gelb
+            $ratio = $percent / 0.5;
+            $r = intval(22 + (255-22)*$ratio);
+            $g = intval(219 + (224-219)*$ratio);
+            $b = intval(147 + (102-147)*$ratio);
+        } else {
+            // Gelb zu Orange
+            $ratio = ($percent-0.5)/0.5;
+            $r = intval(255);
+            $g = intval(224 + (174-224)*$ratio);
+            $b = intval(102 + (0-102)*$ratio);
+        }
             return sprintf("#%02x%02x%02x", $r, $g, $b);
         };
 
