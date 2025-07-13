@@ -1462,10 +1462,11 @@ class PVWallboxManager extends IPSModule
         foreach ($data['data'] as $item) {
             if (isset($item['start_timestamp'], $item['marketprice'])) {
                 $start = intval($item['start_timestamp'] / 1000);
-                if ($start > $maxTimestamp) break;
+                if ($start < $now) continue;            // Nur ZUKÜNFTIGE/aktuelle Preise!
+                if ($start > $maxTimestamp) break;      // Max 36h in die Zukunft
                 $preise[] = [
                     'timestamp' => $start,
-                    'price'     => floatval($item['marketprice'] / 10.0), // €/MWh → ct/kWh
+                    'price' => floatval($item['marketprice'] / 10.0) // €/MWh → ct/kWh
                 ];
             }
         }
