@@ -1472,11 +1472,14 @@ class PVWallboxManager extends IPSModule
             return;
         }
         $json = $response['result'];
+        $this->LogTemplate('debug', 'RAW-API-Response: ' . substr($json, 0, 400));
+
         $data = json_decode($json, true);
         if (!is_array($data) || !isset($data['data'])) {
             $this->LogTemplate('error', "Fehlerhafte Antwort der API (keine 'data').");
             return;
         }
+        $this->LogTemplate('debug', 'API DATA-Count: ' . (is_array($data['data']) ? count($data['data']) : 'keine data'));
 
         // --- Preise aufbereiten (nächste 36h) ---
         $preise = [];
@@ -1484,8 +1487,10 @@ class PVWallboxManager extends IPSModule
         $maxTimestamp = $now + 36 * 3600; // bis max 36h in die Zukunft
 
         foreach ($data['data'] as $item) {
+            $this->LogTemplate('debug', 'Untersuche Item: ' . json_encode($item));
             if (isset($item['start_timestamp'], $item['marketprice'])) {
                 $start = intval($item['start_timestamp'] / 1000);
+                $this->LogTemplate('debug', 'Start: '.$start.' ('.date('d.m.Y H:i:s', $start).')');
                 //if ($start < $now) continue;
                 if ($start > $maxTimestamp) break;
                 $preise[] = [
@@ -1493,11 +1498,22 @@ class PVWallboxManager extends IPSModule
                     'price' => floatval($item['marketprice'] / 10.0)
                 ];
                 $this->LogTemplate('debug', "Preispunkt: ".date('c', $start)." -> ".floatval($item['marketprice'] / 10.0));
+            } else {
+                $this->LogTemplate('warn', 'Ungültiges Item, fehlende keys!');
             }
         }
 
+        $this->LogTemplate('debug', 'Preise-Array Größe nach Verarbeitung: ' . count($preise));
+
         if (count($preise) === 0) {
             $this->LogTemplate('warn', "Keine gültigen Preisdaten gefunden!");
+            // Testweise: Dummy schreiben, damit du siehst, ob überhaupt etwas gesetzt werden kann!
+            //$dummy = [
+            //    ['timestamp' => time(), 'price' => 12.345],
+            //    ['timestamp' => time() + 3600, 'price' => 13.456]
+            //];
+            //$this->SetValueAndLogChange('MarketPrices', json_encode($dummy));
+            //$this->LogTemplate('debug', "MarketPrices-Dummy gesetzt: ".json_encode($dummy));
             return;
         }
 
@@ -1507,6 +1523,7 @@ class PVWallboxManager extends IPSModule
 
         // Forecast als JSON speichern
         $this->SetValueAndLogChange('MarketPrices', json_encode($preise));
+        $this->LogTemplate('debug', "MarketPrices wurde gesetzt: " . json_encode($preise));
 
         // HTML-Vorschau speichern
         $this->SetValue('MarketPricesPreview', $this->FormatMarketPricesPreviewHTML(12));
