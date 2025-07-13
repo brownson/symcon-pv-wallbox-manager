@@ -524,7 +524,9 @@ class PVWallboxManager extends IPSModule
 
             if ($stopZaehler >= $stopHysterese && $aktFreigabe) {
                 $this->LogTemplate('warn', "Ladefreigabe: Stop-Hysterese erreicht ($stopZaehler x <= $minStopWatt W). Ladefreigabe deaktivieren.");
-                $this->SetForceState(1);
+                if ($this->GetValue('AccessStateV2') != 1) {         // <--- NEU!
+                    $this->SetForceState(1);
+                }
             }
         } else {
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
