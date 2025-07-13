@@ -1531,48 +1531,55 @@ class PVWallboxManager extends IPSModule
         }
 
         $preise = array_slice($preise, 0, $max);
-
         $allePreise = array_column($preise, 'price');
         $min = min($allePreise);
         $maxPrice = max($allePreise);
 
-        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:12px;line-height:1.3;width:100%;max-width:700px;overflow-x:auto;padding-bottom:6px;">';
-        $html .= '<div style="display:flex;align-items:flex-end;height:190px;">';
+        // Optionale Maximalbreite für schöne Anzeige
+        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;max-width:540px;">';
+        $html .= '<b>Börsenpreis-Vorschau</b><br>';
 
         foreach ($preise as $i => $dat) {
-            $price = number_format($dat['price'], 2, ',', '.');
+            $time = date('H:i', $dat['timestamp']);
+            $price = number_format($dat['price'], 3, ',', '.');
             $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min));
-            $barHeight = intval(60 + $percent * 100);
+            $barWidth = intval(80 + $percent * 320); // Breite: 80–400px
 
-            // Dynamischer Farbverlauf: je teurer, desto mehr orange
-            // Der "Übergang" nach orange beginnt erst ab etwa 60% Preisniveau
-            $cut = 60 + intval($percent * 35); // Der "Break" von grün zu orange (60%-95% Balkenhöhe)
-            $gradient = "linear-gradient(to top, #38b000 0%, #38b000 {$cut}%, #ff6a00 100%)";
+            // Farbverlauf: je höher der Preis, desto weiter orange
+            // Grün (günstig): #38b000, Orange (teuer): #ff6a00
+            $cut = 55 + intval($percent * 35); // 55-90%
+            $gradient = "linear-gradient(90deg, #38b000 0%, #38b000 {$cut}%, #ff6a00 100%)";
 
             $html .= "
-                <div style='flex:0 0 40px;display:flex;flex-direction:column;align-items:center;margin:0 3px;'>
-                    <div style='
-                        height:{$barHeight}px;width:32px;
-                        background:{$gradient};
-                        border-radius:7px 7px 4px 4px;
-                        box-shadow:0 1px 3px #0002;
-                        position:relative;
-                        display:flex;align-items:flex-end;justify-content:center;'>
-                        <span style='
-                            color:#fff;font-weight:bold;font-size:11px;
-                            text-shadow:0 1px 4px #000a,0 0 3px #000a;
-                            position:absolute;bottom:6px;width:100%;left:0;right:0;text-align:center;line-height:1.1;'>
-                            {$price} ct
-                        </span>
-                    </div>
-                    <div style='margin-top:5px;font-size:11px;color:#888;'>".date('H:i', $dat['timestamp'])."</div>
-                </div>
+            <div style='margin:6px 0;display:flex;align-items:center;'>
+                <span style='display:inline-block;width:45px;color:#666;font-size:12px;'>$time</span>
+                <span style='display:inline-block;width:65px;font-weight:bold;color:#fff;position:relative;z-index:2;text-shadow:0 1px 4px #0007;'>
+                    <span style='position:absolute;left:10px;'>{$price} ct</span>
+                </span>
+                <span style='
+                    display:inline-block;
+                    height:28px;width:{$barWidth}px;
+                    margin-left:-40px;margin-right:10px;
+                    background:{$gradient};
+                    border-radius:6px;
+                    box-shadow:0 1px 4px #0001;
+                    line-height:28px;
+                    font-weight:bold;
+                    color:#fff;
+                    text-align:left;
+                    padding-left:56px;
+                    letter-spacing:0.5px;
+                    overflow:hidden;
+                    position:relative;
+                    '>
+                </span>
+            </div>
             ";
         }
-        $html .= '</div></div>';
+
+        $html .= '</div>';
         return $html;
     }
-
 
     /*private function FormatMarketPricesPreviewHTML($maxRows = 12)
     {
