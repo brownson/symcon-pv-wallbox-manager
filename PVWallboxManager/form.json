@@ -59,16 +59,6 @@
             { "caption": "Watt (W)", "value": "W" },
             { "caption": "Kilowatt (kW)", "value": "kW" } ], "default": "W" }
         ]},
-        { "type": "Label", "label": "🔌 Netzeinspeisung (optional): Positiv = Einspeisung, negativ = Bezug. Einheit: Watt." },
-        { "type": "RowLayout", "items": [
-          { "type": "SelectVariable", "name": "NetzeinspeisungID", "caption": "Netzeinspeisung" },
-          { "type": "Label", "caption": "    " },
-          { "type": "Select", "name": "NetzeinspeisungEinheit", "caption": "Einheit", "options": [
-            { "caption": "Watt (W)", "value": "W" },
-            { "caption": "Kilowatt (kW)", "value": "kW" } ], "default": "W" },
-          { "type": "Label", "caption": "         " },
-          { "type": "CheckBox", "name": "InvertNetzeinspeisung", "caption": "Normal positiv. Falls dein Zähler negativ liefert, hier invertieren." }
-        ]},
         { "type": "Label", "label": "🏠 Hausverbrauch (Pflichtvariable): Aktueller Gesamtverbrauch." },
         { "type": "RowLayout", "items": [
           { "type": "SelectVariable", "name": "HausverbrauchID", "caption": "Gesamter Hausverbrauch", "validVariableTypes": [2] },
@@ -95,9 +85,6 @@
       "type": "ExpansionPanel",
       "caption": "⚡ Phasenumschaltung",
       "items": [
-        { "type": "Label", "label": "🔢 Anfangswert Anzahl aktiver Phasen (1 oder 3)." },
-        { "type": "NumberSpinner", "name": "Phasen", "caption": "Anzahl Phasen (Initialwert)", "suffix": "", "minimum": 1, "maximum": 3, "default": 3 },
-        { "type": "Label", "caption": "    " },
         { "type": "Label", "label": "⬇️ Schwelle in Watt zum Umschalten auf 1-phasig & 🔢 Zählerlimit für stabile Umschaltung auf 1-phasig." },
          { "type": "RowLayout", "items": [
            { "type": "NumberSpinner", "name": "Phasen1Schwelle", "caption": "Schwelle auf 1-phasig (W)" },
@@ -124,10 +111,6 @@
           { "type": "CheckBox", "name": "NurMitFahrzeug", "caption": "🚗 Nur laden, wenn Fahrzeug verbunden" }
         ]},
         { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "Erlaubt die Entladung der Hausbatterie zur Unterstützung des PV-Überschussladens." },
-        { "type": "Label", "label": "Kann extern über ein Skript gesteuert werden (z. B. für Passivmodus)." },
-        { "type": "CheckBox", "name": "AllowBatteryDischarge", "caption": "PV-Batterieentladung zulassen", "default": true, "icon": "BatteryCharging"},
-        { "type": "Label", "caption": "    " },
         { "type": "Label", "label": "⚖️ PV-Leistung zwischen Haus und Auto aufteilen (PV2Car-Regelung)." },
         { "type": "Label", "label": "☀️ **Die Aktivierung und der Anteil fürs Fahrzeug werden direkt im WebFront gesteuert!**" },
         { "type": "RowLayout", "items": [
@@ -135,37 +118,6 @@
           { "type": "Label", "caption": "    " },
           { "type": "NumberSpinner", "name": "HausakkuSOCVollSchwelle", "caption": "Voll-Schwelle Hausbatterie (%)", "suffix": "%", "minimum": 50, "maximum": 100 }
         ]}
-      ]
-    },
-    {
-      "type": "ExpansionPanel",
-      "caption": "🚗 Fahrzeugdaten & Ziel-SOC",
-      "items": [
-        { "type": "Label", "label": "📊 Fahrzeugdaten für SoC-basierte Ladesteuerung verwenden (optional)." },
-        { "type": "CheckBox", "name": "UseCarSOC", "caption": "Fahrzeugdaten berücksichtigen" },
-        { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "🔋 Aktueller SoC des Fahrzeugs (Prozent, positiv):" },
-        { "type": "RowLayout", "items": [
-          { "type": "SelectVariable", "name": "CarSOCID", "caption": "Aktueller SoC (Variable)" },
-          { "type": "Label", "caption": "    " },
-          { "type": "NumberSpinner", "name": "CarSOCFallback", "caption": "Fallback SoC (%)", "suffix": "%" }
-        ]},
-        { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "🎯 Ziel-SoC für das Fahrzeug (Prozent, positiv):" },
-        { "type": "RowLayout", "items": [
-          { "type": "SelectVariable", "name": "CarTargetSOCID", "caption": "Ziel-SoC (Variable)" },
-          { "type": "Label", "caption": "    " },
-          { "type": "NumberSpinner", "name": "CarTargetSOCFallback", "caption": "Fallback Ziel-SoC (%)", "suffix": "%" }
-        ]},
-        { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "⚡️ Maximale Fahrzeug-Ladeleistung (Watt):" },
-        { "type": "NumberSpinner", "name": "MaxAutoWatt", "caption": "Max. Ladeleistung Fahrzeug (W)", "suffix": "W", "minimum": 0, "maximum": 22000 },
-        { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "🔋 Batteriekapazität des Fahrzeugs in kWh (z. B. 52 für ID.3 Pure):" },
-        { "type": "NumberSpinner", "name": "CarBatteryCapacity", "caption": "Batteriekapazität (kWh)", "suffix": "kWh" },
-        { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "Wenn aktiviert, wird das Fahrzeug nie über den Ziel-SOC geladen – egal ob bei PV-Überschuss, Zielzeitladung oder Strompreis." },
-        { "type": "CheckBox", "name": "AlwaysUseTargetSOC", "caption": "🎯 Ziel-SOC immer berücksichtigen (auch bei PV-Überschussladung)", "default": false }
       ]
     },
     {
