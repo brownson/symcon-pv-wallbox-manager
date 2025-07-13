@@ -391,7 +391,13 @@ class PVWallboxManager extends IPSModule
             $ampere        = $berechnung['ueberschuss_a'];
         }
 
-        // --- Wenn KEINE Wallbox-Daten, KEIN Fahrzeug – nur Visualisierung updaten, dann return! ---
+        // --- KEINE Wallbox-Daten – Visualisierung updaten & return ---
+        // $car muss trotzdem immer gesetzt werden!
+        $car = 0;
+        if (is_array($data) && isset($data['car'])) {
+            $car = intval($data['car']);
+        }
+
         if ($data === false) {
             if ($pvUeberschuss !== null && $ampere !== null) {
                 $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
@@ -411,7 +417,7 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        // Defensive Extraktion (optional kannst du das auch in einer Hilfsfunktion machen)
+        // Defensive Extraktion
         $leistung   = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
         $ampereWB   = isset($data['amp']) ? intval($data['amp']) : 0;
         $energie    = isset($data['wh']) ? intval($data['wh']) : 0;
