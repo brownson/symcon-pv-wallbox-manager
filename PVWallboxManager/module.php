@@ -1544,7 +1544,7 @@ class PVWallboxManager extends IPSModule
         $html .= '<b>Börsenpreis-Vorschau:</b><br>';
 
         foreach ($preise as $i => $dat) {
-            $time = date('H:i', $dat['timestamp']);
+            $time = date('H', $dat['timestamp']); // Nur Stunde
             $price = number_format($dat['price'], 3, ',', '.');
 
             // Prozentualer Wert zwischen min (0) und max (1)
@@ -1562,20 +1562,31 @@ class PVWallboxManager extends IPSModule
                 $ratio = ($percent-0.5)/0.5;
                 $r = 255;
                 $g = intval(230 + (106-230)*$ratio);
-                $b = intval(0 + (0-0)*$ratio);
+                $b = 0;
             }
             $color = sprintf("#%02x%02x%02x", $r, $g, $b);
 
             $barWidth = intval(150 + $percent * 130); // Balkenbreite
 
-            $html .= "<div style='margin:3px 0;width:100%;'>
-                <span style='display:inline-block;width:36px;'>$time</span>
-                <span style='display:inline-block;width:70px;'>
-                    <span style='font-weight:bold;'>$price</span> ct
-                </span>
-                <span style='display:inline-block;vertical-align:middle;width:290px;'>
-                    <span style='display:inline-block;height:18px;width:{$barWidth}px;
-                        background:{$color};border-radius:4px;box-shadow:0 1px 2px #0001;'></span>
+            $html .= "<div style='margin:3px 0;width:100%;display:flex;align-items:center;'>
+                <span style='display:inline-block;width:36px;text-align:right;padding-right:8px;'>$time</span>
+                <span style='display:inline-block;vertical-align:middle;width:295px;'>
+                    <span style='
+                        display:inline-flex;
+                        align-items:center;
+                        justify-content:center;
+                        height:20px;
+                        width:{$barWidth}px;
+                        background:{$color};
+                        border-radius:4px;
+                        color:#fff;
+                        font-weight:bold;
+                        box-shadow:0 1px 2px #0001;
+                        letter-spacing:1px;
+                        font-size:13px;
+                    '>
+                        {$price} ct
+                    </span>
                 </span>
             </div>";
         }
@@ -1583,6 +1594,7 @@ class PVWallboxManager extends IPSModule
 
         return $html;
     }
+
 
     /*private function FormatMarketPricesPreviewHTML($maxRows = 12)
     {
