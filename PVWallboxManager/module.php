@@ -1454,9 +1454,11 @@ class PVWallboxManager extends IPSModule
 
         // Forecast als JSON speichern
         $this->SetValueAndLogChange('MarketPrices', json_encode($preise));
-        $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
 
+        // HTML-Vorschau speichern
         $this->SetValue('MarketPricesPreview', $this->FormatMarketPricesPreviewHTML(12));
+
+        // Nur eine Logmeldung am Ende!
         $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
     }
 
