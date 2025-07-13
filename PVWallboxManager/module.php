@@ -1521,7 +1521,6 @@ class PVWallboxManager extends IPSModule
 
     private function FormatMarketPricesPreviewHTML($max = 12)
     {
-        // Preise aus JSON holen
         $preiseRaw = @$this->GetValue('MarketPrices');
         if (!$preiseRaw) {
             return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
@@ -1531,63 +1530,59 @@ class PVWallboxManager extends IPSModule
             return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
         }
 
-        // Nur die ersten $max Werte anzeigen
         $preise = array_slice($preise, 0, $max);
 
-        // Min/Max für die Farbskala berechnen
         $allePreise = array_column($preise, 'price');
         $min = min($allePreise);
         $maxPrice = max($allePreise);
 
-        // HTML aufbauen
-        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;width:100%;max-width:540px;">';
-        $html .= '<b>Börsenpreis-Vorschau:</b><br>';
+        // CSS nur einmal ausgeben (wegen mehreren Instanzen im WebFront ggf. Klasse anpassen)
+        $html = <<<EOT
+    <style>
+    .pvwm-row { display:flex; align-items:center; margin: 7px 0;}
+    .pvwm-hour { width:35px; min-width:35px; font-weight:bold; text-align:left; }
+    .pvwm-bar-wrap { flex:1; display:flex; align-items:center; }
+    .pvwm-bar {
+        height:32px;
+        display:flex; align-items:center;
+        font-weight:bold;
+        color:#111;
+        border-radius:7px;
+        padding-left:20px;
+        font-size:1.1em;
+        box-shadow:0 1px 2px #0001;
+        /* Übergang für schöne Animationen */
+        transition:width 0.4s;
+        min-width:60px;
+    }
+    </style>
+    <div style="font-family:Segoe UI,Arial,sans-serif;font-size:15px;max-width:540px;">
+    <b>Börsenpreis-Vorschau:</b>
+    EOT;
 
         foreach ($preise as $i => $dat) {
             $time = date('H', $dat['timestamp']); // Nur Stunde
             $price = number_format($dat['price'], 3, ',', '.');
-
-            // Prozentualer Wert zwischen min (0) und max (1)
             $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min));
-
-            // Farbverlauf: 0...0.5 = grün zu gelb, 0.5...1 = gelb zu orange
+            // Farbverlauf
             if ($percent < 0.5) {
-                // Von grün (#38b000) zu gelb (#ffe600)
                 $ratio = $percent / 0.5;
                 $r = intval(56 + (255-56)*$ratio);
                 $g = intval(176 + (230-176)*$ratio);
                 $b = 0;
             } else {
-                // Von gelb (#ffe600) zu orange (#ff6a00)
                 $ratio = ($percent-0.5)/0.5;
                 $r = 255;
                 $g = intval(230 + (106-230)*$ratio);
                 $b = 0;
             }
             $color = sprintf("#%02x%02x%02x", $r, $g, $b);
+            $barWidth = intval(40 + $percent * 85); // relative Breite für optischen Unterschied, min 40px
 
-            $barWidth = intval(150 + $percent * 130); // Balkenbreite
-
-            $html .= "<div style='margin:3px 0;width:100%;display:flex;align-items:center;'>
-                <span style='display:inline-block;width:36px;text-align:left;padding-right:8px;'>$time</span>
-                <span style='display:inline-block;vertical-align:middle;width:295px;'>
-                    <span style='
-                        display:inline-flex;
-                        align-items:center;
-                        justify-content:left;
-                        height:20px;
-                        width:{$barWidth}px;
-                        background:{$color};
-                        border-radius:4px;
-                        color:#111;
-                        font-weight:bold;
-                        box-shadow:0 1px 2px #0001;
-                        letter-spacing:1px;
-                        font-size:13px;
-                        padding-left:10px;
-                    '>
-                        {$price} ct
-                    </span>
+            $html .= "<div class='pvwm-row'>
+                <span class='pvwm-hour'>$time</span>
+                <span class='pvwm-bar-wrap'>
+                    <span class='pvwm-bar' style='background:$color; width:{$barWidth}%;'>{$price} ct</span>
                 </span>
             </div>";
         }
@@ -1595,8 +1590,6 @@ class PVWallboxManager extends IPSModule
 
         return $html;
     }
-
-
 
     /*private function FormatMarketPricesPreviewHTML($maxRows = 12)
     {
