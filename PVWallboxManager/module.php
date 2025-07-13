@@ -364,6 +364,7 @@ class PVWallboxManager extends IPSModule
     // 5. HAUPT-STEUERLOGIK
     // =========================================================================
     public function UpdateStatus(string $mode = 'pvonly')
+
     {
         $this->LogTemplate('debug', "UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")");
 
@@ -1208,6 +1209,7 @@ class PVWallboxManager extends IPSModule
             $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
             $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer gestoppt (UseMarketPrices = false)");
         }
+    }
 
     private function ResetLademodiWennKeinFahrzeug()
     {
