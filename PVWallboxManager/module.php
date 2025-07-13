@@ -1163,7 +1163,7 @@ class PVWallboxManager extends IPSModule
 
         $this->LogTemplate('debug', "SetTimerNachModusUndAuto: Status=" . print_r($car, true));
 
-        // Immer zuerst alle Timer AUS
+        // Immer zuerst NUR Status-Timer AUS (nicht MarketPrices!)
         $this->SetTimerInterval('PVWM_UpdateStatus', 0);
         $this->SetTimerInterval('PVWM_InitialCheck', 0);
 
@@ -1189,12 +1189,16 @@ class PVWallboxManager extends IPSModule
             $this->SetTimerInterval('PVWM_InitialCheck', 0);
         }
 
-        // Strompreis-Update-Timer wie gehabt
+        // -------------------------------
+        // STROMPREIS-TIMER IMMER SETZEN!
+        // -------------------------------
         if ($this->ReadPropertyBoolean('UseMarketPrices')) {
             $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval'));
             $this->SetTimerInterval('PVWM_UpdateMarketPrices', $marketInterval * 60 * 1000);
+            $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer gesetzt (alle $marketInterval min)");
         } else {
             $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
+            $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer gestoppt (UseMarketPrices = false)");
         }
     }
 
