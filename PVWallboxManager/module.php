@@ -1196,15 +1196,23 @@ class PVWallboxManager extends IPSModule
         // -------------------------------
         if ($this->ReadPropertyBoolean('UseMarketPrices')) {
             $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval'));
-            $timerID = IPS_GetObjectIDByIdent('PVWM_UpdateMarketPrices', $this->InstanceID);
-            $currInterval = IPS_GetTimerInterval($timerID);
             $newInterval = $marketInterval * 60 * 1000;
 
-            if ($currInterval != $newInterval) {
+            // Event-ID holen – existiert der Timer schon?
+            $timerID = @IPS_GetObjectIDByIdent('PVWM_UpdateMarketPrices', $this->InstanceID);
+
+            if ($timerID !== false && IPS_EventExists($timerID)) {
+                $currInterval = IPS_GetEvent($timerID)['Interval'];
+                if ($currInterval != $newInterval) {
+                    $this->SetTimerInterval('PVWM_UpdateMarketPrices', $newInterval);
+                    $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer **neu gesetzt** (alle $marketInterval min)");
+                }
+                // Sonst: Intervall gleich, kein Setzen nötig
+            } else {
+                // Timer noch nicht angelegt: Intervall direkt setzen (legt Timer an)
                 $this->SetTimerInterval('PVWM_UpdateMarketPrices', $newInterval);
-                $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer **neu gesetzt** (alle $marketInterval min)");
+                $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer (erstmalig) gesetzt (alle $marketInterval min)");
             }
-            // else: Nicht immer neu setzen! (Sonst wird next_run verschoben!)
         } else {
             $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
             $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer gestoppt (UseMarketPrices = false)");
