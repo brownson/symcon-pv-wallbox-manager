@@ -1519,71 +1519,73 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
     }
 
-    private function FormatMarketPricesPreviewHTML($max = 12)
+    private function FormatMarketPricesPreviewHTML($maxRows = 12)
     {
-        $preiseRaw = @$this->GetValue('MarketPrices');
-        if (!$preiseRaw) {
-            return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
+        $json = $this->GetValue('MarketPrices');
+        $preise = json_decode($json, true);
+        if (!is_array($preise) || count($preise) === 0) return "<b>Keine Preisdaten verfügbar.</b>";
+
+        // MwSt-Logik: Hole Land/Option aus Property, Standard Österreich (20%)
+        $land = strtolower($this->ReadPropertyString('MarketPriceProvider'));
+        $mwst = 0.0;
+        if (strpos($land, 'at') !== false) $mwst = 0.20;
+        if (strpos($land, 'de') !== false) $mwst = 0.19;
+
+        // Farbskala von grün (#16db93) über gelb (#ffe066) zu orange (#ffae00)
+        $allPrices = array_column($preise, 'price');
+        $minPrice = min($allPrices);
+        $maxPrice = max($allPrices);
+
+        $getColor = function($price) use ($minPrice, $maxPrice) {
+            // Prozentwert: 0 = billig (grün), 1 = teuer (orange)
+            $percent = ($price - $minPrice) / max(0.01, $maxPrice - $minPrice);
+
+            // 0.0 → #16db93  |  0.5 → #ffe066  |  1.0 → #ffae00
+            if ($percent < 0.5) {
+                // Grün zu Gelb
+                $ratio = $percent / 0.5;
+                $r = intval(22 + ($255-22)*$ratio);
+                $g = intval(219 + (224-219)*$ratio);
+                $b = intval(147 + (102-147)*$ratio);
+            } else {
+                // Gelb zu Orange
+                $ratio = ($percent-0.5)/0.5;
+                $r = intval(255 + (255-255)*$ratio);
+                $g = intval(224 + (174-224)*$ratio);
+                $b = intval(102 + (0-102)*$ratio);
+            }
+            return sprintf("#%02x%02x%02x", $r, $g, $b);
+        };
+
+        // Tabelle bauen
+        $html  = '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+        $html .= '<tr style="background:#e6e6e6;"><th style="text-align:left;">Zeit</th><th style="text-align:right;">Preis (ct/kWh)</th><th style="text-align:right;">mit MwSt.</th></tr>';
+
+        $timezone = new DateTimeZone('Europe/Vienna'); // ggf. dynamisch wählbar
+        foreach (array_slice($preise, 0, $maxRows) as $row) {
+            $tsUTC = intval($row['timestamp']);
+            $dateObj = new DateTime("@$tsUTC");
+            $dateObj->setTimezone($timezone);
+            $zeitString = $dateObj->format('d.m. H:i');
+            $p  = floatval($row['price']);
+            $pm = $p * (1 + $mwst);
+            $pText = number_format($p, 3, ',', '.');
+            $pmText = number_format($pm, 3, ',', '.');
+
+            $color = $getColor($p);
+
+            $html .= "<tr>
+                <td>$zeitString</td>
+                <td style=\"text-align:right;background:$color;color:#fff;font-weight:bold;border-radius:5px;\">$pText</td>
+                <td style=\"text-align:right;\">$pmText</td>
+            </tr>";
         }
-        $preise = json_decode($preiseRaw, true);
-        if (!is_array($preise) || count($preise) === 0) {
-            return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
-        }
+        $html .= '</table>';
+        $html .= '<div style="font-size:11px; color:#888;">* Preise inkl. MwSt. ('.($mwst*100).'%); Quelle: awattar</div>';
 
-        $preise = array_slice($preise, 0, $max);
-        $allePreise = array_column($preise, 'price');
-        $min = min($allePreise);
-        $maxPrice = max($allePreise);
-
-        // Farben: Von türkis (#16db93) bis orange (#ffae00)
-        $colorFrom = [22, 219, 147];  // #16db93
-        $colorTo   = [255, 174, 0];   // #ffae00
-
-        $minBarHeight = 36;
-        $maxBarHeight = 120;
-
-        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;">';
-        $html .= '<b>Börsenpreis-Vorschau</b><br>';
-        $html .= '<div style="display:flex;flex-direction:column;gap:9px;">';
-
-        foreach ($preise as $dat) {
-            $hour = date('H:i', $dat['timestamp']);
-            $price = number_format($dat['price'], 3, ',', '.');
-
-            $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min));
-            $barHeight = intval($minBarHeight + $percent * ($maxBarHeight - $minBarHeight));
-
-            // Interpolierte Farbe
-            $r = intval($colorFrom[0] + ($colorTo[0] - $colorFrom[0]) * $percent);
-            $g = intval($colorFrom[1] + ($colorTo[1] - $colorFrom[1]) * $percent);
-            $b = intval($colorFrom[2] + ($colorTo[2] - $colorFrom[2]) * $percent);
-            $barColor = sprintf("rgb(%d,%d,%d)", $r, $g, $b);
-
-            $html .= "
-            <div style='display:flex;align-items:center;gap:10px;'>
-                <span style='width:34px;color:#666;text-align:right;font-size:13px;'>$hour</span>
-                <span style='
-                    display:inline-block;
-                    height:{$barHeight}px;width:68px;
-                    background:{$barColor};
-                    border-radius:9px;
-                    font-weight:bold;
-                    color:#fff;
-                    box-shadow:0 1px 3px #0001;
-                    position:relative;
-                    text-align:center;
-                    line-height:{$barHeight}px;
-                    font-size:16px;
-                    letter-spacing:0.5px;
-                '>
-                    $price ct
-                </span>
-            </div>";
-        }
-
-        $html .= '</div></div>';
         return $html;
     }
+
 
 
     /*private function FormatMarketPricesPreviewHTML($maxRows = 12)
