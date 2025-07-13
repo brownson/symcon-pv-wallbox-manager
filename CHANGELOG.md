@@ -3,6 +3,35 @@
 Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.  
 **Repository:** https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager
 
+## [1.0b] – 2025-07-13
+
+### 🚀 Wichtige Neuerungen
+
+- **KEIN IPSCoyote/GO-eCharger Modul mehr erforderlich!**
+  - Direkte, native Anbindung an die GO-eCharger API (V3 & V4).
+- **Komplette PV-Bilanz- und Hausverbrauchsberechnung jetzt direkt im Modul** (keine Hilfsskripte mehr nötig).
+- **Intelligente Phasenerkennung:**  
+  - Automatische Erkennung der tatsächlich genutzten Phasen (1/2/3), z. B. für Fahrzeuge, die nur zweiphasig laden können.
+- **Vorbereitung Strompreis-Forecast-HTML-Box:**  
+  - Moderne, vorbereitete Visualisierung für zukünftige Strompreisprognosen im WebFront integriert.
+- **Exklusive Lademodi-Schaltung:**  
+  - Es kann immer nur ein Modus gleichzeitig aktiv sein (Manuell, PV2Car, Nur PV).  
+  - Alle Modi werden automatisch deaktiviert, wenn das Fahrzeug abgesteckt wird.
+- **Status- und Diagnosevariablen für WebFront:**  
+  - Bessere Übersicht, Logging und Fehlerdiagnose.
+- **Logging & Robustheit verbessert:**  
+  - Fehlerhandling, Initialisierung von Attributen, Self-Healing und präzise Protokollierung.
+
+### ⚠️ Noch nicht enthalten/geplant (Roadmap):
+
+- ⏰ Intelligente Zielzeitladung (PV-optimiert)
+- 💶 Preisoptimiertes Laden (Beta)
+- 🖼️ Strompreis-Forecast-HTML-Box als aktive Preissteuerung
+- Automatische Testladung zur Erkennung der maximalen Fahrzeug-Ladeleistung
+- Erweiterte Auswertung von externen Fahrzeugdaten (z. B. via MQTT/WeConnect)
+- Geplantes Ladefenster-Logging
+- Weitere Wallbox-Unterstützung
+
 ---
 
 ## 🐞 Bugfix und Update seit Version 0.9b

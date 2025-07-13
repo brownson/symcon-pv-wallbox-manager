@@ -1,6 +1,19 @@
-# ⚡ PVWallboxManager – Intelligente PV-Überschussladung für den GO-eCharger
+# ⚡ PVWallboxManager – Intelligente PV-Überschussladung für den GO-eCharger (ab v1.0b)
 
 Ein leistungsfähiges IP-Symcon Modul zur dynamischen Steuerung deiner GO-eCharger Wallbox auf Basis von PV-Überschuss – mit automatischer Phasenumschaltung, flexibler Ladelogik, voller Steuerung der Ladeleistung und intelligenter Zielzeit- sowie Strompreis-Optimierung.
+
+---
+
+**Wichtiger Hinweis:**  
+Ab Version 1.0b wird das [IPSCoyote/GO-eCharger Modul](https://github.com/IPSCoyote/GO-eCharger) **nicht mehr benötigt**!  
+Die Kommunikation erfolgt nun direkt und nativ mit der lokalen GO-eCharger API (V3 & V4).
+
+---
+
+## 🆕 Wichtigste Neuerung in v1.0b
+
+👉 **Die Kommunikation erfolgt jetzt direkt mit der lokalen API deines GO-eChargers (V3 & V4)**  
+Das ist ein großer Meilenstein – alle bisherigen und zukünftigen Funktionen laufen ab jetzt unabhängig, ohne Drittmodul oder externe Zwischenschicht.
 
 ---
 
@@ -14,30 +27,21 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 
 ---
 
-## 📖 Dokumentation
-
-Eine **ausführliche Schritt-für-Schritt-Anleitung, FAQ und viele Tipps** findest du im  
-➡️ [Benutzerhandbuch (MANUAL.md)](./MANUAL.md)
-
----
-
 ## 🚀 Funktionen
 
-- 🔋 **PV-Überschussgesteuertes Laden:** PV – Hausverbrauch – (nur positive) Batterie-Leistung, inkl. Wallbox-Eigenverbrauch.
-- ⚙️ **Dynamische Ladeleistungsanpassung** mit konfigurierbarem Ampere-Bereich und Sicherheits-Puffer.
-- 🔁 **Automatische Phasenumschaltung (1-/3-phasig):** Mit konfigurierbaren Schwellwerten und Umschaltzähler, kein hektisches Umschalten.
-- 🧠 **Dynamischer Pufferfaktor:** Sorgt dafür, dass immer ein Sicherheitspuffer bleibt (Wirkungsgrad ≈80–93 %, je nach Überschuss). Kein Puffer bei Netzladen
-- 📉 **Live-Berechnung des PV-Überschusses:** Alle 60 s (einstellbar) – Bilanz aus PV-Erzeugung, Hausverbrauch, Batterie und Wallbox.
-- 🚗 **Fahrzeugstatusprüfung:** Laden nur, wenn ein Fahrzeug verbunden ist (optional).
-- ⏱️ **Intelligente Zielzeitladung (PV-optimiert):**
-  - Tagsüber nur PV-Überschuss; spätestens X Stunden vor Zielzeit automatische Vollladung (PV+Netz).
-  - Ziel-SoC, Zielzeit und Puffer individuell konfigurierbar.
-- ☀️ **PV2Car-Modus:** Ein frei einstellbarer Prozentsatz des Überschusses wird ans Auto weitergegeben.
-- 🔌 **Manueller Volllademodus:** Lädt mit maximaler Leistung, unabhängig von PV, auch aus Netz/Akku.
-- 💶 **Preisoptimiertes Laden (Beta):** Integriert mit dem offiziellen [Symcon Strompreis-Modul](https://github.com/symcon/Strompreis) (z. B. Awattar, Tibber): Automatische Ladezeitplanung nach Preisvorhersage (Schalter, Zeitfenster, Schwellen).
-- 📊 **Status- und Visualisierungsvariablen:** PV-Überschuss (W), Modus-Status, Zielzeit, aktuelle Ladeleistung, etc.
-- 🛑 **Sicherheitslogik:** Start/Stop-Schwellen (Watt) für stabile Überschuss-Erkennung.
-- 🏷️ **Einheiten- und Vorzeichen-Handling:** Watt/kW wählbar pro Variable, Invertierung für Bezug/Einspeisung.
+- 🔋 **PV-Überschussgesteuertes Laden:** Bilanz aus PV-Erzeugung, Hausverbrauch (selbst berechnet, exkl. Wallboxleistung) und Batterie.
+- ⚙️ **Dynamische Ladeleistungsanpassung:** Amperebereich voll konfigurierbar.
+- 🔁 **Automatische & intelligente Phasenumschaltung (1-/2-/3-phasig):** Mit konfigurierbaren Schwellwerten und Umschaltzähler (Hysterese).  
+  > Erkennung der tatsächlich benutzen Phasen – optimal für Fahrzeuge, die nur ein- oder zweiphasig laden (z. B. Renault ZOE, viele Plug-in-Hybride).
+- 📉 **Live-Berechnung des PV-Überschusses:** Alle 60 s (oder nach Wunsch), Bilanz aus allen Quellen, Wallboxverbrauch korrekt integriert.
+- 🚗 **Fahrzeugstatusprüfung:** Laden nur, wenn ein Fahrzeug verbunden ist (direkt per API erkannt).
+- ☀️ **PV2Car-Modus:** Prozentsatz des PV-Überschusses wird ans Auto weitergegeben (Schieberegler).
+- 🔌 **Manueller Volllademodus:** Lädt sofort mit maximaler Leistung – unabhängig von PV.
+- 📊 **Status- und Visualisierungsvariablen:** PV-Überschuss, Modus-Status, Zielzeit, aktuelle Ladeleistung, Phasenstatus, SOC usw.
+- 🖼️ **Vorbereitung Strompreis-Forecast-HTML-Box:** Moderne, vorbereitete Visualisierung für zukünftige Strompreisprognosen direkt im WebFront.
+- 🛑 **Sicherheitslogik:** Start/Stop-Schwellen (Watt) und stabile Überschusserkennung per Hysteresezähler.
+- 🏷️ **Einheiten- und Vorzeichen-Handling:** Watt/kW pro Variable, Invertierung für Bezug/Einspeisung, alles frei konfigurierbar.
+- 🕹️ **Lademodi-Schalter:** Es ist immer nur ein Modus gleichzeitig aktivierbar (Manuell, PV2Car, Nur PV), automatische Deaktivierung aller Modi beim Abstecken des Fahrzeugs.
 
 ---
 
@@ -45,60 +49,42 @@ Eine **ausführliche Schritt-für-Schritt-Anleitung, FAQ und viele Tipps** finde
 
 ### Bilanzformel
 
-`PV-Überschuss = PV-Erzeugung – Hausverbrauch – Batterieladung`
-- **PV-Erzeugung:** Gesamte aktuelle PV-Leistung (Watt oder kW, frei konfigurierbar)
-- **Hausverbrauch:** Haushaltsverbrauch **ohne** Ladeleistung der Wallbox (Watt oder kW)
-- **Batterieladung:** Aktuelle Lade-/Entladeleistung der Hausbatterie
-  - *Positiv*: Batterie wird geladen (zieht Energie, mindert Überschuss)
-  - *Negativ*: Batterie entlädt (liefert Energie, erhöht Überschuss)
-  - *Invertierbar*: Falls deine Batterie-Variable andersherum zählt (z. B. -1000 W = Entladung), kannst du dies in den Einstellungen korrigieren!
-- **Netzeinspeisung** (optional): Positive Werte = Einspeisung, negative Werte = Netzbezug (auch invertierbar).
-- **Wallbox-Ladeleistung:** Wird zur Visualisierung und für PV2Car herangezogen, aber nicht automatisch doppelt gezählt.
+`PV-Überschuss = PV-Erzeugung – (Hausverbrauch - Wallboxleistung zum Fahrzeug) – Batterieladung`
 
-**Flexible Einheitenwahl:**  
-Für PV, Hausverbrauch, Batterie, Netzeinspeisung kann Watt (W) oder Kilowatt (kW) eingestellt werden. Die Umrechnung erfolgt automatisch.
-
-**Invertierungsoption:**  
-Für jede Variable separat aktivierbar, falls dein Messwert andersherum zählt.
+- **PV-Erzeugung:** Gesamte aktuelle PV-Leistung (Watt oder kW, wählbar)
+- **Hausverbrauch:** Automatisch berechnet aus Gesamtverbrauch MINUS Wallboxleistung (damit keine Doppelerfassung!)
+- **Batterieladung:** Lade-/Entladeleistung deiner Hausbatterie (invertierbar)
+- **Netzeinspeisung** (optional): Positive Werte = Einspeisung, negative Werte = Netzbezug (Invertierung möglich)
+- **Wallbox-Ladeleistung:** Korrekt erfasst; NICHT doppelt im Verbrauch!
+- **Flexible Einheitenwahl:** Für alle Energiewerte wählbar (Watt/kW); automatische Umrechnung
+- **Invertierungsoption:** Für jede Variable individuell
 
 > **Achtung:**  
-> Der Hausverbrauch muss **ohne** die aktuelle Wallbox-Ladeleistung berechnet werden! Sonst wird der Überschuss falsch berechnet.
+> Der Hausverbrauch wird automatisch korrekt berechnet – KEIN manuelles Skript mehr nötig!
 
 ---
 
 ### Weitere Logik & Algorithmen
 
-- **Dynamischer Puffer**:  
-  Überschuss = (PV – Haus – Batterie) × Puffer (je nach Höhe, siehe Doku/Manual).
-  Kein Puffer bei Netzladen. Der dynamische Puffer wird nur beim PV-Überschussladen angewendet!
-  Bei Netzladen (z. B. Zielzeit- oder Strompreismodul) wird immer die volle Leistung genutzt – ohne Abzug oder Sicherheitsreserve.
-
 - **Start/Stop Hysterese:**  
-  - Start: Überschuss ≥ `MinLadeWatt` – Hysterese: Wert muss mehrfach überschritten werden.
-  - Stop: Überschuss < `MinStopWatt` – Hysterese: Wert muss mehrfach unterschritten werden.
-
+  - Start: Überschuss ≥ `MinLadeWatt` – Wert muss mehrfach überschritten werden (konfigurierbare Hysterese).
+  - Stop: Überschuss < `MinStopWatt` – Wert muss mehrfach unterschritten werden (konfigurierbar).
+- **Intelligente Phasenermittlung:**  
+  - Das Modul erkennt über die API, wie viele Phasen tatsächlich belegt/genutzt werden (1/2/3), und steuert die Phasenumschaltung sowie den Hausverbrauch entsprechend.
+  - **Beispiel:** Einige Fahrzeuge (z. B. Renault ZOE, viele Plug-in-Hybride) können nur zweiphasig laden – dies wird automatisch berücksichtigt!
 - **Phasenumschaltung:**  
-  - Umschalten auf 1-phasig, wenn Ladeleistung mehrfach unter Schwelle (`Phasen1Schwelle` + `Phasen1Limit`).
-  - Umschalten auf 3-phasig, wenn Ladeleistung mehrfach über Schwelle (`Phasen3Schwelle` + `Phasen3Limit`).
-
-- **Zielzeitladung:**  
-  - Bis X Stunden vor Zielzeit: nur PV-Überschuss.
-  - Im letzten Zeitfenster: Maximale Ladeleistung (PV+Netz/Akku) bis Ziel-SoC.
-
-- **Preisoptimiertes Laden:**  
-  - Wenn Strompreis-Modul aktiviert: Automatisches Aktivieren/Deaktivieren des Ladevorgangs nach günstigsten Preiszeiten möglich (Beta).
+  - Umschalten auf 1-phasig, wenn Ladeleistung mehrfach unter Schwelle (`Phasen1Schwelle`)
+  - Umschalten auf 3-phasig, wenn Ladeleistung mehrfach über Schwelle (`Phasen3Schwelle`)
+  - Beide Umschaltungen nutzen einen eigenen Zähler (kein hektisches Hin/Her-Schalten)
 
 ---
 
 ## 🧰 Voraussetzungen
 
-- IP-Symcon Version 8.x (getestet)
-- GO-eCharger V3 oder V4 mit lokal erreichbarer Instanz
-- Installiertes Modul `GO-eCharger` (von IPSCoyote)
-- PV-Erzeugung, Hausverbrauch und Batterieladung als Variablen verfügbar
-- Einheiten und Vorzeichen korrekt konfiguriert!
-- Aktivierter lokaler API-Zugriff im GO-eCharger (API1 + API2)
-- Optional: Modul "Strompreis" für preisoptimiertes Laden
+- IP-Symcon Version 8.x oder neuer
+- GO-eCharger V3/V4 mit lokal erreichbarer API (API1 + API2 aktiviert)
+- PV-Erzeugung, Hausverbrauch, Batterie, Wallboxleistung als Float-Variablen verfügbar
+- Optional: Strompreis-Modul für preisoptimiertes Laden
 
 > ⚠️ **Wichtig:**  
 > Im GO-eCharger müssen **API 1 und API 2 aktiviert** sein (unter Einstellungen > API-Zugriff).
@@ -107,59 +93,74 @@ Für jede Variable separat aktivierbar, falls dein Messwert andersherum zählt.
 
 ## 🔎 Wichtige Einstellungen
 
-- **GO-eCharger Instanz**: Die Instanz-ID deiner Wallbox.
-- **PV-Erzeugung / Hausverbrauch / Batterie / Netzeinspeisung**: Jeweils Variable und Einheit (W oder kW) auswählen, ggf. Invertierung aktivieren.
-- **Start bei PV-Überschuss** (`MinLadeWatt`): Unterhalb dieses Werts bleibt die Wallbox aus.
-- **Stoppen bei Defizit** (`MinStopWatt`): Sinkt der Überschuss unter diesen Wert, wird gestoppt.
-- **Hysterese (Start/Stop):** Wie oft muss der Wert über-/unterschritten werden, bevor umgeschaltet wird?
-- **Phasenanzahl**: 1 oder 3, abhängig von der Installation.
-- **Phasenumschalt-Schwellen**: Grenzwerte und Hysterese für Umschaltung.
-- **Dynamischer Puffer**: Reduziert die Ladeleistung automatisch.
-- **Fahrzeugdaten**: Optionale SOC-/Zielwerte für Zielzeitladung.
-- **Strompreis-Modul**: Aktivierung und Konfiguration für preisoptimiertes Laden.
-
-> **Float-Variable für PV-Logik:**  
-> Die Ladeautomatik benötigt eine korrekt zugeordnete Float-Variable für den aktuellen PV-Überschuss!  
-> Achtung: Hausverbrauch **ohne** Wallbox-Leistung!
-
-> **Tipp:** Bei Problemen hilft der Status „Aktueller Lademodus“ im WebFront.
+- **GO-eCharger IP-Adresse**: Direkte Eingabe im Modul (keine externe Instanz oder Proxy nötig)
+- **PV-Erzeugung / Hausverbrauch / Batterie / Netzeinspeisung**: Variablen und Einheiten (W/kW) frei zuordenbar; Invertierung wählbar
+- **Start bei PV-Überschuss** (`MinLadeWatt`): Unterhalb bleibt die Wallbox aus
+- **Stoppen bei Defizit** (`MinStopWatt`): Bei Unterschreitung wird gestoppt
+- **Hysterese (Start/Stop):** Wie oft muss der Wert über-/unterschritten werden?
+- **Phasenanzahl**: 1 oder 3-phasig, je nach Installation
+- **Phasenumschalt-Schwellen**: Konfigurierbare Grenzwerte und Hysterese
+- **Fahrzeugdaten (SOC, Ziel-SOC, Zielzeit):** Optional für künftige Features
+- **Strompreis-Modul:** Optional, für preisoptimiertes Laden (künftig)
 
 ---
 
 ## 📋 Beispielkonfiguration
 
-| Einstellung               | Beispielwert    |
-|--------------------------|-----------------|
-| GOEChargerID             | 58186           |
-| MinAmpere                | 6               |
-| MaxAmpere                | 16              |
-| MinLadeWatt              | 1400            |
-| MinStopWatt              | -300            |
-| Start-Hysterese          | 2               |
-| Stop-Hysterese           | 2               |
-| Phasen                   | 3               |
-| Phasen1Schwelle          | 1000            |
-| Phasen3Schwelle          | 4200            |
-| Dynamischer Puffer       | Aktiviert       |
-| Zielzeit Vorlauf (h)     | 4               |
-| Strompreis-Modul         | Aktiviert       |
+| Einstellung         | Beispielwert    |
+|---------------------|-----------------|
+| GO-e IP-Adresse     | 192.168.98.5    |
+| MinAmpere           | 6               |
+| MaxAmpere           | 16              |
+| MinLadeWatt         | 1400            |
+| MinStopWatt         | 1100            |
+| Start-Hysterese     | 2               |
+| Stop-Hysterese      | 2               |
+| Phasen1Schwelle     | 3680            |
+| Phasen3Schwelle     | 4140            |
+
+---
+
+## 🟢 Was ist NEU in v1.0b (2025-07)
+
+~~**Das Modul benötigt NICHT mehr das IPSCoyote/GO-eCharger Modul**~~  
+- **KEIN Drittmodul (IPSCoyote) mehr nötig – native API-Anbindung**  
+- **Komplette Bilanzberechnung und Hausverbrauchslogik direkt im Modul**  
+- **Exklusive Lademodi-Schaltung** (Manuell, PV2Car, Nur PV – nie mehrere gleichzeitig, autom. Reset bei Fahrzeugtrennung)
+- **Live-Anzeige und Logging aller Status-, Diagnose- und Bilanzwerte**
+- **Vorbereitung einer modernen Strompreis-Forecast-HTML-Box für zukünftige Preisoptimierung**
+- **Intelligente Phasenermittlung:** Phasen werden dynamisch und automatisch anhand der echten Fahrzeugnutzung erkannt (z. B. 1/2/3-phasig)
+- **Vereinfachtes Handling der Einheiten/Invertierungen**
+- **Automatische Attributinitialisierung/Self-Healing**
+- **Status- und Diagnosevariablen für WebFront**
+- **Verbesserte Fehler- und Statusbehandlung**
+
+---
+
+## ❗ Was im Vergleich zum alten Skript aktuell (noch) NICHT enthalten ist (aber geplant):
+
+> **Wird als nächstes integriert (siehe Roadmap und offene Punkte):**
+>
+> - **Dynamischer Puffer:**  
+>   Der aus dem alten Skript bekannte dynamische Sicherheitspuffer ist in v1.0b bewusst NICHT enthalten. Die Ladeleistung entspricht immer dem tatsächlich errechneten Überschuss (ohne weiteren Sicherheitsabschlag).  
+>   → Feedback hierzu ist ausdrücklich erwünscht!
+>
+> - **Intelligente Zielzeitladung (PV-optimiert)**
+> - **Preisoptimiertes Laden (Beta)**
+> - **Automatisierte Push-Benachrichtigungen** bei Moduswechsel/Fehler
+> - **Externe Fahrzeugdaten (z. B. VW API/MQTT) vollintegriert**
+> - **Ladefenster-Logging (pro Stunde, Preis, etc.)**
+> - **Umschaltung auf Winterbetrieb / Anpassung der Modi nach Saison**
+> - **Automatische Testladung zur Erkennung der Maximalleistung**
+> - **Erweiterte WebFront/PWA-Interaktivität (RFID, Push, etc.)**
+> - **Vollständige Auswertung und Einsatz der Strompreis-Forecast-HTML-Box für die Preissteuerung**
+> - **Intelligente, erweiterte Phasenermittlung für alle Fahrzeugtypen und Sonderfälle (z. B. Sonderfall 2-phasiges Laden)**
+>
+> Alle oben genannten Funktionen stehen auf der Roadmap und werden nach Community-Wunsch priorisiert umgesetzt.
 
 ---
 
 ## 📦 Roadmap
-
-### ✅ Integriert
-- 🛡️ Dynamischer Sicherheits-Puffer für Ladeleistung
-- ♻️ Hysterese & automatische Phasenumschaltung
-- 🕓 Zeitbasierte Zielladung inkl. Ladeplanung
-- 💶 Preisoptimiertes Laden (Strompreis-Modul, Beta)
-- 🧮 Lademodi: Manuell / PV2Car % / Zielzeit / Nur PV
-- 🎯 Ziel-SoC konfigurierbar
-- 🚗 Fahrzeugstatus-Prüfung (nur laden wenn verbunden)
-- 🔋 PV-Überschussberechnung ohne Hausbatterie
-- 🛑 Deaktivieren-Button (Modul-Aktiv-Schalter)
-- 🔄 Invertierungs-Schalter & Einheitenwahl (W/kW) für alle Energiequellen
-- 🕵️‍♂️ Diagnose/Info, warum kein Laden erfolgt
 
 ### 🧪 Beta / In Vorbereitung
 - 📊 Visualisierung & WebFront-Widgets
@@ -167,11 +168,8 @@ Für jede Variable separat aktivierbar, falls dein Messwert andersherum zählt.
 - 🛠️ Berücksichtigung der maximalen Fahrzeug-Ladeleistung bei Ladezeit- und Forecast-Berechnung.
 - 📊 Geplantes Ladefenster-Logging: Für jede Stunde geplante Ladeleistung und Strompreis transparent im Log sichtbar.
 - ⚡️ Maximale Fahrzeug-Ladeleistung (W)
-- ℹ️ Beim Netzladen keinen Dynamischen Puffer berrechnen. Ist nur beim PV-Überschussladen relevant
-- 🏠 Hausverbrauch im Modul selbst berechnen (gesamter Hausverbrauch - Wallboxleistung zum Fahrzeug) = Hausverbrauch
 - 📊 Awattar (und andere Preis-APIs) direkt integrieren
-- ❌ „Nur laden, wenn Fahrzeug verbunden“ – Berechnung komplett skippen
-- 🔃 Beim Mode Wechsel zu Fahrzeug verbunden soll auch initial das Modul durchlaufen
+- 📊 Strompreis-Forecast-HTML-Box als Vorbereitung für künftige Preissteuerung
 
 
 ### 🔜 Geplant
@@ -180,13 +178,12 @@ Für jede Variable separat aktivierbar, falls dein Messwert andersherum zählt.
 - ❄️ Umschalten auf Winterbetrieb aktiv andere Standardlademodi, da im Winter weniger bis gar kein PV-Überschuss
 - ⚠️ Minimale Leistung + PV Überschuss Modus wie bei EVCC
 - ⚡️ Maximale Ladeleistung berücksichtigen (zb.: Bei leistungsgemessene Netzkosten)
-
-### 📋 ToDo
-- 💬 Meldungen überarbeiten / vereinheitlichen
+- ⏰ Intelligente Zielzeitladung (PV-optimiert)
+- 💶 Preisoptimiertes Laden (Beta)
 
 ### 😄 Idee, wenn mal so richtig faad ist…
 - 🌍 Unterstützung für andere Wallboxen, falls Nachfrage wirklich riesig ist (aktuell Fokus: GO-e)
-- 🔃 die versiedenen Modi per RFID umschaltn
+- 🔃 die verschiedenen Modi per RFID umschaltn
 - 📲 Interaktive Push-Nachricht: Beim Fahrzeug-Anstecken Modusauswahl (Vollladen, PV2Car, Zielzeit, Strompreis) per Smartphone-Button.
 - ⚡️ Automatische Testladung zur Erkennung der maximalen Fahrzeug-Ladeleistung (Auto-Detection-Feature).
 
