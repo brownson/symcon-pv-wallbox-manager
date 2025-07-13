@@ -104,12 +104,6 @@
       "type": "ExpansionPanel",
       "caption": "🧠 Intelligente Logik",
       "items": [
-        { "type": "RowLayout", "items": [
-          { "type": "CheckBox", "name": "DynamischerPufferAktiv", "caption": "🧮 Dynamischen Puffer aktivieren" }
-        ]},
-        { "type": "RowLayout", "items": [
-          { "type": "CheckBox", "name": "NurMitFahrzeug", "caption": "🚗 Nur laden, wenn Fahrzeug verbunden" }
-        ]},
         { "type": "Label", "caption": "    " },
         { "type": "Label", "label": "⚖️ PV-Leistung zwischen Haus und Auto aufteilen (PV2Car-Regelung)." },
         { "type": "Label", "label": "☀️ **Die Aktivierung und der Anteil fürs Fahrzeug werden direkt im WebFront gesteuert!**" },
