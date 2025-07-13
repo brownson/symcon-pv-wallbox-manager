@@ -1519,96 +1519,93 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
     }
 
-private function FormatMarketPricesPreviewHTML($max = 12)
-{
-    $preiseRaw = @$this->GetValue('MarketPrices');
-    if (!$preiseRaw) {
-        return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
-    }
-    $preise = json_decode($preiseRaw, true);
-    if (!is_array($preise) || count($preise) === 0) {
-        return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
-    }
-
-    $preise = array_slice($preise, 0, $max);
-
-    $allePreise = array_column($preise, 'price');
-    $min = min($allePreise);
-    $maxPrice = max($allePreise);
-
-    // CSS (kann ins Modul ausgelagert werden)
-    $html = <<<EOT
-<style>
-.pvwm-row {
-    display: flex; align-items: center;
-    margin: 6px 0 0 0;
-}
-.pvwm-hour {
-    width: 28px; min-width: 28px;
-    font-weight: bold;
-    font-size: 1.05em;
-    color: #222;
-    text-align: right;
-    padding-right: 8px;
-}
-.pvwm-bar-wrap {
-    flex: 1;
-    display: flex; align-items: center;
-}
-.pvwm-bar {
-    display: flex; align-items: center; justify-content: left;
-    height: 22px;
-    border-radius: 7px;
-    font-weight: 600;
-    color: #181818;
-    font-size: 1.08em;
-    box-shadow: 0 1px 3px #0002;
-    padding-left: 18px;
-    letter-spacing: 0.02em;
-    transition: width 0.4s;
-    min-width: 54px;
-    background: #eee;
-    /* Fallback, eigentliche Farbe inline */
-}
-</style>
-<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;max-width:540px;">
-<b style="font-size:1.07em;">Börsenpreis-Vorschau:</b>
-EOT;
-
-    foreach ($preise as $i => $dat) {
-        $time = date('H', $dat['timestamp']);
-        $price = number_format($dat['price'], 3, ',', '.');
-        $percent = ($dat['price'] - $min) / max(0.001, ($maxPrice - $min));
-
-        // Feiner, harmonischer Farbverlauf: grün → gelb → orange
-        if ($percent <= 0.5) {
-            // Grün (#38b000) → Gelb (#ffcc00)
-            $t = $percent / 0.5;
-            $r = intval(56 + (255-56) * $t);
-            $g = intval(176 + (204-176) * $t);
-            $b = intval(0 + (0-0) * $t);
-        } else {
-            // Gelb (#ffcc00) → Orange (#ff6a00)
-            $t = ($percent-0.5)/0.5;
-            $r = 255;
-            $g = intval(204 - (204-106) * $t);
-            $b = 0;
+    private function FormatMarketPricesPreviewHTML($max = 12)
+    {
+        $preiseRaw = @$this->GetValue('MarketPrices');
+        if (!$preiseRaw) {
+            return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
         }
-        $color = sprintf("#%02x%02x%02x", $r, $g, $b);
+        $preise = json_decode($preiseRaw, true);
+        if (!is_array($preise) || count($preise) === 0) {
+            return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
+        }
 
-        // Balkenbreite (max 98% – padding! Keine Mindestbreite, sondern echte Skalierung!)
-        $barWidth = 38 + intval($percent * 62); // Von 38% bis 100%
+        $preise = array_slice($preise, 0, $max);
+        $allePreise = array_column($preise, 'price');
+        $min = min($allePreise);
+        $maxPrice = max($allePreise);
 
-        $html .= "<div class='pvwm-row'>
-            <span class='pvwm-hour'>$time</span>
-            <span class='pvwm-bar-wrap'>
-                <span class='pvwm-bar' style='background:$color; width:{$barWidth}%;'>{$price} ct</span>
-            </span>
-        </div>";
+        // CSS – KEINE Farbvorgabe für Text!
+        $html = <<<EOT
+    <style>
+    .pvwm-row {
+        display: flex; align-items: center;
+        margin: 7px 0 0 0;
     }
-    $html .= '</div>';
-    return $html;
-}
+    .pvwm-hour {
+        width: 28px; min-width: 28px;
+        font-weight: 600;
+        font-size: 1.07em;
+        text-align: right;
+        padding-right: 8px;
+    }
+    .pvwm-bar-wrap {
+        flex: 1;
+        display: flex; align-items: center;
+    }
+    .pvwm-bar {
+        display: flex; align-items: center; justify-content: left;
+        height: 22px;
+        border-radius: 7px;
+        font-weight: 700;
+        font-size: 1.10em;
+        box-shadow: 0 1px 2.5px #0002;
+        padding-left: 18px;
+        letter-spacing: 0.02em;
+        min-width: 62px;
+        background: #eee;
+        transition: width 0.35s;
+    }
+    </style>
+    <div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;max-width:540px;">
+    <b style="font-size:1.07em;">Börsenpreis-Vorschau:</b>
+    EOT;
+
+        foreach ($preise as $i => $dat) {
+            $time = date('H', $dat['timestamp']);
+            $price = number_format($dat['price'], 3, ',', '.');
+            $percent = ($dat['price'] - $min) / max(0.001, ($maxPrice - $min));
+
+            // Farbverlauf: Grün → Gelb → Orange
+            if ($percent <= 0.5) {
+                // #38b000 (grün) bis #ffcc00 (gelb)
+                $t = $percent / 0.5;
+                $r = intval(56 + (255-56) * $t);
+                $g = intval(176 + (204-176) * $t);
+                $b = 0;
+            } else {
+                // #ffcc00 (gelb) bis #ff6a00 (orange)
+                $t = ($percent-0.5)/0.5;
+                $r = 255;
+                $g = intval(204 - (204-106) * $t);
+                $b = 0;
+            }
+            $color = sprintf("#%02x%02x%02x", $r, $g, $b);
+
+            // Balkenbreite von 38% bis 100%
+            $barWidth = 38 + intval($percent * 62);
+
+            $html .= "<div class='pvwm-row'>
+                <span class='pvwm-hour'>$time</span>
+                <span class='pvwm-bar-wrap'>
+                    <span class='pvwm-bar' style='background:$color; width:{$barWidth}%;'>{$price} ct</span>
+                </span>
+            </div>";
+        }
+        $html .= '</div>';
+        return $html;
+    }
+
 
 
     /*private function FormatMarketPricesPreviewHTML($maxRows = 12)
