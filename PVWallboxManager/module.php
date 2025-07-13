@@ -370,7 +370,10 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        if (!$this->FahrzeugVerbunden($data)) return;
+        if (!$this->FahrzeugVerbunden($data)) {
+            $this->ResetLademodiWennKeinFahrzeug();
+            return;
+        }
 
         // 1. Phasenanzahl initial ermitteln (aus Wallbox, sonst Default 1)
         $anzPhasenAlt = 1;
@@ -455,7 +458,10 @@ class PVWallboxManager extends IPSModule
 
     private function ModusPVonlyLaden($data, $anzPhasenAlt, $mode = 'pvonly')
     {
-        if (!$this->FahrzeugVerbunden($data)) return;
+        if (!$this->FahrzeugVerbunden($data)) {
+            $this->ResetLademodiWennKeinFahrzeug();
+            return;
+        }
 
         // --- Überschuss neu berechnen (nach eventueller Phasenumschaltung) ---
         $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
@@ -534,7 +540,10 @@ class PVWallboxManager extends IPSModule
 
     private function ModusManuellVollladen($data)
     {
-        if (!$this->FahrzeugVerbunden($data)) return;
+        if (!$this->FahrzeugVerbunden($data)) {
+            $this->ResetLademodiWennKeinFahrzeug();
+            return;
+        }
 
         // Phasen anhand nrg-Array zählen (wie bisher)
         $anzPhasenAlt = 1;
@@ -586,7 +595,10 @@ class PVWallboxManager extends IPSModule
 
     private function ModusPV2CarLaden($data)
     {
-        if (!$this->FahrzeugVerbunden($data)) return;
+        if (!$this->FahrzeugVerbunden($data)) {
+            $this->ResetLademodiWennKeinFahrzeug();
+            return;
+        }
 
         // 1. Prozentwert holen (zwischen 0–100)
         $anteil = $this->GetValue('PVAnteil');
@@ -957,7 +969,7 @@ class PVWallboxManager extends IPSModule
     }
 
     // =========================================================================
-    // 7. HILFSFUNKTIONEN & WERTLOGGING
+    // HILFSFUNKTIONEN & WERTLOGGING
     // =========================================================================
 
     private function SetValueAndLogChange($ident, $newValue, $caption = '', $unit = '', $level = 'info')
@@ -1180,7 +1192,23 @@ class PVWallboxManager extends IPSModule
             $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
         }
     }
-    
+
+    private function ResetLademodiWennKeinFahrzeug()
+    {
+        if ($this->GetValue('Status') <= 1) {
+            $modi = ['ManuellLaden', 'PV2CarModus', 'ZielzeitLaden'];
+            foreach ($modi as $modus) {
+                if ($this->GetValue($modus)) {
+                    $this->SetValue($modus, false);
+                    $this->LogTemplate(
+                        'debug',
+                        "Modus '$modus' wurde deaktiviert, weil kein Fahrzeug verbunden ist."
+                    );
+                }
+            }
+        }
+    }
+
     // =========================================================================
     // 8. LOGGING / DEBUG / STATUSMELDUNGEN
     // =========================================================================
