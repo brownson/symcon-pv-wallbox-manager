@@ -25,8 +25,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('DebugLogging', false);
         $this->RegisterPropertyInteger('MinAmpere', 6);   // Minimal möglicher Ladestrom
         $this->RegisterPropertyInteger('MaxAmpere', 16);  // Maximal möglicher Ladestrom
-        $this->RegisterPropertyInteger('Phasen1Schwelle', 1400); // Beispiel: 1-phasig ab < 1.400 W
-        $this->RegisterPropertyInteger('Phasen3Schwelle', 3700); // Beispiel: 3-phasig ab > 3.700 W
+        $this->RegisterPropertyInteger('Phasen1Schwelle', 3680); // Beispiel: 1-phasig ab < 1.400 W
+        $this->RegisterPropertyInteger('Phasen3Schwelle', 4140); // Beispiel: 3-phasig ab > 3.700 W
         $this->RegisterAttributeInteger('PV2CarStartZaehler', 0);
         $this->RegisterAttributeInteger('PV2CarStopZaehler', 0);
 
@@ -41,7 +41,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('MinStopWatt', 1100);      // Schwelle zum Stoppen (W)
         $this->RegisterPropertyInteger('StartLadeHysterese', 3);  // Zyklen Start-Hysterese
         $this->RegisterPropertyInteger('StopLadeHysterese', 3);   // Zyklen Stop-Hysterese
-        $this->RegisterPropertyInteger('InitialCheckInterval', 0); // 0 = deaktiviert, 5–60 Sek.
+        $this->RegisterPropertyInteger('InitialCheckInterval', 10); // 0 = deaktiviert, 5–60 Sek.
     
 
 
