@@ -202,7 +202,7 @@
           "name": "MarketPriceInterval",
           "caption": "Abrufintervall in Minuten",
           "suffix": "min",
-          "minimum": 10,
+          "minimum": 1,
           "maximum": 120,
           "default": 30
         },
