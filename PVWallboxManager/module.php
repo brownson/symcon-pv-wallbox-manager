@@ -1535,53 +1535,46 @@ class PVWallboxManager extends IPSModule
         $min = min($allePreise);
         $maxPrice = max($allePreise);
 
-        // Balkenhöhe: Skaliert nach Preis (z.B. 36px ... 160px)
-        $minBarHeight = 36;
-        $maxBarHeight = 160;
+        $minBarHeight = 48;  // Minimalhöhe
+        $maxBarHeight = 150; // Maximalhöhe
 
-        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;width:120px;">';
+        $html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;">';
         $html .= '<b>Börsenpreis-Vorschau</b><br>';
-        $html .= '<div style="display:flex;flex-direction:column;gap:3px;width:120px;">';
+        $html .= '<div style="display:flex;flex-direction:column;gap:14px;margin-left:10px;">';
 
         foreach ($preise as $i => $dat) {
             $hour = date('H:i', $dat['timestamp']);
             $price = number_format($dat['price'], 3, ',', '.');
 
-            // **Höhe nach Preis skalieren**
+            // Höhe nach Preis skalieren
             $percent = ($dat['price'] - $min) / max(0.01, ($maxPrice - $min));
             $barHeight = intval($minBarHeight + $percent * ($maxBarHeight - $minBarHeight));
 
-            // Farbverlauf immer über 100% der aktuellen Höhe!
-            $barGradient = "linear-gradient(
-                to top,
-                #ff6a00 0%,
-                #ff6a00 20%,
-                #ffcc00 50%,
-                #38b000 50%,
-                #38b000 100%
-            )";
+            // Farbverlauf: immer über 100% der Balkenhöhe
+            $barGradient = "linear-gradient(to top, #ff6a00 0%, #ffcc00 55%, #38b000 100%)";
 
             $html .= "
-            <div style='display:flex;align-items:center;gap:6px;'>
-                <span style='width:42px;color:#666;font-size:12px;'>$hour</span>
+            <div style='display:flex;align-items:flex-end;gap:12px;height:{$barHeight}px;'>
+                <span style='width:40px;color:#444;text-align:right;font-size:14px;'>$hour</span>
                 <span style='
                     display:inline-block;
-                    height:{$barHeight}px;width:54px;
+                    height:{$barHeight}px;width:58px;
                     background:{$barGradient};
-                    border-radius:8px;
+                    border-radius:12px;
                     font-weight:bold;
                     color:#fff;
+                    box-shadow:0 1px 4px #0001;
                     position:relative;
-                    box-shadow:0 1px 4px #0002;
-                    text-align:center;
-                    vertical-align:bottom;
                 '>
                     <span style='
                         position:absolute;
                         left:0;right:0;bottom:10px;
-                        font-size:13px;
+                        width:100%;
+                        font-size:15px;
                         font-weight:bold;
                         color:#fff;
+                        text-shadow:0 1px 2px #0009;
+                        text-align:center;
                     '>$price ct</span>
                 </span>
             </div>
