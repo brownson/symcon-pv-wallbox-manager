@@ -1133,7 +1133,8 @@ class PVWallboxManager extends IPSModule
         $minAmpere = $this->ReadPropertyInteger('MinAmpere');
         $this->SetValue('Leistung', 0);                  // Ladeleistung zum Fahrzeug
         $this->SetValue('PV_Ueberschuss', 0);            // PV-Überschuss (W)
-        $this->SetValue('PV_Ueberschuss_A', $minAmpere); // PV-Überschuss (A) – Minimalwert anzeigen
+//        $this->SetValue('PV_Ueberschuss_A', $minAmpere); // PV-Überschuss (A) – Minimalwert anzeigen
+        $this->SetValue('PV_Ueberschuss_A', 0);
         $this->SetValue('Hausverbrauch_abz_Wallbox', 0); // Hausverbrauch abz. Wallbox
         $this->SetValue('Hausverbrauch_W', 0);           // Hausverbrauch gesamt
         $this->SetValue('Freigabe', false); // <-- explizit auf false setzen!
