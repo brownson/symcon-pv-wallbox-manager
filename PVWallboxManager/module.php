@@ -1193,6 +1193,14 @@ class PVWallboxManager extends IPSModule
     // Hilfsfunktion: Setzt Timer richtig je nach Status und Modus
     private function SetTimerNachModusUndAuto()
     {
+        // Timer- und Statusattribute initialisieren (Self-Healing nach Update/Neuinstallation)
+        if (!@is_int($this->ReadAttributeInteger('MarketPricesTimerInterval'))) {
+            $this->WriteAttributeInteger('MarketPricesTimerInterval', 0);
+        }
+        if (!@is_bool($this->ReadAttributeBoolean('MarketPricesActive'))) {
+            $this->WriteAttributeBoolean('MarketPricesActive', false);
+        }
+
         $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
         $car = @$this->GetValue('Status');
         $mainInterval = intval($this->ReadPropertyInteger('RefreshInterval'));
