@@ -1228,6 +1228,18 @@ class PVWallboxManager extends IPSModule
 
         $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval'));
         $newInterval = $marketInterval * 60 * 1000;
+        $active = $this->ReadPropertyBoolean('UseMarketPrices');
+
+        if ($active) {
+            $this->SetTimerInterval('PVWM_UpdateMarketPrices', $newInterval);
+            $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer (gesetzt/aktiv) $newInterval ms");
+        } else {
+            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
+            $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer gestoppt");
+        }
+/* Timer Strompreis nach Property setzen
+        $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval'));
+        $newInterval = $marketInterval * 60 * 1000;
         $lastInterval = $this->ReadAttributeInteger('MarketPricesTimerInterval');
         $active = $this->ReadPropertyBoolean('UseMarketPrices');
         $lastActive = $this->ReadAttributeBoolean('MarketPricesActive');
@@ -1245,7 +1257,7 @@ class PVWallboxManager extends IPSModule
                 $this->WriteAttributeBoolean('MarketPricesActive', false);
                 $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer gestoppt");
             }
-        }
+        }*/
     }
 
     private function ResetLademodiWennKeinFahrzeug()
