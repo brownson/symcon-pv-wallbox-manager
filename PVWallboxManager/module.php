@@ -1236,20 +1236,21 @@ class PVWallboxManager extends IPSModule
 
         $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval'));
         $newInterval = $marketInterval * 60 * 1000;
-        $lastInterval = $this->ReadAttributeInteger('MarketPricesTimerInterval');
         $active = $this->ReadPropertyBoolean('UseMarketPrices');
-        $lastActive = $this->ReadAttributeBoolean('MarketPricesActive');
 
+        $lastInterval = $this->ReadAttributeInteger('MarketPricesTimerInterval');
+        $lastActive   = $this->ReadAttributeBoolean('MarketPricesActive');
+
+        // Nach Modulupdate (Timer = aus), immer wiederherstellen!
         if ($active) {
-            if ($lastInterval != $newInterval || !$lastActive) {
-                // Nur wenn Intervall ODER Aktiv-Status geändert!
+            if ($lastInterval != $newInterval || !$lastActive || $this->GetTimerInterval('PVWM_UpdateMarketPrices') == 0) {
                 $this->SetTimerInterval('PVWM_UpdateMarketPrices', $newInterval);
                 $this->WriteAttributeInteger('MarketPricesTimerInterval', $newInterval);
                 $this->WriteAttributeBoolean('MarketPricesActive', true);
                 $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer (gesetzt/aktiv) $newInterval ms");
             }
         } else {
-            if ($lastActive) {
+            if ($lastActive || $this->GetTimerInterval('PVWM_UpdateMarketPrices') != 0) {
                 $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
                 $this->WriteAttributeBoolean('MarketPricesActive', false);
                 $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer gestoppt");
