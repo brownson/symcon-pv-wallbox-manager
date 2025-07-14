@@ -1202,14 +1202,11 @@ class PVWallboxManager extends IPSModule
         $active = $this->ReadPropertyBoolean('UseMarketPrices');
         $lastActive = $this->ReadAttributeBoolean('MarketPricesActive');
 
-        if ($active) {
-            // Nur wenn Intervall oder Status sich geändert hat!
-            if ($lastInterval != $newInterval || !$lastActive) {
-                $this->SetTimerInterval('PVWM_UpdateMarketPrices', $newInterval);
-                $this->WriteAttributeInteger('MarketPricesTimerInterval', $newInterval);
-                $this->WriteAttributeBoolean('MarketPricesActive', true);
-                $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer (gesetzt/aktiv) $newInterval ms");
-            }
+        // NEU: Timer immer setzen, wenn aktiv – egal wie die Attribute stehen!
+            $this->SetTimerInterval('PVWM_UpdateMarketPrices', $newInterval);
+            $this->WriteAttributeInteger('MarketPricesTimerInterval', $newInterval);
+            $this->WriteAttributeBoolean('MarketPricesActive', true);
+            $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer (gesetzt/aktiv) $newInterval ms");
         } else {
             if ($lastActive) {
                 $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
