@@ -936,6 +936,14 @@ class PVWallboxManager extends IPSModule
     }
 
     private function PruefeUndSetzePhasenmodus($pvUeberschuss)
+    {
+        $schwelle1 = $this->ReadPropertyInteger('Phasen1Schwelle');
+        $schwelle3 = $this->ReadPropertyInteger('Phasen3Schwelle');
+        $limit1    = $this->ReadPropertyInteger('Phasen1Limit');
+        $limit3    = $this->ReadPropertyInteger('Phasen3Limit');
+        $aktModus  = $this->GetValue('Phasenmodus');
+
+        // === Auf 3-phasig umschalten, wenn Überschuss oft genug überschritten ===
         if ($zaehler >= $limit3) {
             $this->SetValueAndLogChange('Phasenmodus', 2, 'Phasenumschaltung', '', 'ok');
             $ok = $this->SetPhaseMode(2); // Wallbox: 2 = 3-phasig
