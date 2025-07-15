@@ -999,12 +999,17 @@ class PVWallboxManager extends IPSModule
                         if ($phasenIst == 0) $phasenIst = 1;
                     }
                     $this->SetValueAndLogChange('Phasenmodus', $phasenIst, 'Phasenmodus (nach Umschaltung)', '', 'ok');
+                    // NEU:
+                    $this->LogTemplate('debug', "Nach Phasenumschaltung: Status wird neu berechnet, Ladebefehl erst im nächsten Zyklus!");
+                    $this->WriteAttributeInteger('Phasen3Zaehler', 0); // Zähler zurücksetzen!
+                    $this->UpdateStatus();
+                    return;
                 } else {
                     $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 3-phasig fehlgeschlagen!');
+                    $this->WriteAttributeInteger('Phasen3Zaehler', 0); // Zähler trotzdem zurücksetzen
+                    return;
                 }
-                $this->WriteAttributeInteger('Phasen3Zaehler', 0); // Zähler zurücksetzen!
             }
-            return;
         }
 
         // === Auf 1-phasig umschalten, wenn Überschuss oft genug unterschritten ===
@@ -1030,12 +1035,17 @@ class PVWallboxManager extends IPSModule
                         if ($phasenIst == 0) $phasenIst = 1;
                     }
                     $this->SetValueAndLogChange('Phasenmodus', $phasenIst, 'Phasenmodus (nach Umschaltung)', '', 'warn');
+                    // NEU:
+                    $this->LogTemplate('debug', "Nach Phasenumschaltung: Status wird neu berechnet, Ladebefehl erst im nächsten Zyklus!");
+                    $this->WriteAttributeInteger('Phasen1Zaehler', 0); // Zähler zurücksetzen!
+                    $this->UpdateStatus();
+                    return;
                 } else {
                     $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 1-phasig fehlgeschlagen!');
+                    $this->WriteAttributeInteger('Phasen1Zaehler', 0); // Zähler trotzdem zurücksetzen
+                    return;
                 }
-                $this->WriteAttributeInteger('Phasen1Zaehler', 0); // Zähler zurücksetzen!
             }
-            return;
         }
 
         // Kein Umschaltgrund: Zähler zurücksetzen
