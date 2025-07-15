@@ -43,11 +43,10 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('StopLadeHysterese', 3);   // Zyklen Stop-Hysterese
         $this->RegisterPropertyInteger('InitialCheckInterval', 10); // 0 = deaktiviert, 5–60 Sek.
     
-
-
         // Hysterese-Zähler (werden NICHT im WebFront angezeigt)
         $this->RegisterAttributeInteger('Phasen1Zaehler', 0);
         $this->RegisterAttributeInteger('Phasen3Zaehler', 0);
+        $this->RegisterAttributeBoolean('NachPhasenwechsel', false);
         $this->RegisterAttributeInteger('LadeStartZaehler', 0);
         $this->RegisterAttributeInteger('LadeStopZaehler', 0);
         $this->RegisterAttributeString('HausverbrauchAbzWallboxBuffer', '[]');
@@ -370,6 +369,12 @@ class PVWallboxManager extends IPSModule
     // =========================================================================
     public function UpdateStatus(string $mode = 'pvonly')
     {
+        // Nach Phasenwechsel: Immer explizit Ladebefehl setzen
+        if ($this->ReadAttributeBoolean('NachPhasenwechsel')) {
+            $this->LogTemplate('debug', "Nach Phasenwechsel: Ladebefehl wird jetzt explizit gesetzt (UpdateStatus).");
+            $this->WriteAttributeBoolean('NachPhasenwechsel', false);
+        }
+        
         // Hausverbrauch immer aktuell setzen – auch ohne Fahrzeug!
         $hvID = $this->ReadPropertyInteger('HausverbrauchID');
         $hvEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
@@ -484,6 +489,11 @@ class PVWallboxManager extends IPSModule
 
     private function ModusPVonlyLaden($data, $anzPhasenAlt, $mode = 'pvonly')
     {
+        if ($this->ReadAttributeBoolean('NachPhasenwechsel')) {
+            $this->LogTemplate('debug', "Nach Phasenwechsel: Ladebefehl wird jetzt explizit gesetzt (PVonlyLaden).");
+            $this->WriteAttributeBoolean('NachPhasenwechsel', false);
+        }
+
         if (!$this->FahrzeugVerbunden($data)) {
             $this->ResetLademodiWennKeinFahrzeug();
             return;
@@ -593,6 +603,11 @@ class PVWallboxManager extends IPSModule
 
     private function ModusManuellVollladen($data)
     {
+        if ($this->ReadAttributeBoolean('NachPhasenwechsel')) {
+            $this->LogTemplate('debug', "Nach Phasenwechsel: Ladebefehl wird jetzt explizit gesetzt (ManuellVollladen).");
+            $this->WriteAttributeBoolean('NachPhasenwechsel', false);
+        }
+
         if (!$this->FahrzeugVerbunden($data)) {
             $this->ResetLademodiWennKeinFahrzeug();
             return;
@@ -667,6 +682,11 @@ class PVWallboxManager extends IPSModule
 
     private function ModusPV2CarLaden($data)
     {
+        if ($this->ReadAttributeBoolean('NachPhasenwechsel')) {
+            $this->LogTemplate('debug', "Nach Phasenwechsel: Ladebefehl wird jetzt explizit gesetzt (PV2CarLaden).");
+            $this->WriteAttributeBoolean('NachPhasenwechsel', false);
+        }
+
         if (!$this->FahrzeugVerbunden($data)) {
             $this->ResetLademodiWennKeinFahrzeug();
             return;
@@ -998,13 +1018,10 @@ class PVWallboxManager extends IPSModule
                         if ($phasenIst == 0) $phasenIst = 1;
                     }
                     $this->SetValueAndLogChange('Phasenmodus', $phasenIst, 'Phasenmodus (nach Umschaltung)', '', 'ok');
-                    $this->WriteAttributeInteger('Phasen3Zaehler', 0); // **Hier erst zurücksetzen**
-                    $this->LogTemplate('debug', "Nach Phasenumschaltung: Status wird neu berechnet, Ladebefehl erst im nächsten Zyklus!");
+                    $this->WriteAttributeInteger('Phasen3Zaehler', 0);
+                    $this->WriteAttributeBoolean('NachPhasenwechsel', true); // <--- NEU
+                    $this->LogTemplate('debug', "Nach Phasenumschaltung: Status wird neu berechnet, Ladebefehl im nächsten Zyklus!");
                     $this->UpdateStatus();
-                    return;
-                } else {
-                    $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 3-phasig fehlgeschlagen!');
-                    $this->WriteAttributeInteger('Phasen3Zaehler', 0); // Auch im Fehlerfall zurücksetzen
                     return;
                 }
             }
@@ -1022,7 +1039,7 @@ class PVWallboxManager extends IPSModule
                 $ok = $this->SetPhaseMode(1); // Wallbox: 1 = 1-phasig
                 if ($ok) {
                     $this->LogTemplate('debug', "Umschalten auf 1-phasig: Warte 3 Sekunden, lese echten Phasenmodus aus Wallbox...");
-                    IPS_Sleep(3000);
+                    IPS_Sleep(3000); // Zeit zum Umschalten!
                     $data = $this->getStatusFromCharger();
                     $phasenIst = 1;
                     if (isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
@@ -1034,12 +1051,9 @@ class PVWallboxManager extends IPSModule
                     }
                     $this->SetValueAndLogChange('Phasenmodus', $phasenIst, 'Phasenmodus (nach Umschaltung)', '', 'warn');
                     $this->WriteAttributeInteger('Phasen1Zaehler', 0);
-                    $this->LogTemplate('debug', "Nach Phasenumschaltung: Status wird neu berechnet, Ladebefehl erst im nächsten Zyklus!");
+                    $this->WriteAttributeBoolean('NachPhasenwechsel', true); // <--- NEU
+                    $this->LogTemplate('debug', "Nach Phasenumschaltung: Status wird neu berechnet, Ladebefehl im nächsten Zyklus!");
                     $this->UpdateStatus();
-                    return;
-                } else {
-                    $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 1-phasig fehlgeschlagen!');
-                    $this->WriteAttributeInteger('Phasen1Zaehler', 0);
                     return;
                 }
             }
