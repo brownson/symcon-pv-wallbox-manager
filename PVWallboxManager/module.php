@@ -601,7 +601,7 @@ class PVWallboxManager extends IPSModule
         $ladeFreigabeGeaendert = false;
 
         // Start-Hysterese
-        if ($pvUeberschuss >= $minLadeWatt) {
+        if ($ueberschussWatt >= $minLadeWatt) {
             $startZaehler++;
             $this->WriteAttributeInteger('LadeStartZaehler', $startZaehler);
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
@@ -609,14 +609,15 @@ class PVWallboxManager extends IPSModule
             if ($startZaehler >= $startHysterese && !$aktFreigabe) {
                 $this->LogTemplate('ok', "Ladefreigabe: Start-Hysterese erreicht ($startZaehler x >= $minLadeWatt W). Ladefreigabe aktivieren.");
                 $this->SetForceState(2);
-                $ladeFreigabeGeaendert = true;
+                // Nach Aktivierung KEINEN weiteren Ladebefehl in diesem Zyklus senden!
+                return;
             }
         } else {
             $this->WriteAttributeInteger('LadeStartZaehler', 0);
         }
 
-        // Stop-Hysterese
-        if ($pvUeberschuss <= $minStopWatt) {
+        // ---- STOP-HYSTERESE (Laden verbieten) ----
+        if ($ueberschussWatt <= $minStopWatt) {
             $stopZaehler++;
             $this->WriteAttributeInteger('LadeStopZaehler', $stopZaehler);
             $this->WriteAttributeInteger('LadeStartZaehler', 0);
@@ -627,27 +628,21 @@ class PVWallboxManager extends IPSModule
                     $this->SetForceState(1);
                 }
                 $this->ResetWallboxToMinimal();
+                // Nach Sperren KEINEN weiteren Ladebefehl in diesem Zyklus senden!
                 return;
             }
         } else {
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
         }
 
-        // **Ampere NUR setzen, wenn Laden wirklich aktiv**
-        if ($this->GetValue('AccessStateV2') == 2 && $ampere >= $minAmp) {
-            $currentAmp = isset($data['amp']) ? intval($data['amp']) : $minAmp;
-            if ($currentAmp != $ampere) {
-                $changed = $this->SetChargingCurrent($ampere);
-                if ($changed) {
-                    $this->LogTemplate('debug', "Ladestrom auf {$ampere}A gesetzt.");
-                }
-            } else {
-                $this->LogTemplate('debug', "Ladestrom schon korrekt ({$ampere}A), kein Setzen nötig.");
-            }
-        } else {
-            // Sicherheit: Niemals Ampere setzen, wenn nicht wirklich freigegeben!
-            $this->LogTemplate('debug', "Keine Ladefreigabe (FRC={$this->GetValue('AccessStateV2')}), Ladestrom wird nicht gesetzt!");
+        // ==== WICHTIG: Ladebefehl (Ampere/Phasen) NUR wenn Wallbox wirklich freigegeben (frc=2)! ====
+        if ($this->GetValue('AccessStateV2') != 2) {
+            $this->LogTemplate('debug', "Ladefreigabe nicht aktiv (AccessStateV2 != 2), kein Ladestrom-Befehl im Zyklus.");
+            return;
         }
+
+        // ---- AB HIER darfst du Ladestrom und Phasen anpassen ----
+        $this->SetForceStateAndAmpereIfChanged(2, $ampere);
     }
 
     private function ModusManuellVollladen($data)
@@ -816,12 +811,16 @@ class PVWallboxManager extends IPSModule
         }
 
         // Hysterese
+        $minLadeWatt    = $this->ReadPropertyInteger('MinLadeWatt');
         $minStopWatt    = $this->ReadPropertyInteger('MinStopWatt');
         $startHysterese = $this->ReadPropertyInteger('StartLadeHysterese');
         $stopHysterese  = $this->ReadPropertyInteger('StopLadeHysterese');
         $startZaehler   = $this->ReadAttributeInteger('PV2CarStartZaehler');
         $stopZaehler    = $this->ReadAttributeInteger('PV2CarStopZaehler');
         $aktFreigabe    = ($this->GetValue('AccessStateV2') == 2);
+
+        $anteilWatt = $pv2car['anteil_watt']; // <--- Das ist die relevante Ladeleistung für diesen Modus
+        $ampere     = $berechneterAmpere;     // (aus deiner Überschussberechnung)
 
         // --- Start-Hysterese
         if ($anteilWatt >= $minLadeWatt) {
@@ -830,30 +829,40 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
 
             if ($startZaehler >= $startHysterese && !$aktFreigabe) {
-                $this->LogTemplate('ok', "Ladefreigabe: Start-Hysterese erreicht ($startZaehler x >= $minLadeWatt W). Ladefreigabe aktivieren.");
+                $this->LogTemplate('ok', "PV2Car: Start-Hysterese erreicht ($startZaehler x >= $minLadeWatt W). Ladefreigabe aktivieren.");
                 $this->SetForceState(2);
+                return; // Abbrechen, damit im nächsten Zyklus Ladestrom gesetzt wird!
             }
         } else {
             $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
         }
 
-        // --- Stop-Hysterese
+        // ---- STOP-HYSTERESE (Freigabe sperren) ----
         if ($anteilWatt <= $minStopWatt) {
             $stopZaehler++;
             $this->WriteAttributeInteger('PV2CarStopZaehler', $stopZaehler);
             $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
 
             if ($stopZaehler >= $stopHysterese && $aktFreigabe) {
-                $this->LogTemplate('warn', "... Stop-Hysterese erreicht ...");
+                $this->LogTemplate('warn', "PV2Car: Stop-Hysterese erreicht ($stopZaehler x <= $minStopWatt W). Ladefreigabe sperren.");
                 if ($this->GetValue('AccessStateV2') != 1) {
                     $this->SetForceState(1);
                 }
                 $this->ResetWallboxToMinimal();
-                return;
+                return; // Abbrechen, damit im nächsten Zyklus kein neuer Ladestrom gesetzt wird!
             }
         } else {
             $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
         }
+
+        // ==== WICHTIG: Ladestrom setzen NUR wenn Freigabe aktiv (AccessStateV2 == 2)! ====
+        if ($this->GetValue('AccessStateV2') != 2) {
+            $this->LogTemplate('debug', "PV2Car: Ladefreigabe nicht aktiv (AccessStateV2 != 2), kein Ladestrom-Befehl im Zyklus.");
+            return;
+        }
+
+        // Ab hier darfst du die Wallbox mit dem gewünschten Ladestrom ansteuern:
+        $this->SetForceStateAndAmpereIfChanged(2, $ampere);
     }
 
     // =========================================================================
