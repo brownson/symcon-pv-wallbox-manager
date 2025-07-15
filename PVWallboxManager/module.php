@@ -624,7 +624,17 @@ class PVWallboxManager extends IPSModule
 
         $this->LogTemplate(
             'ok',
-            "🔌 Manuelles Vollladen aktiv (Phasen: $anzPhasen, $ampereIst A, max. Leistung auf Fahrzeug). PV={$werte['pv']} W, HausOhneWB={$werte['haus']} W, Wallbox={$werte['wallbox']} W, Batterie={$werte['batterie']} W, Überschuss={$werte['ueberschuss_w']} W / $ampereIst A"
+            sprintf(
+                "🔌 Manuelles Vollladen aktiv (Phasen: %d, %d A, max. Leistung auf Fahrzeug). PV=%d W, HausOhneWB=%d W, Wallbox=%d W, Batterie=%d W, Überschuss=%d W / %d A",
+                $anzPhasen,
+                $ampereIst,
+                $werte['pv'] ?? 0,
+                $werte['haus'] ?? 0,
+                $werte['wallbox'] ?? 0,
+                $werte['batterie'] ?? 0,
+                $werte['ueberschuss_w'] ?? 0,
+                $ampereIst
+            )
         );
 
         $this->SetTimerNachModusUndAuto();
