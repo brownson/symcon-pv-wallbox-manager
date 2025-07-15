@@ -612,15 +612,19 @@ class PVWallboxManager extends IPSModule
             if ($anzPhasen == 0) $anzPhasen = 1;
         }
 
-        // Neue Visualisierungswerte
+        // Neue Visualisierungswerte mit Fallback, falls etwas fehlt
         $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
-        $this->SetValue('PV_Ueberschuss', $werte['ueberschuss_w'] ?? 0);
+        $this->SetValue('PV_Ueberschuss',   $werte['ueberschuss_w'] ?? 0);
         $this->SetValue('PV_Ueberschuss_A', $maxAmp);
+
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
+
+        // Realer Ladestrom zur Anzeige (kann abweichen, falls Wallbox/Auto limitiert)
+        $ampereIst = $dataNeu['amp'] ?? $maxAmp;
 
         $this->LogTemplate(
             'ok',
-            "🔌 Manuelles Vollladen aktiv (Phasen: $anzPhasen, $maxAmp A, max. Leistung auf Fahrzeug). PV={$werte['pv']} W, HausOhneWB={$werte['haus']} W, Wallbox={$werte['wallbox']} W, Batterie={$werte['batterie']} W, Überschuss={$werte['ueberschuss_w']} W / $maxAmp A"
+            "🔌 Manuelles Vollladen aktiv (Phasen: $anzPhasen, $ampereIst A, max. Leistung auf Fahrzeug). PV={$werte['pv']} W, HausOhneWB={$werte['haus']} W, Wallbox={$werte['wallbox']} W, Batterie={$werte['batterie']} W, Überschuss={$werte['ueberschuss_w']} W / $ampereIst A"
         );
 
         $this->SetTimerNachModusUndAuto();
