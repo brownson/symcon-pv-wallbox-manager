@@ -1045,7 +1045,6 @@ class PVWallboxManager extends IPSModule
             }
             return;
         }
-    }
 
         // === Auf 1-phasig umschalten, wenn Überschuss oft genug unterschritten ===
         if ($pvUeberschuss <= $schwelle1 && $aktModus != 1) {
