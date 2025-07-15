@@ -598,6 +598,8 @@ class PVWallboxManager extends IPSModule
         $stopZaehler    = $this->ReadAttributeInteger('LadeStopZaehler');
         $aktFreigabe    = ($accessStateV2 == 2);
 
+        $ladeFreigabeGeaendert = false;
+
         // Start-Hysterese
         if ($pvUeberschuss >= $minLadeWatt) {
             $startZaehler++;
@@ -607,6 +609,7 @@ class PVWallboxManager extends IPSModule
             if ($startZaehler >= $startHysterese && !$aktFreigabe) {
                 $this->LogTemplate('ok', "Ladefreigabe: Start-Hysterese erreicht ($startZaehler x >= $minLadeWatt W). Ladefreigabe aktivieren.");
                 $this->SetForceState(2);
+                $ladeFreigabeGeaendert = true;
             }
         } else {
             $this->WriteAttributeInteger('LadeStartZaehler', 0);
@@ -624,10 +627,25 @@ class PVWallboxManager extends IPSModule
                     $this->SetForceState(1);
                 }
                 $this->ResetWallboxToMinimal();
+                $ladeFreigabeGeaendert = true;
                 return;
             }
         } else {
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
+        }
+
+        // **Ampere NUR setzen, wenn Laden wirklich aktiv**
+        if ($this->GetValue('AccessStateV2') == 2 && $ampere >= $minAmp) {
+            // Prüfen, ob Ampere wirklich unterschiedlich!
+            $currentAmp = isset($data['amp']) ? intval($data['amp']) : $minAmp;
+            if ($currentAmp != $ampere) {
+                $changed = $this->SetChargingCurrent($ampere);
+                if ($changed) {
+                    $this->LogTemplate('debug', "Ladestrom auf {$ampere}A gesetzt.");
+                }
+            } else {
+                $this->LogTemplate('debug', "Ladestrom schon korrekt ({$ampere}A), kein Setzen nötig.");
+            }
         }
     }
 
