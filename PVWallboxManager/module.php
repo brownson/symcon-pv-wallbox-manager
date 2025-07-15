@@ -557,6 +557,9 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
         }
 
+        $ladebefehlGesendet = false;
+        $ladefreigabeGeaendert = false;
+
         // Wenn einer der beiden Befehle gesendet wurde:
         if ($ladebefehlGesendet || $ladefreigabeGeaendert) {
             $this->LogTemplate('debug', "Warte 3 Sekunden auf stabilen Hausverbrauch nach Wallbox-Befehl...");
