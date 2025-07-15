@@ -497,8 +497,19 @@ class PVWallboxManager extends IPSModule
 
         // Visualisierungswerte setzen
         $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
-        $ampereIst = $data['amp'] ?? $ampere;
-        $this->SetValue('PV_Ueberschuss_A', $ampereIst);
+
+        // Nach aller Logik (z.B. direkt vor Funktionsende/return)
+        $accessStateV2 = $this->GetValue('AccessStateV2');
+        $minAmp = $this->ReadPropertyInteger('MinAmpere');
+
+        if ($accessStateV2 == 2 && $pvUeberschuss > 0) {
+            // Wallbox lädt, dann tatsächlichen Wert anzeigen
+            $ampereIst = $data['amp'] ?? $ampere;
+            $this->SetValue('PV_Ueberschuss_A', $ampereIst);
+        } else {
+            // Gesperrt oder kein Überschuss, Minimalwert
+            $this->SetValue('PV_Ueberschuss_A', $minAmp);
+        }
 
         // Debug-Log – robust, mit Hinweis wenn Werte fehlen
         if (is_array($berechnung)) {
@@ -620,8 +631,16 @@ class PVWallboxManager extends IPSModule
         // Neue Visualisierungswerte mit Fallback, falls etwas fehlt
         $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
         $this->SetValue('PV_Ueberschuss',   $werte['ueberschuss_w'] ?? 0);
-        $ampereIst = $dataNeu['amp'] ?? $maxAmp;
-        $this->SetValue('PV_Ueberschuss_A', $ampereIst);
+
+        // EINZIGES Setzen, passend zum Zustand:
+        $accessStateV2 = $this->GetValue('AccessStateV2');
+        $minAmp = $this->ReadPropertyInteger('MinAmpere');
+        if ($accessStateV2 == 2) {
+            $ampereIst = $dataNeu['amp'] ?? $maxAmp;
+            $this->SetValue('PV_Ueberschuss_A', $ampereIst);
+        } else {
+            $this->SetValue('PV_Ueberschuss_A', $minAmp);
+        }
 
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
 
@@ -677,8 +696,19 @@ class PVWallboxManager extends IPSModule
 
         $ampere = ceil($anteilWatt / (230 * $anzPhasen));
         $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
+
         $this->SetValue('PV_Ueberschuss', $pvUeberschussPV2Car);
-        $this->SetValue('PV_Ueberschuss_A', $ampere);
+        // Am Ende (nach allen Befehlen):
+        $accessStateV2 = $this->GetValue('AccessStateV2');
+        $minAmp = $this->ReadPropertyInteger('MinAmpere');
+        if ($accessStateV2 == 2 && $anteilWatt >= $minLadeWatt) {
+            // Ladung aktiv: tatsächlichen Strom anzeigen
+            $ampereIst = $data['amp'] ?? $ampere;
+            $this->SetValue('PV_Ueberschuss_A', $ampereIst);
+        } else {
+            $this->SetValue('PV_Ueberschuss_A', $minAmp);
+        }
+
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
 
         // Hausakku-SOC prüfen (falls aktiv)
@@ -1494,7 +1524,7 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', 'W', 'debug');
         $this->SetValueAndLogChange('Hausverbrauch_W', $hausverbrauch, 'Hausverbrauch', 'W', 'debug');
         $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallbox, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
-        $this->SetValueAndLogChange('PV_Ueberschuss_A', $ampere, 'PV-Überschuss (A)', 'A', 'debug');
+//        $this->SetValueAndLogChange('PV_Ueberschuss_A', $ampere, 'PV-Überschuss (A)', 'A', 'debug');
 
         // Logging
         $this->LogTemplate(
