@@ -1357,27 +1357,28 @@ class PVWallboxManager extends IPSModule
         $currentForceState = $this->GetValue('AccessStateV2');
         $currentAmpere = $this->GetValue('Ampere');
 
+        // Immer loggen, was gewünscht ist!
+        $this->LogTemplate('debug', "SetForceStateAndAmpereIfChanged: Soll=$forceState, Ampere=$ampere, Ist=$currentForceState/$currentAmpere, Force=".($force?'JA':'nein'));
+
         // Zuerst den Modus (FRC)
         if ($force || $currentForceState !== $forceState) {
             $set = $this->SetForceState($forceState);
             if ($set) {
-                $msg = $force 
-                    ? "ForceState wird FORCIERT gesetzt (auch wenn gleich): $currentForceState → $forceState"
-                    : "ForceState geändert: $currentForceState → $forceState";
-                $this->LogTemplate('debug', $msg);
+                $this->LogTemplate('debug', "ForceState geändert: $currentForceState → $forceState");
                 $changed = true;
+            } else {
+                $this->LogTemplate('debug', "ForceState beibehalten ($currentForceState) – kein Setzen nötig");
             }
         }
 
         // Dann Ampere setzen (sofern abweichend oder force)
         if ($force || $currentAmpere !== $ampere) {
-            $set = $this->SetChargingCurrent($ampere); // sollte ebenfalls bool liefern!
+            $set = $this->SetChargingCurrent($ampere);
             if ($set) {
-                $msg = $force 
-                    ? "Ampere wird FORCIERT gesetzt (auch wenn gleich): $currentAmpere → $ampere"
-                    : "Ampere geändert: $currentAmpere → $ampere";
-                $this->LogTemplate('debug', $msg);
+                $this->LogTemplate('debug', "Ampere geändert: $currentAmpere → $ampere");
                 $changed = true;
+            } else {
+                $this->LogTemplate('debug', "Ampere beibehalten ($currentAmpere) – kein Setzen nötig");
             }
         }
 
