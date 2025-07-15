@@ -976,19 +976,18 @@ class PVWallboxManager extends IPSModule
         $limit3    = $this->ReadPropertyInteger('Phasen3Limit');
         $aktModus  = $this->GetValue('Phasenmodus');
 
-        // === Auf 3-phasig umschalten, wenn Überschuss oft genug überschritten ===
+        // ========== 3-phasig prüfen ==========
         if ($pvUeberschuss >= $schwelle3 && $aktModus != 2) {
-            $zaehler = $this->ReadAttributeInteger('Phasen3Zaehler') + 1;
-            $this->WriteAttributeInteger('Phasen3Zaehler', $zaehler);
-            $this->WriteAttributeInteger('Phasen1Zaehler', 0); // Anderen Zähler resetten
-
-            $this->LogTemplate('debug', "Phasen-Hysterese: $zaehler/$limit3 Zyklen > Schwelle3");
-            if ($zaehler >= $limit3) {
+            $zaehler3 = $this->ReadAttributeInteger('Phasen3Zaehler') + 1;
+            $this->WriteAttributeInteger('Phasen3Zaehler', $zaehler3);
+            $this->WriteAttributeInteger('Phasen1Zaehler', 0); // Nur den anderen Zähler zurücksetzen
+            $this->LogTemplate('debug', "Phasen-Hysterese: $zaehler3/$limit3 Zyklen > Schwelle3");
+            if ($zaehler3 >= $limit3) {
                 $this->SetValueAndLogChange('Phasenmodus', 2, 'Phasenumschaltung', '', 'ok');
                 $ok = $this->SetPhaseMode(2); // Wallbox: 2 = 3-phasig
                 if ($ok) {
                     $this->LogTemplate('debug', "Umschalten auf 3-phasig: Warte 3 Sekunden, lese echten Phasenmodus aus Wallbox...");
-                    IPS_Sleep(3000); // Zeit zum Umschalten!
+                    IPS_Sleep(3000);
                     $data = $this->getStatusFromCharger();
                     $phasenIst = 1;
                     if (isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
@@ -999,18 +998,57 @@ class PVWallboxManager extends IPSModule
                         if ($phasenIst == 0) $phasenIst = 1;
                     }
                     $this->SetValueAndLogChange('Phasenmodus', $phasenIst, 'Phasenmodus (nach Umschaltung)', '', 'ok');
-                    // NEU:
+                    $this->WriteAttributeInteger('Phasen3Zaehler', 0); // **Hier erst zurücksetzen**
                     $this->LogTemplate('debug', "Nach Phasenumschaltung: Status wird neu berechnet, Ladebefehl erst im nächsten Zyklus!");
-                    $this->WriteAttributeInteger('Phasen3Zaehler', 0); // Zähler zurücksetzen!
                     $this->UpdateStatus();
                     return;
                 } else {
                     $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 3-phasig fehlgeschlagen!');
-                    $this->WriteAttributeInteger('Phasen3Zaehler', 0); // Zähler trotzdem zurücksetzen
+                    $this->WriteAttributeInteger('Phasen3Zaehler', 0); // Auch im Fehlerfall zurücksetzen
                     return;
                 }
             }
+            return;
         }
+
+        // ========== 1-phasig prüfen ==========
+        if ($pvUeberschuss <= $schwelle1 && $aktModus != 1) {
+            $zaehler1 = $this->ReadAttributeInteger('Phasen1Zaehler') + 1;
+            $this->WriteAttributeInteger('Phasen1Zaehler', $zaehler1);
+            $this->WriteAttributeInteger('Phasen3Zaehler', 0);
+            $this->LogTemplate('debug', "Phasen-Hysterese: $zaehler1/$limit1 Zyklen < Schwelle1");
+            if ($zaehler1 >= $limit1) {
+                $this->SetValueAndLogChange('Phasenmodus', 1, 'Phasenumschaltung', '', 'warn');
+                $ok = $this->SetPhaseMode(1); // Wallbox: 1 = 1-phasig
+                if ($ok) {
+                    $this->LogTemplate('debug', "Umschalten auf 1-phasig: Warte 3 Sekunden, lese echten Phasenmodus aus Wallbox...");
+                    IPS_Sleep(3000);
+                    $data = $this->getStatusFromCharger();
+                    $phasenIst = 1;
+                    if (isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
+                        $phasenIst = 0;
+                        foreach ([$data['nrg'][4], $data['nrg'][5], $data['nrg'][6]] as $a) {
+                            if (abs(floatval($a)) > 1.5) $phasenIst++;
+                        }
+                        if ($phasenIst == 0) $phasenIst = 1;
+                    }
+                    $this->SetValueAndLogChange('Phasenmodus', $phasenIst, 'Phasenmodus (nach Umschaltung)', '', 'warn');
+                    $this->WriteAttributeInteger('Phasen1Zaehler', 0);
+                    $this->LogTemplate('debug', "Nach Phasenumschaltung: Status wird neu berechnet, Ladebefehl erst im nächsten Zyklus!");
+                    $this->UpdateStatus();
+                    return;
+                } else {
+                    $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 1-phasig fehlgeschlagen!');
+                    $this->WriteAttributeInteger('Phasen1Zaehler', 0);
+                    return;
+                }
+            }
+            return;
+        }
+
+        // ========== Kein Umschaltgrund: **Zähler NICHT zurücksetzen!** ==========
+        // Hier NICHT automatisch die Zähler zurücksetzen!
+    }
 
         // === Auf 1-phasig umschalten, wenn Überschuss oft genug unterschritten ===
         if ($pvUeberschuss <= $schwelle1 && $aktModus != 1) {
