@@ -400,19 +400,11 @@ class PVWallboxManager extends IPSModule
             $ampere = isset($berechnung['ueberschuss_a']) ? intval($berechnung['ueberschuss_a']) : $minAmp;
             $ampere = max($minAmp, min($maxAmp, $ampere));
 
-            $this->SetForceStateAndAmpereIfChanged(2, $ampere, true);
+            // Frischen Status holen, um sauber vergleichen zu können
+            $dataWB = $this->getStatusFromCharger();
+            $this->SetForceStateAndAmpereIfChanged(2, $ampere, true, $dataWB);
             $this->LogTemplate('debug', "Nach Phasenwechsel: Ladebefehl explizit gesendet (ForceSet: ja, Ampere: {$ampere}).");
         }
-
-            // Ladefreigabe prüfen und setzen
-            if ($this->GetValue('AccessStateV2') == 2 && $ampere >= $minAmp) {
-                $changed = $this->SetForceStateAndAmpereIfChanged(2, $ampere, true);
-                if ($changed) {
-                    $this->LogTemplate('debug', "Nach Phasenwechsel wurde Ladebefehl ({$ampere}A) erneut gesetzt (FORCE).");
-                } else {
-                    $this->LogTemplate('debug', "Nach Phasenwechsel: Ladebefehl war schon korrekt ({$ampere}A).");
-                }
-            }
 
         // Hausverbrauch immer aktuell setzen – auch ohne Fahrzeug!
         $hvID = $this->ReadPropertyInteger('HausverbrauchID');
@@ -442,7 +434,7 @@ class PVWallboxManager extends IPSModule
 
         // 1. Phasenanzahl initial ermitteln (aus Wallbox, sonst Default 1)
         $anzPhasenAlt = 1;
-        if ($data !== false && isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
+        if (isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
             $phasenSchwelle = 1.5;
             $phasenAmpere = [
                 abs(floatval($data['nrg'][4])),
@@ -468,20 +460,6 @@ class PVWallboxManager extends IPSModule
             $ampere        = $berechnung['ueberschuss_a'];
         }
 
-        // --- KEINE Wallbox-Daten – Visualisierung updaten & return ---
-        // $car muss trotzdem immer gesetzt werden!
-        $car = 0;
-        if (is_array($data) && isset($data['car'])) {
-            $car = intval($data['car']);
-        }
-
-        if ($data === false) {
-            // Visualisierung zurücksetzen – immer robust!
-            $this->ResetWallboxVisualisierungKeinFahrzeug();
-            $this->LogTemplate('debug', "Wallbox nicht erreichbar – Visualisierungswerte zurückgesetzt.");
-            return;
-        }
-
         // Defensive Extraktion
         $leistung   = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
         $ampereWB   = isset($data['amp']) ? intval($data['amp']) : 0;
@@ -502,7 +480,7 @@ class PVWallboxManager extends IPSModule
 
         $this->SetValueAndLogChange('PhasenmodusEinstellung', $psm, 'Phasenmodus (Einstellung)', '', 'debug');
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasenAlt, 'Genutzte Phasen', '', 'debug');
-        $this->SetValueAndLogChange('Status',        $car,        'Status');
+        $this->SetValueAndLogChange('Status',        isset($data['car']) ? intval($data['car']) : 0,        'Status');
         $this->SetValueAndLogChange('AccessStateV2', $accessStateV2, 'Wallbox Modus');
         $this->SetValueAndLogChange('Leistung',      $leistung,   'Aktuelle Ladeleistung zum Fahrzeug', 'W');
         $this->SetValueAndLogChange('Ampere',        $ampereWB,   'Maximaler Ladestrom', 'A');
@@ -510,6 +488,12 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('Freigabe',      $freigabe,   'Ladefreigabe');
         $this->SetValueAndLogChange('Kabelstrom',    $kabelstrom, 'Kabeltyp');
         $this->SetValueAndLogChange('Fehlercode',    $fehlercode, 'Fehlercode', '', 'warn');
+
+        // Ladefreigabe und Ampere nachziehen, falls nicht passend
+        // (hier KEIN Force, nur korrigieren wenn Wallbox und Logikwert abweichen!)
+        if ($ampere !== null && $ampereWB !== null && ($accessStateV2 != 2 || $ampereWB != $ampere)) {
+            $this->SetForceStateAndAmpereIfChanged(2, intval($ampere), false, $data);
+        }
 
         // 1. Manueller Modus
         if ($this->GetValue('ManuellLaden')) {
@@ -522,6 +506,7 @@ class PVWallboxManager extends IPSModule
             $this->ModusPV2CarLaden($data);
             return;
         }
+
         // 3. PVonly-Modus: komplett ausgelagert
         $this->ModusPVonlyLaden($data, $anzPhasenAlt, $mode);
     }
@@ -1330,11 +1315,26 @@ class PVWallboxManager extends IPSModule
         return $val;
     }
 
-    private function SetForceStateAndAmpereIfChanged(int $forceState, int $ampere, bool $force = false)
+    private function SetForceStateAndAmpereIfChanged(int $forceState, int $ampere, bool $force = false, $data = null)
     {
         $changed = false;
-        $currentForceState = $this->GetValue('AccessStateV2');
-        $currentAmpere = $this->GetValue('Ampere');
+
+        // Frische Statusdaten holen, falls nicht übergeben
+        if ($data === null) {
+            $data = $this->getStatusFromCharger();
+        }
+
+        // Echtes AccessStateV2 und Ampere aus den Wallbox-Daten extrahieren
+        $currentForceState = 0;
+        if (isset($data['frc'])) {
+            $currentForceState = intval($data['frc']);
+        } elseif (isset($data['accessStateV2'])) {
+            $currentForceState = intval($data['accessStateV2']);
+        } else {
+            $currentForceState = $this->GetValue('AccessStateV2');
+        }
+
+        $currentAmpere = isset($data['amp']) ? intval($data['amp']) : $this->GetValue('Ampere');
 
         // Immer loggen, was gewünscht ist!
         $this->LogTemplate('debug', "SetForceStateAndAmpereIfChanged: Soll=$forceState, Ampere=$ampere, Ist=$currentForceState/$currentAmpere, Force=".($force?'JA':'nein'));
