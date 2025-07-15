@@ -369,6 +369,10 @@ class PVWallboxManager extends IPSModule
     // =========================================================================
     public function UpdateStatus(string $mode = 'pvonly')
     {
+        $minAmp = intval($this->ReadPropertyInteger('MinAmpere'));
+        $maxAmp = intval($this->ReadPropertyInteger('MaxAmpere'));
+        $ampere = $minAmp;
+
         // Nach Phasenwechsel: Immer explizit Ladebefehl setzen!
         if ($this->ReadAttributeBoolean('NachPhasenwechsel')) {
             $this->LogTemplate('debug', "Nach Phasenwechsel: Ladebefehl wird jetzt explizit gesetzt (UpdateStatus).");
@@ -393,11 +397,9 @@ class PVWallboxManager extends IPSModule
 
             // Ladeberechnung für neue Phasenanzahl durchführen
             $berechnung = $this->BerechnePVUeberschuss($anzPhasenNeu);
-            $minAmp = intval($this->ReadPropertyInteger('MinAmpere'));
-            $maxAmp = intval($this->ReadPropertyInteger('MaxAmpere'));
             $ampere = isset($berechnung['ueberschuss_a']) ? intval($berechnung['ueberschuss_a']) : $minAmp;
             $ampere = max($minAmp, min($maxAmp, $ampere));
-            
+
             $this->SetForceStateAndAmpereIfChanged(2, $ampere, true);
             $this->LogTemplate('debug', "Nach Phasenwechsel: Ladebefehl explizit gesendet (ForceSet: ja, Ampere: {$ampere}).");
         }
