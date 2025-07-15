@@ -1045,9 +1045,6 @@ class PVWallboxManager extends IPSModule
             }
             return;
         }
-
-        // ========== Kein Umschaltgrund: **Zähler NICHT zurücksetzen!** ==========
-        // Hier NICHT automatisch die Zähler zurücksetzen!
     }
 
         // === Auf 1-phasig umschalten, wenn Überschuss oft genug unterschritten ===
