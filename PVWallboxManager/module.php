@@ -259,11 +259,8 @@ class PVWallboxManager extends IPSModule
                 $this->SetValue('ManuellLaden', false);
                 $this->LogTemplate('info', "🔌 Manuelles Vollladen deaktiviert – zurück in PVonly-Modus.");
 
-                // SOFORT auf 1-phasig & Minimalstrom zurückschalten!
-                $this->SetPhaseMode(1);
-                IPS_Sleep(1000); // Optional, für stabile Umschaltung (kann auf 0 gesetzt werden)
-                $this->SetChargingCurrent($this->ReadPropertyInteger('MinAmpere'));
-                $this->LogTemplate('ok', "ManuellLaden deaktiviert: 1-phasig & Minimalstrom gesetzt!");
+                // Zentralisierte Rücksetzung!
+                $this->ResetWallboxToMinimal();
             }
             $this->SetTimerNachModusUndAuto();
             $this->UpdateStatus('pvonly');
@@ -555,13 +552,12 @@ class PVWallboxManager extends IPSModule
 
             if ($stopZaehler >= $stopHysterese && $aktFreigabe) {
                 $this->LogTemplate('warn', "Ladefreigabe: Stop-Hysterese erreicht ($stopZaehler x <= $minStopWatt W). Ladefreigabe deaktivieren.");
-                if ($this->GetValue('AccessStateV2') != 1) {         // <--- NEU!
+                if ($this->GetValue('AccessStateV2') != 1) {
                     $this->SetForceState(1);
                 }
+                // Jetzt sauber zurücksetzen:
+                $this->ResetWallboxToMinimal();
             }
-        } else {
-            $this->WriteAttributeInteger('LadeStopZaehler', 0);
-        }
 
         $ladebefehlGesendet = false;
         $ladefreigabeGeaendert = false;
@@ -729,10 +725,7 @@ class PVWallboxManager extends IPSModule
 
             if ($stopZaehler >= $stopHysterese && $aktFreigabe) {
                 $this->LogTemplate('warn', "PV2Car: Stop-Hysterese erreicht ({$stopZaehler} x <= {$minStopWatt} W). Ladefreigabe deaktivieren.");
-                $changed = $this->SetForceStateAndAmpereIfChanged(1, $this->ReadPropertyInteger('MinAmpere'));
-                if ($changed) {
-                    IPS_Sleep(3000); // Nur wenn wirklich geändert!
-                }
+                $this->ResetWallboxToMinimal();  // <-- Ergänzung für sauberen Minimalzustand
                 return;
             }
         } else {
@@ -1348,6 +1341,21 @@ class PVWallboxManager extends IPSModule
             }
         }
     }
+
+    private function ResetWallboxToMinimal()
+    {
+        $minAmp = $this->ReadPropertyInteger('MinAmpere');
+        $ok1 = $this->SetPhaseMode(1);
+        IPS_Sleep(1000); // Kurz warten für die Umschaltung
+        $ok2 = $this->SetChargingCurrent($minAmp);
+
+        if ($ok1 && $ok2) {
+            $this->LogTemplate('ok', "Wallbox auf 1-phasig & Minimalstrom ({$minAmp}A) zurückgesetzt.");
+        } else {
+            $this->LogTemplate('warn', "Fehler beim Rücksetzen auf 1-phasig & Minimalstrom ({$minAmp}A)!");
+        }
+    }
+
 
     private function AnalysiereGoENrgArray($nrg)
     {
