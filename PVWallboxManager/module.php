@@ -627,7 +627,6 @@ class PVWallboxManager extends IPSModule
                     $this->SetForceState(1);
                 }
                 $this->ResetWallboxToMinimal();
-                $ladeFreigabeGeaendert = true;
                 return;
             }
         } else {
@@ -636,7 +635,6 @@ class PVWallboxManager extends IPSModule
 
         // **Ampere NUR setzen, wenn Laden wirklich aktiv**
         if ($this->GetValue('AccessStateV2') == 2 && $ampere >= $minAmp) {
-            // Prüfen, ob Ampere wirklich unterschiedlich!
             $currentAmp = isset($data['amp']) ? intval($data['amp']) : $minAmp;
             if ($currentAmp != $ampere) {
                 $changed = $this->SetChargingCurrent($ampere);
@@ -646,6 +644,9 @@ class PVWallboxManager extends IPSModule
             } else {
                 $this->LogTemplate('debug', "Ladestrom schon korrekt ({$ampere}A), kein Setzen nötig.");
             }
+        } else {
+            // Sicherheit: Niemals Ampere setzen, wenn nicht wirklich freigegeben!
+            $this->LogTemplate('debug', "Keine Ladefreigabe (FRC={$this->GetValue('AccessStateV2')}), Ladestrom wird nicht gesetzt!");
         }
     }
 
