@@ -450,6 +450,10 @@ class PVWallboxManager extends IPSModule
         } elseif (isset($data['accessStateV2'])) {
             $accessStateV2 = intval($data['accessStateV2']);
         }
+
+        $hausverbrauchAbzWallbox = $hausverbrauch - $leistung;
+        $this->SetValue('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallbox);
+
         $this->SetValueAndLogChange('PhasenmodusEinstellung', $psm, 'Phasenmodus (Einstellung)', '', 'debug');
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasenAlt, 'Genutzte Phasen', '', 'debug');
         $this->SetValueAndLogChange('Status',        $car,        'Status');
@@ -1189,7 +1193,7 @@ class PVWallboxManager extends IPSModule
         $this->SetValue('Leistung', 0);                  // Ladeleistung zum Fahrzeug
         $this->SetValue('PV_Ueberschuss', 0);            // PV-Überschuss (W)
         $this->SetValue('PV_Ueberschuss_A', 0);          // PV-Überschuss (A) – Jetzt 0A!
-        $this->SetValue('Hausverbrauch_abz_Wallbox', 0); // Hausverbrauch abz. Wallbox
+//        $this->SetValue('Hausverbrauch_abz_Wallbox', 0); // Hausverbrauch abz. Wallbox
 
         // Hausverbrauch trotzdem live anzeigen (wie oben beschrieben)
         $hvID = $this->ReadPropertyInteger('HausverbrauchID');
@@ -1201,25 +1205,13 @@ class PVWallboxManager extends IPSModule
         $hausverbrauch = round($hausverbrauch);
         $this->SetValue('Hausverbrauch_W', $hausverbrauch);
 
+        $this->SetValue('Hausverbrauch_abz_Wallbox', $hausverbrauch);
+
         $this->SetValue('Freigabe', false);   // explizit auf false setzen!
         $this->SetValue('AccessStateV2', 1);  // explizit auf 1 = gesperrt!
         $this->SetValue('Status', 1);         // Status für „kein Fahrzeug“
         $this->SetTimerNachModusUndAuto();
     }
-    /*{
-        $minAmpere = $this->ReadPropertyInteger('MinAmpere');
-        $this->SetValue('Leistung', 0);                  // Ladeleistung zum Fahrzeug
-        $this->SetValue('PV_Ueberschuss', 0);            // PV-Überschuss (W)
-//        $this->SetValue('PV_Ueberschuss_A', $minAmpere); // PV-Überschuss (A) – Minimalwert anzeigen
-        $this->SetValue('PV_Ueberschuss_A', 0);
-        $this->SetValue('Hausverbrauch_abz_Wallbox', 0); // Hausverbrauch abz. Wallbox
-        $this->SetValue('Hausverbrauch_W', 0);           // Hausverbrauch gesamt
-        $this->SetValue('Freigabe', false); // <-- explizit auf false setzen!
-        $this->SetValue('AccessStateV2', 1); // <--- explizit auf 1 = gesperrt!
-        $this->SetValue('Status', 1); // <-- Status für „kein Fahrzeug“ immer setzen!
-        $this->SetTimerNachModusUndAuto();
-        // Falls du weitere Visualisierungen hast, hier ergänzen...
-    }*/
 
     private function FahrzeugVerbunden($data)
     {
