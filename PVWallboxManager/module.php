@@ -601,7 +601,7 @@ class PVWallboxManager extends IPSModule
         $ladeFreigabeGeaendert = false;
 
         // Start-Hysterese
-        if ($ueberschussWatt >= $minLadeWatt) {
+        if ($pvUeberschuss >= $minLadeWatt) {
             $startZaehler++;
             $this->WriteAttributeInteger('LadeStartZaehler', $startZaehler);
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
@@ -617,7 +617,7 @@ class PVWallboxManager extends IPSModule
         }
 
         // ---- STOP-HYSTERESE (Laden verbieten) ----
-        if ($ueberschussWatt <= $minStopWatt) {
+        if ($pvUeberschuss <= $minStopWatt) {
             $stopZaehler++;
             $this->WriteAttributeInteger('LadeStopZaehler', $stopZaehler);
             $this->WriteAttributeInteger('LadeStartZaehler', 0);
