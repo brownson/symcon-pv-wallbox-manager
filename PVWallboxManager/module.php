@@ -601,7 +601,7 @@ class PVWallboxManager extends IPSModule
         $werte = $this->BerechnePVUeberschussKomplett($anzPhasenAlt);
 
         // Phasenumschaltung prüfen (maximale Leistung → immer 3-phasig, wenn verfügbar)
-        $phasenmodusChanged = $this->PruefeUndSetzePhasenmodus($werte['ueberschuss_w']);
+        $phasenmodusChanged = isset($werte['ueberschuss_w']) ? $this->PruefeUndSetzePhasenmodus($werte['ueberschuss_w']) : false;
 
         // Prüfen, ob sich der Phasenmodus durch Umschaltung geändert hat – dann neu berechnen!
         $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
@@ -611,32 +611,34 @@ class PVWallboxManager extends IPSModule
 
         // Maximalen Ampere-Wert aus Property holen und setzen
         $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
-        $ampChanged = $this->SetForceStateAndAmpereIfChanged(2, $maxAmp); // Liefert TRUE, wenn tatsächlich neu gesetzt
+        $ampChanged = $this->SetForceStateAndAmpereIfChanged(2, $maxAmp);
 
-        // Nur wenn Phasen oder Ampere geändert: 3s Delay + Werte erneut holen
+        // Visualisierungswerte immer robust prüfen
+        $pvUeberschuss = isset($werte['ueberschuss_w']) ? $werte['ueberschuss_w'] : 0;
+        $pvUeberschussA = isset($werte['ueberschuss_a']) ? $werte['ueberschuss_a'] : 0;
+
         if ($phasenmodusChanged || $ampChanged) {
             $this->LogTemplate('debug', "Warte 3 Sekunden auf stabilen Hausverbrauch nach Wallbox-Befehl (Manuell)...");
             IPS_Sleep(3000);
-            // Visualisierungswerte nochmal holen, damit sie konsistent sind!
+            // Visualisierungswerte nochmal holen
             $werte = $this->BerechnePVUeberschussKomplett($anzPhasenNeu);
-            if (isset($werte['ueberschuss_w']) && isset($werte['ueberschuss_a'])) {
-                $this->SetValue('PV_Ueberschuss', $werte['ueberschuss_w']);
-                $this->SetValue('PV_Ueberschuss_A', $werte['ueberschuss_a']);
-            }
-            $this->SetValueAndLogChange('Phasenmodus', $anzPhasenNeu, 'Genutzte Phasen', '', 'debug');
-        } else {
-            // Visualisierungswerte wie bisher
-            if (isset($werte['ueberschuss_w']) && isset($werte['ueberschuss_a'])) {
-                $this->SetValue('PV_Ueberschuss', $werte['ueberschuss_w']);
-                $this->SetValue('PV_Ueberschuss_A', $werte['ueberschuss_a']);
-            }
-            $this->SetValueAndLogChange('Phasenmodus', $anzPhasenNeu, 'Genutzte Phasen', '', 'debug');
+            $pvUeberschuss = isset($werte['ueberschuss_w']) ? $werte['ueberschuss_w'] : 0;
+            $pvUeberschussA = isset($werte['ueberschuss_a']) ? $werte['ueberschuss_a'] : 0;
         }
 
-        // Logging
+        $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
+        $this->SetValue('PV_Ueberschuss_A', $pvUeberschussA);
+        $this->SetValueAndLogChange('Phasenmodus', $anzPhasenNeu, 'Genutzte Phasen', '', 'debug');
+
+        // Logging (alle Felder prüfen!)
+        $logPV = isset($werte['pv']) ? $werte['pv'] : 0;
+        $logHaus = isset($werte['haus']) ? $werte['haus'] : 0;
+        $logWB = isset($werte['wallbox']) ? $werte['wallbox'] : 0;
+        $logBat = isset($werte['batterie']) ? $werte['batterie'] : 0;
+
         $this->LogTemplate(
             'ok',
-            "🔌 Manuelles Vollladen aktiv (Phasen: $anzPhasenNeu, $maxAmp A, max. Leistung auf Fahrzeug). PV={$werte['pv']} W, HausOhneWB={$werte['haus']} W, Wallbox={$werte['wallbox']} W, Batterie={$werte['batterie']} W, Überschuss={$werte['ueberschuss_w']} W / {$werte['ueberschuss_a']} A"
+            "🔌 Manuelles Vollladen aktiv (Phasen: $anzPhasenNeu, $maxAmp A, max. Leistung auf Fahrzeug). PV={$logPV} W, HausOhneWB={$logHaus} W, Wallbox={$logWB} W, Batterie={$logBat} W, Überschuss={$pvUeberschuss} W / {$pvUeberschussA} A"
         );
 
         // Timer prüfen/setzen – falls Auto abgesteckt wird, InitialCheck aktivieren
