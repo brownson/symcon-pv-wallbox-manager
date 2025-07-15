@@ -550,7 +550,6 @@ class PVWallboxManager extends IPSModule
                     $this->LogTemplate('debug', "Nach Phasenwechsel: Ladebefehl war schon korrekt (".$ampere."A).");
                 }
             }
-        }
 
         if (!$this->FahrzeugVerbunden($data)) {
             $this->ResetLademodiWennKeinFahrzeug();
