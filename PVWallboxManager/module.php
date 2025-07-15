@@ -552,12 +552,13 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeInteger('LadeStartZaehler', 0);
 
             if ($stopZaehler >= $stopHysterese && $aktFreigabe) {
-                $this->LogTemplate('warn', "Ladefreigabe: Stop-Hysterese erreicht ($stopZaehler x <= $minStopWatt W). Ladefreigabe deaktivieren.");
+                $this->LogTemplate('warn', "... Stop-Hysterese erreicht ...");
                 if ($this->GetValue('AccessStateV2') != 1) {
                     $this->SetForceState(1);
                 }
-                // Jetzt sauber zurücksetzen:
+                // Jetzt sauber zurücksetzen UND RETURN!
                 $this->ResetWallboxToMinimal();
+                return; // <-- Ohne return läuft sonst die Logik weiter!
             }
 
         $ladebefehlGesendet = false;
@@ -1345,20 +1346,13 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    private function ResetWallboxToMinimal()
+    private function ResetWallboxToMinimal() 
     {
-        $minAmp = $this->ReadPropertyInteger('MinAmpere');
-        $ok1 = $this->SetPhaseMode(1);
-        IPS_Sleep(1000); // Kurz warten für die Umschaltung
-        $ok2 = $this->SetChargingCurrent($minAmp);
-
-        if ($ok1 && $ok2) {
-            $this->LogTemplate('ok', "Wallbox auf 1-phasig & Minimalstrom ({$minAmp}A) zurückgesetzt.");
-        } else {
-            $this->LogTemplate('warn', "Fehler beim Rücksetzen auf 1-phasig & Minimalstrom ({$minAmp}A)!");
-        }
+        $this->SetPhaseMode(1); // 1-phasig
+        IPS_Sleep(1000); // für sichere Umschaltung
+        $this->SetChargingCurrent($this->ReadPropertyInteger('MinAmpere')); // meist 6A
+        $this->LogTemplate('ok', "Wallbox zurückgesetzt: 1-phasig, {$this->ReadPropertyInteger('MinAmpere')}A gesetzt.");
     }
-
 
     private function AnalysiereGoENrgArray($nrg)
     {
