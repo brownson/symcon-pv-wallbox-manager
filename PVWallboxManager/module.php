@@ -575,6 +575,7 @@ class PVWallboxManager extends IPSModule
 
         // Ladefreigabe steuern
         $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasenNeu);
+        }
     }
 
     private function ModusManuellVollladen($data)
