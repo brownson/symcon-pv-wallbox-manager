@@ -497,7 +497,8 @@ class PVWallboxManager extends IPSModule
 
         // Visualisierungswerte setzen
         $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
-        $this->SetValue('PV_Ueberschuss_A', $ampere);
+        $ampereIst = $data['amp'] ?? $ampere;
+        $this->SetValue('PV_Ueberschuss_A', $ampereIst);
 
         // Debug-Log – robust, mit Hinweis wenn Werte fehlen
         if (is_array($berechnung)) {
@@ -618,7 +619,8 @@ class PVWallboxManager extends IPSModule
         // Neue Visualisierungswerte mit Fallback, falls etwas fehlt
         $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
         $this->SetValue('PV_Ueberschuss',   $werte['ueberschuss_w'] ?? 0);
-        $this->SetValue('PV_Ueberschuss_A', $maxAmp);
+        $ampereIst = $dataNeu['amp'] ?? $maxAmp;
+        $this->SetValue('PV_Ueberschuss_A', $ampereIst);
 
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
 
