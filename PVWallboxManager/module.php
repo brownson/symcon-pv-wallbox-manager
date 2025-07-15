@@ -393,9 +393,9 @@ class PVWallboxManager extends IPSModule
 
             // Ladeberechnung für neue Phasenanzahl durchführen
             $berechnung = $this->BerechnePVUeberschuss($anzPhasenNeu);
-            $ampere = $berechnung['ueberschuss_a'];
-            $minAmp = $this->ReadPropertyInteger('MinAmpere');
-            $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+            $minAmp = intval($this->ReadPropertyInteger('MinAmpere'));
+            $maxAmp = intval($this->ReadPropertyInteger('MaxAmpere'));
+            $ampere = isset($berechnung['ueberschuss_a']) ? intval($berechnung['ueberschuss_a']) : $minAmp;
             $ampere = max($minAmp, min($maxAmp, $ampere));
             
             $this->SetForceStateAndAmpereIfChanged(2, $ampere, true);
@@ -528,6 +528,7 @@ class PVWallboxManager extends IPSModule
     {
         $minAmp = intval($this->ReadPropertyInteger('MinAmpere'));
         $maxAmp = intval($this->ReadPropertyInteger('MaxAmpere'));
+        $ampere = $minAmp; 
         
             if ($this->ReadAttributeBoolean('NachPhasenwechsel')) {
                 $this->LogTemplate('debug', "Nach Phasenwechsel: Ladebefehl wird jetzt explizit gesetzt (PVonlyLaden).");
@@ -751,6 +752,9 @@ class PVWallboxManager extends IPSModule
 
     private function ModusPV2CarLaden($data)
     {
+        $minAmp = intval($this->ReadPropertyInteger('MinAmpere'));
+        $maxAmp = intval($this->ReadPropertyInteger('MaxAmpere'));
+
         if ($this->ReadAttributeBoolean('NachPhasenwechsel')) {
             $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
             $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
@@ -759,7 +763,7 @@ class PVWallboxManager extends IPSModule
             $pv2car = $this->BerechnePV2CarLadeleistung($werte, $anteil);
             $anteilWatt = $pv2car['anteil_watt'];
             $ampere = ceil($anteilWatt / (230 * $anzPhasen));
-            $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
+            $ampere = max($minAmp, min($maxAmp, $ampere));
 
             $this->LogTemplate('debug', "Nach Phasenwechsel: Ladebefehl explizit gesendet (ForceSet: ja, Ampere: {$ampere}).");
             $this->SetForceStateAndAmpereIfChanged(2, $ampere, true);
