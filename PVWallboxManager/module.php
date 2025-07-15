@@ -470,6 +470,16 @@ class PVWallboxManager extends IPSModule
             $this->ModusManuellVollladen($data);
             return;
         }
+        // --- Rückfall auf 1-phasig und Minimalstrom nach Deaktivierung von "ManuellLaden"
+        static $letzterManuell = false;
+        $jetztManuell = $this->GetValue('ManuellLaden');
+        if (!$jetztManuell && $letzterManuell) {
+            // Wechsele auf 1-phasig und Minimalstrom!
+            $this->LogTemplate('ok', "ManuellLaden deaktiviert – zurück auf 1-phasig & Minimalstrom.");
+            $this->SetPhaseMode(1); // 1-phasig
+            $this->SetChargingCurrent($this->ReadPropertyInteger('MinAmpere')); // 6A (oder aus Property)
+        }
+        $letzterManuell = $jetztManuell;
         // 2. PV2Car-Modus (PV-Anteil laden)
         if ($this->GetValue('PV2CarModus')) {
             $this->ModusPV2CarLaden($data);
