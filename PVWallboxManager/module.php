@@ -1293,7 +1293,8 @@ class PVWallboxManager extends IPSModule
         $eventID = @$this->GetIDForIdent($eventIdent);
         $hvID = $this->ReadPropertyInteger('HausverbrauchID');
         $myVarID = $this->GetIDForIdent('Hausverbrauch_W');
-        
+        $einheit = $this->ReadPropertyString('HausverbrauchEinheit');
+
         // Vorheriges Ereignis löschen, falls ID gewechselt wurde oder Property leer
         if ($eventID && ($hvID <= 0 || @IPS_GetEvent($eventID)['TriggerVariableID'] != $hvID)) {
             IPS_DeleteEvent($eventID);
@@ -1309,8 +1310,17 @@ class PVWallboxManager extends IPSModule
                 IPS_SetEventActive($eventID, true);
                 IPS_SetName($eventID, "Aktualisiere Hausverbrauch_W");
             }
-            // Ereignis-Skript setzen (setzt die Modul-Variable bei Änderung)
-            IPS_SetEventScript($eventID, '$id = ' . $myVarID . '; SetValue($id, GetValue($_IPS[\'VARIABLE\']));');
+            // Ereignis-Skript: Einheit berücksichtigen
+            $script = <<<'EOD'
+    $wert = GetValue($_IPS['VARIABLE']);
+    $einheit = IPS_GetProperty($_IPS['INSTANCE'], 'HausverbrauchEinheit');
+    if ($einheit == 'kW') $wert *= 1000;
+    SetValue($_IPS['TARGET'], round($wert));
+    EOD;
+            // Dynamisch Instanz und Zielvariable einsetzen
+            $script = str_replace(['$_IPS[\'INSTANCE\']', '$_IPS[\'TARGET\']'], [$this->InstanceID, $myVarID], $script);
+
+            IPS_SetEventScript($eventID, $script);
         }
     }
 
