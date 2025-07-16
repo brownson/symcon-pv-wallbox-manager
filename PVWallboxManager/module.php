@@ -142,6 +142,7 @@ class PVWallboxManager extends IPSModule
         parent::ApplyChanges();
         $this->SetTimerNachModusUndAuto();
         $this->SetMarketPriceTimerZurVollenStunde();
+        $this->UpdateHausverbrauchEvent();
     }
 
     // =========================================================================
@@ -376,7 +377,7 @@ class PVWallboxManager extends IPSModule
         if ($hvEinheit == "kW") $hausverbrauch *= 1000;
         if ($invertHV) $hausverbrauch *= -1;
         $hausverbrauch = round($hausverbrauch);
-        $this->SetValue('Hausverbrauch_W', $hausverbrauch);
+//        $this->SetValue('Hausverbrauch_W', $hausverbrauch);
 
         $this->LogTemplate('debug', "UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")");
 
@@ -1152,7 +1153,7 @@ class PVWallboxManager extends IPSModule
         if ($hvEinheit == "kW") $hausverbrauch *= 1000;
         if ($invertHV) $hausverbrauch *= -1;
         $hausverbrauch = round($hausverbrauch);
-        $this->SetValue('Hausverbrauch_W', $hausverbrauch);
+//        $this->SetValue('Hausverbrauch_W', $hausverbrauch);
 
         $this->SetValue('Freigabe', false);   // explizit auf false setzen!
         $this->SetValue('AccessStateV2', 1);  // explizit auf 1 = gesperrt!
@@ -1264,6 +1265,55 @@ class PVWallboxManager extends IPSModule
         ];
     }
 
+    private function SetMarketPriceTimerZurVollenStunde()
+    {
+        // Deaktivieren, wenn Option aus
+        if (!$this->ReadPropertyBoolean('UseMarketPrices')) {
+            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
+            $this->WriteAttributeBoolean('MarketPricesActive', false);
+            return;
+        }
+
+        // Jetzt sofort einmal abrufen!
+        $this->AktualisiereMarktpreise();
+
+        // Sekunden bis zur nächsten vollen Stunde berechnen
+        $now = time();
+        $sekBisNaechsteStunde = (60 - date('i', $now)) * 60 - date('s', $now);
+        if ($sekBisNaechsteStunde <= 0) $sekBisNaechsteStunde = 3600; // Absicherung
+
+        // Timer EINMALIG auf nächsten Stundentakt setzen
+        $this->SetTimerInterval('PVWM_UpdateMarketPrices', $sekBisNaechsteStunde * 1000);
+        $this->WriteAttributeBoolean('MarketPricesActive', true);
+    }
+
+    private function UpdateHausverbrauchEvent()
+    {
+        $eventIdent = "UpdateHausverbrauchW";
+        $eventID = @$this->GetIDForIdent($eventIdent);
+        $hvID = $this->ReadPropertyInteger('HausverbrauchID');
+        $myVarID = $this->GetIDForIdent('Hausverbrauch_W');
+        
+        // Vorheriges Ereignis löschen, falls ID gewechselt wurde oder Property leer
+        if ($eventID && ($hvID <= 0 || @IPS_GetEvent($eventID)['TriggerVariableID'] != $hvID)) {
+            IPS_DeleteEvent($eventID);
+            $eventID = 0;
+        }
+        if ($hvID > 0 && IPS_VariableExists($hvID)) {
+            // Neues Ereignis anlegen, falls noch nicht vorhanden
+            if (!$eventID) {
+                $eventID = IPS_CreateEvent(0); // 0 = Trigger
+                IPS_SetIdent($eventID, $eventIdent);
+                IPS_SetParent($eventID, $this->InstanceID);
+                IPS_SetEventTrigger($eventID, 0, $hvID); // 0 = bei Änderung
+                IPS_SetEventActive($eventID, true);
+                IPS_SetName($eventID, "Aktualisiere Hausverbrauch_W");
+            }
+            // Ereignis-Skript setzen (setzt die Modul-Variable bei Änderung)
+            IPS_SetEventScript($eventID, '$id = ' . $myVarID . '; SetValue($id, GetValue($_IPS[\'VARIABLE\']));');
+        }
+    }
+
     // =========================================================================
     // 8. LOGGING / DEBUG / STATUSMELDUNGEN
     // =========================================================================
@@ -1287,28 +1337,6 @@ class PVWallboxManager extends IPSModule
             }
             IPS_LogMessage('[PVWM]', $msg);
         }
-
-    private function SetMarketPriceTimerZurVollenStunde()
-    {
-        // Deaktivieren, wenn Option aus
-        if (!$this->ReadPropertyBoolean('UseMarketPrices')) {
-            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
-            $this->WriteAttributeBoolean('MarketPricesActive', false);
-            return;
-        }
-
-        // Jetzt sofort einmal abrufen!
-        $this->AktualisiereMarktpreise();
-
-        // Sekunden bis zur nächsten vollen Stunde berechnen
-        $now = time();
-        $sekBisNaechsteStunde = (60 - date('i', $now)) * 60 - date('s', $now);
-        if ($sekBisNaechsteStunde <= 0) $sekBisNaechsteStunde = 3600; // Absicherung
-
-        // Timer EINMALIG auf nächsten Stundentakt setzen
-        $this->SetTimerInterval('PVWM_UpdateMarketPrices', $sekBisNaechsteStunde * 1000);
-        $this->WriteAttributeBoolean('MarketPricesActive', true);
-    }
 
     // =========================================================================
     // 9. BERECHNUNGEN
@@ -1387,7 +1415,7 @@ class PVWallboxManager extends IPSModule
 
         // Visualisierung
         $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', 'W', 'debug');
-        $this->SetValueAndLogChange('Hausverbrauch_W', $hausverbrauch, 'Hausverbrauch', 'W', 'debug');
+//        $this->SetValueAndLogChange('Hausverbrauch_W', $hausverbrauch, 'Hausverbrauch', 'W', 'debug');
         $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallbox, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
         $this->SetValueAndLogChange('PV_Ueberschuss_A', $ampere, 'PV-Überschuss (A)', 'A', 'debug');
 
