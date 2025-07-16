@@ -85,7 +85,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyBoolean('UseMarketPrices', false);
         $this->RegisterPropertyString('MarketPriceProvider', 'awattar_at');
         $this->RegisterPropertyString('MarketPriceAPI', '');
-//        $this->RegisterPropertyInteger('MarketPriceInterval', 30); // Minuten
 
         $this->RegisterVariableFloat('CurrentSpotPrice','Aktueller Börsenpreis (ct/kWh)',                   'PVWM.CentPerKWh', 30);
         $this->RegisterVariableString('MarketPrices', 'Börsenpreis-Vorschau', '', 31);
@@ -1220,30 +1219,6 @@ class PVWallboxManager extends IPSModule
             $this->LogTemplate('debug', "PVWM_UpdateStatus-Timer gestartet (alle $mainInterval Sekunden)");
             $this->SetTimerInterval('PVWM_InitialCheck', 0);
         }
-/*
-        $marketInterval = max(5, $this->ReadPropertyInteger('MarketPriceInterval'));
-        $newInterval = $marketInterval * 60 * 1000;
-        $active = $this->ReadPropertyBoolean('UseMarketPrices');
-
-        $lastInterval = $this->ReadAttributeInteger('MarketPricesTimerInterval');
-        $lastActive   = $this->ReadAttributeBoolean('MarketPricesActive');
-
-        // Nach Modulupdate (Timer = aus), immer wiederherstellen!
-        if ($active) {
-            if ($lastInterval != $newInterval || !$lastActive || $this->GetTimerInterval('PVWM_UpdateMarketPrices') == 0) {
-                $this->SetTimerInterval('PVWM_UpdateMarketPrices', $newInterval);
-                $this->WriteAttributeInteger('MarketPricesTimerInterval', $newInterval);
-                $this->WriteAttributeBoolean('MarketPricesActive', true);
-                $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer (gesetzt/aktiv) $newInterval ms");
-            }
-        } else {
-            if ($lastActive || $this->GetTimerInterval('PVWM_UpdateMarketPrices') != 0) {
-                $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
-                $this->WriteAttributeBoolean('MarketPricesActive', false);
-                $this->LogTemplate('debug', "PVWM_UpdateMarketPrices-Timer gestoppt");
-            }
-        }
-*/
     }
 
     private function ResetLademodiWennKeinFahrzeug()
