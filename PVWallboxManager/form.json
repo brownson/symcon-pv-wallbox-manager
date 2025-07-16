@@ -147,8 +147,6 @@
           "default": ""
         },
         { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "Der aktuelle Börsenpreis-Forecast wird automatisch in die Variable 'Marktueller-Börsenpreis' geschrieben." },
-        { "type": "Label", "label": "Die Preise werden alle X Minuten aktualisiert und können in der Lade-Logik verwendet werden." },
         {
           "type": "Label",
           "label": "Börsenpreise und Vorschau erscheinen im WebFront und werden in die Variable 'CurrentSpotPrice' geschrieben."
