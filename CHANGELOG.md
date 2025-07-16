@@ -4,7 +4,7 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 **Repository:** https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager
 
 ## [1.1b] 🚧 in Vorbereitung 🚧
-- Börsenpreise sollen zur vollen Stunde aktualisiert werden
+- Börsenpreise wird zur vollen Stunde aktualisiert
 - Hausansschluss (W) aktueller Wert wird im WF immer aktualisert angezeigt
 
 ## [1.0b] – 2025-07-13
