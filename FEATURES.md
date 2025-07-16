@@ -21,6 +21,7 @@ Hier werden geplante Features gesammelt, Community-Wünsche, Ideen und größere
 - [ ] **Weitere Lademodi und Features**
     - [ ] Zeitgesteuertes Laden (z.B. Zielzeit, günstige Börsenzeiten)
     - [x] PV2Car mit Prozentsteuerung
+      ** Umgesetzt in:** v1.0b
 
 ---
 
@@ -29,7 +30,6 @@ Hier werden geplante Features gesammelt, Community-Wünsche, Ideen und größere
 - [ ] Konfigurierbare Hysterese und Phasenumschaltung
 - [ ] Mehr Visualisierung/Logging im WebFront
 - [ ] Automatisches Reset nach Stromausfall
-- [ ] Börsenpreise sollen zur vollen Stunde + x Sekunden aktualisiert werden
+- [x] Börsenpreise sollen zur vollen Stunde aktualisiert werden
+  ** Umgesetzt in:** v1.1b
 - [ ] Wenn Auto SOC erreicht hat soll der Ladenodus auch beendet werden. Derzeit Versucht das Modul verzweifelt zu laden.
-
-
