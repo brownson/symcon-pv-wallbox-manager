@@ -30,6 +30,6 @@ Hier werden geplante Features gesammelt, Community-Wünsche, Ideen und größere
 - [ ] Mehr Visualisierung/Logging im WebFront
 - [ ] Automatisches Reset nach Stromausfall
 - [ ] Börsenpreise sollen zur vollen Stunde + x Sekunden aktualisiert werden
-
+- [ ] Wenn Auto SOC erreicht hat soll der Ladenodus auch beendet werden. Derzeit Versucht das Modul verzweifelt zu laden.
 
 
