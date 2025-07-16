@@ -29,6 +29,7 @@ Hier werden geplante Features gesammelt, Community-Wünsche, Ideen und größere
 - [ ] Konfigurierbare Hysterese und Phasenumschaltung
 - [ ] Mehr Visualisierung/Logging im WebFront
 - [ ] Automatisches Reset nach Stromausfall
+- [ ] Börsenpreise sollen zur vollen Stunde + x Sekunden aktualisiert werden
 
 
 
