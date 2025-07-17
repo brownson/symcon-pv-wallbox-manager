@@ -120,9 +120,9 @@
       "items": [
         { "type": "Label", "label": "🔋 Aktueller SoC des Fahrzeugs & 🎯 Ziel-SoC für das Fahrzeug" },
         { "type": "RowLayout", "items": [
-          { "type": "SelectVariable", "name": "CarSOCID", "caption": "Aktueller SoC (Variable)", "suffix": "%", "minimum": 0, "maximum": 100 },
+          { "type": "SelectVariable", "name": "CarSOCID", "caption": "Aktueller SoC des Fahrzeugs", "suffix": "%", "minimum": 0, "maximum": 100 },
           { "type": "Label", "caption": "    " },
-          { "type": "SelectVariable", "name": "CarTargetSOCID", "caption": "Ziel-SoC (Variable)" }
+          { "type": "SelectVariable", "name": "CarTargetSOCID", "caption": "Ziel-SoC für das Fahrzeug" }
         ]},
         { "type": "Label", "caption": "    " },
         { "type": "Label", "label": "🔋 Batteriekapazität des Fahrzeugs in kWh (z. B. 52 für ID.3 Pure):" },
