@@ -613,8 +613,11 @@ class PVWallboxManager extends IPSModule
         $ueberschuss_w = $werte['ueberschuss_w'] ?? 0;
         $ueberschuss_a = $werte['ueberschuss_a'] ?? 0;
 
-        // Phasenumschaltung prüfen (maximale Leistung → immer 3-phasig, wenn verfügbar)
-        $this->PruefeUndSetzePhasenmodus($ueberschuss_w);
+        $this->PruefeUndSetzePhasenmodus(null, true); // immer 3-phasig im Manuellen Modus
+
+
+//        // Phasenumschaltung prüfen (maximale Leistung → immer 3-phasig, wenn verfügbar)
+//        $this->PruefeUndSetzePhasenmodus($ueberschuss_w);
 //        $this->PruefeUndSetzePhasenmodus($werte['ueberschuss_w']); // Im Zweifel kann hier immer auch ein fixer hoher Wert gesetzt werden
 
         // Prüfen, ob sich der Phasenmodus durch Umschaltung geändert hat – dann neu berechnen!
@@ -963,6 +966,25 @@ class PVWallboxManager extends IPSModule
 
     private function PruefeUndSetzePhasenmodus($pvUeberschuss)
     {
+        // Sofort auf 3-phasig schalten, wenn erzwungen
+        if ($forceThreePhase) {
+            $aktModus = $this->GetValue('Phasenmodus');
+            if ($aktModus != 2) {
+                $this->SetValueAndLogChange('Phasenmodus', 2, 'Phasenumschaltung', '', 'ok');
+                $ok = $this->SetPhaseMode(2); // 2 = 3-phasig
+                if ($ok) {
+                    $this->LogTemplate('ok', "Manueller Modus: 3-phasig *erzwingend* geschaltet!");
+                } else {
+                    $this->LogTemplate('error', 'Manueller Modus: Umschalten auf 3-phasig fehlgeschlagen!');
+                }
+                // Zähler zurücksetzen
+                $this->WriteAttributeInteger('Phasen3Zaehler', 0);
+                $this->WriteAttributeInteger('Phasen1Zaehler', 0);
+            }
+            return;
+        }
+
+        // Normale Phasenumschalt-Logik
         $schwelle1 = $this->ReadPropertyInteger('Phasen1Schwelle');
         $schwelle3 = $this->ReadPropertyInteger('Phasen3Schwelle');
         $limit1    = $this->ReadPropertyInteger('Phasen1Limit');
