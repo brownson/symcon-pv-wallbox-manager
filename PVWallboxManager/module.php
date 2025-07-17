@@ -649,7 +649,7 @@ class PVWallboxManager extends IPSModule
         // Logging
         $this->LogTemplate(
             'ok',
-            "🔌 Manuelles Vollladen aktiv (Phasen: $anzPhasenNeu, $maxAmp A, max. Leistung auf Fahrzeug). PV={$werte['pv']} W, HausOhneWB={$werte['haus']} W, Wallbox={$werte['wallbox']} W, Batterie={$werte['batterie']} W, Überschuss={$werte['ueberschuss_w']} W / {$werte['ueberschuss_a']} A"
+            "🔌 Manuelles Vollladen aktiv (Phasen: $anzPhasenNeu, $maxAmp A, max. Leistung auf Fahrzeug). PV={$pv} W, HausOhneWB={$haus} W, Wallbox={$wallbox} W, Batterie={$batterie} W, Überschuss={$ueberschuss_w} W / {$ueberschuss_a} A"
         );
 
         // Timer prüfen/setzen – falls Auto abgesteckt wird, InitialCheck aktivieren
