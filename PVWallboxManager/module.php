@@ -964,7 +964,7 @@ class PVWallboxManager extends IPSModule
         }
     }
 
-    private function PruefeUndSetzePhasenmodus($pvUeberschuss)
+    private function PruefeUndSetzePhasenmodus($pvUeberschuss = null, $forceThreePhase = false)
     {
         // Sofort auf 3-phasig schalten, wenn erzwungen
         if ($forceThreePhase) {
