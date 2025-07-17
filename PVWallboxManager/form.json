@@ -118,11 +118,10 @@
       "type": "ExpansionPanel",
       "caption": "🚗 Fahrzeugdaten & Ziel-SOC",
       "items": [
-        { "type": "Label", "label": "🔋 Aktueller SoC des Fahrzeugs (Prozent, positiv):" },
+        { "type": "Label", "label": "🔋 Aktueller SoC des Fahrzeugs & 🎯 Ziel-SoC für das Fahrzeug" },
         { "type": "RowLayout", "items": [
           { "type": "SelectVariable", "name": "CarSOCID", "caption": "Aktueller SoC (Variable)", "suffix": "%", "minimum": 0, "maximum": 100 },
           { "type": "Label", "caption": "    " },
-          { "type": "Label", "label": "🎯 Ziel-SoC für das Fahrzeug (Prozent, positiv):" },
           { "type": "SelectVariable", "name": "CarTargetSOCID", "caption": "Ziel-SoC (Variable)" }
         ]},
         { "type": "Label", "caption": "    " },
