@@ -16,7 +16,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeInteger('MarketPricesTimerInterval', 0);
         $this->RegisterAttributeBoolean('MarketPricesActive', false);
 
-
         // Properties aus form.json
         $this->RegisterPropertyString('WallboxIP', '0.0.0.0');
         $this->RegisterPropertyString('WallboxAPIKey', '');
@@ -33,6 +32,11 @@ class PVWallboxManager extends IPSModule
         // Property für Hausakku SoC und Schwelle
         $this->RegisterPropertyInteger('HausakkuSOCID', 0); // VariableID für SoC des Hausakkus (Prozent)
         $this->RegisterPropertyInteger('HausakkuSOCVollSchwelle', 95); // Schwelle ab wann als „voll“ gilt (Prozent)
+
+        // Fahrzeugdaten
+        $this->RegisterPropertyInteger('CarSOCID', 0);           // Variable-ID aktueller SoC
+        $this->RegisterPropertyInteger('CarTargetSOCID', 0);     // Variable-ID Ziel-SoC
+        $this->RegisterPropertyFloat('CarBatteryCapacity', 0); // Standardwert für z.B. ID.3 Pure (52 kWh)
 
         // Hysterese-Zyklen als Properties
         $this->RegisterPropertyInteger('Phasen1Limit', 3); // z.B. 3 = nach 3x Umschalten
@@ -52,7 +56,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeInteger('LadeStopZaehler', 0);
         $this->RegisterAttributeString('HausverbrauchAbzWallboxBuffer', '[]');
         $this->RegisterAttributeFloat('HausverbrauchAbzWallboxLast', 0.0);
-
+        $this->RegisterAttributeInteger('NoPowerCounter', 0);
 
         // Variablen nach API v2
         $this->RegisterVariableInteger('Status',        'Status',                                   'PVWM.CarStatus',       1);
@@ -394,6 +398,8 @@ class PVWallboxManager extends IPSModule
             $this->ResetLademodiWennKeinFahrzeug();
             return;
         }
+
+        $this->PruefeLadeendeAutomatisch();
 
         // 1. Phasenanzahl initial ermitteln (aus Wallbox, sonst Default 1)
         $anzPhasenAlt = 1;
