@@ -1446,9 +1446,6 @@ class PVWallboxManager extends IPSModule
 
     private function ResetModiNachLadeende()
     {
-        // Merke vorherigen Zustand des Manuell-Modus!
-        $warManuell = $this->GetValue('ManuellLaden');
-
         // Hier kannst du nach Ladeende die Lademodi zurücksetzen (optional)
         $modi = ['ManuellLaden', 'PV2CarModus', 'ZielzeitLaden'];
         foreach ($modi as $modus) {
@@ -1456,11 +1453,6 @@ class PVWallboxManager extends IPSModule
                 $this->SetValue($modus, false);
                 $this->LogTemplate('debug', "Modus '$modus' wurde deaktiviert, da Ladeende erreicht.");
             }
-        }
-        // Nur wenn der Manuell-Modus VORHER aktiv war, umschalten:
-        if ($warManuell) {
-            $this->SetPhaseMode(1);
-            $this->SetValueAndLogChange('Phasenmodus', 1, 'Manueller Modus beendet: 1-phasig gesetzt', '', 'ok');
         }
     }
 
