@@ -116,6 +116,27 @@
     },
     {
       "type": "ExpansionPanel",
+      "caption": "🚗 Fahrzeugdaten & Ziel-SOC",
+      "items": [
+        { "type": "Label", "label": "📊 Fahrzeugdaten für SoC-basierte Ladesteuerung verwenden (optional)." },
+        { "type": "CheckBox", "name": "UseCarSOC", "caption": "Fahrzeugdaten berücksichtigen" },
+        { "type": "Label", "caption": "    " },
+        { "type": "Label", "label": "🔋 Aktueller SoC des Fahrzeugs (Prozent, positiv):" },
+        { "type": "RowLayout", "items": [
+          { "type": "SelectVariable", "name": "CarSOCID", "caption": "Aktueller SoC (Variable)" }
+        ]},
+        { "type": "Label", "caption": "    " },
+        { "type": "Label", "label": "🎯 Ziel-SoC für das Fahrzeug (Prozent, positiv):" },
+        { "type": "RowLayout", "items": [
+          { "type": "SelectVariable", "name": "CarTargetSOCID", "caption": "Ziel-SoC (Variable)" }
+        ]},
+        { "type": "Label", "caption": "    " },
+        { "type": "Label", "label": "🔋 Batteriekapazität des Fahrzeugs in kWh (z. B. 52 für ID.3 Pure):" },
+        { "type": "NumberSpinner", "name": "CarBatteryCapacity", "caption": "Batteriekapazität (kWh)", "suffix": "kWh" }
+      ]
+    },
+    {
+      "type": "ExpansionPanel",
       "caption": "📉 Strompreis-Börse / Forecast",
       "items": [
         {
