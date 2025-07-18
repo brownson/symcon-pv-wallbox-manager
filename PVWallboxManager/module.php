@@ -47,7 +47,14 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('StopLadeHysterese', 3);   // Zyklen Stop-Hysterese
         $this->RegisterPropertyInteger('InitialCheckInterval', 10); // 0 = deaktiviert, 5–60 Sek.
     
+        // Properties für die MQTT Konfiguration
+        $this->RegisterPropertyInteger('MQTTServer', 0);
+        $this->RegisterPropertyString('WallboxID', '0');
 
+        // Variablen für MQTT-Topics
+//        $this->RegisterVariableString('WallboxNrgString', 'go-e nrg Daten', '', 110);
+//        $this->RegisterVariableString('WallboxPsmString', 'go-e psm Daten', '', 120);
+        $this->RegisterVariableFloat('WallboxMQTTLeistung', 'Ladeleistung MQTT (W)', 'Watt', 130);
 
         // Hysterese-Zähler (werden NICHT im WebFront angezeigt)
         $this->RegisterAttributeInteger('Phasen1Zaehler', 0);
@@ -147,6 +154,7 @@ class PVWallboxManager extends IPSModule
         $this->SetTimerNachModusUndAuto();
         $this->SetMarketPriceTimerZurVollenStunde();
         $this->UpdateHausverbrauchEvent();
+
     }
 
     // =========================================================================
@@ -1796,6 +1804,31 @@ class PVWallboxManager extends IPSModule
         }
         $html .= '</div>';
         return $html;
+    }
+
+    // MQTT Konfig
+    private function SubscribeWallboxLeistungTopic()
+    {
+        $mqttID = $this->ReadPropertyInteger('MQTTServer');
+        $wbID   = trim($this->ReadPropertyString('WallboxID'));
+
+        if ($mqttID > 0 && $wbID !== '' && $wbID !== '0') {
+            @MQTTServer_Subscribe($mqttID, "go-eCharger/$wbID/nrg", $this->InstanceID);
+        }
+    }
+
+    public function ReceiveData($JSONString)
+    {
+        $data = json_decode($JSONString);
+        if (!isset($data->Topic) || !isset($data->Payload)) return;
+
+        if (strpos($data->Topic, '/nrg') !== false) {
+            $nrgArray = explode(',', $data->Payload);
+            if (count($nrgArray) > 12) {
+                $ladeleistung = floatval($nrgArray[12]);
+                SetValueFloat($this->GetIDForIdent('WallboxMQTTLeistung'), $ladeleistung);
+            }
+        }
     }
 
 }
