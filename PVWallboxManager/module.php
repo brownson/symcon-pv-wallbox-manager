@@ -1705,13 +1705,13 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('debug', "MarketPrices wurde gesetzt: " . substr(json_encode($preise), 0, 100) . "..."); // Nur die ersten Zeichen fürs Log
 
         // HTML-Vorschau speichern
-        $this->SetValue('MarketPricesPreview', $this->FormatMarketPricesPreviewHTML(12));
+        $this->SetValue('MarketPricesPreview', $this->FormatMarketPricesPreviewHTML(24));
 
         // Nur eine Logmeldung am Ende!
         $this->LogTemplate('ok', "Börsenpreise aktualisiert: Aktuell {$aktuellerPreis} ct/kWh – " . count($preise) . " Preispunkte gespeichert.");
     }
 
-    private function FormatMarketPricesPreviewHTML($max = 12)
+    private function FormatMarketPricesPreviewHTML($max = 24)
     {
         $preiseRaw = @$this->GetValue('MarketPrices');
         if (!$preiseRaw) {
