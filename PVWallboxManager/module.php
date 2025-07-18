@@ -151,7 +151,7 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
-        $this->SubscribeWallboxLeistungTopic();
+ //       $this->SubscribeWallboxLeistungTopic();
         $this->SetTimerNachModusUndAuto();
         $this->SetMarketPriceTimerZurVollenStunde();
         $this->UpdateHausverbrauchEvent();
