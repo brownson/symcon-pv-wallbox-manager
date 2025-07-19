@@ -159,7 +159,7 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
-        // Alle unterstützten Topics und ihre Zielvariablen
+ /*       // Alle unterstützten Topics und ihre Zielvariablen
         $allTopics = [
             "go-eCharger/285450/nrg" => ['ident' => 'Wallbox_nrg', 'type' => 'float', 'name' => 'Ladeleistung MQTT (W)', 'profile' => 'Watt', 'pos' => 10],
             "go-eCharger/285450/psm" => ['ident' => 'Wallbox_psm', 'type' => 'string', 'name' => 'Phasenstatus MQTT', 'profile' => '', 'pos' => 20]
@@ -188,7 +188,7 @@ class PVWallboxManager extends IPSModule
                 $this->DeleteTopicUpdateEvent($ident);
             }
         }
-
+*/
         $this->SetTimerNachModusUndAuto();
         $this->SetMarketPriceTimerZurVollenStunde();
         $this->UpdateHausverbrauchEvent();
