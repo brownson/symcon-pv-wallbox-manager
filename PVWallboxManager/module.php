@@ -1816,10 +1816,10 @@ class PVWallboxManager extends IPSModule
     // MQTT Konfig
     private function EnsureNrgUpdateEvent()
     {
-        $nrgVarID = $this->ReadPropertyInteger('WallboxNrgVarID');
+        $topic = $this->ReadPropertyString('SelectedGoETopic');
+        $nrgVarID = $this->FindeMqttVariableByTopic($topic); // Sucht die ID anhand Topic
         $eventIdent = "UpdateEvent_WallboxMQTTLeistung";
 
-        // Prüfe, ob Event schon existiert, sonst anlegen
         $eventID = @IPS_GetObjectIDByIdent($eventIdent, $this->InstanceID);
         if ($nrgVarID > 0) {
             if ($eventID === false) {
