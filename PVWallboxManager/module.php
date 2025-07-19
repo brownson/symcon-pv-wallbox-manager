@@ -426,16 +426,6 @@ class PVWallboxManager extends IPSModule
     // =========================================================================
     public function UpdateStatus(string $mode = 'pvonly')
     {
-/*        // Hausverbrauch immer aktuell setzen – auch ohne Fahrzeug!
-        $hvID = $this->ReadPropertyInteger('HausverbrauchID');
-        $hvEinheit = $this->ReadPropertyString('HausverbrauchEinheit');
-        $invertHV = $this->ReadPropertyBoolean('InvertHausverbrauch');
-        $hausverbrauch = ($hvID > 0) ? @GetValueFloat($hvID) : 0;
-        if ($hvEinheit == "kW") $hausverbrauch *= 1000;
-        if ($invertHV) $hausverbrauch *= -1;
-        $hausverbrauch = round($hausverbrauch);
-//        $this->SetValue('Hausverbrauch_W', $hausverbrauch);
-*/
         $this->LogTemplate('debug', "UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")");
 
         $data = $this->getStatusFromCharger();
@@ -453,6 +443,10 @@ class PVWallboxManager extends IPSModule
         }
 
         $this->PruefeLadeendeAutomatisch();
+        if ($this->GetValue('AccessStateV2') != 2) {
+            // Wenn nicht mehr freigegeben, KEINE weiteren Lademodi mehr ausführen!
+            return;
+        }
 
         // 1. Phasenanzahl initial ermitteln (aus Wallbox, sonst Default 1)
         $anzPhasenAlt = 1;
@@ -470,32 +464,6 @@ class PVWallboxManager extends IPSModule
             if ($anzPhasenAlt === 0) $anzPhasenAlt = 1;
         }
 
-/*        // Statuswerte holen für Visualisierung/Fallback
-        $berechnung = null;
-        $pvUeberschuss = null;
-        $ampere = null;
-        if ($this->GetValue('PV2CarModus')) {
-            $werte = $this->BerechnePVUeberschussKomplett($anzPhasenAlt); // nur für Log
-        } else {
-            $berechnung = $this->BerechnePVUeberschuss($anzPhasenAlt);
-            $pvUeberschuss = $berechnung['ueberschuss_w'];
-            $ampere        = $berechnung['ueberschuss_a'];
-        }
-
-        // --- KEINE Wallbox-Daten – Visualisierung updaten & return ---
-        // $car muss trotzdem immer gesetzt werden!
-        $car = 0;
-        if (is_array($data) && isset($data['car'])) {
-            $car = intval($data['car']);
-        }
-
-        if ($data === false) {
-            // Visualisierung zurücksetzen – immer robust!
-            $this->ResetWallboxVisualisierungKeinFahrzeug();
-            $this->LogTemplate('debug', "Wallbox nicht erreichbar – Visualisierungswerte zurückgesetzt.");
-            return;
-        }
-*/
         // Defensive Extraktion4
         $car        = (is_array($data) && isset($data['car'])) ? intval($data['car']) : 0;
         $leistung   = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
