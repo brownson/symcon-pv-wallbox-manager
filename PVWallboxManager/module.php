@@ -1841,7 +1841,8 @@ class PVWallboxManager extends IPSModule
 
     public function UpdateWallboxLeistung()
     {
-        $nrgVarID = $this->ReadPropertyInteger('WallboxNrgVarID');
+        $topic = $this->ReadPropertyString('SelectedGoETopic');
+        $nrgVarID = $this->FindeMqttVariableByTopic($topic);
         if ($nrgVarID > 0) {
             $nrgString = GetValueString($nrgVarID);
             $nrgArray = explode(',', $nrgString);
@@ -1851,5 +1852,19 @@ class PVWallboxManager extends IPSModule
             }
         }
     }
+
+    private function FindeMqttVariableByTopic($topic)
+    {
+        foreach (IPS_GetVariableList() as $varID) {
+            $obj = IPS_GetObject($varID);
+            if (isset($obj['ObjectCustomAttributes']['MQTTServer_Topic'])) {
+                if ($obj['ObjectCustomAttributes']['MQTTServer_Topic'] == $topic) {
+                    return $varID;
+                }
+            }
+        }
+        return 0;
+    }
+
 
 }

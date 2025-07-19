@@ -52,7 +52,11 @@
           { "type": "Label", "caption": "    " },
           { "type": "ValidationTextBox", "name": "WallboxID", "caption": "Wallbox ID (Seriennummer)" },
           { "type": "Label", "caption": "    " },
-          { "type": "SelectVariable", "name": "WallboxNrgVarID", "caption": "MQTT nrg Variable auswählen" }
+          { "type": "Select", "name": "SelectedGoETopic", "caption": "go-e MQTT Topic auswählen",
+              "options": [
+                { "caption": "Ladeleistung (nrg)", "value": "go-eCharger/285450/nrg" },
+                { "caption": "Phasenstatus (psm)", "value": "go-eCharger/285450/psm" }
+              ]}
         ]}
       ]
     },
