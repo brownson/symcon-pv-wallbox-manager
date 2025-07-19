@@ -290,8 +290,8 @@ class PVWallboxManager extends IPSModule
 
     public function RequestAction($Ident, $Value)
     {
-/*        switch ($Ident) {
-            case "Wallbox_nrg":
+        switch ($Ident) {
+/*            case "Wallbox_nrg":
                 $this->UpdateWallboxLeistung();
                 break;
             case 'Wallbox_psm':
