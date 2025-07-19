@@ -52,7 +52,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyString('WallboxID', '0');
 
         // Variablen für MQTT-Topics
-        $this->RegisterPropertyInteger('WallboxNrgVarID', 0);
+        $this->RegisterPropertyString('SelectedGoETopic', 'go-eCharger/285450/nrg');
+
 //        $this->RegisterVariableString('WallboxNrgString', 'go-e nrg Daten', '', 110);
 //        $this->RegisterVariableString('WallboxPsmString', 'go-e psm Daten', '', 120);
         $this->RegisterVariableFloat('WallboxMQTTLeistung', 'Ladeleistung MQTT (W)', 'Watt', 130);
