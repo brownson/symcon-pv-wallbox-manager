@@ -151,7 +151,7 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
- //       $this->SubscribeWallboxLeistungTopic();
+         $this->SubscribeWallboxLeistungTopic(); 
         $this->SetTimerNachModusUndAuto();
         $this->SetMarketPriceTimerZurVollenStunde();
         $this->UpdateHausverbrauchEvent();
@@ -1812,7 +1812,9 @@ class PVWallboxManager extends IPSModule
         $mqttID = $this->ReadPropertyInteger('MQTTServer');
         $wbID   = trim($this->ReadPropertyString('WallboxID'));
 
+        // Nur abonnieren, wenn MQTT-Server gesetzt und WallboxID plausibel
         if ($mqttID > 0 && $wbID !== '' && $wbID !== '0') {
+            // Diese Methode ist NUR in Modulen korrekt! Sonst Fehler!
             @MQTTServer_Subscribe($mqttID, "go-eCharger/$wbID/nrg", $this->InstanceID);
         }
     }
@@ -1826,7 +1828,8 @@ class PVWallboxManager extends IPSModule
             $nrgArray = explode(',', $data->Payload);
             if (count($nrgArray) > 12) {
                 $ladeleistung = floatval($nrgArray[12]);
-                SetValueFloat($this->GetIDForIdent('WallboxMQTTLeistung'), $ladeleistung);
+                // Korrekte Methode im Modul-Kontext!
+                $this->SetValue('WallboxMQTTLeistung', $ladeleistung);
             }
         }
     }
