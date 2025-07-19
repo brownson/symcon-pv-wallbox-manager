@@ -52,6 +52,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyString('WallboxID', '0');
 
         // Variablen für MQTT-Topics
+        $this->RegisterPropertyInteger('WallboxNrgVarID', 0);
 //        $this->RegisterVariableString('WallboxNrgString', 'go-e nrg Daten', '', 110);
 //        $this->RegisterVariableString('WallboxPsmString', 'go-e psm Daten', '', 120);
         $this->RegisterVariableFloat('WallboxMQTTLeistung', 'Ladeleistung MQTT (W)', 'Watt', 130);
@@ -151,7 +152,7 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
-         $this->SubscribeWallboxLeistungTopic(); 
+        $this->EnsureNrgUpdateEvent();
         $this->SetTimerNachModusUndAuto();
         $this->SetMarketPriceTimerZurVollenStunde();
         $this->UpdateHausverbrauchEvent();
@@ -254,9 +255,14 @@ class PVWallboxManager extends IPSModule
     public function RequestAction($Ident, $Value)
     {
         switch ($Ident) {
+            case "UpdateLeistung":
+                $this->UpdateWallboxLeistung();
+                break;
+
             case "UpdateStatus":
                 $this->UpdateStatus($Value);
                 break;
+
             case "UpdateMarketPrices":
                 $this->AktualisiereMarktpreise();
                 $this->SetTimerInterval('PVWM_UpdateMarketPrices', 3600000);
@@ -1807,28 +1813,40 @@ class PVWallboxManager extends IPSModule
     }
 
     // MQTT Konfig
-    private function SubscribeWallboxLeistungTopic()
+    private function EnsureNrgUpdateEvent()
     {
-        $mqttID = $this->ReadPropertyInteger('MQTTServer');
-        $wbID   = trim($this->ReadPropertyString('WallboxID'));
+        $nrgVarID = $this->ReadPropertyInteger('WallboxNrgVarID');
+        $eventIdent = "UpdateEvent_WallboxMQTTLeistung";
 
-        // Nur abonnieren, wenn MQTT-Server gesetzt und WallboxID plausibel
-        if ($mqttID > 0 && $wbID !== '' && $wbID !== '0') {
-            // Diese Methode ist NUR in Modulen korrekt! Sonst Fehler!
-            @MQTTServer_Subscribe($mqttID, "go-eCharger/$wbID/nrg", $this->InstanceID);
+        // Prüfe, ob Event schon existiert, sonst anlegen
+        $eventID = @IPS_GetObjectIDByIdent($eventIdent, $this->InstanceID);
+        if ($nrgVarID > 0) {
+            if ($eventID === false) {
+                $eventID = IPS_CreateEvent(0); // 0 = Bei Variablenänderung
+                IPS_SetParent($eventID, $this->InstanceID);
+                IPS_SetName($eventID, "Aktualisiere Ladeleistung bei nrg-Änderung");
+                IPS_SetIdent($eventID, $eventIdent);
+                IPS_SetEventTrigger($eventID, 1, $nrgVarID); // 1 = Bei Änderung
+                IPS_SetEventActive($eventID, true);
+                IPS_SetEventScript($eventID, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateLeistung", "");');
+            } else {
+                IPS_SetEventTrigger($eventID, 1, $nrgVarID);
+            }
+        } else {
+            if ($eventID !== false) {
+                IPS_DeleteEvent($eventID);
+            }
         }
     }
 
-    public function ReceiveData($JSONString)
+    public function UpdateWallboxLeistung()
     {
-        $data = json_decode($JSONString);
-        if (!isset($data->Topic) || !isset($data->Payload)) return;
-
-        if (strpos($data->Topic, '/nrg') !== false) {
-            $nrgArray = explode(',', $data->Payload);
+        $nrgVarID = $this->ReadPropertyInteger('WallboxNrgVarID');
+        if ($nrgVarID > 0) {
+            $nrgString = GetValueString($nrgVarID);
+            $nrgArray = explode(',', $nrgString);
             if (count($nrgArray) > 12) {
                 $ladeleistung = floatval($nrgArray[12]);
-                // Korrekte Methode im Modul-Kontext!
                 $this->SetValue('WallboxMQTTLeistung', $ladeleistung);
             }
         }

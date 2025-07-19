@@ -50,7 +50,9 @@
         { "type": "RowLayout", "items": [
           { "type": "SelectInstance", "name": "MQTTServer", "caption": "MQTT Server Instanz", "validParentTypes": ["{A2A93E16-F7B0-47C6-97FE-A3C8ABCF8C1D}"] },
           { "type": "Label", "caption": "    " },
-          { "type": "ValidationTextBox", "name": "WallboxID", "caption": "Wallbox ID (Seriennummer)" }
+          { "type": "ValidationTextBox", "name": "WallboxID", "caption": "Wallbox ID (Seriennummer)" },
+          { "type": "Label", "caption": "    " },
+          { "type": "SelectVariable", "name": "WallboxNrgVarID", "caption": "MQTT nrg Variable auswählen" }
         ]}
       ]
     },
