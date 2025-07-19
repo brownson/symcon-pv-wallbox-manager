@@ -51,12 +51,7 @@
           { "type": "SelectInstance", "name": "MQTTServer", "caption": "MQTT Server Instanz", "validParentTypes": ["{A2A93E16-F7B0-47C6-97FE-A3C8ABCF8C1D}"] },
           { "type": "Label", "caption": "    " },
           { "type": "ValidationTextBox", "name": "WallboxID", "caption": "Wallbox ID (Seriennummer)" },
-          { "type": "Label", "caption": "    " },
-          { "type": "Select", "name": "SelectedGoETopic", "caption": "Anzuzeigende MQTT Topics auswählen", "multiple": true, 
-              "options": [
-                { "caption": "Ladeleistung (nrg)", "value": "go-eCharger/285450/nrg" },
-                { "caption": "Phasenstatus (psm)", "value": "go-eCharger/285450/psm" }
-              ]}
+          { "type": "Label", "caption": "    " }
         ]}
       ]
     },

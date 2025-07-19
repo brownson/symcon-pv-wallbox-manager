@@ -49,14 +49,20 @@ class PVWallboxManager extends IPSModule
     
         // Properties für die MQTT Konfiguration
         $this->RegisterPropertyInteger('MQTTServer', 0);
-        $this->RegisterPropertyString('WallboxID', '0');
+        $this->RegisterPropertyString('WallboxID', '');
+
 
         // Variablen für MQTT-Topics
-        $this->RegisterPropertyString('SelectedGoETopic', 'go-eCharger/285450/nrg');
+        //$this->RegisterPropertyString('SelectedGoETopic', 'go-eCharger/285450/nrg');
+//        $this->RegisterPropertyString('ActiveGoETopics', '[]');
+//        $this->RegisterPropertyString('SelectedGoETopic', '[]');
+
 
 //        $this->RegisterVariableString('WallboxNrgString', 'go-e nrg Daten', '', 110);
 //        $this->RegisterVariableString('WallboxPsmString', 'go-e psm Daten', '', 120);
-        $this->RegisterVariableFloat('WallboxMQTTLeistung', 'Ladeleistung MQTT (W)', 'Watt', 130);
+//        $this->RegisterVariableFloat('WallboxMQTTLeistung', 'Ladeleistung MQTT (W)', 'Watt', 130);
+//        $this->RegisterVariableFloat('Wallbox_nrg', 'Ladeleistung MQTT (W)', 'Watt', 130);
+//        $this->RegisterVariableString('Wallbox_psm', 'Phasenstatus MQTT', '', 140);
 
         // Hysterese-Zähler (werden NICHT im WebFront angezeigt)
         $this->RegisterAttributeInteger('Phasen1Zaehler', 0);
@@ -284,14 +290,14 @@ class PVWallboxManager extends IPSModule
 
     public function RequestAction($Ident, $Value)
     {
-        switch ($Ident) {
+/*        switch ($Ident) {
             case "Wallbox_nrg":
                 $this->UpdateWallboxLeistung();
                 break;
             case 'Wallbox_psm':
             $this->UpdateWallboxPsm();
             break;
-
+*/
             case "UpdateStatus":
                 $this->UpdateStatus($Value);
                 break;
@@ -1844,7 +1850,7 @@ class PVWallboxManager extends IPSModule
         $html .= '</div>';
         return $html;
     }
-
+/*
     // MQTT Konfig
     private function EnsureNrgUpdateEvent()
     {
@@ -1944,5 +1950,5 @@ class PVWallboxManager extends IPSModule
         }
         return 0;
     }
-
+*/
 }
