@@ -501,7 +501,7 @@ class PVWallboxManager extends IPSModule
         $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
         $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
         $hausOhneWB = $werte['hausOhneWB'] ?? 0;
-        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausOhneWB, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
+////        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausOhneWB, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
 
         $this->UpdateStatusAnzeige();
     }

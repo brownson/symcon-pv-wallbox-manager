@@ -34,4 +34,4 @@ Hier werden geplante Features gesammelt, Community-Wünsche, Ideen und größere
       **Umgesetzt in: v1.1b**
 - [x] Wenn Auto SOC erreicht hat soll der Ladenodus auch beendet werden. Derzeit Versucht das Modul verzweifelt zu laden.
 - [x] Status-Ino Anzige im Webfront (Lademodi, Phasensstatus, Status, Modus)
-- [ ] Status-Ino Anzige im Webfront erweitern um PV-Antiel in (%)
+- [x] Status-Ino Anzige im Webfront erweitern um PV-Antiel in (%)
