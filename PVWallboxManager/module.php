@@ -1731,12 +1731,12 @@ class PVWallboxManager extends IPSModule
 
         // Rückgabe für die Steuerlogik
         return [
-            'pv'             => $pv,
+            'pv'             => round($pv),
 ////            'haus'           => $hausverbrauchAbzWallbox,   // oder ggf. $hausverbrauch, wenn OHNE Wallbox geliefert wird!
-            'haus'           => $hausverbrauchGefiltert,
-            'wallbox'        => $ladeleistung,
-            'batterie'       => $batterieladung,
-            'ueberschuss_w'  => $pvUeberschuss,
+            'haus'           => round($hausverbrauchGefiltert),
+            'wallbox'        => round($ladeleistung),
+            'batterie'       => round($batterieladung),
+            'ueberschuss_w'  => round($pvUeberschuss),
             'ueberschuss_a'  => $ampere,
             'phasenmodus'    => $anzPhasen
         ];
