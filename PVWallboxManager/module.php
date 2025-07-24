@@ -513,22 +513,26 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        if (
-            !$this->GetValue('ManuellLaden') &&
-            !$this->GetValue('PV2CarModus') &&
-            !$this->GetValue('ZielzeitLaden')
-        ) {
-            // Prüfe, ob Werte bereits gesetzt, um unnötige API-Aufrufe zu vermeiden
-            if ($this->GetValue('PhasenmodusEinstellung') != 1) {
-                $this->SetPhaseMode(1); // 1-phasig
-            }
-            if ($this->GetValue('Ampere') != 6) {
-                $this->SetChargingCurrent(6); // 6A
-            }
-//            if ($this->GetValue('PV_Ueberschuss_A') != 0) {
-//                $this->SetValue('PV_Ueberschuss_A', 0); // für Visualisierung
-//            }
-            $this->LogTemplate('ok', "PVonly: Wallbox auf 1-phasig / 6A / 0A gesetzt (Grundzustand PVonly).");
+        $logParts = [];
+        $changed = false;
+
+        if ($this->GetValue('PhasenmodusEinstellung') != 1) {
+            $this->SetPhaseMode(1); // 1-phasig
+            $changed = true;
+            $logParts[] = "Phasenmodus auf 1-phasig";
+        }
+        if ($this->GetValue('Ampere') != 6) {
+            $this->SetChargingCurrent(6); // 6A
+            $changed = true;
+            $logParts[] = "Ampere auf 6A";
+        }
+        // KEIN SetValue('PV_Ueberschuss_A', 0) mehr hier!
+
+        if ($changed) {
+            $msg = "PVonly: Wallbox ";
+            $msg .= implode(', ', $logParts);
+            $msg .= " gesetzt (Grundzustand PVonly).";
+            $this->LogTemplate('ok', $msg);
         }
 
         // --- Überschuss neu berechnen (nach eventueller Phasenumschaltung) ---
