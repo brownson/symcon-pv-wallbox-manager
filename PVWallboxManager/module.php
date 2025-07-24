@@ -994,6 +994,10 @@ class PVWallboxManager extends IPSModule
 
     private function PruefeUndSetzePhasenmodus($pvUeberschuss = null, $forceThreePhase = false)
     {
+        $umschaltCooldown = 30; // Cooldown in Sekunden
+        $letzteUmschaltung = $this->ReadAttributeInteger('LetztePhasenUmschaltung');
+        $now = time();
+
         // Sofort auf 3-phasig schalten, wenn erzwungen
         if ($forceThreePhase) {
             $aktModus = $this->GetValue('Phasenmodus');
@@ -1005,10 +1009,18 @@ class PVWallboxManager extends IPSModule
                 } else {
                     $this->LogTemplate('error', 'Manueller Modus: Umschalten auf 3-phasig fehlgeschlagen!');
                 }
-                // Zähler zurücksetzen
+                // Zähler & Zeit zurücksetzen
                 $this->WriteAttributeInteger('Phasen3Zaehler', 0);
                 $this->WriteAttributeInteger('Phasen1Zaehler', 0);
+                $this->WriteAttributeInteger('LetztePhasenUmschaltung', $now);
             }
+            return;
+        }
+
+        // Umschaltpause beachten
+        if (($now - $letzteUmschaltung) < $umschaltCooldown) {
+            $rest = $umschaltCooldown - ($now - $letzteUmschaltung);
+            $this->LogTemplate('debug', "Phasenumschaltung: Cooldown aktiv, noch $rest Sekunden warten.");
             return;
         }
 
@@ -1019,23 +1031,24 @@ class PVWallboxManager extends IPSModule
         $limit3    = $this->ReadPropertyInteger('Phasen3Limit');
         $aktModus  = $this->GetValue('Phasenmodus');
 
-        // === Auf 3-phasig umschalten, wenn Überschuss oft genug überschritten ===
+        // === Auf 3-phasig umschalten ===
         if ($pvUeberschuss >= $schwelle3 && $aktModus != 2) {
             $zaehler = $this->ReadAttributeInteger('Phasen3Zaehler') + 1;
             $this->WriteAttributeInteger('Phasen3Zaehler', $zaehler);
-            $this->WriteAttributeInteger('Phasen1Zaehler', 0); // Anderen Zähler resetten
+            $this->WriteAttributeInteger('Phasen1Zaehler', 0);
 
             $this->LogTemplate('debug', "Phasen-Hysterese: $zaehler/$limit3 Zyklen > Schwelle3");
             if ($zaehler >= $limit3) {
                 $this->SetValueAndLogChange('Phasenmodus', 2, 'Phasenumschaltung', '', 'ok');
-                $ok = $this->SetPhaseMode(2); // Wallbox: 2 = 3-phasig
+                $ok = $this->SetPhaseMode(2); // 2 = 3-phasig
                 if (!$ok) $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 3-phasig fehlgeschlagen!');
-                $this->WriteAttributeInteger('Phasen3Zaehler', 0); // Zähler zurücksetzen!
+                $this->WriteAttributeInteger('Phasen3Zaehler', 0);
+                $this->WriteAttributeInteger('LetztePhasenUmschaltung', $now);
             }
             return;
         }
 
-        // === Auf 1-phasig umschalten, wenn Überschuss oft genug unterschritten ===
+        // === Auf 1-phasig umschalten ===
         if ($pvUeberschuss <= $schwelle1 && $aktModus != 1) {
             $zaehler = $this->ReadAttributeInteger('Phasen1Zaehler') + 1;
             $this->WriteAttributeInteger('Phasen1Zaehler', $zaehler);
@@ -1044,9 +1057,10 @@ class PVWallboxManager extends IPSModule
             $this->LogTemplate('debug', "Phasen-Hysterese: $zaehler/$limit1 Zyklen < Schwelle1");
             if ($zaehler >= $limit1) {
                 $this->SetValueAndLogChange('Phasenmodus', 1, 'Phasenumschaltung', '', 'warn');
-                $ok = $this->SetPhaseMode(1); // Wallbox: 1 = 1-phasig
+                $ok = $this->SetPhaseMode(1); // 1 = 1-phasig
                 if (!$ok) $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 1-phasig fehlgeschlagen!');
-                $this->WriteAttributeInteger('Phasen1Zaehler', 0); // Zähler zurücksetzen!
+                $this->WriteAttributeInteger('Phasen1Zaehler', 0);
+                $this->WriteAttributeInteger('LetztePhasenUmschaltung', $now);
             }
             return;
         }
