@@ -1436,6 +1436,36 @@ class PVWallboxManager extends IPSModule
 
             IPS_SetEventScript($eventID, $script);
         }
+
+        // === Event 2: Hausverbrauch_abz_Wallbox aktualisieren ===
+        $eventIdent2 = "UpdateHausverbrauchAbzWallbox";
+        $eventID2 = @$this->GetIDForIdent($eventIdent2);
+        $myVarID2 = $this->GetIDForIdent('Hausverbrauch_abz_Wallbox');
+        $srcVarID = $this->GetIDForIdent('Hausverbrauch_W');
+
+        // Vorheriges Folge-Ereignis löschen, falls nicht korrekt verknüpft
+        if ($eventID2 && (@IPS_GetEvent($eventID2)['TriggerVariableID'] != $srcVarID)) {
+            IPS_DeleteEvent($eventID2);
+            $eventID2 = 0;
+        }
+        if ($srcVarID > 0 && IPS_VariableExists($srcVarID)) {
+            if (!$eventID2) {
+                $eventID2 = IPS_CreateEvent(0); // Trigger
+                IPS_SetIdent($eventID2, $eventIdent2);
+                IPS_SetParent($eventID2, $this->InstanceID);
+                IPS_SetEventTrigger($eventID2, 0, $srcVarID);
+                IPS_SetEventActive($eventID2, true);
+                IPS_SetName($eventID2, "Aktualisiere Hausverbrauch_abz_Wallbox");
+            }
+            // Ereignis-Skript für den Abzug
+            $script2 = <<<'EOD'
+    $hv = GetValue($_IPS['VARIABLE']);
+    $wb = GetValue(IPS_GetObjectIDByIdent('Leistung', $_IPS['INSTANCE']));
+    SetValue(IPS_GetObjectIDByIdent('Hausverbrauch_abz_Wallbox', $_IPS['INSTANCE']), round($hv - $wb));
+    EOD;
+            $script2 = str_replace(['$_IPS[\'INSTANCE\']'], [$this->InstanceID], $script2);
+            IPS_SetEventScript($eventID2, $script2);
+        }
     }
 
     private function PruefeLadeendeAutomatisch()
