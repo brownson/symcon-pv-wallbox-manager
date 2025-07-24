@@ -1048,6 +1048,7 @@ class PVWallboxManager extends IPSModule
                 $ok = $this->SetPhaseMode(2); // 2 = 3-phasig
                 if (!$ok) $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 3-phasig fehlgeschlagen!');
                 $this->WriteAttributeInteger('Phasen3Zaehler', 0);
+                $this->WriteAttributeInteger('Phasen1Zaehler', 0);
                 $this->WriteAttributeInteger('LetztePhasenUmschaltung', $now);
             }
             return;
@@ -1064,6 +1065,7 @@ class PVWallboxManager extends IPSModule
                 $this->SetValueAndLogChange('Phasenmodus', 1, 'Phasenumschaltung', '', 'warn');
                 $ok = $this->SetPhaseMode(1); // 1 = 1-phasig
                 if (!$ok) $this->LogTemplate('error', 'PruefeUndSetzePhasenmodus: Umschalten auf 1-phasig fehlgeschlagen!');
+                $this->WriteAttributeInteger('Phasen3Zaehler', 0);
                 $this->WriteAttributeInteger('Phasen1Zaehler', 0);
                 $this->WriteAttributeInteger('LetztePhasenUmschaltung', $now);
             }
@@ -1071,8 +1073,8 @@ class PVWallboxManager extends IPSModule
         }
 
         // Kein Umschaltgrund: Zähler zurücksetzen
-        $this->WriteAttributeInteger('Phasen3Zaehler', 0);
-        $this->WriteAttributeInteger('Phasen1Zaehler', 0);
+////        $this->WriteAttributeInteger('Phasen3Zaehler', 0);
+////        $this->WriteAttributeInteger('Phasen1Zaehler', 0);
     }
 
     private function SteuerungLadefreigabe($pvUeberschuss, $modus = 'pvonly', $ampere = 0, $anzPhasen = 1)
