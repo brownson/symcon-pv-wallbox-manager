@@ -472,7 +472,14 @@ class PVWallboxManager extends IPSModule
 
         $this->PruefeLadeendeAutomatisch();
         if ($this->GetValue('AccessStateV2') != 2) {
-            // Wenn nicht mehr freigegeben, KEINE weiteren Lademodi mehr ausführen!
+            // Nach allen Modus-Funktionen und vor $this->UpdateStatusAnzeige()
+            $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
+            $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
+            // Absicherung gegen fehlende Keys
+            $hausOhneWB = $werte['hausOhneWB'] ?? 0;
+            $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausOhneWB, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
+
+            $this->UpdateStatusAnzeige();
             return;
         }
 
@@ -488,15 +495,6 @@ class PVWallboxManager extends IPSModule
         }
         // 3. PVonly-Modus: komplett ausgelagert
         $this->ModusPVonlyLaden($data, $anzPhasenAlt, $mode);
-
-        // Nach allen Modus-Funktionen und vor $this->UpdateStatusAnzeige()
-        $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
-        $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
-        // Absicherung gegen fehlende Keys
-        $hausOhneWB = $werte['hausOhneWB'] ?? 0;
-        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausOhneWB, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
-
-        $this->UpdateStatusAnzeige();
     }
 
     private function ModusPVonlyLaden($data, $anzPhasenAlt, $mode = 'pvonly')
