@@ -1003,13 +1003,6 @@ class PVWallboxManager extends IPSModule
         }
         $now = time();
 
-        // Umschaltpause beachten (ZÄHLER NICHT ÄNDERN IM COOLDOWN!)
-        if (($now - $letzteUmschaltung) < $umschaltCooldown) {
-            $rest = $umschaltCooldown - ($now - $letzteUmschaltung);
-            $this->LogTemplate('debug', "Phasenumschaltung: Cooldown aktiv, noch $rest Sekunden warten.");
-            return;
-        }
-
         // Sofort auf 3-phasig schalten, wenn erzwungen
         if ($forceThreePhase) {
             $aktModus = $this->GetValue('Phasenmodus');
@@ -1044,7 +1037,8 @@ class PVWallboxManager extends IPSModule
         $aktModus  = $this->GetValue('Phasenmodus');
 
         // === Auf 3-phasig umschalten ===
-        if ($pvUeberschuss >= $schwelle3 && $aktModus != 2) {
+////        if ($pvUeberschuss >= $schwelle3 && $aktModus != 2) {
+        if ($aktModus == 1 && $pvUeberschuss >= $schwelle3) {
             $zaehler = $this->ReadAttributeInteger('Phasen3Zaehler') + 1;
             $this->WriteAttributeInteger('Phasen3Zaehler', $zaehler);
             $this->WriteAttributeInteger('Phasen1Zaehler', 0);
@@ -1062,7 +1056,8 @@ class PVWallboxManager extends IPSModule
         }
 
         // === Auf 1-phasig umschalten ===
-        if ($pvUeberschuss <= $schwelle1 && $aktModus != 1) {
+////        if ($pvUeberschuss <= $schwelle1 && $aktModus != 1) {
+        if ($aktModus == 2 && $pvUeberschuss <= $schwelle1) {
             $zaehler = $this->ReadAttributeInteger('Phasen1Zaehler') + 1;
             $this->WriteAttributeInteger('Phasen1Zaehler', $zaehler);
             $this->WriteAttributeInteger('Phasen3Zaehler', 0);
