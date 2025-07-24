@@ -47,23 +47,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('StopLadeHysterese', 3);   // Zyklen Stop-Hysterese
         $this->RegisterPropertyInteger('InitialCheckInterval', 10); // 0 = deaktiviert, 5–60 Sek.
     
-        // Properties für die MQTT Konfiguration
-        $this->RegisterPropertyInteger('MQTTServer', 0);
-        $this->RegisterPropertyString('WallboxID', '');
-
-
-        // Variablen für MQTT-Topics
-        //$this->RegisterPropertyString('SelectedGoETopic', 'go-eCharger/285450/nrg');
-//        $this->RegisterPropertyString('ActiveGoETopics', '[]');
-//        $this->RegisterPropertyString('SelectedGoETopic', '[]');
-
-
-//        $this->RegisterVariableString('WallboxNrgString', 'go-e nrg Daten', '', 110);
-//        $this->RegisterVariableString('WallboxPsmString', 'go-e psm Daten', '', 120);
-//        $this->RegisterVariableFloat('WallboxMQTTLeistung', 'Ladeleistung MQTT (W)', 'Watt', 130);
-//        $this->RegisterVariableFloat('Wallbox_nrg', 'Ladeleistung MQTT (W)', 'Watt', 130);
-//        $this->RegisterVariableString('Wallbox_psm', 'Phasenstatus MQTT', '', 140);
-
         // Hysterese-Zähler (werden NICHT im WebFront angezeigt)
         $this->RegisterAttributeInteger('Phasen1Zaehler', 0);
         $this->RegisterAttributeInteger('Phasen3Zaehler', 0);
@@ -145,6 +128,9 @@ class PVWallboxManager extends IPSModule
         IPS_SetIcon($this->GetIDForIdent('PhasenmodusEinstellung'), 'Lightning');
         $this->RegisterVariableInteger('Phasenmodus', 'Genutzte Phasen', '', 51);
         IPS_SetIcon($this->GetIDForIdent('Phasenmodus'), 'Lightning');
+
+        $this->RegisterVariableString('StatusInfo', 'ℹ️ Status-Info', '~HTMLBox', 70);
+
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
@@ -465,6 +451,8 @@ class PVWallboxManager extends IPSModule
         }
         // 3. PVonly-Modus: komplett ausgelagert
         $this->ModusPVonlyLaden($data, $anzPhasenAlt, $mode);
+
+        $this->UpdateStatusAnzeige();
     }
 
     private function ModusPVonlyLaden($data, $anzPhasenAlt, $mode = 'pvonly')
@@ -1422,6 +1410,52 @@ class PVWallboxManager extends IPSModule
                 $this->LogTemplate('debug', "Modus '$modus' wurde deaktiviert, da Ladeende erreicht.");
             }
         }
+    }
+
+    private function UpdateStatusAnzeige()
+    {
+        // Lademodus-Text
+        $modus = '☀️ PVonly (nur PV-Überschuss)';
+        if ($this->GetValue('ManuellLaden'))   $modus = '🔌 Manuell: Vollladen';
+        elseif ($this->GetValue('PV2CarModus')) $modus = '🌞 PV-Anteil laden';
+        elseif ($this->GetValue('ZielzeitLaden')) $modus = '⏰ Zielzeitladung';
+
+        // Phasen-Einstellung (Soll, von Wallbox)
+        $psmSoll = $this->GetValue('PhasenmodusEinstellung');
+        $psmSollTxt = ['Auto', '1-phasig', '3-phasig'][$psmSoll] ?? $psmSoll;
+
+        // Tatsächlich genutzt (gemessen)
+        $psmIst  = $this->GetValue('Phasenmodus');
+        $psmIstTxt = "{$psmIst}-phasig";
+
+        // Fahrzeugstatus & Ladefreigabe
+        $status = $this->GetValue('Status');
+        $statusTxt = [
+            0 => 'Unbekannt',
+            1 => 'Bereit, kein Fahrzeug',
+            2 => 'Fahrzeug lädt',
+            3 => 'Warte auf Fahrzeug',
+            4 => 'Ladung beendet, Fahrzeug noch verbunden',
+            5 => 'Fehler'
+        ][$status] ?? $status;
+
+        $frc = $this->GetValue('AccessStateV2');
+        $frcTxt = [
+            0 => 'Neutral',
+            1 => 'Nicht Laden (gesperrt)',
+            2 => 'Laden (freigegeben)'
+        ][$frc] ?? $frc;
+
+        // Zusammenbauen mit Icons
+        $html = '<div style="font-size:15px; line-height:1.7em;">';
+        $html .= "<b>Lademodus:</b> $modus<br>";
+        $html .= "<b>Phasen Wallbox-Einstellung:</b> $psmSollTxt<br>";
+        $html .= "<b>Genutzte Phasen (Fahrzeug):</b> $psmIstTxt<br>";
+        $html .= "<b>Status:</b> $statusTxt<br>";
+        $html .= "<b>Wallbox Modus:</b> $frcTxt";
+        $html .= '</div>';
+
+        SetValue($this->GetIDForIdent('StatusInfo'), $html);
     }
 
     // =========================================================================
