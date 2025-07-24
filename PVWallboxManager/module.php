@@ -934,17 +934,15 @@ class PVWallboxManager extends IPSModule
         $ip = $this->ReadPropertyString('WallboxIP');
         $apiKey = $this->ReadPropertyString('WallboxAPIKey');
         $alwValue = $enabled ? 1 : 0;
-
         $statusText = $enabled ? "Laden erlaubt" : "Laden gesperrt";
 
+        // Offizieller Weg: mit oder ohne API-Key
         if ($apiKey != '') {
-            // Offizieller Weg: mit API-Key
             $url = "http://$ip/api/set?dwo=0&alw=$alwValue&key=" . urlencode($apiKey);
-            $this->LogTemplate('info', "SetChargingEnabled: Sende (API-Key) Ladefreigabe '$statusText' ($alwValue) an $url");
+            $this->LogTemplate('info', "SetChargingEnabled: Sende Ladefreigabe '$statusText' ($alwValue) mit API-Key an $url");
         } else {
-            // Inoffizieller Weg: MQTT-Shortcut
-            $url = "http://$ip/mqtt?payload=alw=$alwValue";
-            $this->LogTemplate('info', "SetChargingEnabled: Sende (MQTT) Ladefreigabe '$statusText' ($alwValue) an $url");
+            $url = "http://$ip/api/set?dwo=0&alw=$alwValue";
+            $this->LogTemplate('info', "SetChargingEnabled: Sende Ladefreigabe '$statusText' ($alwValue) an $url");
         }
 
         $response = $this->simpleCurlGet($url);

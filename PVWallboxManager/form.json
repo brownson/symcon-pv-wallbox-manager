@@ -44,14 +44,6 @@
           { "type": "NumberSpinner", "name": "MinStopWatt", "caption": "Stop bei fehlendem PV-Überschuss (W)", "icon": "Pause" },
           { "type": "Label", "caption": "    " },
           { "type": "NumberSpinner", "name": "StopLadeHysterese", "caption": "Stop-Hysterese (Zyklen)", "suffix": "Zyklen", "default": 0, "minimum": 0, "maximum": 10, "icon": "Repeat" }
-        ]},
-        { "type": "Label", "caption": "    " },
-        { "type": "Label", "label": "MQTT Server" },
-        { "type": "RowLayout", "items": [
-          { "type": "SelectInstance", "name": "MQTTServer", "caption": "MQTT Server Instanz", "validParentTypes": ["{A2A93E16-F7B0-47C6-97FE-A3C8ABCF8C1D}"] },
-          { "type": "Label", "caption": "    " },
-          { "type": "ValidationTextBox", "name": "WallboxID", "caption": "Wallbox ID (Seriennummer)" },
-          { "type": "Label", "caption": "    " }
         ]}
       ]
     },
