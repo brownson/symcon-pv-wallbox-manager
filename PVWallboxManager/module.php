@@ -132,6 +132,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableString('StatusInfo', 'ℹ️ Status-Info', '~HTMLBox', 70);
         $this->RegisterAttributeString('LastStatusInfoHTML', '');
 
+        $this->RegisterAttributeInteger('LetztePhasenUmschaltung', 0);
+
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
         $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
