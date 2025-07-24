@@ -1434,7 +1434,7 @@ class PVWallboxManager extends IPSModule
         $psmSollTxt = ['Auto', '1-phasig', '3-phasig'][$psmSoll] ?? $psmSoll;
 
         // Tatsächlich genutzt (gemessen)
-        $psmIst  = $this->GetValue('Phasenmodus');
+        $psmIst  = max(1, $this->GetValue('Phasenmodus'));
         $psmIstTxt = "{$psmIst}-phasig";
 
         // Fahrzeugstatus & Ladefreigabe
