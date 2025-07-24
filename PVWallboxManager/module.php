@@ -1477,14 +1477,18 @@ class PVWallboxManager extends IPSModule
         $html .= '</div>';
 
         // Nur aktualisieren, wenn sich der Text geändert hat
-        $lastHtml = $this->ReadAttributeString('LastStatusInfoHTML');
+/*        $lastHtml = $this->ReadAttributeString('LastStatusInfoHTML');
         if ($lastHtml !== $html) {
             SetValue($this->GetIDForIdent('StatusInfo'), $html);
             $this->WriteAttributeString('LastStatusInfoHTML', $html);
             $this->LogTemplate('debug', "Status-Info HTMLBox aktualisiert.");
         } else {
             $this->LogTemplate('debug', "Status-Info HTMLBox unverändert, kein Update.");
-        }
+        }*/
+        
+        SetValue($this->GetIDForIdent('StatusInfo'), $html);
+        $this->WriteAttributeString('LastStatusInfoHTML', $html);
+        $this->LogTemplate('debug', "Status-Info HTMLBox wurde (immer) aktualisiert.");
     }
 
     // =========================================================================
