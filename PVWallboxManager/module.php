@@ -392,12 +392,43 @@ class PVWallboxManager extends IPSModule
 
         $data = $this->getStatusFromCharger();
 
-        // === 1. Phasen-Einstellung (Soll) und tatsächlich genutzte Phasen immer ermitteln ===
-        $psm = isset($data['psm']) ? intval($data['psm']) : 0;
+        // Wallbox nicht erreichbar: Visualisierung zurücksetzen und abbrechen
+        if ($data === false) {
+            $this->ResetWallboxVisualisierungKeinFahrzeug();
+            $this->LogTemplate('debug', "Wallbox nicht erreichbar – Visualisierungswerte zurückgesetzt.");
+            $this->UpdateStatusAnzeige();
+            return;
+        }
 
-        // Phasen aktuell genutzt, auch wenn kein Fahrzeug lädt!
+        // Defensive Extraktion (Werte rausziehen, Debug-Log anlegen)
+        $car        = (is_array($data) && isset($data['car'])) ? intval($data['car']) : 0;
+        $leistung   = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
+        $ampereWB   = isset($data['amp']) ? intval($data['amp']) : 0;
+        $energie    = isset($data['wh']) ? intval($data['wh']) : 0;
+        $freigabe   = isset($data['alw']) ? (bool)$data['alw'] : false;
+        $kabelstrom = isset($data['cbl']) ? intval($data['cbl']) : 0;
+        $fehlercode = isset($data['err']) ? intval($data['err']) : 0;
+        $accessStateV2 = 0;
+        if (isset($data['frc'])) {
+            $accessStateV2 = intval($data['frc']);
+        } elseif (isset($data['accessStateV2'])) {
+            $accessStateV2 = intval($data['accessStateV2']);
+        }
+
+        // Debug-Ausgabe für Fahrzeugstatus
+        $this->LogTemplate('debug', "UpdateStatus: car = $car, accessStateV2 = $accessStateV2, freigabe = " . ($freigabe ? "true" : "false"));
+
+        // Fahrzeug erkannt?
+        if (!$this->FahrzeugVerbunden($data)) {
+            $this->ResetLademodiWennKeinFahrzeug();
+            $this->UpdateStatusAnzeige();
+            return;
+        }
+
+        // === Phasen-Einstellung (Soll) und tatsächlich genutzte Phasen ermitteln ===
+        $psm = isset($data['psm']) ? intval($data['psm']) : 0;
         $anzPhasenAlt = 1;
-        if ($data !== false && isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
+        if (isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
             $phasenSchwelle = 1.5;
             $phasenAmpere = [
                 abs(floatval($data['nrg'][4])),
@@ -413,40 +444,7 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('PhasenmodusEinstellung', $psm, 'Phasenmodus (Einstellung)', '', 'debug');
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasenAlt, 'Genutzte Phasen', '', 'debug');
 
-        // Wallbox nicht erreichbar: Visualisierung zurücksetzen und abbrechen
-        if ($data === false) {
-            $this->ResetWallboxVisualisierungKeinFahrzeug();
-            $this->LogTemplate('debug', "Wallbox nicht erreichbar – Visualisierungswerte zurückgesetzt.");
-            $this->UpdateStatusAnzeige();
-            return;
-        }
-
-        if (!$this->FahrzeugVerbunden($data)) {
-            $this->ResetLademodiWennKeinFahrzeug();
-            $this->UpdateStatusAnzeige();
-            return;
-        }
-
-        $this->PruefeLadeendeAutomatisch();
-        if ($this->GetValue('AccessStateV2') != 2) {
-            // Wenn nicht mehr freigegeben, KEINE weiteren Lademodi mehr ausführen!
-            return;
-        }
-
-        // Defensive Extraktion
-        $car        = (is_array($data) && isset($data['car'])) ? intval($data['car']) : 0;
-        $leistung   = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
-        $ampereWB   = isset($data['amp']) ? intval($data['amp']) : 0;
-        $energie    = isset($data['wh']) ? intval($data['wh']) : 0;
-        $freigabe   = isset($data['alw']) ? (bool)$data['alw'] : false;
-        $kabelstrom = isset($data['cbl']) ? intval($data['cbl']) : 0;
-        $fehlercode = isset($data['err']) ? intval($data['err']) : 0;
-        $accessStateV2 = 0;
-        if (isset($data['frc'])) {
-            $accessStateV2 = intval($data['frc']);
-        } elseif (isset($data['accessStateV2'])) {
-            $accessStateV2 = intval($data['accessStateV2']);
-        }
+        // Status-Variablen setzen
         $this->SetValueAndLogChange('Status',        $car,        'Status');
         $this->SetValueAndLogChange('AccessStateV2', $accessStateV2, 'Wallbox Modus');
         $this->SetValueAndLogChange('Leistung',      $leistung,   'Aktuelle Ladeleistung zum Fahrzeug', 'W');
@@ -455,6 +453,12 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('Freigabe',      $freigabe,   'Ladefreigabe');
         $this->SetValueAndLogChange('Kabelstrom',    $kabelstrom, 'Kabeltyp');
         $this->SetValueAndLogChange('Fehlercode',    $fehlercode, 'Fehlercode', '', 'warn');
+
+        $this->PruefeLadeendeAutomatisch();
+        if ($this->GetValue('AccessStateV2') != 2) {
+            // Wenn nicht mehr freigegeben, KEINE weiteren Lademodi mehr ausführen!
+            return;
+        }
 
         // 1. Manueller Modus
         if ($this->GetValue('ManuellLaden')) {
