@@ -253,6 +253,22 @@ class PVWallboxManager extends IPSModule
 
     }
 
+    private function GetProfileText($ident)
+    {
+        $vid = @$this->GetIDForIdent($ident);
+        if (!$vid) return '';
+        $val = GetValue($vid);
+        $v = IPS_GetVariable($vid);
+        $profile = $v['VariableCustomProfile'] ?: $v['VariableProfile'];
+        if (!$profile) return (string)$val;
+
+        $assos = IPS_GetVariableProfile($profile)['Associations'];
+        foreach ($assos as $a) {
+            if ($a['Value'] == $val) return $a['Name'];
+        }
+        return (string)$val;
+    }
+
     // =========================================================================
     // 3. EVENTS & REQUESTACTION
     // =========================================================================
@@ -1435,7 +1451,7 @@ class PVWallboxManager extends IPSModule
 
     private function UpdateStatusAnzeige()
     {
-        // Lademodus-Text
+        // Modus-Text bleibt wie bisher (wegen Prozent und Emojis!)
         $modus = '☀️ PVonly (nur PV-Überschuss)';
         if ($this->GetValue('ManuellLaden')) {
             $modus = '🔌 Manuell: Vollladen';
@@ -1445,33 +1461,13 @@ class PVWallboxManager extends IPSModule
         } elseif ($this->GetValue('ZielzeitLaden')) {
             $modus = '⏰ Zielzeitladung';
         }
-        // Phasen-Einstellung (Soll, von Wallbox)
-        $psmSoll = $this->GetValue('PhasenmodusEinstellung');
-        $psmSollTxt = ['Auto', '1-phasig', '3-phasig'][$psmSoll] ?? $psmSoll;
 
-        // Tatsächlich genutzt (gemessen)
-        $psmIst = max(1, $this->GetValue('Phasenmodus'));
-        $psmIstTxt = "{$psmIst}-phasig";
+        // Text aus Profil lesen!
+        $psmSollTxt   = $this->GetProfileText('PhasenmodusEinstellung'); // z.B. "1-phasig"
+        $psmIstTxt    = $this->GetProfileText('Phasenmodus');            // z.B. "1-phasig", "2-phasig", "3-phasig"
+        $statusTxt    = $this->GetProfileText('Status');                 // z.B. "Fahrzeug lädt"
+        $frcTxt       = $this->GetProfileText('AccessStateV2');          // z.B. "Laden (erzwungen)"
 
-        // Fahrzeugstatus & Ladefreigabe
-        $status = $this->GetValue('Status');
-        $statusTxt = [
-            0 => 'Unbekannt',
-            1 => 'Bereit, kein Fahrzeug',
-            2 => 'Fahrzeug lädt',
-            3 => 'Warte auf Fahrzeug',
-            4 => 'Ladung beendet, Fahrzeug noch verbunden',
-            5 => 'Fehler'
-        ][$status] ?? $status;
-
-        $frc = $this->GetValue('AccessStateV2');
-        $frcTxt = [
-            0 => 'Neutral',
-            1 => 'Nicht Laden (gesperrt)',
-            2 => 'Laden (freigegeben)'
-        ][$frc] ?? $frc;
-
-        // Zusammenbauen mit Icons
         $html = '<div style="font-size:15px; line-height:1.7em;">';
         $html .= "<b>Lademodus:</b> $modus<br>";
         $html .= "<b>Phasen Wallbox-Einstellung:</b> $psmSollTxt<br>";
@@ -1487,7 +1483,6 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeString('LastStatusInfoHTML', $html);
             $this->LogTemplate('debug', "Status-Info HTMLBox aktualisiert.");
         } else {
-            // Keine Änderung, kein SetValue → kein Flackern im WF
             $this->LogTemplate('debug', "Status-Info HTMLBox unverändert, kein Update.");
         }
     }
