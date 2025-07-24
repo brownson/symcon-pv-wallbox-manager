@@ -514,7 +514,7 @@ class PVWallboxManager extends IPSModule
             $this->ResetLademodiWennKeinFahrzeug();
             return;
         }
-
+/*
         $logParts = [];
         $changed = false;
 
@@ -536,7 +536,7 @@ class PVWallboxManager extends IPSModule
             $msg .= " gesetzt (Grundzustand PVonly).";
             $this->LogTemplate('ok', $msg);
         }
-
+*/
         // --- Überschuss neu berechnen (nach eventueller Phasenumschaltung) ---
         $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
         $berechnung = $this->BerechnePVUeberschuss($anzPhasenNeu);
