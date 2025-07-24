@@ -525,9 +525,9 @@ class PVWallboxManager extends IPSModule
             if ($this->GetValue('Ampere') != 6) {
                 $this->SetChargingCurrent(6); // 6A
             }
-            if ($this->GetValue('PV_Ueberschuss_A') != 0) {
-                $this->SetValue('PV_Ueberschuss_A', 0); // für Visualisierung
-            }
+//            if ($this->GetValue('PV_Ueberschuss_A') != 0) {
+//                $this->SetValue('PV_Ueberschuss_A', 0); // für Visualisierung
+//            }
             $this->LogTemplate('ok', "PVonly: Wallbox auf 1-phasig / 6A / 0A gesetzt (Grundzustand PVonly).");
         }
 
