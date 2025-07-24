@@ -386,6 +386,27 @@ class PVWallboxManager extends IPSModule
 
         $data = $this->getStatusFromCharger();
 
+        // === 1. Phasen-Einstellung (Soll) und tatsächlich genutzte Phasen immer ermitteln ===
+        $psm = isset($data['psm']) ? intval($data['psm']) : 0;
+
+        // Phasen aktuell genutzt, auch wenn kein Fahrzeug lädt!
+        $anzPhasenAlt = 1;
+        if ($data !== false && isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
+            $phasenSchwelle = 1.5;
+            $phasenAmpere = [
+                abs(floatval($data['nrg'][4])),
+                abs(floatval($data['nrg'][5])),
+                abs(floatval($data['nrg'][6]))
+            ];
+            $anzPhasenAlt = 0;
+            foreach ($phasenAmpere as $a) {
+                if ($a > $phasenSchwelle) $anzPhasenAlt++;
+            }
+            if ($anzPhasenAlt === 0) $anzPhasenAlt = 1; // Fallback: mindestens 1-phasig anzeigen!
+        }
+        $this->SetValueAndLogChange('PhasenmodusEinstellung', $psm, 'Phasenmodus (Einstellung)', '', 'debug');
+        $this->SetValueAndLogChange('Phasenmodus', $anzPhasenAlt, 'Genutzte Phasen', '', 'debug');
+
         // Wallbox nicht erreichbar: Visualisierung zurücksetzen und abbrechen
         if ($data === false) {
             $this->ResetWallboxVisualisierungKeinFahrzeug();
@@ -406,23 +427,7 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        // 1. Phasenanzahl initial ermitteln (aus Wallbox, sonst Default 1)
-        $anzPhasenAlt = 1;
-        if ($data !== false && isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
-            $phasenSchwelle = 1.5;
-            $phasenAmpere = [
-                abs(floatval($data['nrg'][4])),
-                abs(floatval($data['nrg'][5])),
-                abs(floatval($data['nrg'][6]))
-            ];
-            $anzPhasenAlt = 0;
-            foreach ($phasenAmpere as $a) {
-                if ($a > $phasenSchwelle) $anzPhasenAlt++;
-            }
-            if ($anzPhasenAlt === 0) $anzPhasenAlt = 1;
-        }
-
-        // Defensive Extraktion4
+        // Defensive Extraktion
         $car        = (is_array($data) && isset($data['car'])) ? intval($data['car']) : 0;
         $leistung   = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
         $ampereWB   = isset($data['amp']) ? intval($data['amp']) : 0;
@@ -430,15 +435,12 @@ class PVWallboxManager extends IPSModule
         $freigabe   = isset($data['alw']) ? (bool)$data['alw'] : false;
         $kabelstrom = isset($data['cbl']) ? intval($data['cbl']) : 0;
         $fehlercode = isset($data['err']) ? intval($data['err']) : 0;
-        $psm        = isset($data['psm']) ? intval($data['psm']) : 0;
         $accessStateV2 = 0;
         if (isset($data['frc'])) {
             $accessStateV2 = intval($data['frc']);
         } elseif (isset($data['accessStateV2'])) {
             $accessStateV2 = intval($data['accessStateV2']);
         }
-        $this->SetValueAndLogChange('PhasenmodusEinstellung', $psm, 'Phasenmodus (Einstellung)', '', 'debug');
-        $this->SetValueAndLogChange('Phasenmodus', $anzPhasenAlt, 'Genutzte Phasen', '', 'debug');
         $this->SetValueAndLogChange('Status',        $car,        'Status');
         $this->SetValueAndLogChange('AccessStateV2', $accessStateV2, 'Wallbox Modus');
         $this->SetValueAndLogChange('Leistung',      $leistung,   'Aktuelle Ladeleistung zum Fahrzeug', 'W');
@@ -464,6 +466,7 @@ class PVWallboxManager extends IPSModule
         $this->UpdateStatusAnzeige();
     }
 
+/*
     private function ModusPVonlyLaden($data, $anzPhasenAlt, $mode = 'pvonly')
     
     {
@@ -554,7 +557,7 @@ class PVWallboxManager extends IPSModule
         // Ladefreigabe steuern
         $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasenNeu);
     }
-
+*/
     private function ModusManuellVollladen($data)
     {
         if (!$this->FahrzeugVerbunden($data)) {
@@ -1434,7 +1437,7 @@ class PVWallboxManager extends IPSModule
         $psmSollTxt = ['Auto', '1-phasig', '3-phasig'][$psmSoll] ?? $psmSoll;
 
         // Tatsächlich genutzt (gemessen)
-        $psmIst  = max(1, $this->GetValue('Phasenmodus'));
+        $psmIst = max(1, $this->GetValue('Phasenmodus'));
         $psmIstTxt = "{$psmIst}-phasig";
 
         // Fahrzeugstatus & Ladefreigabe
