@@ -1003,6 +1003,13 @@ class PVWallboxManager extends IPSModule
         }
         $now = time();
 
+        // Umschaltpause beachten (ZÄHLER NICHT ÄNDERN IM COOLDOWN!)
+        if (($now - $letzteUmschaltung) < $umschaltCooldown) {
+            $rest = $umschaltCooldown - ($now - $letzteUmschaltung);
+            $this->LogTemplate('debug', "Phasenumschaltung: Cooldown aktiv, noch $rest Sekunden warten.");
+            return;
+        }
+
         // Sofort auf 3-phasig schalten, wenn erzwungen
         if ($forceThreePhase) {
             $aktModus = $this->GetValue('Phasenmodus');
