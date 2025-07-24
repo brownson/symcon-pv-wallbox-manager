@@ -9,7 +9,8 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 - Wenn Auto SOC erreicht hat wird nach 6 Intervallen der Ladenodus auch beendet. Ist in der Instanzkonfig das Property Aktueller SOC und Ziel SOC gesetzt wird der Lademodus anhand der Werte beendet.
 - Phasenmodus wird immer aktualisiert
 - Stauts-Info Anzeige ~HTML Box für Webfront hinzugefügt (Lademodi, Phasensstatus, Status, Modus, PV2Car (%) werden angezeigt)
-- Hausverbrauch (W) und 🏠 Hausverbrauch abzügl. Wallbox (W) werden per Ereignis aktualisiert
+- 🏠 Hausverbrauch (W) und 🏠 Hausverbrauch abzügl. Wallbox (W) werden per Ereignis immer aktualisiert
+- Berechnungen wurden nochmal überarbeitet
 
 ## [1.0b] – 2025-07-13
 
