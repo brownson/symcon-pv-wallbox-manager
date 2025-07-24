@@ -995,7 +995,10 @@ class PVWallboxManager extends IPSModule
     private function PruefeUndSetzePhasenmodus($pvUeberschuss = null, $forceThreePhase = false)
     {
         $umschaltCooldown = 30; // Cooldown in Sekunden
-        $letzteUmschaltung = $this->ReadAttributeInteger('LetztePhasenUmschaltung');
+        $letzteUmschaltung = @$this->ReadAttributeInteger('LetztePhasenUmschaltung');
+        if (!is_int($letzteUmschaltung) || $letzteUmschaltung <= 0) {
+            $letzteUmschaltung = 0;
+        }
         $now = time();
 
         // Sofort auf 3-phasig schalten, wenn erzwungen
