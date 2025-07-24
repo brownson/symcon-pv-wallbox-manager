@@ -63,7 +63,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Ampere',        'Max. Ladestrom (A)',                       'PVWM.Ampere',          4);
         IPS_SetIcon($this->GetIDForIdent('Ampere'),     'Energy');
 
-        $this->RegisterVariableInteger('Phasenmodus',   'Phasenmodus',                              'PVWM.PSM',             5);
+//        $this->RegisterVariableInteger('Phasenmodus',   'Phasenmodus',                              'PVWM.PSM',             5);
         $this->RegisterVariableBoolean('Freigabe',      'Ladefreigabe',                             'PVWM.ALW',             6);
         $this->RegisterVariableInteger('Kabelstrom',    'Kabeltyp (A)',                             'PVWM.AmpereCable',     7);
         IPS_SetIcon($this->GetIDForIdent('Kabelstrom'), 'Energy');
