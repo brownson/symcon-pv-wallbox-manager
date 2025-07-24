@@ -383,11 +383,13 @@ class PVWallboxManager extends IPSModule
         if ($data === false) {
             $this->ResetWallboxVisualisierungKeinFahrzeug();
             $this->LogTemplate('debug', "Wallbox nicht erreichbar – Visualisierungswerte zurückgesetzt.");
+            $this->UpdateStatusAnzeige();
             return;
         }
 
         if (!$this->FahrzeugVerbunden($data)) {
             $this->ResetLademodiWennKeinFahrzeug();
+            $this->UpdateStatusAnzeige();
             return;
         }
 
