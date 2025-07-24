@@ -124,9 +124,11 @@ class PVWallboxManager extends IPSModule
         $this->EnableAction('PVAnteil');
 
         // Im Create()-Bereich, nach den anderen Variablen
-        $this->RegisterVariableInteger('PhasenmodusEinstellung', 'Phasenmodus (Einstellung)', 'PVWM.PSM', 50);
+//        $this->RegisterVariableInteger('PhasenmodusEinstellung', 'Phasenmodus (Einstellung)', 'PVWM.PSM', 50);
+        $this->RegisterVariableInteger('PhasenmodusEinstellung', '🟢 Phasen Wallbox-Einstellung (Soll)', 'PVWM.PSM', 50);
         IPS_SetIcon($this->GetIDForIdent('PhasenmodusEinstellung'), 'Lightning');
-        $this->RegisterVariableInteger('Phasenmodus', 'Genutzte Phasen', '', 51);
+//        $this->RegisterVariableInteger('Phasenmodus', 'Genutzte Phasen', '', 51);
+        $this->RegisterVariableInteger('Phasenmodus', '🔵 Phasen tatsächlich genutzt (Auto)', '', 51);
         IPS_SetIcon($this->GetIDForIdent('Phasenmodus'), 'Lightning');
 
         $this->RegisterVariableString('StatusInfo', 'ℹ️ Status-Info', '~HTMLBox', 70);
