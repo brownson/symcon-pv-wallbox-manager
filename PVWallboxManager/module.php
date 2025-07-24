@@ -1723,8 +1723,14 @@ class PVWallboxManager extends IPSModule
         // --- Ladestrom (Ampere) berechnen ---
         $minAmp = $this->ReadPropertyInteger('MinAmpere');
         $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
-        $ampere = ceil($pvUeberschuss / (230 * $anzPhasen));
-        $ampere = max($minAmp, min($maxAmp, $ampere));
+        if ($pvUeberschuss > 0) {
+            $ampere = ceil($pvUeberschuss / (230 * $anzPhasen));
+            $ampere = max($minAmp, min($maxAmp, $ampere));
+        } else {
+            $ampere = 0;
+        }
+////        $ampere = ceil($pvUeberschuss / (230 * $anzPhasen));
+////        $ampere = max($minAmp, min($maxAmp, $ampere));
 
         // Visualisierung
         $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', 'W', 'debug');
