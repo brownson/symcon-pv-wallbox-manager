@@ -1435,10 +1435,14 @@ class PVWallboxManager extends IPSModule
     {
         // Lademodus-Text
         $modus = '☀️ PVonly (nur PV-Überschuss)';
-        if ($this->GetValue('ManuellLaden'))         $modus = '🔌 Manuell: Vollladen';
-        elseif ($this->GetValue('PV2CarModus'))      $modus = '🌞 PV-Anteil laden';
-        elseif ($this->GetValue('ZielzeitLaden'))    $modus = '⏰ Zielzeitladung';
-
+        if ($this->GetValue('ManuellLaden')) {
+            $modus = '🔌 Manuell: Vollladen';
+        } elseif ($this->GetValue('PV2CarModus')) {
+            $prozent = $this->GetValue('PVAnteil');
+            $modus = "🌞 PV-Anteil laden ({$prozent} %)";
+        } elseif ($this->GetValue('ZielzeitLaden')) {
+            $modus = '⏰ Zielzeitladung';
+        }
         // Phasen-Einstellung (Soll, von Wallbox)
         $psmSoll = $this->GetValue('PhasenmodusEinstellung');
         $psmSollTxt = ['Auto', '1-phasig', '3-phasig'][$psmSoll] ?? $psmSoll;
