@@ -127,7 +127,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('PhasenmodusEinstellung', '🟢 Wallbox-Phasen Soll (Einstellung)', 'PVWM.PSM', 50);
         IPS_SetIcon($this->GetIDForIdent('PhasenmodusEinstellung'), 'Lightning');
 
-        $this->RegisterVariableInteger('Phasenmodus', '🔵 Genutzte Phasen (Fahrzeug)', '', 51);
+        $this->RegisterVariableInteger('Phasenmodus', '🔵 Genutzte Phasen (Fahrzeug)', 'PVWM.PhasenText', 51);
         IPS_SetIcon($this->GetIDForIdent('Phasenmodus'), 'Lightning');
 
         $this->RegisterVariableString('StatusInfo', 'ℹ️ Status-Info', '~HTMLBox', 70);
@@ -227,6 +227,13 @@ class PVWallboxManager extends IPSModule
             [0, 'Auto',     'Gears', 0xAAAAAA],
             [1, '1-phasig', 'Plug', 0x00ADEF],
             [2, '3-phasig', 'Plug', 0xFF9900]
+        ]);
+
+        $create('PVWM.PhasenText', VARIABLETYPE_INTEGER, 0, '', 'Lightning', [
+            [0, 'Keine Ladung', '', 0xAAAAAA],
+            [1, '1-phasig',     '', 0x2186eb],
+            [2, '2-phasig',     '', 0x2186eb],
+            [3, '3-phasig',     '', 0x2186eb]
         ]);
 
         $create('PVWM.ALW', VARIABLETYPE_BOOLEAN, 0, '', 'Power', [
