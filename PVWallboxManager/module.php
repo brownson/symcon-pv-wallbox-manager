@@ -472,7 +472,6 @@ class PVWallboxManager extends IPSModule
         $this->UpdateStatusAnzeige();
     }
 
-/*
     private function ModusPVonlyLaden($data, $anzPhasenAlt, $mode = 'pvonly')
     
     {
@@ -563,7 +562,7 @@ class PVWallboxManager extends IPSModule
         // Ladefreigabe steuern
         $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasenNeu);
     }
-*/
+
     private function ModusManuellVollladen($data)
     {
         if (!$this->FahrzeugVerbunden($data)) {
