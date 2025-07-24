@@ -1769,11 +1769,11 @@ class PVWallboxManager extends IPSModule
 
         // Rückgabe für alle folgenden Berechnungen:
         return [
-            'pv'         => $pv,                   // PV-Leistung in W
-            'wallbox'    => $ladeleistung,         // aktuelle Ladeleistung Auto in W
-            'haus'       => $hausverbrauch,        // Hausverbrauch GESAMT (inkl. Wallbox) in W
-            'hausOhneWB' => $hausverbrauchOhneWB,  // Hausverbrauch OHNE Wallbox in W
-            'batterie'   => $batterieladung        // Batterie-Leistung (Vorzeichen wie in Variable)
+            'pv'         => round($pv),                   // PV-Leistung in W
+            'wallbox'    => round($ladeleistung),         // aktuelle Ladeleistung Auto in W
+            'haus'       => round($hausverbrauch),        // Hausverbrauch GESAMT (inkl. Wallbox) in W
+            'hausOhneWB' => round($hausverbrauchOhneWB),  // Hausverbrauch OHNE Wallbox in W
+            'batterie'   => round($batterieladung)        // Batterie-Leistung (Vorzeichen wie in Variable)
         ];
     }
 
