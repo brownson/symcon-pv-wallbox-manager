@@ -1658,6 +1658,7 @@ class PVWallboxManager extends IPSModule
         // --- Hausverbrauch OHNE Wallbox-Leistung (W) ---
         // Nur sinnvoll, wenn Wallbox-Leistung > 0
         $hausverbrauchOhneWB = ($ladeleistung > 0) ? $hausverbrauch - $ladeleistung : $hausverbrauch;
+        $hausverbrauchOhneWB = max(0, $hausverbrauchOhneWB);
 
         // --- Glättung ---
         $buffer = json_decode($this->ReadAttributeString('HausverbrauchAbzWallboxBuffer'), true) ?: [];
@@ -1759,7 +1760,8 @@ class PVWallboxManager extends IPSModule
         if ($this->ReadPropertyString('HausverbrauchEinheit') == "kW") $hausverbrauch *= 1000;
 
         // --- Hausverbrauch OHNE Wallbox (für PV2Car-Aufteilung & Visualisierung) ---
-        $hausverbrauchOhneWB = $hausverbrauch - $ladeleistung;
+////        $hausverbrauchOhneWB = $hausverbrauch - $ladeleistung;
+        $hausverbrauchOhneWB = max(0, $hausverbrauch - $ladeleistung);
 
         // --- Batterieladung (Vorzeichen prüfen!) ---
         $batID = $this->ReadPropertyInteger('BatterieladungID');
