@@ -1637,8 +1637,12 @@ class PVWallboxManager extends IPSModule
         $pv = ($pvID > 0) ? GetValueFloat($pvID) : 0;
         if ($pvEinheit == "kW") $pv *= 1000;
 
-        // Wallbox-Leistung (direkt am Auto, nur für Visualisierung)
+        // Wallbox-Leistung (direkt am Auto, NUR FÜR VISUALISIERUNG)
         $ladeleistung = round($this->GetValue('Leistung'));
+
+        // Den Wert aus dem VORHERIGEN Zyklus verwenden!
+        $alteWallboxLeistung = floatval($this->GetBuffer('WallboxLeistungAlt'));
+        if ($alteWallboxLeistung < 0) $alteWallboxLeistung = 0;
 
         // Kurzes Delay für stabilere Werte (optional)
         IPS_Sleep(500);
@@ -1652,8 +1656,8 @@ class PVWallboxManager extends IPSModule
         if ($invertHV) $hausverbrauch *= -1;
         $hausverbrauch = round($hausverbrauch);
 
-        // Hausverbrauch ABZÜGLICH Wallbox-Leistung (für Visualisierung)
-        $hausverbrauchAbzWallbox = round($hausverbrauch - $ladeleistung);
+        // Hausverbrauch ABZÜGLICH *alter* Wallbox-Leistung (für Visualisierung)
+        $hausverbrauchAbzWallbox = round($hausverbrauch - $alteWallboxLeistung);
 
         // --- Glättung & Spike-Filter ---
         $buffer = json_decode($this->ReadAttributeString('HausverbrauchAbzWallboxBuffer'), true);
@@ -1674,9 +1678,6 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeFloat('HausverbrauchAbzWallboxLast', $hausverbrauchAbzWallboxGlaettet);
         }
 
-        // Für Anzeige/Log den geglätteten/spikegefilterten Wert nehmen:
-//        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallboxGlaettet, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
-
         // Batterie-Ladung (positiv = lädt, negativ = entlädt)
         $batID = $this->ReadPropertyInteger('BatterieladungID');
         $batEinheit = $this->ReadPropertyString('BatterieladungEinheit');
@@ -1684,8 +1685,6 @@ class PVWallboxManager extends IPSModule
         $batterieladung = ($batID > 0) ? GetValueFloat($batID) : 0;
         if ($batEinheit == "kW") $batterieladung *= 1000;
         if ($invertBat) $batterieladung *= -1;
-
-        // Batterie-Entladung NICHT als Überschuss behandeln!
         if ($batterieladung < 0) $batterieladung = 0; // Nur Laden zählt
 
         // Verbrauch gesamt (Batterie positiv = lädt, negativ = entlädt)
@@ -1704,6 +1703,9 @@ class PVWallboxManager extends IPSModule
         // Visualisierung
         $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', 'W', 'debug');
         $this->SetValueAndLogChange('PV_Ueberschuss_A', $ampere, 'PV-Überschuss (A)', 'A', 'debug');
+
+        // Am Ende: aktuellen Wert für den nächsten Zyklus speichern!
+        $this->SetBuffer('WallboxLeistungAlt', $ladeleistung);
 
         // Rückgabe für die Steuerlogik
         return [
@@ -1728,13 +1730,17 @@ class PVWallboxManager extends IPSModule
         // --- Wallbox-Leistung (was am Auto ankommt!) ---
         $ladeleistung = round($this->GetValue('Leistung'));
 
+        // Den Wert aus dem VORHERIGEN Zyklus verwenden!
+        $alteWallboxLeistung = floatval($this->GetBuffer('WallboxLeistungAlt'));
+        if ($alteWallboxLeistung < 0) $alteWallboxLeistung = 0;
+
         // --- Hausverbrauch (inkl. Wallbox) ---
         $hvID = $this->ReadPropertyInteger('HausverbrauchID');
         $hausverbrauch = ($hvID > 0) ? GetValueFloat($hvID) : 0;
         if ($this->ReadPropertyString('HausverbrauchEinheit') == "kW") $hausverbrauch *= 1000;
 
         // --- Hausverbrauch OHNE Wallbox (für PV2Car-Aufteilung & Visualisierung) ---
-        $hausverbrauchOhneWB = $hausverbrauch - $ladeleistung;
+        $hausverbrauchOhneWB = $hausverbrauch - $alteWallboxLeistung;
 
         // --- Batterieladung (Vorzeichen prüfen!) ---
         $batID = $this->ReadPropertyInteger('BatterieladungID');
@@ -1742,12 +1748,15 @@ class PVWallboxManager extends IPSModule
         if ($this->ReadPropertyString('BatterieladungEinheit') == "kW") $batterieladung *= 1000;
         if ($this->ReadPropertyBoolean('InvertBatterieladung')) $batterieladung *= -1;
 
+        // Am Ende: aktuellen Wert für den nächsten Zyklus speichern!
+        $this->SetBuffer('WallboxLeistungAlt', $ladeleistung);
+
         // Rückgabe für alle folgenden Berechnungen:
         return [
             'pv'         => $pv,                   // PV-Leistung in W
             'wallbox'    => $ladeleistung,         // aktuelle Ladeleistung Auto in W
             'haus'       => $hausverbrauch,        // Hausverbrauch GESAMT (inkl. Wallbox) in W
-            'hausOhneWB' => $hausverbrauchOhneWB,  // Hausverbrauch OHNE Wallbox in W
+            'hausOhneWB' => $hausverbrauchOhneWB,  // Hausverbrauch OHNE Wallbox in W (mit "altem" Wert)
             'batterie'   => $batterieladung        // Batterie-Leistung (Vorzeichen wie in Variable)
         ];
     }
