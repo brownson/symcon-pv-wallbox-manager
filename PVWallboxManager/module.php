@@ -124,14 +124,14 @@ class PVWallboxManager extends IPSModule
         $this->EnableAction('PVAnteil');
 
         // Im Create()-Bereich, nach den anderen Variablen
-//        $this->RegisterVariableInteger('PhasenmodusEinstellung', 'Phasenmodus (Einstellung)', 'PVWM.PSM', 50);
-        $this->RegisterVariableInteger('PhasenmodusEinstellung', '🟢 Phasen Wallbox-Einstellung (Soll)', 'PVWM.PSM', 50);
+        $this->RegisterVariableInteger('PhasenmodusEinstellung', '🟢 Wallbox-Phasen Soll (Einstellung)', 'PVWM.PSM', 50);
         IPS_SetIcon($this->GetIDForIdent('PhasenmodusEinstellung'), 'Lightning');
-//        $this->RegisterVariableInteger('Phasenmodus', 'Genutzte Phasen', '', 51);
-        $this->RegisterVariableInteger('Phasenmodus', '🔵 Phasen tatsächlich genutzt (Auto)', '', 51);
+
+        $this->RegisterVariableInteger('Phasenmodus', '🔵 Genutzte Phasen (Fahrzeug)', '', 51);
         IPS_SetIcon($this->GetIDForIdent('Phasenmodus'), 'Lightning');
 
         $this->RegisterVariableString('StatusInfo', 'ℹ️ Status-Info', '~HTMLBox', 70);
+        $this->RegisterAttributeString('LastStatusInfoHTML', '');
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
@@ -146,6 +146,12 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+        // Timer zurücksetzen
+        $this->SetTimerInterval('PVWM_UpdateStatus', 0);
+        $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
+        $this->SetTimerInterval('PVWM_InitialCheck', 0);
+
+    // Timer und Events wieder sauber initialisieren
         $this->SetTimerNachModusUndAuto();
         $this->SetMarketPriceTimerZurVollenStunde();
         $this->UpdateHausverbrauchEvent();
@@ -1419,9 +1425,9 @@ class PVWallboxManager extends IPSModule
     {
         // Lademodus-Text
         $modus = '☀️ PVonly (nur PV-Überschuss)';
-        if ($this->GetValue('ManuellLaden'))   $modus = '🔌 Manuell: Vollladen';
-        elseif ($this->GetValue('PV2CarModus')) $modus = '🌞 PV-Anteil laden';
-        elseif ($this->GetValue('ZielzeitLaden')) $modus = '⏰ Zielzeitladung';
+        if ($this->GetValue('ManuellLaden'))         $modus = '🔌 Manuell: Vollladen';
+        elseif ($this->GetValue('PV2CarModus'))      $modus = '🌞 PV-Anteil laden';
+        elseif ($this->GetValue('ZielzeitLaden'))    $modus = '⏰ Zielzeitladung';
 
         // Phasen-Einstellung (Soll, von Wallbox)
         $psmSoll = $this->GetValue('PhasenmodusEinstellung');
@@ -1458,7 +1464,16 @@ class PVWallboxManager extends IPSModule
         $html .= "<b>Wallbox Modus:</b> $frcTxt";
         $html .= '</div>';
 
-        SetValue($this->GetIDForIdent('StatusInfo'), $html);
+        // Nur aktualisieren, wenn sich der Text geändert hat
+        $lastHtml = $this->ReadAttributeString('LastStatusInfoHTML');
+        if ($lastHtml !== $html) {
+            SetValue($this->GetIDForIdent('StatusInfo'), $html);
+            $this->WriteAttributeString('LastStatusInfoHTML', $html);
+            $this->LogTemplate('debug', "Status-Info HTMLBox aktualisiert.");
+        } else {
+            // Keine Änderung, kein SetValue → kein Flackern im WF
+            $this->LogTemplate('debug', "Status-Info HTMLBox unverändert, kein Update.");
+        }
     }
 
     // =========================================================================
