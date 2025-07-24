@@ -295,6 +295,11 @@ class PVWallboxManager extends IPSModule
             } else {
                 $this->SetValue('ManuellLaden', false);
                 $this->LogTemplate('info', "🔌 Manuelles Vollladen deaktiviert – zurück in PVonly-Modus.");
+                // Nach Beenden: zurück auf 1-phasig, 6A, 0A
+                $this->SetPhaseMode(1);
+                $this->SetChargingCurrent(6);
+                $this->SetValueAndLogChange('PV_Ueberschuss_A', 0, 'PV-Überschuss (A)', 'A', 'ok');
+                $this->LogTemplate('ok', "Nach Deaktivierung Manuell: Wallbox auf 1-phasig/6A/0A zurückgesetzt.");
             }
             $this->SetTimerNachModusUndAuto();
             $this->UpdateStatus('pvonly');
@@ -309,6 +314,11 @@ class PVWallboxManager extends IPSModule
             } else {
                 $this->SetValue('PV2CarModus', false);
                 $this->LogTemplate('info', "🌞 PV-Anteil laden deaktiviert – zurück in PVonly-Modus.");
+                // Nach Beenden: zurück auf 1-phasig, 6A, 0A
+                $this->SetPhaseMode(1);
+                $this->SetChargingCurrent(6);
+                $this->SetValueAndLogChange('PV_Ueberschuss_A', 0, 'PV-Überschuss (A)', 'A', 'ok');
+                $this->LogTemplate('ok', "Nach Deaktivierung PV2Car: Wallbox auf 1-phasig/6A/0A zurückgesetzt.");
             }
             $this->SetTimerNachModusUndAuto();
             $this->UpdateStatus('pv2car');
@@ -497,11 +507,28 @@ class PVWallboxManager extends IPSModule
     }
 
     private function ModusPVonlyLaden($data, $anzPhasenAlt, $mode = 'pvonly')
-    
     {
         if (!$this->FahrzeugVerbunden($data)) {
             $this->ResetLademodiWennKeinFahrzeug();
             return;
+        }
+
+        if (
+            !$this->GetValue('ManuellLaden') &&
+            !$this->GetValue('PV2CarModus') &&
+            !$this->GetValue('ZielzeitLaden')
+        ) {
+            // Prüfe, ob Werte bereits gesetzt, um unnötige API-Aufrufe zu vermeiden
+            if ($this->GetValue('PhasenmodusEinstellung') != 1) {
+                $this->SetPhaseMode(1); // 1-phasig
+            }
+            if ($this->GetValue('Ampere') != 6) {
+                $this->SetChargingCurrent(6); // 6A
+            }
+            if ($this->GetValue('PV_Ueberschuss_A') != 0) {
+                $this->SetValue('PV_Ueberschuss_A', 0); // für Visualisierung
+            }
+            $this->LogTemplate('ok', "PVonly: Wallbox auf 1-phasig / 6A / 0A gesetzt (Grundzustand PVonly).");
         }
 
         // --- Überschuss neu berechnen (nach eventueller Phasenumschaltung) ---
@@ -1445,6 +1472,28 @@ class PVWallboxManager extends IPSModule
     {
         // Hier kannst du nach Ladeende die Lademodi zurücksetzen (optional)
         $modi = ['ManuellLaden', 'PV2CarModus', 'ZielzeitLaden'];
+        $manualDeactivated = false;
+        foreach ($modi as $modus) {
+            if ($this->GetValue($modus)) {
+                $this->SetValue($modus, false);
+                $this->LogTemplate('debug', "Modus '$modus' wurde deaktiviert, da Ladeende erreicht.");
+                if ($modus === 'ManuellLaden') {
+                    $manualDeactivated = true;
+                }
+            }
+        }
+        // Nach Deaktivierung von ManuellLaden → auf 1-phasig, 6A, 0A (nur einmalig!)
+        if ($manualDeactivated) {
+            $this->SetPhaseMode(1); // 1-phasig
+            $this->SetChargingCurrent(6); // 6A
+            $this->SetValueAndLogChange('PV_Ueberschuss_A', 0, 'PV-Überschuss (A)', 'A', 'ok');
+            $this->LogTemplate('ok', "Nach Ladeende: Zurück auf 1-phasig/6A/0A für PVonly.");
+        }
+    }
+/* old    private function ResetModiNachLadeende()   old
+    {
+        // Hier kannst du nach Ladeende die Lademodi zurücksetzen (optional)
+        $modi = ['ManuellLaden', 'PV2CarModus', 'ZielzeitLaden'];
         foreach ($modi as $modus) {
             if ($this->GetValue($modus)) {
                 $this->SetValue($modus, false);
@@ -1452,7 +1501,7 @@ class PVWallboxManager extends IPSModule
             }
         }
     }
-
+*/
     private function UpdateStatusAnzeige()
     {
         // Modus-Text bleibt wie bisher (wegen Prozent und Emojis!)
