@@ -471,30 +471,29 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('Fehlercode',    $fehlercode, 'Fehlercode', '', 'warn');
 
         $this->PruefeLadeendeAutomatisch();
-        if ($this->GetValue('AccessStateV2') != 2) {
-            // Nach allen Modus-Funktionen und vor $this->UpdateStatusAnzeige()
-            $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
-            $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
-            // Absicherung gegen fehlende Keys
-            $hausOhneWB = $werte['hausOhneWB'] ?? 0;
-            $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausOhneWB, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
 
-            $this->UpdateStatusAnzeige();
-            return;
-        }
+        // ----- Modi-Logik: Immer ausführen -----
 
         // 1. Manueller Modus
         if ($this->GetValue('ManuellLaden')) {
             $this->ModusManuellVollladen($data);
-            return;
         }
         // 2. PV2Car-Modus (PV-Anteil laden)
-        if ($this->GetValue('PV2CarModus')) {
+        elseif ($this->GetValue('PV2CarModus')) {
             $this->ModusPV2CarLaden($data);
-            return;
         }
         // 3. PVonly-Modus: komplett ausgelagert
-        $this->ModusPVonlyLaden($data, $anzPhasenAlt, $mode);
+        else {
+            $this->ModusPVonlyLaden($data, $anzPhasenAlt, $mode);
+        }
+
+        // ---- Visualisierung: immer nach Modus ----
+        $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
+        $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
+        $hausOhneWB = $werte['hausOhneWB'] ?? 0;
+        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausOhneWB, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
+
+        $this->UpdateStatusAnzeige();
     }
 
     private function ModusPVonlyLaden($data, $anzPhasenAlt, $mode = 'pvonly')
