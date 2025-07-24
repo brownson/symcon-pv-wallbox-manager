@@ -159,36 +159,6 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
- /*       // Alle unterstützten Topics und ihre Zielvariablen
-        $allTopics = [
-            "go-eCharger/285450/nrg" => ['ident' => 'Wallbox_nrg', 'type' => 'float', 'name' => 'Ladeleistung MQTT (W)', 'profile' => 'Watt', 'pos' => 10],
-            "go-eCharger/285450/psm" => ['ident' => 'Wallbox_psm', 'type' => 'string', 'name' => 'Phasenstatus MQTT', 'profile' => '', 'pos' => 20]
-        ];
-
-        // Gewählte Topics aus Property holen
-        $topicsJson = $this->ReadPropertyString('ActiveGoETopics');
-        $topics = @json_decode($topicsJson, true);
-        if (!is_array($topics)) $topics = [];
-
-        // Variablen und Events für gewählte Topics anlegen, andere löschen
-        foreach ($allTopics as $topic => $info) {
-            $ident = $info['ident'];
-            if (in_array($topic, $topics)) {
-                // Variable anlegen, falls noch nicht da
-                if ($info['type'] == 'float') {
-                    $this->RegisterVariableFloat($ident, $info['name'], $info['profile'], $info['pos']);
-                } else {
-                    $this->RegisterVariableString($ident, $info['name'], $info['profile'], $info['pos']);
-                }
-                // Update-Event für diese Variable/Topic anlegen
-                $this->EnsureTopicUpdateEvent($topic, $ident, $info['type']);
-            } else {
-                // Variable und Event löschen, falls nicht (mehr) ausgewählt
-                @$this->UnregisterVariable($ident);
-                $this->DeleteTopicUpdateEvent($ident);
-            }
-        }
-*/
         $this->SetTimerNachModusUndAuto();
         $this->SetMarketPriceTimerZurVollenStunde();
         $this->UpdateHausverbrauchEvent();
@@ -291,13 +261,6 @@ class PVWallboxManager extends IPSModule
     public function RequestAction($Ident, $Value)
     {
         switch ($Ident) {
-/*            case "Wallbox_nrg":
-                $this->UpdateWallboxLeistung();
-                break;
-            case 'Wallbox_psm':
-            $this->UpdateWallboxPsm();
-            break;
-*/
             case "UpdateStatus":
                 $this->UpdateStatus($Value);
                 break;
@@ -659,13 +622,6 @@ class PVWallboxManager extends IPSModule
         $this->SetValue('PV_Ueberschuss_A', $ueberschuss_a);
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasenNeu, 'Genutzte Phasen', '', 'debug');
 
-/*        // Visualisierungswerte setzen
-        if (isset($werte['ueberschuss_w']) && isset($werte['ueberschuss_a'])) {
-            $this->SetValue('PV_Ueberschuss', $werte['ueberschuss_w']);
-            $this->SetValue('PV_Ueberschuss_A', $werte['ueberschuss_a']);
-        }
-        $this->SetValueAndLogChange('Phasenmodus', $anzPhasenNeu, 'Genutzte Phasen', '', 'debug');
-*/
         // Maximalen Ampere-Wert aus Property holen und setzen
         $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
         $this->SetForceStateAndAmpereIfChanged(2, $maxAmp);
@@ -732,14 +688,7 @@ class PVWallboxManager extends IPSModule
         $this->SetValue('PV_Ueberschuss', $pvUeberschussPV2Car);
         $this->SetValue('PV_Ueberschuss_A', $ampere);
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
-/*    
-        // 6. Visualisierungswerte IMMER korrekt setzen
-        $ampere = ceil($anteilWatt / (230 * $anzPhasen));
-        $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
-        $this->SetValue('PV_Ueberschuss', $pvUeberschussPV2Car);
-        $this->SetValue('PV_Ueberschuss_A', $ampere);
-        $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
-*/
+
         // 7. Hausakku-SOC prüfen (falls aktiv)
         $socID = $this->ReadPropertyInteger('HausakkuSOCID');
         $socSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
@@ -1578,12 +1527,6 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', 'W', 'debug');
         $this->SetValueAndLogChange('PV_Ueberschuss_A', $ampere, 'PV-Überschuss (A)', 'A', 'debug');
 
-/*        // Logging
-        $this->LogTemplate(
-            'debug',
-            "PV-Überschuss: PV=$pv W, Haus=$hausverbrauchAbzWallbox W, Wallbox=$ladeleistung W, Batterie=$batterieladung W, Phasenmodus=$anzPhasen → Überschuss=$pvUeberschuss W / $ampere A"
-        );
-*/
         // Rückgabe für die Steuerlogik
         return [
             'pv'             => $pv,
@@ -1816,105 +1759,4 @@ class PVWallboxManager extends IPSModule
         $html .= '</div>';
         return $html;
     }
-/*
-    // MQTT Konfig
-    private function EnsureNrgUpdateEvent()
-    {
-        $topic = $this->ReadPropertyString('SelectedGoETopic');
-        $nrgVarID = $this->FindeMqttVariableByTopic($topic); // Sucht die ID anhand Topic
-        $eventIdent = "UpdateEvent_WallboxMQTTLeistung";
-
-        $eventID = @IPS_GetObjectIDByIdent($eventIdent, $this->InstanceID);
-        if ($nrgVarID > 0) {
-            if ($eventID === false) {
-                $eventID = IPS_CreateEvent(0); // 0 = Bei Variablenänderung
-                IPS_SetParent($eventID, $this->InstanceID);
-                IPS_SetName($eventID, "Aktualisiere Ladeleistung bei nrg-Änderung");
-                IPS_SetIdent($eventID, $eventIdent);
-                IPS_SetEventTrigger($eventID, 1, $nrgVarID); // 1 = Bei Änderung
-                IPS_SetEventActive($eventID, true);
-                IPS_SetEventScript($eventID, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateLeistung", "");');
-            } else {
-                IPS_SetEventTrigger($eventID, 1, $nrgVarID);
-            }
-        } else {
-            if ($eventID !== false) {
-                IPS_DeleteEvent($eventID);
-            }
-        }
-    }
-
-    public function UpdateWallboxLeistung()
-    {
-        $topic = "go-eCharger/285450/nrg";
-        $nrgVarID = $this->FindeMqttVariableByTopic($topic);
-        if ($nrgVarID > 0) {
-            $nrgString = GetValueString($nrgVarID);
-            $nrgArray = explode(',', $nrgString);
-            if (count($nrgArray) > 12) {
-                $ladeleistung = floatval($nrgArray[12]);
-                $this->SetValue('Wallbox_nrg', $ladeleistung);
-            }
-        }
-    }
-
-    public function UpdateWallboxPsm()
-    {
-        $topic = "go-eCharger/285450/psm";
-        $psmVarID = $this->FindeMqttVariableByTopic($topic);
-        if ($psmVarID > 0) {
-            $psmString = GetValueString($psmVarID);
-            $this->SetValue('Wallbox_psm', $psmString);
-        }
-    }
-
-    // Event für Topic/Variable anlegen
-    private function EnsureTopicUpdateEvent($topic, $ident, $type)
-    {
-        $varID = @$this->GetIDForIdent($ident);
-        if (!$varID) return;
-
-        $sourceVarID = $this->FindeMqttVariableByTopic($topic);
-        if (!$sourceVarID) return;
-
-        $eventIdent = "UpdateEvent_" . $ident;
-        $eventID = @IPS_GetObjectIDByIdent($eventIdent, $this->InstanceID);
-
-        if ($eventID === false) {
-            $eventID = IPS_CreateEvent(0); // Bei Variablenänderung
-            IPS_SetParent($eventID, $this->InstanceID);
-            IPS_SetName($eventID, "Update bei MQTT-Topic " . $topic);
-            IPS_SetIdent($eventID, $eventIdent);
-        }
-        IPS_SetEventTrigger($eventID, 1, $sourceVarID); // 1 = Bei Änderung
-        IPS_SetEventActive($eventID, true);
-
-        // Das Event ruft immer den RequestAction-Handler (siehe unten)
-        IPS_SetEventScript($eventID, 'IPS_RequestAction(' . $this->InstanceID . ', "' . $ident . '", "");');
-    }
-
-    // Event für Topic/Variable löschen
-    private function DeleteTopicUpdateEvent($ident)
-    {
-        $eventIdent = "UpdateEvent_" . $ident;
-        $eventID = @IPS_GetObjectIDByIdent($eventIdent, $this->InstanceID);
-        if ($eventID !== false) {
-            IPS_DeleteEvent($eventID);
-        }
-    }
-
-    // Variable für Topic im Objektbaum suchen (anhand Topic-Attribut)
-    private function FindeMqttVariableByTopic($topic)
-    {
-        foreach (IPS_GetVariableList() as $varID) {
-            $obj = IPS_GetObject($varID);
-            if (isset($obj['ObjectCustomAttributes']['MQTTServer_Topic'])) {
-                if ($obj['ObjectCustomAttributes']['MQTTServer_Topic'] == $topic) {
-                    return $varID;
-                }
-            }
-        }
-        return 0;
-    }
-*/
 }
