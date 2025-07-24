@@ -489,6 +489,13 @@ class PVWallboxManager extends IPSModule
         // 3. PVonly-Modus: komplett ausgelagert
         $this->ModusPVonlyLaden($data, $anzPhasenAlt, $mode);
 
+        // Nach allen Modus-Funktionen und vor $this->UpdateStatusAnzeige()
+        $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
+        $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
+        // Absicherung gegen fehlende Keys
+        $hausOhneWB = $werte['hausOhneWB'] ?? 0;
+        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausOhneWB, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
+
         $this->UpdateStatusAnzeige();
     }
 
@@ -1564,7 +1571,7 @@ class PVWallboxManager extends IPSModule
         }
 
         // Für Anzeige/Log den geglätteten/spikegefilterten Wert nehmen:
-        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallboxGlaettet, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
+//        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallboxGlaettet, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
 
         // Batterie-Ladung (positiv = lädt, negativ = entlädt)
         $batID = $this->ReadPropertyInteger('BatterieladungID');
