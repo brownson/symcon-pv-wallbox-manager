@@ -1895,7 +1895,18 @@ class PVWallboxManager extends IPSModule
             return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
         }
 
-        $preise = array_slice($preise, 0, $max);
+        // === NEU: Suche die ersten $max Preise ab jetzt ===
+        $now = time();
+        $startIndex = 0;
+        foreach ($preise as $idx => $dat) {
+            if ($dat['timestamp'] >= $now) {
+                $startIndex = $idx;
+                break;
+            }
+        }
+        $preise = array_slice($preise, $startIndex, $max);
+        // ================================================
+
         $allePreise = array_column($preise, 'price');
         $min = min($allePreise);
         $maxPrice = max($allePreise);
