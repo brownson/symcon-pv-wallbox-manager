@@ -50,6 +50,7 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 
 - **Initial-Check-Intervall:**  
   Das Modul prüft in kurzen Abständen (standardmäßig alle 10 Sekunden), ob ein Fahrzeug an der Wallbox erkannt wird.
+  Hier passieren keine Berechnugen vom PV-Überschuss usw...
   Erst wenn ein Fahrzeug angeschlossen ist, schaltet das Modul automatisch auf den normalen Aktualisierungsintervall um.
 
 - **Normaler Aktualisierungsintervall:**  
