@@ -46,6 +46,22 @@ Aktuell unterstützt dieses Modul **ausschließlich den GO-eCharger (V3 und V4)*
 
 ---
 
+### Aktualisierungsintervalle im PVWallboxManager
+
+- **Initial-Check-Intervall:**  
+  Das Modul prüft in kurzen Abständen (standardmäßig alle 10 Sekunden), ob ein Fahrzeug an der Wallbox erkannt wird.
+  Erst wenn ein Fahrzeug angeschlossen ist, schaltet das Modul automatisch auf den normalen Aktualisierungsintervall um.
+
+- **Normaler Aktualisierungsintervall:**  
+  Während des laufenden Betriebs werden alle Werte (PV-Leistung, Hausverbrauch, Wallbox-Status, etc.) standardmäßig alle **30 Sekunden** aktualisiert.  
+  Das Intervall kannst du in den Moduleinstellungen (Eigenschaften der Instanz) an deine Bedürfnisse anpassen.
+
+> **Tipp:**  
+> Ein kürzeres Intervall sorgt für schnellere Reaktion bei Wetterwechseln, erzeugt aber auch mehr Systemlast.  
+> 30 - 60 Sekunden ist ein guter Mittelwert für die meisten Anwendungsfälle.
+
+---
+
 ## Was ist neu in Version v1.1b?
 
 - Eigene Icons für „PV-Überschuss (W)“ (☀️) und „PV-Überschuss (A)“ (⚡️) im WebFront.
