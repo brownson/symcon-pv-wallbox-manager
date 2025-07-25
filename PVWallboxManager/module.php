@@ -1899,7 +1899,7 @@ class PVWallboxManager extends IPSModule
         $now = time();
         $startIndex = 0;
         foreach ($preise as $idx => $dat) {
-            if ($dat['timestamp'] >= $now) {
+            if ($dat['timestamp'] <= $now) {
                 $startIndex = $idx;
                 break;
             }
