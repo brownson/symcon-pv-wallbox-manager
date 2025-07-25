@@ -3,7 +3,7 @@
 Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.  
 **Repository:** https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager
 
-## [1.1b] 🚧 in Vorbereitung 🚧
+## [1.1b] - 2025-07-25
 - Börsenpreise wird zur vollen Stunde aktualisiert
 - Börsenpreis-Vorschau +24h erweitert
 - Hausansschluss (W) aktueller Wert wird im WF immer aktualisert angezeigt
@@ -11,8 +11,12 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 - Phasenmodus wird immer aktualisiert
 - Stauts-Info Anzeige ~HTML Box für Webfront hinzugefügt (Lademodi, Phasensstatus, Status, Modus, PV2Car (%) werden angezeigt)
 - 🏠 Hausverbrauch (W) und 🏠 Hausverbrauch abzügl. Wallbox (W) werden per Ereignis immer aktualisiert
-- Berechnungen wurden nochmal überarbeitet
-- Webfront Anzeige bereinigt
+- NEU: ☀️ und ⚡️ Icons für „PV-Überschuss (W/A)“ im WebFront
+- NEU: 0A-Logik für Ladestrom (zeigt 0A, solange kein Überschuss)
+- FIX: Hausverbrauch abzüglich Wallbox kann nicht mehr negativ werden
+- OPTIMIERUNG: Glättung & Buffer für Hausverbrauch abzüglich Wallbox verbessert
+- OPTIMIERUNG: Alle Werte im WebFront jetzt gerundet (keine Nachkommastellen-Flut)
+- Diverse Berechnungen überarbeitet und WebFront-Anzeige bereinigt
 
 ## [1.0b] – 2025-07-13
 
