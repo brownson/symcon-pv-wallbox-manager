@@ -21,7 +21,7 @@ Hier werden geplante Features gesammelt, Community-Wünsche, Ideen und größere
 - [ ] **Weitere Lademodi und Features**
     - [ ] Zeitgesteuertes Laden (z.B. Zielzeit, günstige Börsenzeiten)
     - [x] PV2Car mit Prozentsteuerung -> **Umgesetzt in: v1.1b**
-
+    - [ ] neuer Lademodi (Laden Manuell steuern) -> Start/Stop, Amperevorgabe, Phasenvorgabe
 ---
 
 ## 🛠️ Technische Verbesserungen
@@ -29,6 +29,9 @@ Hier werden geplante Features gesammelt, Community-Wünsche, Ideen und größere
 - [ ] Konfigurierbare Hysterese und Phasenumschaltung
 - [ ] Mehr Visualisierung/Logging im WebFront
 - [ ] Automatisches Reset nach Stromausfall
+- [ ] PV-Überschuss immer berechnen
+- [ ] Modul über die Visu abschalten (Button)
+- [ ] Bug 🏠 Hausverbrauch abzügl. Wallbox (W) wird beim Modulintervall 0 W berechnet
 - [x] Börsenpreise sollen zur vollen Stunde aktualisiert werden -> **Umgesetzt in: v1.1b**
 - [x] Wenn Auto SOC erreicht hat soll der Ladenodus auch beendet werden. Derzeit Versucht das Modul verzweifelt zu laden. -> **Umgesetzt in: v1.1b**
 - [x] Status-Ino Anzige im Webfront (Lademodi, Phasensstatus, Status, Modus) -> **Umgesetzt in: v1.1b**
