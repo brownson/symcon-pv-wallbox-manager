@@ -521,6 +521,33 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+    private function EnsureMQTTKategorie()
+    {
+        $catID = @IPS_GetObjectIDByIdent('mqtt', $this->InstanceID);
+        if ($catID === false) {
+            $catID = IPS_CreateCategory();
+            IPS_SetName($catID, 'mqtt');
+            IPS_SetIdent($catID, 'mqtt');
+            IPS_SetParent($catID, $this->InstanceID);
+        }
+
+        $serial = trim($this->ReadPropertyString('WallboxSerial'));
+        if ($serial === '') {
+            $this->LogTemplate('warn', 'Keine Seriennummer für MQTT-Unterstruktur gesetzt.');
+            return;
+        }
+
+        $serID = @IPS_GetObjectIDByIdent($serial, $catID);
+        if ($serID === false) {
+            $serID = IPS_CreateCategory();
+            IPS_SetName($serID, $serial);
+            IPS_SetIdent($serID, $serial);
+            IPS_SetParent($serID, $catID);
+        }
+
+        $this->SetBuffer('MQTTSerKategorie', $serID);
+    }
+
     public function ReceiveData($JSONString)
     {
         $data = json_decode($JSONString, true);
