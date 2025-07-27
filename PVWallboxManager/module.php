@@ -542,10 +542,7 @@ class PVWallboxManager extends IPSModule
     private function GetMQTTValue(string $key)
     {
         $serial = trim($this->ReadPropertyString('WallboxSerial'));
-        if ($serial === '') {
-            $this->LogTemplate('warn', "Keine Seriennummer gesetzt – MQTT-Pfad kann nicht ermittelt werden.");
-            return null;
-        }
+        if ($serial === '') return null;
 
         $catID = @IPS_GetObjectIDByIdent('mqtt', $this->InstanceID);
         if ($catID === false) return null;
@@ -553,16 +550,13 @@ class PVWallboxManager extends IPSModule
         $serID = @IPS_GetObjectIDByIdent($serial, $catID);
         if ($serID === false) return null;
 
-        $ident = "mqtt_$key";
-        $id = @IPS_GetObjectIDByIdent($ident, $serID);
-        if ($id === false) {
+        $varID = @IPS_GetObjectIDByIdent("mqtt_$key", $serID);
+        if ($varID === false) {
             $this->LogTemplate('warn', "MQTT-Wert '$key' nicht gefunden in automatisch verwalteter Struktur.");
             return null;
         }
 
-        $value = GetValue($id);
-        $this->SendDebug("MQTT", "Wert von '$key' = " . var_export($value, true), 0);
-        return $value;
+        return GetValue($varID);
     }
 
     // =========================================================================
