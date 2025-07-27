@@ -11,5 +11,5 @@
   "prefix": "PVWM",
   "parentRequirements": ["{A3393F60-0B5E-47F4-9BC7-161FE305BD3F}"],
   "childRequirements": [],
-  "implemented": ["{018EF6B5-AB94-40C6-AA53-46943E824ACF}"]
+  "implemented": ["{C8792760-65CF-4C53-B5C7-A30FCC84FEFE}"]
 }
