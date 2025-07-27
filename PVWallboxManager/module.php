@@ -171,7 +171,7 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
-        $this->ConnectParent("{6C1FEE94-0F04-4F6E-B1E6-2E0E62A4DDE4}");
+        $this->ConnectParent("{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}");
         $this->SetReceiveDataFilter(".*go-eCharger.*");
         $this->EnsureMQTTKategorie();
         // Synchronisiere WebFront-Variable mit Property
@@ -579,14 +579,18 @@ class PVWallboxManager extends IPSModule
     public function GetConfigurationForParent()
     {
         $serial = trim($this->ReadPropertyString('WallboxSerial'));
+        $this->SendDebug("GetConfigurationForParent", "Serial: $serial", 0);
+
         if ($serial == '') {
-            return '{}'; // Nichts abonnieren, wenn keine Seriennummer vorhanden
+            return '{}';
         }
 
-        $topic = "go-eCharger/$serial/#"; // Alle Topics dieses Chargers
+        $topic = "go-eCharger/$serial/#";
+        $this->SendDebug("GetConfigurationForParent", "Topic: $topic", 0);
+
         return json_encode([
             'Topic' => $topic,
-            'DataID' => '{018EF6B5-AB94-40C6-AA53-46943E824ACF}' // Muss bei MQTT IMMER dieser Wert sein
+            'DataID' => '{018EF6B5-AB94-40C6-AA53-46943E824ACF}'
         ]);
     }
 
