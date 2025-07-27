@@ -495,21 +495,54 @@ public function ReceiveData($JSONString)
 
     $topic = $data['Topic'];
     $payload = $data['Payload'];
-    $this->SendDebug("MQTT", "Empfangen: $topic = $payload", 0);
+    $this->SendDebug("MQTT Raw", "Topic: $topic / Payload: $payload", 0);
 
-    $serial = trim($this->ReadPropertyString('WallboxSerial'));
-    $expectedPrefix = "go-eCharger/$serial/";
-
-    // Prüfe, ob Nachricht zur gewählten Seriennummer gehört
-    if (!str_starts_with($topic, $expectedPrefix)) return;
-
-    $key = substr($topic, strlen($expectedPrefix));
-    $value = trim($payload, '"'); // Anführungszeichen entfernen
-
-    if ($key !== '') {
-        $this->UpdateMqttVariable($key, $value);
+    // Beispiel-Topic: go-eCharger/285450/utc
+    $parts = explode('/', $topic);
+    if (count($parts) !== 3 || $parts[0] !== 'go-eCharger') {
+        $this->SendDebug("MQTT", "Nicht relevante MQTT-Nachricht empfangen: $topic", 0);
+        return;
     }
+
+    $serial = $parts[1];     // z. B. 285450
+    $key    = strtolower($parts[2]);  // z. B. utc
+
+    // Payload aufbereiten
+    $value = trim($payload, "\"");
+
+    // Kategorie „mqtt“ anlegen (falls noch nicht vorhanden)
+    $catMQTT = @IPS_GetObjectIDByIdent('mqtt', $this->InstanceID);
+    if ($catMQTT === false) {
+        $catMQTT = IPS_CreateCategory();
+        IPS_SetName($catMQTT, 'mqtt');
+        IPS_SetIdent($catMQTT, 'mqtt');
+        IPS_SetParent($catMQTT, $this->InstanceID);
+    }
+
+    // Kategorie „Serial“ anlegen (z. B. 285450)
+    $catSerial = @IPS_GetObjectIDByIdent($serial, $catMQTT);
+    if ($catSerial === false) {
+        $catSerial = IPS_CreateCategory();
+        IPS_SetName($catSerial, $serial);
+        IPS_SetIdent($catSerial, $serial);
+        IPS_SetParent($catSerial, $catMQTT);
+    }
+
+    // Variable „mqtt_{key}“ anlegen (z. B. mqtt_utc)
+    $ident = "mqtt_" . $key;
+    $varID = @IPS_GetObjectIDByIdent($ident, $catSerial);
+    if ($varID === false) {
+        $varID = IPS_CreateVariable(3); // 3 = string
+        IPS_SetName($varID, "MQTT: $key");
+        IPS_SetIdent($varID, $ident);
+        IPS_SetParent($varID, $catSerial);
+    }
+
+    // Wert setzen
+    SetValueString($varID, $value);
+    $this->SendDebug("MQTT Update", "Setze $ident = $value (ID $varID)", 0);
 }
+
 
 private function UpdateMqttVariable(string $key, string $value)
 {
