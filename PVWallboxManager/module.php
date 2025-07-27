@@ -462,16 +462,29 @@ class PVWallboxManager extends IPSModule
     public function ReceiveData($JSONString)
     {
         $data = json_decode($JSONString, true);
-        if (!isset($data['Topic']) || !isset($data['Payload'])) return;
+        if (!isset($data['Topic']) || !isset($data['Payload'])) {
+            $this->SendDebug("MQTT", "Ungültiges JSON empfangen", 0);
+            return;
+        }
 
         $topic = $data['Topic'];
         $payload = $data['Payload'];
 
-        // Immer prüfen, ob gültiges JSON
-        $decodedPayload = json_decode($payload, true);
-        if (!is_array($decodedPayload)) return;
+        // ✅ Nur Daten mit **korrekter Seriennummer** verarbeiten
+        $expectedSerial = '285450';
+        if (strpos($topic, "/go-eCharger/$expectedSerial/") === false) {
+            $this->SendDebug("MQTT", "Ignoriere Topic (falsche Seriennummer): $topic", 0);
+            return;
+        }
 
-        // Beispiel: /go-eCharger/SERIENNUMMER/utc
+        // ✅ Gültiges Payload-JSON?
+        $decodedPayload = json_decode($payload, true);
+        if (!is_array($decodedPayload)) {
+            $this->SendDebug("MQTT", "Payload ist kein gültiges JSON", 0);
+            return;
+        }
+
+        // ✅ UTC-Wert vorhanden → schreiben
         if (isset($decodedPayload['utc'])) {
             $this->SetValue('mqtt_utc', $decodedPayload['utc']);
             $this->SendDebug("MQTT", "UTC empfangen: " . $decodedPayload['utc'], 0);
