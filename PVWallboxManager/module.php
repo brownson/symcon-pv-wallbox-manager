@@ -174,6 +174,7 @@ class PVWallboxManager extends IPSModule
         // Synchronisiere WebFront-Variable mit Property
         $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
         $this->SetValue('ModulAktiv_Switch', $aktiv);
+        $this->RequireParent("{3D7C0C6D-44E2-4C6D-BB80-8C2FDC5E30C8}");
 
         // Timer zurücksetzen
         $this->SetTimerInterval('PVWM_UpdateStatus', 0);
