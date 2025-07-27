@@ -154,6 +154,9 @@ class PVWallboxManager extends IPSModule
 
         $this->RegisterAttributeInteger('LetztePhasenUmschaltung', 0);
 
+        //MQTT
+        $this->RegisterVariableString('mqtt_utc', 'MQTT: Letzter Empfang (UTC)', '', 1);
+
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
         $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
@@ -453,6 +456,29 @@ class PVWallboxManager extends IPSModule
             return true;
         }
         return false;
+    }
+
+    // MQTT
+    public function ReceiveData($JSONString)
+    {
+        $data = json_decode($JSONString, true);
+        if (!isset($data['Topic']) || !isset($data['Payload'])) {
+            $this->SendDebug("MQTT", "Ungültige Daten empfangen", 0);
+            return;
+        }
+
+        $topic = $data['Topic'];
+        $payload = $data['Payload'];
+
+        // Jedes empfangene Paket → UTC-Zeit schreiben
+        $utcTime = gmdate("Y-m-d\TH:i:s\Z");
+        $this->SetValue('mqtt_utc', $utcTime);
+
+        // Beispielhafte Filterung (optional)
+        if (strpos($topic, '/go-eCharger/') !== false) {
+            $this->SendDebug("MQTT", "Topic: $topic", 0);
+            $this->SendDebug("MQTT", "Payload: $payload", 0);
+        }
     }
 
     // =========================================================================
