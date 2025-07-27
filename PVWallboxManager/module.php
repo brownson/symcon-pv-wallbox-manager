@@ -157,7 +157,6 @@ class PVWallboxManager extends IPSModule
         //MQTT
         $this->RegisterPropertyString('WallboxSerial', '285450'); // feste SN für Test
 //        $this->RegisterVariableString('mqtt_utc', 'MQTT: Letzter Empfang (UTC)', '', 999);
-        $this->EnsureMQTTKategorie();
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
@@ -172,6 +171,8 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+        $this->ConnectParent('{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}');
+        $this->EnsureMQTTKategorie();
         // Synchronisiere WebFront-Variable mit Property
         $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
         $this->SetValue('ModulAktiv_Switch', $aktiv);
@@ -487,7 +488,6 @@ class PVWallboxManager extends IPSModule
 
         $this->SetBuffer('MQTTSerKategorie', $serID);
     }
-
 
     private function UpdateMqttVariable($key, $value)
     {
