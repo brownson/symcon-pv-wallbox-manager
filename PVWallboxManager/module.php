@@ -156,7 +156,7 @@ class PVWallboxManager extends IPSModule
 
         //MQTT
         $this->RegisterPropertyString('WallboxSerial', '285450'); // feste SN für Test
-        $this->RegisterVariableString('mqtt_utc', 'MQTT: Letzter Empfang (UTC)', '', 999);
+//        $this->RegisterVariableString('mqtt_utc', 'MQTT: Letzter Empfang (UTC)', '', 999);
         $this->EnsureMQTTKategorie();
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
