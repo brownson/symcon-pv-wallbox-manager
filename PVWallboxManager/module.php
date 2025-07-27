@@ -1280,7 +1280,7 @@ class PVWallboxManager extends IPSModule
         $this->SetValue('Leistung', 0);                  // Ladeleistung zum Fahrzeug
         $this->SetValue('PV_Ueberschuss', 0);            // PV-Überschuss (W)
         $this->SetValue('PV_Ueberschuss_A', 0);          // PV-Überschuss (A) – Jetzt 0A!
-        $this->SetValue('Hausverbrauch_abz_Wallbox', 0); // Hausverbrauch abz. Wallbox
+//
 
         // Hausverbrauch trotzdem live anzeigen (wie oben beschrieben)
         $hvID = $this->ReadPropertyInteger('HausverbrauchID');
