@@ -516,12 +516,17 @@ class PVWallboxManager extends IPSModule
         $topic = $data['Topic'];
         $payload = $data['Payload'];
 
-        $decodedPayload = json_decode($payload, true);
-        if (!is_array($decodedPayload)) return;
+        $this->SendDebug("MQTT Raw", "Topic: $topic / Payload: $payload", 0);
 
-        if (isset($decodedPayload['utc'])) {
-            $this->UpdateMqttVariable('utc', $decodedPayload['utc']);
-            $this->SendDebug("MQTT", "UTC empfangen und gespeichert: " . $decodedPayload['utc'], 0);
+        // Extrahiere letzten Topic-Part (z. B. utc)
+        $parts = explode('/', $topic);
+        $lastPart = strtolower(trim(end($parts)));  // z. B. "utc"
+
+        // Nur UTF-8 bereinigt schreiben (z. B. bei "utc" oder "loc")
+        if (in_array($lastPart, ['utc', 'loc', 'rbt'])) {
+            $value = trim($payload, "\""); // Anführungszeichen entfernen
+            $this->UpdateMqttVariable($lastPart, $value);
+            $this->SendDebug("MQTT Set", "$lastPart = $value", 0);
         }
     }
 
