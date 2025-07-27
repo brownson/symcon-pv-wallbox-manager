@@ -9,7 +9,7 @@
   ],
   "url": "https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager",
   "prefix": "PVWM",
-  "parentRequirements": ["{3D7C0C6D-44E2-4C6D-BB80-8C2FDC5E30C8}"],
+  "parentRequirements": ["{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}"],
   "childRequirements": [],
   "implemented": ["{018EF6B5-AB94-40C6-AA53-46943E824ACF}"]
 }
