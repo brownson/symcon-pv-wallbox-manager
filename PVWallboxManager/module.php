@@ -549,8 +549,8 @@ class PVWallboxManager extends IPSModule
     {
         $utc = $this->GetMQTTValue('utc');
         if (!is_null($utc)) {
-            $this->SetValue('mqtt_utc', $utc); // Vergleich oder Anzeige
             $this->LogTemplate('info', "MQTT UTC aktualisiert: $utc");
+            $this->SetValue('mqtt_utc', $utc);  // Nur zum Vergleich
         }
     }
 
@@ -565,13 +565,22 @@ class PVWallboxManager extends IPSModule
         $serID = @IPS_GetObjectIDByIdent($serial, $catID);
         if ($serID === false) return null;
 
-        $varID = @IPS_GetObjectIDByIdent("mqtt_$key", $serID);
-        if ($varID === false) {
-            $this->LogTemplate('warn', "MQTT-Wert '$key' nicht gefunden in automatisch verwalteter Struktur.");
+        $mqttDeviceID = @IPS_GetObjectIDByIdent($key, $serID);
+        if ($mqttDeviceID === false) {
+            $this->LogTemplate('warn', "MQTT-Gerät '$key' nicht gefunden unter Seriennummer '$serial'.");
             return null;
         }
 
-        return GetValue($varID);
+        // Jetzt unterhalb des Geräts nach "Value"-Variable suchen:
+        foreach (IPS_GetChildrenIDs($mqttDeviceID) as $childID) {
+            $obj = IPS_GetObject($childID);
+            if ($obj['ObjectIdent'] === 'Value') {
+                return GetValue($childID);
+            }
+        }
+
+        $this->LogTemplate('warn', "MQTT-Gerät '$key' gefunden, aber keine 'Value'-Variable darin.");
+        return null;
     }
 
     // =========================================================================
