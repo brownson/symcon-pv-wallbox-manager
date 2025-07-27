@@ -101,13 +101,15 @@ class PVWallboxManager extends IPSModule
 
         // === Modul-Variablen für Visualisierung, Status, Lademodus etc. ===
         $this->RegisterVariableFloat('PV_Ueberschuss','☀️ PV-Überschuss (W)',                               'PVWM.Watt', 10);
-        IPS_SetIcon($this->GetIDForIdent('PV_Ueberschuss'), 'solar-panel');
 
-        $this->RegisterVariableInteger('PV_Ueberschuss_A', '⚡ PV-Überschuss (A)',                             'PVWM.Ampere', 11);
+        $this->RegisterVariableFloat('PV_UeberschussLive', '☀️ PV-Überschuss (live)',                       'PVWM.Watt', 11);
+        IPS_SetIcon($this->GetIDForIdent('PV_UeberschussLive'), 'solar-panel');
+
+        $this->RegisterVariableInteger('PV_Ueberschuss_A', '⚡ PV-Überschuss (A)',                             'PVWM.Ampere', 12);
         IPS_SetIcon($this->GetIDForIdent('PV_Ueberschuss_A'), 'Energy');
 
         // Hausverbrauch (W)
-        $this->RegisterVariableFloat('Hausverbrauch_W','🏠 Hausverbrauch (W)',                              'PVWM.Watt', 12);
+        $this->RegisterVariableFloat('Hausverbrauch_W','🏠 Hausverbrauch (W)',                              'PVWM.Watt', 13);
         IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_W'), 'home');
 
         // Hausverbrauch abzügl. Wallbox (W) – wie vorher empfohlen
@@ -176,7 +178,7 @@ class PVWallboxManager extends IPSModule
         $this->SetTimerNachModusUndAuto();
         $this->SetMarketPriceTimerZurVollenStunde();
         $this->UpdateHausverbrauchEvent();
-//        $this->UpdatePVUeberschussEvent();
+        $this->UpdatePVUeberschussEvent();
     }
 
     // =========================================================================
@@ -1587,7 +1589,7 @@ class PVWallboxManager extends IPSModule
         $eventIdent = "UpdatePVUeberschuss";
         $eventID = @$this->GetIDForIdent($eventIdent);
         $pvID = $this->ReadPropertyInteger('PVErzeugungID');
-        $myVarID = $this->GetIDForIdent('PV_Ueberschuss');
+        $liveVarID = $this->GetIDForIdent('PV_UeberschussLive');
 
         // Event löschen, falls PV-ID gewechselt wurde oder nicht mehr gesetzt
         if ($eventID && ($pvID <= 0 || @IPS_GetEvent($eventID)['TriggerVariableID'] != $pvID)) {
@@ -1605,12 +1607,15 @@ class PVWallboxManager extends IPSModule
                 IPS_SetEventActive($eventID, true);
                 IPS_SetName($eventID, "Aktualisiere PV-Überschuss");
             }
-            // Skript: Berechnung anstoßen
-            $script = <<<'EOD'
-    IPS_RequestAction($_IPS['INSTANCE'], "UpdateStatus", "pvonly");
-    EOD;
-            // Instanz-ID einsetzen
-            $script = str_replace('$_IPS[\'INSTANCE\']', $this->InstanceID, $script);
+            // Skript: Berechnung anstoßen und Live-Wert setzen
+            $script = '
+                IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");
+                if (function_exists("SetValue")) {
+                    SetValue(' . $liveVarID . ', GetValueFloat(' . $pvID . '));
+                } else {
+                    IPS_SetValue(' . $liveVarID . ', GetValueFloat(' . $pvID . '));
+                }
+            ';
             IPS_SetEventScript($eventID, $script);
         }
     }
