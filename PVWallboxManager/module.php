@@ -172,7 +172,6 @@ class PVWallboxManager extends IPSModule
     {
         parent::ApplyChanges();
         $this->ConnectParent("{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}");
-        $this->SetReceiveDataFilter(".*go-eCharger.*");
         $this->EnsureMQTTKategorie();
         // Synchronisiere WebFront-Variable mit Property
         $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
@@ -463,136 +462,76 @@ class PVWallboxManager extends IPSModule
     }
 
     //MQTT
-    private function EnsureMQTTDevice(string $topic, string $payload)
-    {
-        $serial = $this->ReadPropertyString('WallboxSerial');
-        if ($serial === '') {
-            $this->LogTemplate('warn', 'Seriennummer nicht gesetzt – MQTT-Gerät kann nicht erstellt werden.');
-            return;
-        }
 
-        $rootCatID = @IPS_GetObjectIDByIdent('mqtt', $this->InstanceID);
-        if ($rootCatID === false) {
-            $rootCatID = IPS_CreateCategory();
-            IPS_SetName($rootCatID, 'mqtt');
-            IPS_SetIdent($rootCatID, 'mqtt');
-            IPS_SetParent($rootCatID, $this->InstanceID);
-        }
-
-        // Unterkategorie: Seriennummer
-        $serCatID = @IPS_GetObjectIDByIdent($serial, $rootCatID);
-        if ($serCatID === false) {
-            $serCatID = IPS_CreateCategory();
-            IPS_SetName($serCatID, $serial);
-            IPS_SetIdent($serCatID, $serial);
-            IPS_SetParent($serCatID, $rootCatID);
-        }
-
-        // MQTT-Gerätename = Topic-Ende (z. B. "utc")
-        $parts = explode('/', $topic);
-        $key = end($parts);
-
-        // Unterinstanz: MQTT-Gerät (vom Typ: MQTT Server Gerät)
-        $deviceID = @IPS_GetObjectIDByIdent($key, $serCatID);
-        if ($deviceID === false) {
-            $deviceID = IPS_CreateInstance('{1A2C432F-51E4-46B1-9D4A-672F8A8F2F1E}'); // MQTT Server Gerät
-            IPS_SetName($deviceID, $key);
-            IPS_SetIdent($deviceID, $key);
-            IPS_SetParent($deviceID, $serCatID);
-        }
-
-        // Konfiguriere das MQTT-Gerät
-        $instanceConfig = [
-            'Topic' => "go-eCharger/$serial/$key",
-            'DataType' => 0, // Auto/String
-            'ValueType' => 3  // String
-        ];
-        IPS_SetProperty($deviceID, 'Topic', $instanceConfig['Topic']);
-        IPS_SetProperty($deviceID, 'DataType', $instanceConfig['DataType']);
-        IPS_SetProperty($deviceID, 'ValueType', $instanceConfig['ValueType']);
-        IPS_ApplyChanges($deviceID);
-
-        // Setze ersten Wert manuell (damit was angezeigt wird)
-        $children = IPS_GetChildrenIDs($deviceID);
-        foreach ($children as $varID) {
-            if (@IPS_GetObject($varID)['ObjectIdent'] === 'Value') {
-                SetValueString($varID, trim($payload, '"'));
-                break;
-            }
-        }
+private function EnsureMQTTKategorie()
+{
+    $catID = @IPS_GetObjectIDByIdent('mqtt', $this->InstanceID);
+    if ($catID === false) {
+        $catID = IPS_CreateCategory();
+        IPS_SetName($catID, 'mqtt');
+        IPS_SetIdent($catID, 'mqtt');
+        IPS_SetParent($catID, $this->InstanceID);
     }
 
-    private function EnsureMQTTKategorie()
-    {
-        $catID = @IPS_GetObjectIDByIdent('mqtt', $this->InstanceID);
-        if ($catID === false) {
-            $catID = IPS_CreateCategory();
-            IPS_SetName($catID, 'mqtt');
-            IPS_SetIdent($catID, 'mqtt');
-            IPS_SetParent($catID, $this->InstanceID);
-        }
+    $serial = trim($this->ReadPropertyString('WallboxSerial'));
+    if ($serial === '') return;
 
-        $serial = trim($this->ReadPropertyString('WallboxSerial'));
-        if ($serial === '') {
-            $this->LogTemplate('warn', 'Keine Seriennummer für MQTT-Unterstruktur gesetzt.');
-            return;
-        }
+    $serID = @IPS_GetObjectIDByIdent($serial, $catID);
+    if ($serID === false) {
+        $serID = IPS_CreateCategory();
+        IPS_SetName($serID, $serial);
+        IPS_SetIdent($serID, $serial);
+        IPS_SetParent($serID, $catID);
+    }
+}
 
-        $serID = @IPS_GetObjectIDByIdent($serial, $catID);
-        if ($serID === false) {
-            $serID = IPS_CreateCategory();
-            IPS_SetName($serID, $serial);
-            IPS_SetIdent($serID, $serial);
-            IPS_SetParent($serID, $catID);
-        }
-
-        $this->SetBuffer('MQTTSerKategorie', $serID);
+public function ReceiveData($JSONString)
+{
+    $data = json_decode($JSONString, true);
+    if (!isset($data['Topic']) || !isset($data['Payload'])) {
+        $this->SendDebug("MQTT", "Ungültige Datenstruktur", 0);
+        return;
     }
 
-    public function ReceiveData($JSONString)
-    {
-        $data = json_decode($JSONString, true);
-        if (!isset($data['Topic']) || !isset($data['Payload'])) return;
+    $topic = $data['Topic'];
+    $payload = $data['Payload'];
+    $this->SendDebug("MQTT", "Empfangen: $topic = $payload", 0);
 
-        $topic = $data['Topic'];
-        $payload = $data['Payload'];
-        $this->SendDebug("MQTT Raw", "Topic: $topic / Payload: $payload", 0);
+    $serial = trim($this->ReadPropertyString('WallboxSerial'));
+    $expectedPrefix = "go-eCharger/$serial/";
 
-        $serial = trim($this->ReadPropertyString('WallboxSerial'));
-        $prefix = "go-eCharger/$serial/";
+    // Prüfe, ob Nachricht zur gewählten Seriennummer gehört
+    if (!str_starts_with($topic, $expectedPrefix)) return;
 
-        if (str_starts_with($topic, $prefix)) {
-            $suffix = substr($topic, strlen($prefix)); // z. B. "utc"
-            $key = trim($suffix);
-            $value = trim($payload, '"');
+    $key = substr($topic, strlen($expectedPrefix));
+    $value = trim($payload, '"'); // Anführungszeichen entfernen
 
-            if (in_array($key, ['utc', 'loc', 'rbt'])) {
-                $this->UpdateMqttVariable($key, $value);
-            } else {
-                $this->SendDebug("MQTT Info", "Unbekannter Key '$key' ignoriert.", 0);
-            }
-        } else {
-            $this->SendDebug("MQTT Skip", "Nicht unsere Wallbox: $topic", 0);
-        }
+    if ($key !== '') {
+        $this->UpdateMqttVariable($key, $value);
+    }
+}
+
+private function UpdateMqttVariable(string $key, string $value)
+{
+    $serial = trim($this->ReadPropertyString('WallboxSerial'));
+    $catID = @IPS_GetObjectIDByIdent('mqtt', $this->InstanceID);
+    if ($catID === false) return;
+
+    $serID = @IPS_GetObjectIDByIdent($serial, $catID);
+    if ($serID === false) return;
+
+    $ident = "mqtt_$key";
+    $varID = @IPS_GetObjectIDByIdent($ident, $serID);
+    if ($varID === false) {
+        $varID = IPS_CreateVariable(3); // 3 = String
+        IPS_SetName($varID, $key);
+        IPS_SetIdent($varID, $ident);
+        IPS_SetParent($varID, $serID);
     }
 
-    public function GetConfigurationForParent()
-    {
-        $serial = trim($this->ReadPropertyString('WallboxSerial'));
-        $this->SendDebug("GetConfigurationForParent", "Serial: $serial", 0);
+    SetValueString($varID, $value);
+}
 
-        if ($serial == '') {
-            return '{}';
-        }
-
-        $topic = "go-eCharger/$serial/#";
-        $this->SendDebug("GetConfigurationForParent", "Topic: $topic", 0);
-
-        return json_encode([
-            'Topic' => $topic,
-            'DataID' => '{018EF6B5-AB94-40C6-AA53-46943E824ACF}'
-        ]);
-    }
 
     // =========================================================================
     // 5. HAUPT-STEUERLOGIK
