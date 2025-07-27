@@ -462,61 +462,71 @@ class PVWallboxManager extends IPSModule
     }
 
     //MQTT
-    private function EnsureMQTTKategorie()
+    private function EnsureMQTTDevice(string $topic, string $payload)
     {
-        $catID = @IPS_GetObjectIDByIdent('mqtt', $this->InstanceID);
-        if ($catID === false) {
-            $catID = IPS_CreateCategory();
-            IPS_SetName($catID, 'mqtt');
-            IPS_SetIdent($catID, 'mqtt');
-            IPS_SetParent($catID, $this->InstanceID);
-        }
-
-        $serial = trim($this->ReadPropertyString('WallboxSerial'));
+        $serial = $this->ReadPropertyString('WallboxSerial');
         if ($serial === '') {
-            $this->LogTemplate('warn', 'Keine Seriennummer für MQTT-Unterstruktur gesetzt.');
+            $this->LogTemplate('warn', 'Seriennummer nicht gesetzt – MQTT-Gerät kann nicht erstellt werden.');
             return;
         }
 
-        $serID = @IPS_GetObjectIDByIdent($serial, $catID);
-        if ($serID === false) {
-            $serID = IPS_CreateCategory();
-            IPS_SetName($serID, $serial);
-            IPS_SetIdent($serID, $serial);
-            IPS_SetParent($serID, $catID);
+        $rootCatID = @IPS_GetObjectIDByIdent('mqtt', $this->InstanceID);
+        if ($rootCatID === false) {
+            $rootCatID = IPS_CreateCategory();
+            IPS_SetName($rootCatID, 'mqtt');
+            IPS_SetIdent($rootCatID, 'mqtt');
+            IPS_SetParent($rootCatID, $this->InstanceID);
         }
 
-        $this->SetBuffer('MQTTSerKategorie', $serID);
+        // Unterkategorie: Seriennummer
+        $serCatID = @IPS_GetObjectIDByIdent($serial, $rootCatID);
+        if ($serCatID === false) {
+            $serCatID = IPS_CreateCategory();
+            IPS_SetName($serCatID, $serial);
+            IPS_SetIdent($serCatID, $serial);
+            IPS_SetParent($serCatID, $rootCatID);
+        }
+
+        // MQTT-Gerätename = Topic-Ende (z. B. "utc")
+        $parts = explode('/', $topic);
+        $key = end($parts);
+
+        // Unterinstanz: MQTT-Gerät (vom Typ: MQTT Server Gerät)
+        $deviceID = @IPS_GetObjectIDByIdent($key, $serCatID);
+        if ($deviceID === false) {
+            $deviceID = IPS_CreateInstance('{1A2C432F-51E4-46B1-9D4A-672F8A8F2F1E}'); // MQTT Server Gerät
+            IPS_SetName($deviceID, $key);
+            IPS_SetIdent($deviceID, $key);
+            IPS_SetParent($deviceID, $serCatID);
+        }
+
+        // Konfiguriere das MQTT-Gerät
+        $instanceConfig = [
+            'Topic' => "go-eCharger/$serial/$key",
+            'DataType' => 0, // Auto/String
+            'ValueType' => 3  // String
+        ];
+        IPS_SetProperty($deviceID, 'Topic', $instanceConfig['Topic']);
+        IPS_SetProperty($deviceID, 'DataType', $instanceConfig['DataType']);
+        IPS_SetProperty($deviceID, 'ValueType', $instanceConfig['ValueType']);
+        IPS_ApplyChanges($deviceID);
+
+        // Setze ersten Wert manuell (damit was angezeigt wird)
+        $children = IPS_GetChildrenIDs($deviceID);
+        foreach ($children as $varID) {
+            if (@IPS_GetObject($varID)['ObjectIdent'] === 'Value') {
+                SetValueString($varID, trim($payload, '"'));
+                break;
+            }
+        }
     }
-
-    private function UpdateMqttVariable($key, $value)
-    {
-        $parentID = intval($this->GetBuffer('MQTTSerKategorie'));
-        if ($parentID === 0 || !IPS_ObjectExists($parentID)) {
-            $this->LogTemplate('error', "MQTT-Kategorie fehlt – kann '$key' nicht setzen.");
-            return;
-        }
-
-        $ident = "mqtt_" . $key;
-        $varID = @IPS_GetObjectIDByIdent($ident, $parentID);
-
-        if ($varID === false) {
-            $varID = IPS_CreateVariable(3); // String
-            IPS_SetName($varID, "MQTT: $key");
-            IPS_SetIdent($varID, $ident);
-            IPS_SetParent($varID, $parentID);
-            $this->SendDebug("MQTT Init", "Variable erstellt: $ident (ID $varID)", 0);
-        }
-
-        SetValueString($varID, strval($value));
-        $this->SendDebug("MQTT Set", "$ident = $value", 0);
-    }
-
 
     public function ReceiveData($JSONString)
     {
         $data = json_decode($JSONString, true);
-        if (!isset($data['Topic']) || !isset($data['Payload'])) return;
+        if (!isset($data['Topic']) || !isset($data['Payload'])) {
+            return;
+        }
 
         $topic = $data['Topic'];
         $payload = $data['Payload'];
@@ -530,12 +540,13 @@ class PVWallboxManager extends IPSModule
             $key = trim($suffix);
             $value = trim($payload, '"');
 
-            // Nur bekannte Schlüssel verarbeiten (du kannst später erweitern!)
+            // Nur bestimmte Schlüssel verarbeiten
             if (in_array($key, ['utc', 'loc', 'rbt'])) {
                 $this->UpdateMqttVariable($key, $value);
-            } else {
-                $this->SendDebug("MQTT Info", "Unbekannter Key '$key' ignoriert.", 0);
             }
+
+            // In jedem Fall sicherstellen, dass das MQTT-Gerät existiert
+            $this->EnsureMQTTDevice($topic, $payload);
         } else {
             $this->SendDebug("MQTT Skip", "Nicht unsere Wallbox: $topic", 0);
         }
