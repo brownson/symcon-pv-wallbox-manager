@@ -565,7 +565,15 @@ class PVWallboxManager extends IPSModule
         $serID = @IPS_GetObjectIDByIdent($serial, $catID);
         if ($serID === false) return null;
 
-        $mqttDeviceID = @IPS_GetObjectIDByIdent($key, $serID);
+        $mqttDeviceID = false;
+        foreach (IPS_GetChildrenIDs($serID) as $childID) {
+            $obj = IPS_GetObject($childID);
+            if ($obj['ObjectName'] === $key) {
+                $mqttDeviceID = $childID;
+                break;
+            }
+        }
+        
         if ($mqttDeviceID === false) {
             $this->LogTemplate('warn', "MQTT-Gerät '$key' nicht gefunden unter Seriennummer '$serial'.");
             return null;
