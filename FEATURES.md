@@ -26,7 +26,7 @@ Hier werden geplante Features gesammelt, Community-Wünsche, Ideen und größere
 
 ## 🛠️ Technische Verbesserungen
 
-- [ ] Konfigurierbare Hysterese und Phasenumschaltung
+- [x] Konfigurierbare Hysterese und Phasenumschaltung -> **Umgesetzt in: v1.0b**
 - [ ] Mehr Visualisierung/Logging im WebFront
 - [ ] Automatisches Reset nach Stromausfall
 - [ ] PV-Überschuss immer berechnen

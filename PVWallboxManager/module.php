@@ -132,6 +132,19 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableInteger('Phasenmodus', '🔵 Genutzte Phasen (Fahrzeug)', 'PVWM.PhasenText', 51);
         IPS_SetIcon($this->GetIDForIdent('Phasenmodus'), 'Lightning');
 
+        // --- Manuell: Ampere und Phasen einstellbar machen ---
+        $this->RegisterVariableInteger('ManuellAmpere', 'Ampere (manuell)', 'PVWM.Ampere', 44);
+        $this->EnableAction('ManuellAmpere');
+        if ($this->GetValue('ManuellAmpere') < $this->ReadPropertyInteger('MinAmpere')) {
+            $this->SetValue('ManuellAmpere', $this->ReadPropertyInteger('MaxAmpere')); // Default = MaxAmpere
+        }
+
+        $this->RegisterVariableInteger('ManuellPhasen', 'Phasen (manuell)', 'PVWM.PSM', 45);
+        $this->EnableAction('ManuellPhasen');
+        if (!in_array($this->GetValue('ManuellPhasen'), [1, 2])) {
+            $this->SetValue('ManuellPhasen', 2); // Default = 3-phasig
+        }
+
         $this->RegisterVariableString('StatusInfo', 'ℹ️ Status-Info', '~HTMLBox', 70);
         $this->RegisterAttributeString('LastStatusInfoHTML', '');
 
@@ -163,6 +176,7 @@ class PVWallboxManager extends IPSModule
         $this->SetTimerNachModusUndAuto();
         $this->SetMarketPriceTimerZurVollenStunde();
         $this->UpdateHausverbrauchEvent();
+        $this->UpdatePVUeberschussEvent();
     }
 
     // =========================================================================
@@ -348,6 +362,18 @@ class PVWallboxManager extends IPSModule
             if ($this->GetValue('PV2CarModus')) {
                 $this->UpdateStatus('pv2car');
             }
+            break;
+        
+        case "ManuellAmpere":
+            $amp = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), intval($Value)));
+            $this->SetValue('ManuellAmpere', $amp);
+            if ($this->GetValue('ManuellLaden')) $this->UpdateStatus('manuell');
+            break;
+
+        case "ManuellPhasen":
+            $ph = ($Value == 2) ? 2 : 1; // Nur 1 oder 2 zulassen
+            $this->SetValue('ManuellPhasen', $ph);
+            if ($this->GetValue('ManuellLaden')) $this->UpdateStatus('manuell');
             break;
 
         default:
@@ -640,6 +666,56 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
+        // Phasen aus Benutzer-Vorgabe (1 = 1-phasig, 2 = 3-phasig)
+        $anzPhasenGewuenscht = $this->GetValue('ManuellPhasen');  // 1 oder 2 (2 = 3-phasig)
+        $ampereGewuenscht = $this->GetValue('ManuellAmpere');
+
+        // Sicherstellen, dass Werte im erlaubten Bereich liegen (Notbremse, falls jemand im Backend Quatsch setzt)
+        $ampereGewuenscht = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampereGewuenscht));
+        $anzPhasenGewuenscht = ($anzPhasenGewuenscht == 2) ? 2 : 1;
+
+        // Umschaltung auf gewünschte Phasen (1 oder 3)
+        $this->PruefeUndSetzePhasenmodus($anzPhasenGewuenscht);
+
+        // Aktuellen Phasenmodus auslesen, falls Umschaltung nicht sofort möglich war
+        $anzPhasenIst = max(1, $this->GetValue('Phasenmodus'));
+
+        // Überschuss für die Visualisierung mit korrekter Phasenanzahl berechnen
+        $werte = $this->BerechnePVUeberschussKomplett($anzPhasenIst);
+
+        // Felder absichern, nie "Undefined array key"!
+        $pv            = $werte['pv']            ?? 0;
+        $haus          = $werte['haus']          ?? 0;
+        $wallbox       = $werte['wallbox']       ?? 0;
+        $batterie      = $werte['batterie']      ?? 0;
+        $ueberschuss_w = $werte['ueberschuss_w'] ?? 0;
+        $ueberschuss_a = $werte['ueberschuss_a'] ?? 0;
+
+        // Visualisierungswerte setzen
+        $this->SetValue('PV_Ueberschuss', $ueberschuss_w);
+        $this->SetValue('PV_Ueberschuss_A', $ueberschuss_a);
+        $this->SetValueAndLogChange('Phasenmodus', $anzPhasenIst, 'Genutzte Phasen', '', 'debug');
+
+        // Wallbox: Manuellen Ampere-Wert setzen (immer mit "force"-Funktion!)
+        $this->SetForceStateAndAmpereIfChanged($anzPhasenGewuenscht, $ampereGewuenscht);
+
+        // Logging
+        $this->LogTemplate(
+            'ok',
+            "🔌 Manuelles Vollladen aktiv (Phasen: $anzPhasenGewuenscht, {$ampereGewuenscht}A, feste Vorgabe). PV={$pv}W, HausOhneWB={$haus}W, Wallbox={$wallbox}W, Batterie={$batterie}W, Überschuss={$ueberschuss_w}W / {$ueberschuss_a}A"
+        );
+
+        // Timer prüfen/setzen – falls Auto abgesteckt wird, InitialCheck aktivieren
+        $this->SetTimerNachModusUndAuto();
+    }
+    /* old private function ModusManuellVollladen($data)
+    private function ModusManuellVollladen($data)
+    {
+        if (!$this->FahrzeugVerbunden($data)) {
+            $this->ResetLademodiWennKeinFahrzeug();
+            return;
+        }
+
         // Phasen anhand nrg-Array zählen (wie bisher)
         $anzPhasenAlt = 1;
         if (isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
@@ -710,6 +786,7 @@ class PVWallboxManager extends IPSModule
         // Timer prüfen/setzen – falls Auto abgesteckt wird, InitialCheck aktivieren
         $this->SetTimerNachModusUndAuto();
     }
+*/
 
     private function ModusPV2CarLaden($data)
     {
@@ -1501,6 +1578,39 @@ class PVWallboxManager extends IPSModule
     EOD;
             $script2 = str_replace(['$_IPS[\'INSTANCE\']'], [$this->InstanceID], $script2);
             IPS_SetEventScript($eventID2, $script2);
+        }
+    }
+
+    private function UpdatePVUeberschussEvent()
+    {
+        $eventIdent = "UpdatePVUeberschuss";
+        $eventID = @$this->GetIDForIdent($eventIdent);
+        $pvID = $this->ReadPropertyInteger('PVErzeugungID');
+        $myVarID = $this->GetIDForIdent('PV_Ueberschuss');
+
+        // Event löschen, falls PV-ID gewechselt wurde oder nicht mehr gesetzt
+        if ($eventID && ($pvID <= 0 || @IPS_GetEvent($eventID)['TriggerVariableID'] != $pvID)) {
+            IPS_DeleteEvent($eventID);
+            $eventID = 0;
+        }
+
+        // Neues Event anlegen, wenn PV-ID vorhanden ist
+        if ($pvID > 0 && IPS_VariableExists($pvID)) {
+            if (!$eventID) {
+                $eventID = IPS_CreateEvent(0); // Trigger
+                IPS_SetIdent($eventID, $eventIdent);
+                IPS_SetParent($eventID, $this->InstanceID);
+                IPS_SetEventTrigger($eventID, 0, $pvID); // Bei Änderung
+                IPS_SetEventActive($eventID, true);
+                IPS_SetName($eventID, "Aktualisiere PV-Überschuss");
+            }
+            // Skript: Berechnung anstoßen
+            $script = <<<'EOD'
+    IPS_RequestAction($_IPS['INSTANCE'], "UpdateStatus", "pvonly");
+    EOD;
+            // Instanz-ID einsetzen
+            $script = str_replace('$_IPS[\'INSTANCE\']', $this->InstanceID, $script);
+            IPS_SetEventScript($eventID, $script);
         }
     }
 
