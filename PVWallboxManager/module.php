@@ -46,7 +46,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('StopLadeHysterese', 3);   // Zyklen Stop-Hysterese
         $this->RegisterPropertyInteger('InitialCheckInterval', 10); // 0 = deaktiviert, 5–60 Sek.
 
-        $this->RegisterVariableBoolean('ModulAktiv_Switch', '✅ Modul aktiv (WebFront)', '~Switch', 900);
+        $this->RegisterVariableBoolean('ModulAktiv_Switch', '✅ Modul aktiv', '~Switch', 900);
         $this->EnableAction('ModulAktiv_Switch');
     
         // Hysterese-Zähler (werden NICHT im WebFront angezeigt)
