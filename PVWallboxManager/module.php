@@ -155,6 +155,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeInteger('LetztePhasenUmschaltung', 0);
 
         //MQTT
+        $this->RegisterPropertyString('WallboxSerial', '285450'); // feste SN für Test
         $this->RegisterVariableString('mqtt_utc', 'MQTT: Letzter Empfang (UTC)', '', 999);
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
@@ -463,31 +464,29 @@ class PVWallboxManager extends IPSModule
     {
         $data = json_decode($JSONString, true);
         if (!isset($data['Topic']) || !isset($data['Payload'])) {
-            $this->SendDebug("MQTT", "Ungültiges JSON empfangen", 0);
+            $this->SendDebug("MQTT", "Ungültiges JSON empfangen: $JSONString", 0);
             return;
         }
 
         $topic = $data['Topic'];
         $payload = $data['Payload'];
+        $serial = $this->ReadPropertyString('WallboxSerial');
 
-        // ✅ Nur Daten mit **korrekter Seriennummer** verarbeiten
-        $expectedSerial = '285450';
-        if (strpos($topic, "/go-eCharger/$expectedSerial/") === false) {
-            $this->SendDebug("MQTT", "Ignoriere Topic (falsche Seriennummer): $topic", 0);
-            return;
-        }
+        $this->SendDebug("MQTT", "Empfangen: Topic = $topic | Payload = $payload", 0);
 
-        // ✅ Gültiges Payload-JSON?
+        // Prüfen, ob das Topic zur Wallbox gehört
+        if (strpos($topic, "/go-eCharger/$serial/") === false) return;
+
         $decodedPayload = json_decode($payload, true);
         if (!is_array($decodedPayload)) {
-            $this->SendDebug("MQTT", "Payload ist kein gültiges JSON", 0);
+            $this->SendDebug("MQTT", "Kein gültiges JSON im Payload", 0);
             return;
         }
 
-        // ✅ UTC-Wert vorhanden → schreiben
         if (isset($decodedPayload['utc'])) {
-            $this->SetValue('mqtt_utc', $decodedPayload['utc']);
-            $this->SendDebug("MQTT", "UTC empfangen: " . $decodedPayload['utc'], 0);
+            $utc = $decodedPayload['utc'];
+            $this->SetValue('mqtt_utc', $utc);
+            $this->SendDebug("MQTT", "UTC empfangen: $utc", 0);
         }
     }
 
