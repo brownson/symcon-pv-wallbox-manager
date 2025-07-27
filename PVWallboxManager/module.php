@@ -1688,7 +1688,9 @@ class PVWallboxManager extends IPSModule
         // Modus-Text bleibt wie bisher (wegen Prozent und Emojis!)
         $modus = '☀️ PVonly (nur PV-Überschuss)';
         if ($this->GetValue('ManuellLaden')) {
-            $modus = '🔌 Manuell: Vollladen';
+            $phasen = $this->GetValue('ManuellPhasen');
+            $ampere = $this->GetValue('ManuellAmpere');
+            $modus = "🔌 Manuell: Vollladen ({$phasen}-phasig, {$ampere} A)";
         } elseif ($this->GetValue('PV2CarModus')) {
             $prozent = $this->GetValue('PVAnteil');
             $modus = "🌞 PV-Anteil laden ({$prozent} %)";
@@ -1720,12 +1722,6 @@ class PVWallboxManager extends IPSModule
             $this->LogTemplate('debug', "Status-Info HTMLBox unverändert, kein Update.");
         }
         
-/*        SetValue($this->GetIDForIdent('StatusInfo'), $html);
-        $this->WriteAttributeString('LastStatusInfoHTML', $html);
-        $this->LogTemplate('debug', "Status-Info HTMLBox wurde (immer) aktualisiert.");
-*/
-        }
-
     // =========================================================================
     // 8. LOGGING / DEBUG / STATUSMELDUNGEN
     // =========================================================================
