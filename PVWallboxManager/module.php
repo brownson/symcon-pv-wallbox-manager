@@ -157,6 +157,7 @@ class PVWallboxManager extends IPSModule
         //MQTT
         $this->RegisterPropertyString('WallboxSerial', '285450'); // feste SN für Test
         $this->RegisterVariableString('mqtt_utc', 'MQTT: Letzter Empfang (UTC)', '', 999);
+        $this->EnsureMQTTKategorie();
 
         // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
         $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
@@ -460,6 +461,79 @@ class PVWallboxManager extends IPSModule
     }
 
     //MQTT
+    private function EnsureMQTTKategorie()
+    {
+        $catID = @IPS_GetObjectIDByIdent('mqtt', $this->InstanceID);
+        if ($catID === false) {
+            $catID = IPS_CreateCategory();
+            IPS_SetName($catID, 'mqtt');
+            IPS_SetIdent($catID, 'mqtt');
+            IPS_SetParent($catID, $this->InstanceID);
+        }
+
+        $serial = trim($this->ReadPropertyString('WallboxSerial'));
+        if ($serial === '') {
+            $this->LogTemplate('warn', 'Keine Seriennummer für MQTT-Unterstruktur gesetzt.');
+            return;
+        }
+
+        $serID = @IPS_GetObjectIDByIdent($serial, $catID);
+        if ($serID === false) {
+            $serID = IPS_CreateCategory();
+            IPS_SetName($serID, $serial);
+            IPS_SetIdent($serID, $serial);
+            IPS_SetParent($serID, $catID);
+        }
+
+        $this->SetBuffer('MQTTSerKategorie', $serID);
+    }
+
+    private function UpdateMqttVariable($key, $value)
+    {
+        $parentID = intval($this->GetBuffer('MQTTSerKategorie'));
+        if ($parentID === 0 || !IPS_ObjectExists($parentID)) {
+            $this->LogTemplate('error', "MQTT-Kategorie existiert nicht – kann '$key' nicht setzen.");
+            return;
+        }
+
+        $ident = "mqtt_$key";
+        $varID = @IPS_GetObjectIDByIdent($ident, $parentID);
+        if ($varID === false) {
+            $varID = IPS_CreateVariable(3); // String
+            IPS_SetName($varID, $ident);
+            IPS_SetIdent($varID, $ident);
+            IPS_SetParent($varID, $parentID);
+        }
+
+        SetValueString($varID, strval($value));
+    }
+
+    public function ReceiveData($JSONString)
+    {
+        $data = json_decode($JSONString, true);
+        if (!isset($data['Topic']) || !isset($data['Payload'])) return;
+
+        $topic = $data['Topic'];
+        $payload = $data['Payload'];
+
+        $decodedPayload = json_decode($payload, true);
+        if (!is_array($decodedPayload)) return;
+
+        if (isset($decodedPayload['utc'])) {
+            $this->UpdateMqttVariable('utc', $decodedPayload['utc']);
+            $this->SendDebug("MQTT", "UTC empfangen und gespeichert: " . $decodedPayload['utc'], 0);
+        }
+    }
+
+    public function UpdateMQTTData()
+    {
+        $utc = $this->GetMQTTValue('utc');
+        if (!is_null($utc)) {
+            $this->SetValue('mqtt_utc', $utc); // Nur für Vergleich
+            $this->LogTemplate('info', "MQTT UTC aktualisiert: $utc");
+        }
+    }
+
     private function GetMQTTValue(string $key)
     {
         $serial = trim($this->ReadPropertyString('WallboxSerial'));
@@ -468,46 +542,22 @@ class PVWallboxManager extends IPSModule
             return null;
         }
 
-        $path = "/MQTT/go-eCharger/$serial/$key";
-        $id = @$this->IPS_GetObjectIDByPath($path);
+        $catID = @IPS_GetObjectIDByIdent('mqtt', $this->InstanceID);
+        if ($catID === false) return null;
+
+        $serID = @IPS_GetObjectIDByIdent($serial, $catID);
+        if ($serID === false) return null;
+
+        $ident = "mqtt_$key";
+        $id = @IPS_GetObjectIDByIdent($ident, $serID);
         if ($id === false) {
-            $this->LogTemplate('warn', "MQTT-Wert '$key' nicht gefunden unter: $path");
+            $this->LogTemplate('warn', "MQTT-Wert '$key' nicht gefunden in automatisch verwalteter Struktur.");
             return null;
         }
 
         $value = GetValue($id);
         $this->SendDebug("MQTT", "Wert von '$key' = " . var_export($value, true), 0);
         return $value;
-    }
-
-    public function UpdateMQTTData()
-    {
-        $utc = $this->GetMQTTValue('utc');
-        if (!is_null($utc)) {
-            $this->SetValue('mqtt_utc', $utc);
-            $this->LogTemplate('info', "MQTT UTC aktualisiert: $utc");
-        }
-    }
-
-    private function IPS_GetObjectIDByPath(string $path)
-    {
-        $parts = explode('/', trim($path, '/'));
-        $parentID = 0; // Root
-        foreach ($parts as $part) {
-            $found = false;
-            foreach (IPS_GetChildrenIDs($parentID) as $childID) {
-                $obj = IPS_GetObject($childID);
-                if ($obj['ObjectName'] === $part) {
-                    $parentID = $childID;
-                    $found = true;
-                    break;
-                }
-            }
-            if (!$found) {
-                return false;
-            }
-        }
-        return $parentID;
     }
 
     // =========================================================================
