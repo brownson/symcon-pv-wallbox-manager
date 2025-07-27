@@ -1172,7 +1172,7 @@ class PVWallboxManager extends IPSModule
 
     private function SteuerungLadefreigabe($pvUeberschuss, $modus = 'pvonly', $ampere = 0, $anzPhasen = 1)
     {
-        $minUeberschuss = $this->ReadPropertyInteger('MinLadeWatt'); // z.B. 1400 W
+        $minUeberschuss = $this->ReadPropertyInteger('MinLadeWatt'); // z.B. 1400 W
 
         // Default: Immer FRC=1 → Kein Laden, Wallbox gesperrt (wartet auf Überschuss)
         $sollFRC = 1;
@@ -1693,7 +1693,7 @@ class PVWallboxManager extends IPSModule
             $modus = "🔌 Manuell: Vollladen ({$phasen}-phasig, {$ampere} A)";
         } elseif ($this->GetValue('PV2CarModus')) {
             $prozent = $this->GetValue('PVAnteil');
-            $modus = "🌞 PV-Anteil laden ({$prozent} %)";
+            $modus = "🌞 PV-Anteil laden ({$prozent} %)";
         } elseif ($this->GetValue('ZielzeitLaden')) {
             $modus = '⏰ Zielzeitladung';
         }
