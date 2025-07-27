@@ -460,34 +460,33 @@ class PVWallboxManager extends IPSModule
         return false;
     }
 
-    // MQTT
-    public function ReceiveData($JSONString)
+    //MQTT
+    private function GetMQTTValue(string $key)
     {
-        $data = json_decode($JSONString, true);
-        if (!isset($data['Topic']) || !isset($data['Payload'])) {
-            $this->SendDebug("MQTT", "Ungültiges JSON empfangen: $JSONString", 0);
-            return;
+        $serial = trim($this->ReadPropertyString('WallboxSerial'));
+        if ($serial === '') {
+            $this->LogTemplate('warn', "Keine Seriennummer gesetzt – MQTT-Pfad kann nicht ermittelt werden.");
+            return null;
         }
 
-        $topic = $data['Topic'];
-        $payload = $data['Payload'];
-        $serial = $this->ReadPropertyString('WallboxSerial');
-
-        $this->SendDebug("MQTT", "Empfangen: Topic = $topic | Payload = $payload", 0);
-
-        // Prüfen, ob das Topic zur Wallbox gehört
-        if (strpos($topic, "/go-eCharger/$serial/") === false) return;
-
-        $decodedPayload = json_decode($payload, true);
-        if (!is_array($decodedPayload)) {
-            $this->SendDebug("MQTT", "Kein gültiges JSON im Payload", 0);
-            return;
+        $path = "/MQTT/go-eCharger/$serial/$key";
+        $id = @IPS_GetObjectIDByPath($path);
+        if ($id === false) {
+            $this->LogTemplate('warn', "MQTT-Wert '$key' nicht gefunden unter: $path");
+            return null;
         }
 
-        if (isset($decodedPayload['utc'])) {
-            $utc = $decodedPayload['utc'];
+        $value = GetValue($id);
+        $this->SendDebug("MQTT", "Wert von '$key' = " . var_export($value, true), 0);
+        return $value;
+    }
+
+    public function UpdateMQTTData()
+    {
+        $utc = $this->GetMQTTValue('utc');
+        if (!is_null($utc)) {
             $this->SetValue('mqtt_utc', $utc);
-            $this->SendDebug("MQTT", "UTC empfangen: $utc", 0);
+            $this->LogTemplate('info', "MQTT UTC aktualisiert: $utc");
         }
     }
 
