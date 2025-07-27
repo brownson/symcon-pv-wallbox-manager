@@ -172,6 +172,7 @@ class PVWallboxManager extends IPSModule
     {
         parent::ApplyChanges();
         $this->ConnectParent("{6C1FEE94-0F04-4F6E-B1E6-2E0E62A4DDE4}");
+        $this->SetReceiveDataFilter(".*go-eCharger.*");
         $this->EnsureMQTTKategorie();
         // Synchronisiere WebFront-Variable mit Property
         $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
@@ -551,9 +552,7 @@ class PVWallboxManager extends IPSModule
     public function ReceiveData($JSONString)
     {
         $data = json_decode($JSONString, true);
-        if (!isset($data['Topic']) || !isset($data['Payload'])) {
-            return;
-        }
+        if (!isset($data['Topic']) || !isset($data['Payload'])) return;
 
         $topic = $data['Topic'];
         $payload = $data['Payload'];
@@ -567,16 +566,28 @@ class PVWallboxManager extends IPSModule
             $key = trim($suffix);
             $value = trim($payload, '"');
 
-            // Nur bestimmte Schlüssel verarbeiten
             if (in_array($key, ['utc', 'loc', 'rbt'])) {
                 $this->UpdateMqttVariable($key, $value);
+            } else {
+                $this->SendDebug("MQTT Info", "Unbekannter Key '$key' ignoriert.", 0);
             }
-
-            // In jedem Fall sicherstellen, dass das MQTT-Gerät existiert
-            $this->EnsureMQTTDevice($topic, $payload);
         } else {
             $this->SendDebug("MQTT Skip", "Nicht unsere Wallbox: $topic", 0);
         }
+    }
+
+    public function GetConfigurationForParent()
+    {
+        $serial = trim($this->ReadPropertyString('WallboxSerial'));
+        if ($serial == '') {
+            return '{}'; // Nichts abonnieren, wenn keine Seriennummer vorhanden
+        }
+
+        $topic = "go-eCharger/$serial/#"; // Alle Topics dieses Chargers
+        return json_encode([
+            'Topic' => $topic,
+            'DataID' => '{018EF6B5-AB94-40C6-AA53-46943E824ACF}' // Muss bei MQTT IMMER dieser Wert sein
+        ]);
     }
 
     // =========================================================================
