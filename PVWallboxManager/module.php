@@ -137,13 +137,13 @@ class PVWallboxManager extends IPSModule
         IPS_SetIcon($this->GetIDForIdent('Phasenmodus'), 'Lightning');
 
         // --- Manuell: Ampere und Phasen einstellbar machen ---
-        $this->RegisterVariableInteger('ManuellAmpere', 'Ampere (manuell)', 'PVWM.Ampere', 44);
+        $this->RegisterVariableInteger('ManuellAmpere', '🔌 Ampere (manuell)', 'PVWM.Ampere', 44);
         $this->EnableAction('ManuellAmpere');
         if ($this->GetValue('ManuellAmpere') < $this->ReadPropertyInteger('MinAmpere')) {
             $this->SetValue('ManuellAmpere', $this->ReadPropertyInteger('MaxAmpere')); // Default = MaxAmpere
         }
 
-        $this->RegisterVariableInteger('ManuellPhasen', 'Phasen (manuell)', 'PVWM.PSM', 45);
+        $this->RegisterVariableInteger('ManuellPhasen', '🔀 Phasen (manuell)', 'PVWM.PSM', 45);
         $this->EnableAction('ManuellPhasen');
         if (!in_array($this->GetValue('ManuellPhasen'), [1, 2])) {
             $this->SetValue('ManuellPhasen', 2); // Default = 3-phasig
