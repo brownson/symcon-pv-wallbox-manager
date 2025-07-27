@@ -3,6 +3,10 @@
 Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.  
 **Repository:** https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager
 
+## [1.2b] - 🚧 in Vorbereitung 🚧
+- Bugfix "🏠 Hausverbrauch abzügl. Wallbox (W)" 0 Werte
+- Modul über Visiu aktivieren / deaktivieren neuer Boolean Variable
+
 ## [1.1b] - 2025-07-25
 - Börsenpreise wird zur vollen Stunde aktualisiert
 - Börsenpreis-Vorschau +24h erweitert

@@ -30,8 +30,8 @@ Hier werden geplante Features gesammelt, Community-Wünsche, Ideen und größere
 - [ ] Mehr Visualisierung/Logging im WebFront
 - [ ] Automatisches Reset nach Stromausfall
 - [ ] PV-Überschuss immer berechnen
-- [ ] Modul über die Visu abschalten (Button)
-- [ ] Bug 🏠 Hausverbrauch abzügl. Wallbox (W) wird beim Modulintervall 0 W berechnet
+- [x] Modul über die Visu abschalten (Button) -> **Umgesetzt in: v1.2b**
+- [x] Bug 🏠 Hausverbrauch abzügl. Wallbox (W) wird beim Modulintervall 0 W berechnet -> **Umgesetzt in: v1.2b**
 - [x] Börsenpreise sollen zur vollen Stunde aktualisiert werden -> **Umgesetzt in: v1.1b**
 - [x] Wenn Auto SOC erreicht hat soll der Ladenodus auch beendet werden. Derzeit Versucht das Modul verzweifelt zu laden. -> **Umgesetzt in: v1.1b**
 - [x] Status-Ino Anzige im Webfront (Lademodi, Phasensstatus, Status, Modus) -> **Umgesetzt in: v1.1b**

@@ -45,6 +45,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterPropertyInteger('StartLadeHysterese', 3);  // Zyklen Start-Hysterese
         $this->RegisterPropertyInteger('StopLadeHysterese', 3);   // Zyklen Stop-Hysterese
         $this->RegisterPropertyInteger('InitialCheckInterval', 10); // 0 = deaktiviert, 5–60 Sek.
+
+        $this->RegisterVariableBoolean('ModulAktiv_Switch', '⚡ Modul aktiv (WebFront)', '~Switch', 900);
+        $this->EnableAction('ModulAktiv_Switch');
     
         // Hysterese-Zähler (werden NICHT im WebFront angezeigt)
         $this->RegisterAttributeInteger('Phasen1Zaehler', 0);
@@ -147,12 +150,16 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+        // Synchronisiere WebFront-Variable mit Property
+        $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
+        $this->SetValue('ModulAktiv_Switch', $aktiv);
+
         // Timer zurücksetzen
         $this->SetTimerInterval('PVWM_UpdateStatus', 0);
         $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
         $this->SetTimerInterval('PVWM_InitialCheck', 0);
 
-    // Timer und Events wieder sauber initialisieren
+        // Timer und Events wieder sauber initialisieren
         $this->SetTimerNachModusUndAuto();
         $this->SetMarketPriceTimerZurVollenStunde();
         $this->UpdateHausverbrauchEvent();
@@ -278,6 +285,12 @@ class PVWallboxManager extends IPSModule
     public function RequestAction($Ident, $Value)
     {
         switch ($Ident) {
+            case 'ModulAktiv_Switch':
+                $this->SetValue('ModulAktiv_Switch', $Value);
+                IPS_SetProperty($this->InstanceID, 'ModulAktiv', $Value);
+                IPS_ApplyChanges($this->InstanceID);
+            break;
+
             case "UpdateStatus":
                 $this->UpdateStatus($Value);
                 break;
