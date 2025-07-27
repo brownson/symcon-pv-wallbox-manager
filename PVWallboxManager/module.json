@@ -1,7 +1,7 @@
 {
   "id": "{3DFBB04D-628A-AAFF-9F3F-71B5EE88EA02}",
   "name": "PVWallboxManager",
-  "type": 3,
+  "type": 4,
   "vendor": "Sol-IoTiv [Austria]",
   "version": "1.1b",
   "aliases": [
@@ -9,7 +9,7 @@
   ],
   "url": "https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager",
   "prefix": "PVWM",
-  "parentRequirements": ["{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}"],
+  "parentRequirements": [],
   "childRequirements": [],
   "implemented": ["{018EF6B5-AB94-40C6-AA53-46943E824ACF}"]
 }
