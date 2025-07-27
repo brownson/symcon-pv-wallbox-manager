@@ -176,7 +176,7 @@ class PVWallboxManager extends IPSModule
         $this->SetTimerNachModusUndAuto();
         $this->SetMarketPriceTimerZurVollenStunde();
         $this->UpdateHausverbrauchEvent();
-        $this->UpdatePVUeberschussEvent();
+//        $this->UpdatePVUeberschussEvent();
     }
 
     // =========================================================================
