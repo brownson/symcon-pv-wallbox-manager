@@ -174,7 +174,6 @@ class PVWallboxManager extends IPSModule
         // Synchronisiere WebFront-Variable mit Property
         $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
         $this->SetValue('ModulAktiv_Switch', $aktiv);
-        $this->RequireParent("{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}");
 
         // Timer zurücksetzen
         $this->SetTimerInterval('PVWM_UpdateStatus', 0);
@@ -470,7 +469,7 @@ class PVWallboxManager extends IPSModule
         }
 
         $path = "/MQTT/go-eCharger/$serial/$key";
-        $id = @IPS_GetObjectIDByPath($path);
+        $id = @$this->IPS_GetObjectIDByPath($path);
         if ($id === false) {
             $this->LogTemplate('warn', "MQTT-Wert '$key' nicht gefunden unter: $path");
             return null;
@@ -488,6 +487,27 @@ class PVWallboxManager extends IPSModule
             $this->SetValue('mqtt_utc', $utc);
             $this->LogTemplate('info', "MQTT UTC aktualisiert: $utc");
         }
+    }
+
+    private function IPS_GetObjectIDByPath(string $path)
+    {
+        $parts = explode('/', trim($path, '/'));
+        $parentID = 0; // Root
+        foreach ($parts as $part) {
+            $found = false;
+            foreach (IPS_GetChildrenIDs($parentID) as $childID) {
+                $obj = IPS_GetObject($childID);
+                if ($obj['ObjectName'] === $part) {
+                    $parentID = $childID;
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                return false;
+            }
+        }
+        return $parentID;
     }
 
     // =========================================================================
