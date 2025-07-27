@@ -171,7 +171,7 @@ class PVWallboxManager extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
-        $this->ConnectParent('{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}');
+        $this->ConnectParent("{6C1FEE94-0F04-4F6E-B1E6-2E0E62A4DDE4}");
         $this->EnsureMQTTKategorie();
         // Synchronisiere WebFront-Variable mit Property
         $aktiv = $this->ReadPropertyBoolean('ModulAktiv');
