@@ -246,7 +246,7 @@ class PVWallboxManager extends IPSModule
         ]);
 
         $create('PVWM.PSM', VARIABLETYPE_INTEGER, 0, '', 'Lightning', [
-            [0, 'Auto',     'Gears', 0xAAAAAA],
+//            [0, 'Auto',     'Gears', 0xAAAAAA],
             [1, '1-phasig', 'Plug', 0x00ADEF],
             [2, '3-phasig', 'Plug', 0xFF9900]
         ]);
