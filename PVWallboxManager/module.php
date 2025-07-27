@@ -463,6 +463,7 @@ class PVWallboxManager extends IPSModule
     //MQTT
     private function EnsureMQTTKategorie()
     {
+        // Root-Kategorie "mqtt" unter Modul-Instanz
         $catID = @IPS_GetObjectIDByIdent('mqtt', $this->InstanceID);
         if ($catID === false) {
             $catID = IPS_CreateCategory();
@@ -471,6 +472,7 @@ class PVWallboxManager extends IPSModule
             IPS_SetParent($catID, $this->InstanceID);
         }
 
+        // Unterkategorie mit Seriennummer
         $serial = trim($this->ReadPropertyString('WallboxSerial'));
         if ($serial === '') {
             $this->LogTemplate('warn', 'Keine Seriennummer für MQTT-Unterstruktur gesetzt.');
@@ -485,6 +487,7 @@ class PVWallboxManager extends IPSModule
             IPS_SetParent($serID, $catID);
         }
 
+        // Zwischenspeichern für schnellen Zugriff
         $this->SetBuffer('MQTTSerKategorie', $serID);
     }
 
@@ -496,16 +499,21 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        $ident = "mqtt_$key";
+        $ident = "mqtt_" . $key;
         $varID = @IPS_GetObjectIDByIdent($ident, $parentID);
+
+        // Falls nicht vorhanden: neu als String anlegen
         if ($varID === false) {
-            $varID = IPS_CreateVariable(3); // String
-            IPS_SetName($varID, $ident);
+            $varID = IPS_CreateVariable(3); // 3 = String
+            IPS_SetName($varID, "MQTT: $key");
             IPS_SetIdent($varID, $ident);
             IPS_SetParent($varID, $parentID);
+            $this->SendDebug("MQTT Init", "Neue Variable erstellt: $ident (ID $varID)", 0);
         }
 
+        // Wert setzen
         SetValueString($varID, strval($value));
+        $this->SendDebug("MQTT Set", "$ident = $value (ID $varID)", 0);
     }
 
     public function ReceiveData($JSONString)
@@ -515,18 +523,25 @@ class PVWallboxManager extends IPSModule
 
         $topic = $data['Topic'];
         $payload = $data['Payload'];
-
         $this->SendDebug("MQTT Raw", "Topic: $topic / Payload: $payload", 0);
 
-        // Extrahiere letzten Topic-Part (z. B. utc)
-        $parts = explode('/', $topic);
-        $lastPart = strtolower(trim(end($parts)));  // z. B. "utc"
+        // Prüfen, ob Nachricht von dieser Wallbox ist
+        $serial = trim($this->ReadPropertyString('WallboxSerial'));
+        $prefix = "go-eCharger/$serial/";
 
-        // Nur UTF-8 bereinigt schreiben (z. B. bei "utc" oder "loc")
-        if (in_array($lastPart, ['utc', 'loc', 'rbt'])) {
-            $value = trim($payload, "\""); // Anführungszeichen entfernen
-            $this->UpdateMqttVariable($lastPart, $value);
-            $this->SendDebug("MQTT Set", "$lastPart = $value", 0);
+        if (str_starts_with($topic, $prefix)) {
+            $suffix = substr($topic, strlen($prefix)); // z. B. "utc"
+            $key = trim($suffix);
+            $value = trim($payload, '"');
+
+            if ($key === 'utc') {
+                $this->SendDebug("MQTT Debug", "Verarbeite $key mit Wert $value", 0);
+                $this->UpdateMqttVariable($key, $value);
+            } else {
+                $this->SendDebug("MQTT Info", "Key '$key' wird derzeit nicht verarbeitet.", 0);
+            }
+        } else {
+            $this->SendDebug("MQTT Skip", "Nicht unsere Wallbox: $topic", 0);
         }
     }
 
@@ -534,7 +549,7 @@ class PVWallboxManager extends IPSModule
     {
         $utc = $this->GetMQTTValue('utc');
         if (!is_null($utc)) {
-            $this->SetValue('mqtt_utc', $utc); // Nur für Vergleich
+            $this->SetValue('mqtt_utc', $utc); // Vergleich oder Anzeige
             $this->LogTemplate('info', "MQTT UTC aktualisiert: $utc");
         }
     }
