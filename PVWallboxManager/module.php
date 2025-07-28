@@ -1828,6 +1828,15 @@ class PVWallboxManager extends IPSModule
 */
     private function UpdateStatusAnzeige()
     {
+        // 1) SoC-Werte holen
+        $socID       = $this->ReadPropertyInteger('CarSOCID');
+        $targetID    = $this->ReadPropertyInteger('CarTargetSOCID');
+        $socAktuell  = ($socID > 0 && @IPS_VariableExists($socID))       ? GetValue($socID)       . '%' : 'n/a';
+        $socZiel     = ($targetID > 0 && @IPS_VariableExists($targetID)) ? GetValue($targetID)    . '%' : 'n/a';
+
+        // 2) No-Power-Counter (Versuche ohne Leistung)
+        $noPowerCounter = $this->ReadAttributeInteger('NoPowerCounter');
+
         // Modus-Text bleibt wie bisher (wegen Prozent und Emojis!)
         $modus = '☀️ PVonly (nur PV-Überschuss)';
         if ($this->GetValue('ManuellLaden')) {
@@ -1849,6 +1858,8 @@ class PVWallboxManager extends IPSModule
 
         $html = '<div style="font-size:15px; line-height:1.7em;">';
         $html .= "<b>Lademodus:</b> $modus<br>";
+        $html .= "<b>SOC Auto (Ist / Ziel):</b> {$socAktuell} / {$socZiel}<br>";
+        $html .= "<b>No-Power-Counter:</b> {$noPowerCount}×<hr>";
         $html .= "<b>Phasen Wallbox-Einstellung:</b> $psmSollTxt<br>";
         $html .= "<b>Genutzte Phasen (Fahrzeug):</b> $psmIstTxt<br>";
         $html .= "<b>Status:</b> $statusTxt<br>";
