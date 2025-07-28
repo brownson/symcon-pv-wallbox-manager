@@ -334,6 +334,10 @@ class PVWallboxManager extends IPSModule
                 $this->SetChargingCurrent(6);
                 $this->SetValueAndLogChange('PV_Ueberschuss_A', 0, 'PV-Überschuss (A)', 'A', 'ok');
                 $this->LogTemplate('ok', "Nach Deaktivierung Manuell: Wallbox auf 1-phasig/6A/0A zurückgesetzt.");
+                // Hysterese-Zähler zurücksetzen
+                $this->WriteAttributeInteger('LadeStartZaehler', 0);
+                $this->WriteAttributeInteger('LadeStopZaehler', 0);
+                $this->LogTemplate('debug', "Hysterese-Zähler nach Deaktivierung ManuellLaden zurückgesetzt.");
             }
             $this->SetTimerNachModusUndAuto();
             $this->UpdateStatus('manuell');
