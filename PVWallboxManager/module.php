@@ -1735,37 +1735,60 @@ class PVWallboxManager extends IPSModule
         }
     }
 */
+/**
+ * Prüft Ladeende: Entweder über Ziel-SoC (wenn Properties > 0)
+ * oder über No-Power-Counter (Standard nach 6 Intervallen).
+ */
     private function PruefeLadeendeAutomatisch()
     {
-        $socID = $this->ReadPropertyInteger('CarSOCID');
-        $socTarget = $this->ReadPropertyInteger('CarTargetSOCID');
-        $socAktuell = ($socID > 0 && @IPS_VariableExists($socID)) ? GetValue($socID) : false;
-        $ladeleistung = $this->GetValue('Leistung');
+        // 1) Lese SOC-Properties
+        $socID       = $this->ReadPropertyInteger('CarSOCID');
+        $socTargetID = $this->ReadPropertyInteger('CarTargetSOCID');
+
+        $socAktuell = ($socID > 0 && IPS_VariableExists($socID))
+            ? GetValue($socID)
+            : null;
+        $socZiel = ($socTargetID > 0 && IPS_VariableExists($socTargetID))
+            ? GetValue($socTargetID)
+            : null;
+
+        // 2) Lade-Freigabe aktuell?
         $aktFreigabe = ($this->GetValue('AccessStateV2') == 2);
 
-        // --- 1. SOC-Prüfung ---
-        if ($socAktuell !== false && $socTarget > 0 && $aktFreigabe) {
-            if ($socAktuell >= $socTarget) {
-                $this->LogTemplate('ok', "Ziel-SOC erreicht (Aktuell: $socAktuell%, Ziel: $socTarget%) – Ladefreigabe wird beendet.");
+        // 3) Wenn SOC-Properties gültig sind, nutze Ziel-SOC-Logik
+        if ($socAktuell !== null && $socZiel !== null && $aktFreigabe) {
+            if ($socAktuell >= $socZiel) {
+                $this->LogTemplate(
+                    'ok',
+                    "Ziel-SoC erreicht (Aktuell: {$socAktuell}%, Ziel: {$socZiel}%) – beende Ladung."
+                );
                 $this->SetForceState(1);
                 $this->ResetModiNachLadeende();
                 return;
             }
+            // Wenn SOC-Logik greift, überspringe No-Power
+            return;
         }
 
-        // --- 2. Ladeleistung-Prüfung ---
-        if ($aktFreigabe && $ladeleistung < 100) {
-            $cnt = $this->ReadAttributeInteger('NoPowerCounter');
-            $cnt++;
-            $this->WriteAttributeInteger('NoPowerCounter', $cnt);
-            if ($cnt >= 6) { // z.B. 6*30s = 3 Minuten
-                $this->LogTemplate('ok', "Auto nimmt keine Ladeleistung mehr auf – Ladefreigabe wird beendet.");
-                $this->SetForceState(1);
-                $this->ResetModiNachLadeende();
+        // 4) Fallback: No-Power-Counter, wenn keine SOC-Properties gesetzt
+        if ($aktFreigabe) {
+            $ladeleistung = $this->GetValue('Leistung');
+            if ($ladeleistung < 100) {
+                $cnt = $this->ReadAttributeInteger('NoPowerCounter') + 1;
+                $this->WriteAttributeInteger('NoPowerCounter', $cnt);
+                if ($cnt >= 6) {
+                    $this->LogTemplate(
+                        'ok',
+                        "Keine Ladeleistung mehr – beende Ladung nach {$cnt} Versuchen."
+                    );
+                    $this->SetForceState(1);
+                    $this->ResetModiNachLadeende();
+                    $this->WriteAttributeInteger('NoPowerCounter', 0);
+                }
+            } else {
+                // Leistung wieder vorhanden → Counter zurücksetzen
                 $this->WriteAttributeInteger('NoPowerCounter', 0);
             }
-        } else {
-            $this->WriteAttributeInteger('NoPowerCounter', 0);
         }
     }
 
