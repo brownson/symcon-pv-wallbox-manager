@@ -1908,6 +1908,13 @@ class PVWallboxManager extends IPSModule
             $pvUeberschuss = 0.0;
         }
 
+        $threshold = 250;
+        if ($pvUeberschuss < $threshold) {
+            $this->LogTemplate('debug', "PV-Überschuss <$threshold W (aktuell: {$pvUeberschuss} W) — setze auf 0.");
+            $pvUeberschuss = 0;
+            $ampere        = 0;
+        }
+
         // --- Ladestrom (Ampere) berechnen ---
         $minAmp = $this->ReadPropertyInteger('MinAmpere');
         $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
