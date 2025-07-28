@@ -1082,7 +1082,6 @@ class PVWallboxManager extends IPSModule
 
         $ip = $this->ReadPropertyString('WallboxIP');
         $url = "http://$ip/api/set?frc=" . intval($state);
-
         $modes = [
             0 => "Neutral (Wallbox entscheidet)",
             1 => "Nicht Laden (gesperrt)",
@@ -1102,6 +1101,10 @@ class PVWallboxManager extends IPSModule
             return false;
         } else {
             $this->LogTemplate('ok', "SetForceState: Wallbox-Modus auf '$modeText' ($state) gesetzt. (HTTP {$response['httpcode']})");
+            $varID = $this->GetIDForIdent('AccessStateV2');
+            if ($varID) {
+                SetValue($varID, $state);
+            }
             // Direkt Status aktualisieren
             //$this->UpdateStatus();
             return true;
@@ -1253,7 +1256,10 @@ class PVWallboxManager extends IPSModule
 
         // Default: Immer FRC=1 → Kein Laden, Wallbox gesperrt (wartet auf Überschuss)
         $sollFRC = 1;
-
+        if ($modus === 'manuell' || ($modus === 'pvonly' && $pvUeberschuss >= $minUeberschuss)) {
+            $sollFRC = 2; // Erzwungenes Laden
+        }
+/*
         // PV-Modus: nur Laden bei Überschuss
         if ($modus === 'pvonly' && $pvUeberschuss >= $minUeberschuss) {
             $sollFRC = 2; // Laden erzwingen
@@ -1263,10 +1269,15 @@ class PVWallboxManager extends IPSModule
         if ($modus === 'manuell') {
             $sollFRC = 2;
         }
-
+*/
         // Nur wenn nötig an Wallbox senden!
         $aktFRC = $this->GetValue('AccessStateV2');
         if ($aktFRC !== $sollFRC) {
+            $this->SetForceState($sollFRC);
+            IPS_Sleep(1000);
+        }
+
+/*
             $ok = $this->SetForceState($sollFRC);
             if ($ok) {
 ////                $this->LogTemplate('ok', "Ladefreigabe auf FRC=$sollFRC gestellt (Modus: $modus, Überschuss: {$pvUeberschuss}W)");
@@ -1277,9 +1288,9 @@ class PVWallboxManager extends IPSModule
 
             }
         }
-
+*/
         // Nur Ladestrom setzen, wenn Freigabe aktiv und Ampere gültig
-        if ($sollFRC == 2 && $ampere > 0) {
+        if ($sollFRC === 2 && $ampere > 0) {
             // Zusatz: Prüfen, ob sich der gewünschte Ladestrom von aktuellem unterscheidet
             $currentAmp = $this->GetValue('Ampere');
             if ($currentAmp != $ampere) {
