@@ -1269,10 +1269,12 @@ class PVWallboxManager extends IPSModule
         if ($aktFRC !== $sollFRC) {
             $ok = $this->SetForceState($sollFRC);
             if ($ok) {
-                $this->LogTemplate('ok', "Ladefreigabe auf FRC=$sollFRC gestellt (Modus: $modus, Überschuss: {$pvUeberschuss}W)");
+////                $this->LogTemplate('ok', "Ladefreigabe auf FRC=$sollFRC gestellt (Modus: $modus, Überschuss: {$pvUeberschuss}W)");
+                $this->LogTemplate('ok', "Ladefreigabe auf FRC=$sollFRC gestellt (Modus: $modus)");
                 IPS_Sleep(1000); // Kleines Delay, damit die Wallbox reagieren kann
             } else {
-                $this->LogTemplate('warn', "Ladefreigabe setzen auf FRC=$sollFRC **fehlgeschlagen**!");
+                $this->LogTemplate('warn', "Ladefreigabe setzen auf FRC=$sollFRC fehlgeschlagen!");
+
             }
         }
 
@@ -1281,14 +1283,15 @@ class PVWallboxManager extends IPSModule
             // Zusatz: Prüfen, ob sich der gewünschte Ladestrom von aktuellem unterscheidet
             $currentAmp = $this->GetValue('Ampere');
             if ($currentAmp != $ampere) {
-                $ok = $this->SetChargingCurrent($ampere);
-                if ($ok) {
-                    $this->LogTemplate('ok', "Ladestrom auf $ampere A gesetzt (tatsächliche Phasen: $anzPhasen).");
-                } else {
-                    $this->LogTemplate('warn', "Setzen des Ladestroms auf $ampere A **fehlgeschlagen**!");
-                }
-            } else {
-                $this->LogTemplate('debug', "Ladestrom bereits auf $ampere A (Phasen: $anzPhasen), keine Änderung nötig.");
+                $this->SetChargingCurrent($ampere);
+////                $ok = $this->SetChargingCurrent($ampere);
+////                if ($ok) {
+////                    $this->LogTemplate('ok', "Ladestrom auf $ampere A gesetzt (tatsächliche Phasen: $anzPhasen).");
+////                } else {
+////                    $this->LogTemplate('warn', "Setzen des Ladestroms auf $ampere A **fehlgeschlagen**!");
+////                }
+////            } else {
+////                $this->LogTemplate('debug', "Ladestrom bereits auf $ampere A (Phasen: $anzPhasen), keine Änderung nötig.");
             }
         }
     }
