@@ -513,7 +513,7 @@ class PVWallboxManager extends IPSModule
 
         // Setzen der Wallbox-Status-Variablen
         $this->SetValueAndLogChange('Status',     $car,        'Status');
-        $this->SetValueAndLogChange('AccessStateV2',$accessStateV2,'Wallbox Modus');
+        $this->SetValueAndLogChange('AccessStateV2', $accessStateV2, 'Wallbox Modus');
         $this->SetValueAndLogChange('Leistung',   $leistung,   'Aktuelle Ladeleistung zum Fahrzeug','W');
         $this->SetValueAndLogChange('Ampere',     $ampereWB,   'Maximaler Ladestrom','A');
         $this->SetValueAndLogChange('Energie',    $energie,    'Geladene Energie','Wh');
@@ -2070,7 +2070,8 @@ class PVWallboxManager extends IPSModule
             if (isset($item['start_timestamp'], $item['marketprice'])) {
                 $start = intval($item['start_timestamp'] / 1000);
                 // if ($start < $now) continue; // optional je nach Use-Case
-                if ($start > $maxTimestamp) break;
+////                if ($start > $maxTimestamp) break;
+                if ($start > $maxTimestamp) continue;
                 $preise[] = [
                     'timestamp' => $start,
                     'price' => floatval($item['marketprice'] / 10.0)
