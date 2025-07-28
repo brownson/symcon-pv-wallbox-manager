@@ -104,8 +104,8 @@ class PVWallboxManager extends IPSModule
         $this->RegisterVariableFloat('PV_Ueberschuss','☀️ PV-Überschuss (W)',                               'PVWM.Watt', 10);
         IPS_SetIcon($this->GetIDForIdent('PV_Ueberschuss'), 'solar-panel');
 
-        $this->RegisterVariableFloat('PV_UeberschussLive', '☀️ PV-Überschuss (W) (live)',                       'PVWM.Watt', 11);
-        IPS_SetIcon($this->GetIDForIdent('PV_UeberschussLive'), 'solar-panel');
+//        $this->RegisterVariableFloat('PV_UeberschussLive', '☀️ PV-Überschuss (W) (live)',                       'PVWM.Watt', 11);
+//        IPS_SetIcon($this->GetIDForIdent('PV_UeberschussLive'), 'solar-panel');
 
         $this->RegisterVariableInteger('PV_Ueberschuss_A', '⚡ PV-Überschuss (A)',                             'PVWM.Ampere', 12);
         IPS_SetIcon($this->GetIDForIdent('PV_Ueberschuss_A'), 'Energy');
