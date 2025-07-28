@@ -498,11 +498,12 @@ class PVWallboxManager extends IPSModule
         $freigabe     = isset($data['alw']) ? (bool)$data['alw']   : false;
         $kabelstrom   = isset($data['cbl']) ? intval($data['cbl']) : 0;
         $fehlercode   = isset($data['err']) ? intval($data['err']): 0;
-        $accessStateV2= isset($data['frc'])
-                    ? intval($data['frc'])
-                    : (isset($data['accessStateV2'])
-                        ? intval($data['accessStateV2'])
-                        : 0);
+        $accessStateV2 = 1;
+        if (isset($data['frc'])) {
+            $accessStateV2 = intval($data['frc']);
+        } elseif (isset($data['accessStateV2'])) {
+            $accessStateV2 = intval($data['accessStateV2']);
+        }
 
         $this->LogTemplate('debug', "UpdateStatus: car=$car, accessStateV2=$accessStateV2, freigabe=" . ($freigabe ? "true":"false"));
 
