@@ -647,7 +647,8 @@ class PVWallboxManager extends IPSModule
         }
 
         $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
-        $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasenNeu);
+        $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasenNeu, $sollFRC);
+
     }
 
     private function ModusManuellVollladen(array $data)
@@ -806,11 +807,13 @@ class PVWallboxManager extends IPSModule
         }
 
         // 9. Ladefreigabe steuern
+        $sollFRC = $aktFreigabe ? 2 : 1;
         $this->SteuerungLadefreigabe(
             $anteilWatt,
             'pv2car',
             $neuesAmpere,
-            $anzPhasen
+            $anzPhasen,
+            $sollFRC
         );
 
         // 10. abschließendes Log
@@ -1085,31 +1088,23 @@ class PVWallboxManager extends IPSModule
             }
             return;
         }
-
-        // Kein Umschaltgrund: Zähler zurücksetzen
-////        $this->WriteAttributeInteger('Phasen3Zaehler', 0);
-////        $this->WriteAttributeInteger('Phasen1Zaehler', 0);
     }
 
-    private function SteuerungLadefreigabe($pvUeberschuss, $modus = 'pvonly', $ampere = 0, $anzPhasen = 1)
+    private function SteuerungLadefreigabe($pvUeberschuss, $modus = 'pvonly', $ampere = 0, $anzPhasen = 1, $overrideFRC = null)
     {
         $minUeberschuss = $this->ReadPropertyInteger('MinLadeWatt'); // z.B. 1400 W
 
-        // Default: Immer FRC=1 → Kein Laden, Wallbox gesperrt (wartet auf Überschuss)
-        $sollFRC = ($modus === 'manuell' || ($modus === 'pvonly' && $pvUeberschuss >= $minUeberschuss))
+        // === overrideFRC prüfen: wenn gesetzt, immer diesen Wert nutzen ===
+        if ($overrideFRC !== null) {
+            $sollFRC = $overrideFRC;
+        }
+        else {
+            // Default-Logik: Manueller Modus oder PVonly mit genug Überschuss → Laden (2), sonst Sperren (1)
+            $sollFRC = ($modus === 'manuell' || ($modus === 'pvonly' && $pvUeberschuss >= $minUeberschuss))
                 ? 2
                 : 1;
-/*
-        // PV-Modus: nur Laden bei Überschuss
-        if ($modus === 'pvonly' && $pvUeberschuss >= $minUeberschuss) {
-            $sollFRC = 2; // Laden erzwingen
         }
 
-        // Manueller Modus: Immer laden, unabhängig vom Überschuss
-        if ($modus === 'manuell') {
-            $sollFRC = 2;
-        }
-*/
         // Nur wenn nötig an Wallbox senden!
         $aktFRC = $this->GetValue('AccessStateV2');
         if ($aktFRC !== $sollFRC) {
@@ -1118,33 +1113,12 @@ class PVWallboxManager extends IPSModule
             IPS_Sleep(1000);
         }
 
-/*
-            $ok = $this->SetForceState($sollFRC);
-            if ($ok) {
-////                $this->LogTemplate('ok', "Ladefreigabe auf FRC=$sollFRC gestellt (Modus: $modus, Überschuss: {$pvUeberschuss}W)");
-                $this->LogTemplate('ok', "Ladefreigabe auf FRC=$sollFRC gestellt (Modus: $modus)");
-                IPS_Sleep(1000); // Kleines Delay, damit die Wallbox reagieren kann
-            } else {
-                $this->LogTemplate('warn', "Ladefreigabe setzen auf FRC=$sollFRC fehlgeschlagen!");
-
-            }
-        }
-*/
         // Nur Ladestrom setzen, wenn Freigabe aktiv und Ampere gültig
         if ($sollFRC === 2 && $ampere > 0) {
-            // Zusatz: Prüfen, ob sich der gewünschte Ladestrom von aktuellem unterscheidet
             $currentAmp = $this->GetValue('Ampere');
             if ($currentAmp != $ampere) {
                 $this->LogTemplate('debug', "SetChargingCurrent: sende {$ampere}A");
                 $this->SetChargingCurrent($ampere);
-////                $ok = $this->SetChargingCurrent($ampere);
-////                if ($ok) {
-////                    $this->LogTemplate('ok', "Ladestrom auf $ampere A gesetzt (tatsächliche Phasen: $anzPhasen).");
-////                } else {
-////                    $this->LogTemplate('warn', "Setzen des Ladestroms auf $ampere A **fehlgeschlagen**!");
-////                }
-////            } else {
-////                $this->LogTemplate('debug', "Ladestrom bereits auf $ampere A (Phasen: $anzPhasen), keine Änderung nötig.");
             }
         }
     }
