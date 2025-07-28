@@ -568,102 +568,30 @@ class PVWallboxManager extends IPSModule
 
         // 4) Phasenmodus nur bei Änderung setzen
         $this->PruefeUndSetzePhasenmodus($pvUeberschuss);
-/*        $schwelle1 = $this->ReadPropertyInteger('Phasen1Schwelle');
-        $schwelle3 = $this->ReadPropertyInteger('Phasen3Schwelle');
-        $psmSoll   = ($pvUeberschuss >= $schwelle3)
-                ? 2
-                : (($pvUeberschuss <= $schwelle1)
-                    ? 1
-                    : $this->GetValue('Phasenmodus'));
-        $psmIst = $this->GetValue('Phasenmodus');
-        if ($psmIst !== $psmSoll) {
-            $this->SetPhaseMode($psmSoll);
-            $this->LogTemplate('debug', "Phasenmodus geändert: {$psmIst} → {$psmSoll}");
-            $this->SetValueAndLogChange('Phasenmodus', $psmSoll, 'Genutzte Phasen', '', 'debug');
-        }
-*/
-        // 5) Hysterese-Zähler aktualisieren
-        $minLadeWatt    = $this->ReadPropertyInteger('MinLadeWatt');
-        $minStopWatt    = $this->ReadPropertyInteger('MinStopWatt');
-        $startHys       = $this->ReadPropertyInteger('StartLadeHysterese');
-        $stopHys        = $this->ReadPropertyInteger('StopLadeHysterese');
-        $startZ         = $this->ReadAttributeInteger('LadeStartZaehler');
-        $stopZ          = $this->ReadAttributeInteger('LadeStopZaehler');
-        $aktFRC         = ($this->GetValue('AccessStateV2') === 2);
 
-        // --- Start-Hysterese ---
-        if ($pvUeberschuss >= $minLadeWatt) {
-            $startZ++;
-            $this->WriteAttributeInteger('LadeStartZaehler', $startZ);
-            // Stop-Zähler zurücksetzen
-            $this->WriteAttributeInteger('LadeStopZaehler', 0);
+        // 5) Ladefreigabe gemäß Hysterese berechnen
+        $desiredFRC = $this->BerechneLadefreigabeMitHysterese($pvUeberschuss);
 
-            // Log jeden Zyklus
-            $this->LogTemplate(
-                'info',
-                "Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minLadeWatt} W"
-            );
-
-            if ($startZ >= $startHys) {
-                // Schwelle erreicht → Freigabe an und Zähler zurücksetzen
-                $this->LogTemplate(
-                    'ok',
-                    "Start-Hysterese erreicht → Freigabe an."
-                );
-                $freigabe = true;
-                $this->WriteAttributeInteger('LadeStartZaehler', 0);
-            }
-        } else {
-            // unter Min → Zähler zurücksetzen
-            $this->WriteAttributeInteger('LadeStartZaehler', 0);
-        }
-
-        // --- Stop-Hysterese ---
-        if ($pvUeberschuss <= $minStopWatt) {
-            $stopZ++;
-            $this->WriteAttributeInteger('LadeStopZaehler', $stopZ);
-            // Start-Zähler zurücksetzen
-            $this->WriteAttributeInteger('LadeStartZaehler', 0);
-
-            // Log jeden Zyklus
-            $this->LogTemplate(
-                'info',
-                "Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStopWatt} W"
-            );
-
-            if ($stopZ >= $stopHys) {
-                // Schwelle erreicht → Freigabe aus und Zähler zurücksetzen
-                $this->LogTemplate(
-                    'warn',
-                    "Stop-Hysterese erreicht → Freigabe aus."
-                );
-                $freigabe = false;
-                $this->WriteAttributeInteger('LadeStopZaehler', 0);
-            }
-        } else {
-            // über MinStop → Zähler zurücksetzen
-            $this->WriteAttributeInteger('LadeStopZaehler', 0);
-        }
-
-        // 6) Gewünschten Forced-State ermitteln
-        $sollFRC = 1;
-        if ($startZ >= $startHys) {
-            $sollFRC = 2;
-        }
-        if ($stopZ >= $stopHys) {
-            $sollFRC = 1;
-        }
-
-        // 7) Ladefreigabe setzen
+        // 6) Ladefreigabe setzen
         $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
         $this->SteuerungLadefreigabe(
             $pvUeberschuss,
             $mode,
             $ampere,
             $anzPhasenNeu,
-            $sollFRC
+            $desiredFRC
         );
-    }
+
+            // 7) Ladefreigabe setzen
+            $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
+            $this->SteuerungLadefreigabe(
+                $pvUeberschuss,
+                $mode,
+                $ampere,
+                $anzPhasenNeu,
+                $sollFRC
+            );
+        }
 
         private function ModusManuellVollladen(array $data)
         {
@@ -770,63 +698,18 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('PV_Ueberschuss',   $rohUeb,   'PV-Überschuss',   'W', 'debug');
         $this->SetValueAndLogChange('PV_Ueberschuss_A', $ampere,   'Überschuss Ampere','A','debug');
 
-        // 8. START/STOP-HYSTERESE für Ladefreigabe (bleibt unverändert)
-        $minStart = $this->ReadPropertyInteger('MinLadeWatt');
-        $minStop  = $this->ReadPropertyInteger('MinStopWatt');
-        $startHys = $this->ReadPropertyInteger('StartLadeHysterese');
-        $stopHys  = $this->ReadPropertyInteger('StopLadeHysterese');
-        $startZ   = $this->ReadAttributeInteger('PV2CarStartZaehler');
-        $stopZ    = $this->ReadAttributeInteger('PV2CarStopZaehler');
-        $freigabe = ($this->GetValue('AccessStateV2') === 2);
+        // 8. Freigabe-Hysterese prüfen
+        $desiredFRC = $this->BerechneLadefreigabeMitHysterese($anteilWatt);
 
-        // Start-Hysterese
-        if ($anteilWatt >= $minStart) {
-            $startZ++;
-            $this->WriteAttributeInteger('PV2CarStartZaehler', $startZ);
-            $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
-            // Log jeden Zyklus
-            $this->LogTemplate(
-                'info',
-                "PV2Car-Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minStart} W"
-            );
-
-            if ($startZ >= $startHys) {
-                // wenn Schwelle erreicht, Freigabe an und Zähler zurücksetzen
-                $this->LogTemplate(
-                    'ok',
-                    "PV2Car-Start-Hysterese erreicht → Freigabe an."
-                );
-                $freigabe = true;
-                $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
-            }
-        } else {
-            $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
+        // 9. Steuerung
+        $this->SteuerungLadefreigabe(
+            $rohUeb,
+            'pv2car',
+            $ampere,
+            $newPhasen,
+            $desiredFRC
+        );
         }
-
-        // Stop-Hysterese
-        if ($anteilWatt <= $minStop) {
-            $stopZ++;
-            $this->WriteAttributeInteger('PV2CarStopZaehler', $stopZ);
-            $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
-            // Log jeden Zyklus
-            $this->LogTemplate(
-                'info',
-                "PV2Car-Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStop} W"
-            );
-
-            if ($stopZ >= $stopHys) {
-                // wenn Schwelle erreicht, Freigabe aus und Zähler zurücksetzen
-                $this->LogTemplate(
-                    'warn',
-                    "PV2Car-Stop-Hysterese erreicht → Freigabe aus."
-                );
-                $freigabe = false;
-                $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
-            }
-        } else {
-            $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
-        }
-    }
 
     // =========================================================================
     // 6. WALLBOX STEUERN (SET-FUNKTIONEN)
@@ -1736,8 +1619,51 @@ class PVWallboxManager extends IPSModule
             'ueberschuss_a' => $amp,
         ];
     }
-    
-    //=========================================================================
+
+    private function BerechneLadefreigabeMitHysterese(int $pvUeberschuss): int
+    {
+        $minLadeWatt  = $this->ReadPropertyInteger('MinLadeWatt');
+        $minStopWatt  = $this->ReadPropertyInteger('MinStopWatt');
+        $startHys     = $this->ReadPropertyInteger('StartLadeHysterese');
+        $stopHys      = $this->ReadPropertyInteger('StopLadeHysterese');
+        $startZ       = $this->ReadAttributeInteger('LadeStartZaehler');
+        $stopZ        = $this->ReadAttributeInteger('LadeStopZaehler');
+
+        $aktFRC       = $this->GetValue('AccessStateV2') === 2 ? 2 : 1;
+        $desiredFRC   = $aktFRC;
+
+        if ($pvUeberschuss >= $minLadeWatt) {
+            $startZ++;
+            $this->WriteAttributeInteger('LadeStartZaehler', $startZ);
+            $this->WriteAttributeInteger('LadeStopZaehler', 0);
+            $this->LogTemplate('info', "Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minLadeWatt} W");
+            if ($startZ >= $startHys) {
+                $this->LogTemplate('ok', "Start-Hysterese erreicht → Freigabe an.");
+                $desiredFRC = 2;
+                $this->WriteAttributeInteger('LadeStartZaehler', 0);
+            }
+        } else {
+            $this->WriteAttributeInteger('LadeStartZaehler', 0);
+        }
+
+        if ($aktFRC === 2 && $pvUeberschuss <= $minStopWatt) {
+            $stopZ++;
+            $this->WriteAttributeInteger('LadeStopZaehler', $stopZ);
+            $this->WriteAttributeInteger('LadeStartZaehler', 0);
+            $this->LogTemplate('info', "Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStopWatt} W");
+            if ($stopZ >= $stopHys) {
+                $this->LogTemplate('warn', "Stop-Hysterese erreicht → Freigabe aus.");
+                $desiredFRC = 1;
+                $this->WriteAttributeInteger('LadeStopZaehler', 0);
+            }
+        } elseif ($aktFRC === 2) {
+            $this->WriteAttributeInteger('LadeStopZaehler', 0);
+        }
+
+        return $desiredFRC;
+    }
+
+//=========================================================================
     // 10. EXTERNE SCHNITTSTELLEN & FORECAST
     // =========================================================================
     private function AktualisiereMarktpreise()
