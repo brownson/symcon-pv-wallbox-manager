@@ -596,10 +596,12 @@ class PVWallboxManager extends IPSModule
             $startZ++;
             $this->WriteAttributeInteger('LadeStartZaehler', $startZ);
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
-            $this->LogTemplate(
-                'info',
-                "Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minLadeWatt} W"
-            );
+            if ($startZ >= $startHys) {
+                $this->LogTemplate('ok', "Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minLadeWatt}W → Freigabe an.");
+                $freigabe = true;
+                // Counter zurücksetzen, damit er nicht weiter hochläuft
+                $this->WriteAttributeInteger('LadeStartZaehler', 0);
+            }
         } else {
             $this->WriteAttributeInteger('LadeStartZaehler', 0);
         }
@@ -609,10 +611,12 @@ class PVWallboxManager extends IPSModule
             $stopZ++;
             $this->WriteAttributeInteger('LadeStopZaehler', $stopZ);
             $this->WriteAttributeInteger('LadeStartZaehler', 0);
-            $this->LogTemplate(
-                'info',
-                "Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStopWatt} W"
-            );
+            if ($stopZ >= $stopHys) {
+                $this->LogTemplate('warn', "Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStopWatt}W → Freigabe aus.");
+                $freigabe = false;
+                // Counter zurücksetzen, damit er nicht weiter hochläuft
+                $this->WriteAttributeInteger('LadeStopZaehler', 0);
+            }
         } else {
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
         }
@@ -751,58 +755,42 @@ class PVWallboxManager extends IPSModule
         $stopZ    = $this->ReadAttributeInteger('PV2CarStopZaehler');
         $freigabe = ($this->GetValue('AccessStateV2') === 2);
 
+        // Start-Hysterese
         if ($anteilWatt >= $minStart) {
-            $this->WriteAttributeInteger('PV2CarStartZaehler', ++$startZ);
-            $this->WriteAttributeInteger('PV2CarStopZaehler',   0);
-            $this->LogTemplate(
-                'info',
-                "PV2Car-Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minStart} W"
-            );
+            $startZ++;
+            $this->WriteAttributeInteger('PV2CarStartZaehler', $startZ);
+            $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
             if ($startZ >= $startHys) {
-                $this->LogTemplate('ok', "PV2Car: Start-Hysterese erreicht ({$startZ}×) → Freigabe an.");
+                $this->LogTemplate(
+                    'info',
+                    "PV2Car-Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minStart} W → Freigabe an."
+                );
                 $freigabe = true;
+                // Zähler zurücksetzen nach dem Schalten
+                $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
             }
         } else {
             $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
         }
+
+        // Stop-Hysterese
         if ($anteilWatt <= $minStop) {
-            $this->WriteAttributeInteger('PV2CarStopZaehler', ++$stopZ);
+            $stopZ++;
+            $this->WriteAttributeInteger('PV2CarStopZaehler', $stopZ);
             $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
-            $this->LogTemplate(
-                'info',
-                "PV2Car-Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStop} W"
-            );
             if ($stopZ >= $stopHys) {
-                $this->LogTemplate('warn', "PV2Car: Stop-Hysterese erreicht ({$stopZ}×) → Freigabe aus.");
+                $this->LogTemplate(
+                    'warn',
+                    "PV2Car-Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStop} W → Freigabe aus."
+                );
                 $freigabe = false;
+                // Zähler zurücksetzen nach dem Schalten
+                $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
             }
         } else {
             $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
         }
-
-        // 9. Ladefreigabe tatsächlich senden
-        $sollFRC = $freigabe ? 2 : 1;
-        $this->SteuerungLadefreigabe($anteilWatt, 'pv2car', $ampere, $newPhasen, $sollFRC);
-
-        // 10. Abschluss-Log und Timer
-        $this->LogTemplate(
-            'ok',
-            sprintf(
-                "PV2Car (%s): PV=%dW, Haus=%dW, WB=%dW, Batt=%dW → Überschuss=%dW, Anteil=%d%% (%dW), %dA",
-                $freigabe ? 'aktiv' : 'inaktiv',
-                $energy['pv'],
-                $energy['hausFiltered'],
-                $energy['wallbox'],
-                $energy['batt'],
-                $rohUeb,
-                $anteil,
-                $anteilWatt,
-                $ampere
-            )
-        );
-        $this->SetTimerNachModusUndAuto();
     }
-
 
     // =========================================================================
     // 6. WALLBOX STEUERN (SET-FUNKTIONEN)
