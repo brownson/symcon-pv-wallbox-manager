@@ -213,7 +213,7 @@ class PVWallboxManager extends IPSModule
             [0, 'Unbekannt/Firmwarefehler',                 'Question',     0x888888],
             [1, 'Bereit, kein Fahrzeug',                    'Parking',      0xAAAAAA],
             [2, 'Fahrzeug lädt',                            'Lightning',    0x00FF00],
-            [3, 'Warte auf Fahrzeug',                       'Car',          0x0088FF],
+            [3, 'Fahrzeug verbunden / Bereit zum Laden',    'Car',          0x0088FF],
             [4, 'Ladung beendet, Fahrzeug noch verbunden',  'Check',        0xFFFF00],
             [5, 'Fehler',                                   'Alert',        0xFF0000]
         ]);
@@ -1348,7 +1348,7 @@ class PVWallboxManager extends IPSModule
                         0 => 'Unbekannt/Firmwarefehler',
                         1 => 'Bereit, kein Fahrzeug',
                         2 => 'Fahrzeug lädt',
-                        3 => 'Warte auf Fahrzeug',
+                        3 => 'Fahrzeug verbunden / Bereit zum Laden',
                         4 => 'Ladung beendet, Fahrzeug noch verbunden',
                         5 => 'Fehler'
                     ];

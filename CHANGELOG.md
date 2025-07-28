@@ -3,6 +3,9 @@
 Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.  
 **Repository:** https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager
 
+## [1.3b] - 🚧 in Vorbereitung 🚧
+- Statusanzeige "Warte auf Fahrzeug" umbenannt in "Fahrzeug verbunden / Bereit zum Laden"
+
 ## [1.2b] - 2025-07-28
 - Bugfix "🏠 Hausverbrauch abzügl. Wallbox (W)" 0 Werte
 - Modul über Visiu aktivieren / deaktivieren neuer Boolean Variable
