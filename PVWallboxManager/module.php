@@ -644,7 +644,13 @@ class PVWallboxManager extends IPSModule
 
         // --- 6. ForceState + Ampere nur senden, wenn sich etwas ändert ---
         // SetForceStateAndAmpereIfChanged() prüft intern beides
-        $this->SetForceStateAndAmpereIfChanged($sollFRC, ($sollFRC === 2 ? $ampere : 0));
+        if ($sollFRC === 2) {
+            // Überschuss genug → Laden erzwingen + Ampere setzen
+            $this->SetForceStateAndAmpereIfChanged(2, $ampere);
+        } else {
+                // Kein Überschuss → Laden beenden, aber niemals Ampere=0
+                $this->SetForceState(1);
+        }
     }
 
     /* alte PV Modus
