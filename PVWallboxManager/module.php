@@ -319,71 +319,77 @@ class PVWallboxManager extends IPSModule
                 $this->SetTimerInterval('PVWM_UpdateMarketPrices', 3600000);
                 break;
 
-        case "ManuellLaden":
-            // Nur EIN Modus darf aktiv sein!
-            if ($Value) {
-                $this->SetValue('ManuellLaden', true);
-                $this->SetValue('PV2CarModus', false);
-                // (später: weitere Modi hier deaktivieren)
-                $this->LogTemplate('info', "🔌 Manuelles Vollladen aktiviert.");
-            } else {
-                $this->SetValue('ManuellLaden', false);
-                $this->LogTemplate('info', "🔌 Manuelles Vollladen deaktiviert – zurück in PVonly-Modus.");
-                // Nach Beenden: zurück auf 1-phasig, 6A, 0A
-                $this->SetPhaseMode(1);
-                $this->SetChargingCurrent(6);
-                $this->SetValueAndLogChange('PV_Ueberschuss_A', 0, 'PV-Überschuss (A)', 'A', 'ok');
-                $this->LogTemplate('ok', "Nach Deaktivierung Manuell: Wallbox auf 1-phasig/6A/0A zurückgesetzt.");
-                // Hysterese-Zähler zurücksetzen
-                $this->WriteAttributeInteger('LadeStartZaehler', 0);
-                $this->WriteAttributeInteger('LadeStopZaehler', 0);
-                $this->LogTemplate('debug', "Hysterese-Zähler nach Deaktivierung ManuellLaden zurückgesetzt.");
-            }
-            $this->SetTimerNachModusUndAuto();
-            $this->UpdateStatus('manuell');
-            break;
+            case "ManuellLaden":
+                // Nur EIN Modus darf aktiv sein!
+                if ($Value) {
+                    $this->SetValue('ManuellLaden', true);
+                    $this->SetValue('PV2CarModus', false);
+                    // (später: weitere Modi hier deaktivieren)
+                    $this->LogTemplate('info', "🔌 Manuelles Vollladen aktiviert.");
+                } else {
+                    $this->SetValue('ManuellLaden', false);
+                    $this->LogTemplate('info', "🔌 Manuelles Vollladen deaktiviert – zurück in PVonly-Modus.");
 
-        case "PV2CarModus":
-            // Nur EIN Modus darf aktiv sein!
-            if ($Value) {
-                $this->SetValue('PV2CarModus', true);
-                $this->SetValue('ManuellLaden', false);
-                $this->LogTemplate('info', "🌞 PV-Anteil laden aktiviert.");
-            } else {
-                $this->SetValue('PV2CarModus', false);
-                $this->LogTemplate('info', "🌞 PV-Anteil laden deaktiviert – zurück in PVonly-Modus.");
-                // Nach Beenden: zurück auf 1-phasig, 6A, 0A
-                $this->SetPhaseMode(1);
-                $this->SetChargingCurrent(6);
-                $this->SetValueAndLogChange('PV_Ueberschuss_A', 0, 'PV-Überschuss (A)', 'A', 'ok');
-                $this->LogTemplate('ok', "Nach Deaktivierung PV2Car: Wallbox auf 1-phasig/6A/0A zurückgesetzt.");
-            }
-            $this->SetTimerNachModusUndAuto();
-            $this->UpdateStatus('pv2car');
-            break;
+                    // Nach Beenden: zurück auf 1-phasig, 6A, 0A
+                    $this->SetPhaseMode(1);
+                    $this->SetChargingCurrent(6);
+                    $this->SetValueAndLogChange('PV_Ueberschuss_A', 0, 'PV-Überschuss (A)', 'A', 'ok');
+                    $this->LogTemplate('ok', "Nach Deaktivierung Manuell: Wallbox auf 1-phasig/6A/0A zurückgesetzt.");
 
-        case "PVAnteil":
-            // Wertebereich checken (0-100%)
-            $value = max(0, min(100, intval($Value)));
-            $this->SetValue('PVAnteil', $value);
-            $this->LogTemplate('info', "🌞 PV-Anteil geändert: {$value}%");
-            // Sofortige Wirkung, wenn PV2Car aktiv ist
-            if ($this->GetValue('PV2CarModus')) {
+                    // Hysterese-Zähler zurücksetzen
+                    $this->WriteAttributeInteger('LadeStartZaehler', 0);
+                    $this->WriteAttributeInteger('LadeStopZaehler', 0);
+                    $this->LogTemplate('debug', "Hysterese-Zähler nach Deaktivierung ManuellLaden zurückgesetzt.");
+
+                    // Blocker für Hysterese aktivieren
+                    $this->SetBuffer("LetzterModusWechsel", time());
+                    $this->LogTemplate('debug', "Moduswechsel: Zeitstempel für Hysterese-Blocker gesetzt.");
+                }
+                $this->SetTimerNachModusUndAuto();
+                $this->UpdateStatus('manuell');
+                break;
+
+            case "PV2CarModus":
+                // Nur EIN Modus darf aktiv sein!
+                if ($Value) {
+                    $this->SetValue('PV2CarModus', true);
+                    $this->SetValue('ManuellLaden', false);
+                    $this->LogTemplate('info', "🌞 PV-Anteil laden aktiviert.");
+                } else {
+                    $this->SetValue('PV2CarModus', false);
+                    $this->LogTemplate('info', "🌞 PV-Anteil laden deaktiviert – zurück in PVonly-Modus.");
+                    // Nach Beenden: zurück auf 1-phasig, 6A, 0A
+                    $this->SetPhaseMode(1);
+                    $this->SetChargingCurrent(6);
+                    $this->SetValueAndLogChange('PV_Ueberschuss_A', 0, 'PV-Überschuss (A)', 'A', 'ok');
+                    $this->LogTemplate('ok', "Nach Deaktivierung PV2Car: Wallbox auf 1-phasig/6A/0A zurückgesetzt.");
+                }
+                $this->SetTimerNachModusUndAuto();
                 $this->UpdateStatus('pv2car');
-            }
-            break;
-        
-        case "ManuellAmpere":
-            $amp = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), intval($Value)));
-            $this->SetValue('ManuellAmpere', $amp);
-            if ($this->GetValue('ManuellLaden')) $this->UpdateStatus('manuell');
-            break;
+                break;
 
-        case "ManuellPhasen":
-            $ph = ($Value == 2) ? 2 : 1; // Nur 1 oder 2 zulassen
-            $this->SetValue('ManuellPhasen', $ph);
-            if ($this->GetValue('ManuellLaden')) $this->UpdateStatus('manuell');
-            break;
+            case "PVAnteil":
+                // Wertebereich checken (0-100%)
+                $value = max(0, min(100, intval($Value)));
+                $this->SetValue('PVAnteil', $value);
+                $this->LogTemplate('info', "🌞 PV-Anteil geändert: {$value}%");
+                // Sofortige Wirkung, wenn PV2Car aktiv ist
+                if ($this->GetValue('PV2CarModus')) {
+                    $this->UpdateStatus('pv2car');
+                }
+                break;
+            
+            case "ManuellAmpere":
+                $amp = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), intval($Value)));
+                $this->SetValue('ManuellAmpere', $amp);
+                if ($this->GetValue('ManuellLaden')) $this->UpdateStatus('manuell');
+                break;
+
+            case "ManuellPhasen":
+                $ph = ($Value == 2) ? 2 : 1; // Nur 1 oder 2 zulassen
+                $this->SetValue('ManuellPhasen', $ph);
+                if ($this->GetValue('ManuellLaden')) $this->UpdateStatus('manuell');
+                break;
 
         default:
             throw new Exception("Invalid Ident: $Ident");
@@ -1379,6 +1385,30 @@ class PVWallboxManager extends IPSModule
         }
     }
 
+    private function VerhindereStartHystereseKurzNachModuswechsel(int $sekunden = 10): bool
+    {
+        $ts = intval($this->GetBuffer("LetzterModusWechsel"));
+        $diff = time() - $ts;
+        if ($diff < $sekunden) {
+            $this->LogTemplate('debug', "PVonly: Moduswechsel liegt {$diff}s zurück → Start-Hysterese blockiert.");
+            $this->WriteAttributeInteger('LadeStartZaehler', 0);
+            return true;
+        }
+        return false;
+    }
+
+    private function VerhindereStopHystereseKurzNachModuswechsel(int $sekunden = 15): bool
+    {
+        $ts = intval($this->GetBuffer("LetzterModusWechsel"));
+        $diff = time() - $ts;
+        if ($diff < $sekunden) {
+            $this->LogTemplate('debug', "PVonly: Moduswechsel liegt {$diff}s zurück → Stop-Hysterese blockiert.");
+            $this->WriteAttributeInteger('LadeStopZaehler', 0);
+            return true;
+        }
+        return false;
+    }
+
     private function UpdateStatusAnzeige()
     {
         // 1) SoC-Werte holen
@@ -1630,29 +1660,33 @@ class PVWallboxManager extends IPSModule
         $aktFRC       = $this->GetValue('AccessStateV2') === 2 ? 2 : 1;
         $desiredFRC   = $aktFRC;
 
-        if ($pvUeberschuss >= $minLadeWatt) {
-            $startZ++;
-            $this->WriteAttributeInteger('LadeStartZaehler', $startZ);
-            $this->WriteAttributeInteger('LadeStopZaehler', 0);
-            $this->LogTemplate('info', "Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minLadeWatt} W");
-            if ($startZ >= $startHys) {
-                $this->LogTemplate('ok', "Start-Hysterese erreicht → Freigabe an.");
-                $desiredFRC = 2;
+        if (!$this->VerhindereStartHystereseKurzNachModuswechsel()) {
+            if ($pvUeberschuss >= $minLadeWatt) {
+                $startZ++;
+                $this->WriteAttributeInteger('LadeStartZaehler', $startZ);
+                $this->WriteAttributeInteger('LadeStopZaehler', 0);
+                $this->LogTemplate('info', "Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minLadeWatt} W");
+                if ($startZ >= $startHys) {
+                    $this->LogTemplate('ok', "Start-Hysterese erreicht → Freigabe an.");
+                    $desiredFRC = 2;
+                    $this->WriteAttributeInteger('LadeStartZaehler', 0);
+                }
+            } else {
                 $this->WriteAttributeInteger('LadeStartZaehler', 0);
             }
-        } else {
-            $this->WriteAttributeInteger('LadeStartZaehler', 0);
         }
 
         if ($aktFRC === 2 && $pvUeberschuss <= $minStopWatt) {
-            $stopZ++;
-            $this->WriteAttributeInteger('LadeStopZaehler', $stopZ);
-            $this->WriteAttributeInteger('LadeStartZaehler', 0);
-            $this->LogTemplate('info', "Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStopWatt} W");
-            if ($stopZ >= $stopHys) {
-                $this->LogTemplate('warn', "Stop-Hysterese erreicht → Freigabe aus.");
-                $desiredFRC = 1;
-                $this->WriteAttributeInteger('LadeStopZaehler', 0);
+            if (!$this->VerhindereStopHystereseKurzNachModuswechsel()) {
+                $stopZ++;
+                $this->WriteAttributeInteger('LadeStopZaehler', $stopZ);
+                $this->WriteAttributeInteger('LadeStartZaehler', 0);
+                $this->LogTemplate('info', "Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStopWatt} W");
+                if ($stopZ >= $stopHys) {
+                    $this->LogTemplate('warn', "Stop-Hysterese erreicht → Freigabe aus.");
+                    $desiredFRC = 1;
+                    $this->WriteAttributeInteger('LadeStopZaehler', 0);
+                }
             }
         } elseif ($aktFRC === 2) {
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
