@@ -61,8 +61,6 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeInteger('LastTimerStatus', -1);
         $this->RegisterAttributeInteger('ModusWechselZeit', 0);
 
-
-
         // Variablen nach API v2
         $this->RegisterVariableInteger('Status',        'Status',                                   'PVWM.CarStatus',       1);
         $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                            'PVWM.AccessStateV2',   2);
@@ -1397,7 +1395,20 @@ class PVWallboxManager extends IPSModule
 
     private function VerhindereStartHystereseKurzNachModuswechsel(int $sekunden = 30): bool
     {
-        $letzterWechsel = $this->ReadAttributeInteger('ModusWechselZeit');
+        // Falls das Attribut aus irgendeinem Grund nicht existiert → jetzt registrieren
+        if (!@property_exists($this, 'ModusWechselZeit')) {
+            $this->RegisterAttributeInteger('ModusWechselZeit', 0);
+        }
+
+        // Alternativ robust über try-catch:
+        $letzterWechsel = 0;
+        try {
+            $letzterWechsel = $this->ReadAttributeInteger('ModusWechselZeit');
+        } catch (Throwable $e) {
+            $this->RegisterAttributeInteger('ModusWechselZeit', 0);
+            $letzterWechsel = 0;
+        }
+
         if ($letzterWechsel <= 0) {
             return false;
         }
