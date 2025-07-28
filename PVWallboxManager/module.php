@@ -2109,10 +2109,7 @@ class PVWallboxManager extends IPSModule
     private function FormatMarketPricesPreviewHTML($max = 24)
     {
         $preiseRaw = @$this->GetValue('MarketPrices');
-        if (!$preiseRaw) {
-            return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
-        }
-        $preise = json_decode($preiseRaw, true);
+        $preise    = json_decode($preiseRaw, true);
         if (!is_array($preise) || count($preise) === 0) {
             return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
         }
@@ -2121,7 +2118,8 @@ class PVWallboxManager extends IPSModule
         $now = time();
         $startIndex = 0;
         foreach ($preise as $idx => $dat) {
-            if ($dat['timestamp'] <= $now) {
+            // suche den ersten Eintrag **nach** jetzt
+            if ($dat['timestamp'] >= $now) {
                 $startIndex = $idx;
                 break;
             }
