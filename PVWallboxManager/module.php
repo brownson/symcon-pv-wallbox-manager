@@ -644,110 +644,7 @@ class PVWallboxManager extends IPSModule
         }
 
         $this->SteuerungLadefreigabe($pvUeberschuss, 'pvonly', $ampere, $anzPhasenNeu);
-/*
-        // --- 6. ForceState + Ampere nur senden, wenn sich etwas ändert ---
-        // SetForceStateAndAmpereIfChanged() prüft intern beides
-        if ($sollFRC === 2) {
-            // Überschuss genug → Laden erzwingen + Ampere setzen
-            $this->SetForceStateAndAmpereIfChanged(2, $ampere);
-        } else {
-                // Kein Überschuss → Laden beenden, aber niemals Ampere=0
-                $this->SetForceState(1);
-        }
-*/
     }
-
-    /* alte PV Modus
-    private function ModusPVonlyLaden($data, $anzPhasenAlt, $mode = 'pvonly')
-    {
-        if (!$this->FahrzeugVerbunden($data)) {
-            $this->ResetLademodiWennKeinFahrzeug();
-            return;
-        }
-
-        // --- Überschuss neu berechnen (nach eventueller Phasenumschaltung) ---
-        $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
-        $berechnung = $this->BerechnePVUeberschuss($anzPhasenNeu);
-
-        // Prüfe, ob $berechnung ein gültiges Array ist
-        if (!is_array($berechnung)) {
-            $this->LogTemplate('warn', 'BerechnePVUeberschuss: Kein Array zurückgegeben!');
-            return;
-        }
-
-        // Felder absichern (kein "Undefined array key"-Fehler mehr)
-        $pvUeberschuss = $berechnung['ueberschuss_w'] ?? 0;
-        $ampere        = $berechnung['ueberschuss_a'] ?? 0;
-
-        // Visualisierungswerte setzen
-        $this->SetValue('PV_Ueberschuss', $pvUeberschuss);
-        $this->SetValue('PV_Ueberschuss_A', $ampere);
-
-        // Debug-Log – robust, mit Hinweis wenn Werte fehlen
-        if (is_array($berechnung)) {
-            $requiredFields = ['pv', 'haus', 'wallbox', 'batterie', 'phasenmodus', 'ueberschuss_w', 'ueberschuss_a'];
-            $missing = array_diff($requiredFields, array_keys($berechnung));
-
-            if (empty($missing)) {
-                $this->LogTemplate(
-                    'debug',
-                    "PV-Überschuss: PV={$berechnung['pv']} W, Haus={$berechnung['haus']} W, Wallbox={$berechnung['wallbox']} W, Batterie={$berechnung['batterie']} W, Phasenmodus={$berechnung['phasenmodus']} → Überschuss={$berechnung['ueberschuss_w']} W / {$berechnung['ueberschuss_a']} A"
-                );
-            } else {
-                $this->LogTemplate(
-                    'warn',
-                    'BerechnePVUeberschuss: Fehlende Felder im Array: ' . implode(', ', $missing)
-                );
-            }
-        }
-
-        // --- Phasenumschaltung prüfen (immer im PVonly-Modus) ---
-        $this->PruefeUndSetzePhasenmodus($pvUeberschuss);
-
-        // --- Hysterese für Ladefreigabe/Stop ---
-        $minLadeWatt    = $this->ReadPropertyInteger('MinLadeWatt');
-        $minStopWatt    = $this->ReadPropertyInteger('MinStopWatt');
-        $startHysterese = $this->ReadPropertyInteger('StartLadeHysterese');
-        $stopHysterese  = $this->ReadPropertyInteger('StopLadeHysterese');
-        $startZaehler   = $this->ReadAttributeInteger('LadeStartZaehler');
-        $stopZaehler    = $this->ReadAttributeInteger('LadeStopZaehler');
-        $accessStateV2  = $this->GetValue('AccessStateV2');
-        $aktFreigabe    = ($accessStateV2 == 2);
-
-        // Start-Hysterese
-        if ($pvUeberschuss >= $minLadeWatt) {
-            $startZaehler++;
-            $this->WriteAttributeInteger('LadeStartZaehler', $startZaehler);
-            $this->WriteAttributeInteger('LadeStopZaehler', 0);
-
-            if ($startZaehler >= $startHysterese && !$aktFreigabe) {
-                $this->LogTemplate('ok', "Ladefreigabe: Start-Hysterese erreicht ($startZaehler x >= $minLadeWatt W). Ladefreigabe aktivieren.");
-                $this->SetForceState(2);
-            }
-        } else {
-            $this->WriteAttributeInteger('LadeStartZaehler', 0);
-        }
-
-        // Stop-Hysterese
-        if ($pvUeberschuss <= $minStopWatt) {
-            $stopZaehler++;
-            $this->WriteAttributeInteger('LadeStopZaehler', $stopZaehler);
-            $this->WriteAttributeInteger('LadeStartZaehler', 0);
-
-            if ($stopZaehler >= $stopHysterese && $aktFreigabe) {
-                $this->LogTemplate('warn', "Ladefreigabe: Stop-Hysterese erreicht ($stopZaehler x <= $minStopWatt W). Ladefreigabe deaktivieren.");
-                if ($this->GetValue('AccessStateV2') != 1) {
-                    $this->SetForceState(1);
-                }
-            }
-        } else {
-            $this->WriteAttributeInteger('LadeStopZaehler', 0);
-        }
-
-        // Ladefreigabe steuern
-        $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasenNeu);
-    }
-*/
 
     private function ModusManuellVollladen(array $data)
     {
@@ -1079,36 +976,44 @@ class PVWallboxManager extends IPSModule
 
     public function SetForceState(int $state)
     {
-        // Wertebereich prüfen: 0 = Neutral, 1 = Nicht Laden, 2 = Laden
+        // 1) Wertebereich prüfen
         if ($state < 0 || $state > 2) {
             $this->LogTemplate('warn', "SetForceState: Ungültiger Wert ($state). Erlaubt: 0=Neutral, 1=OFF, 2=ON!");
             return false;
         }
 
-        $ip = $this->ReadPropertyString('WallboxIP');
-        $url = "http://$ip/api/set?frc=" . intval($state);
-        $modes = [
+        // 2) Request vorbereiten
+        $ip       = $this->ReadPropertyString('WallboxIP');
+        $url      = "http://{$ip}/api/set?frc=" . intval($state);
+        $modes    = [
             0 => "Neutral (Wallbox entscheidet)",
             1 => "Nicht Laden (gesperrt)",
             2 => "Laden (erzwungen)"
         ];
         $modeText = $modes[$state] ?? $state;
 
+        // 3) Debug-Log vor dem Senden
         $this->LogTemplate('debug', "SetForceState: HTTP GET {$url}");
 
+        // 4) Curl-Aufruf
+        $response = $this->simpleCurlGet($url);
 
+        // 5) Fehlerfall
         if ($response['result'] === false || $response['httpcode'] != 200) {
-            $this->LogTemplate('error', "SetForceState-Fehler: HTTP {$response['httpcode']}");
+            $this->LogTemplate(
+                'error',
+                "SetForceState-Fehler: {$modeText} ({$state}), HTTP {$response['httpcode']}, cURL: {$response['error']}"
+            );
             return false;
         }
 
-        // Nur den Erfolg als OK loggen
-        $this->LogTemplate('ok', "SetForceState: FRC={$state} gesetzt (HTTP {$response['httpcode']})");
-        // sofort lokal setzen, damit GetValue() stimmt
+        // 6) Erfolg loggen und lokalen Status sofort setzen
+        $this->LogTemplate('ok', "SetForceState: {$modeText} ({$state}) gesetzt. (HTTP {$response['httpcode']})");
         $varID = $this->GetIDForIdent('AccessStateV2');
         if ($varID) {
             SetValue($varID, $state);
         }
+
         return true;
     }
 
