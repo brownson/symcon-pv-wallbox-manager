@@ -336,7 +336,7 @@ class PVWallboxManager extends IPSModule
                 $this->LogTemplate('ok', "Nach Deaktivierung Manuell: Wallbox auf 1-phasig/6A/0A zurückgesetzt.");
             }
             $this->SetTimerNachModusUndAuto();
-            $this->UpdateStatus('pvonly');
+            $this->UpdateStatus('manuell');
             break;
 
         case "PV2CarModus":
@@ -789,7 +789,11 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('Phasenmodus', $anzPhasenIst, 'Genutzte Phasen', '', 'debug');
 
         // Wallbox: Manuellen Ampere-Wert setzen (immer mit "force"-Funktion!)
-        $this->SetForceStateAndAmpereIfChanged($anzPhasenGewuenscht, $ampereGewuenscht);
+////        $this->SetForceStateAndAmpereIfChanged($anzPhasenGewuenscht, $ampereGewuenscht);
+        $this->SetPhaseMode($anzPhasenGewuenscht);
+        // forceState = 2 (laden), ampere = $ampereGewuenscht
+        $this->SetForceStateAndAmpereIfChanged(2, $ampereGewuenscht);
+
 
         // Logging
         $this->LogTemplate(
