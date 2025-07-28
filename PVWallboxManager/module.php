@@ -491,18 +491,30 @@ class PVWallboxManager extends IPSModule
         // (SetValueAndLogChange wird dort bereits gemacht)
 
         // === 2. Status-Variablen aus Wallbox holen ===
-        $car          = (is_array($data) && isset($data['car'])) ? intval($data['car']) : 0;
-        $leistung     = (isset($data['nrg'][11]) ? floatval($data['nrg'][11]) : 0.0);
-        $ampereWB     = isset($data['amp']) ? intval($data['amp']) : 0;
-        $energie      = isset($data['wh'])  ? intval($data['wh'])  : 0;
-        $freigabe     = isset($data['alw']) ? (bool)$data['alw']   : false;
-        $kabelstrom   = isset($data['cbl']) ? intval($data['cbl']) : 0;
-        $fehlercode   = isset($data['err']) ? intval($data['err']): 0;
-        $accessStateV2 = intval($data['frc'] ?? $data['accessStateV2'] ?? 1);
+        $car        = (is_array($data) && isset($data['car'])) ? intval($data['car']) : 0;
+        $leistung   = isset($data['nrg'][11]) ? floatval($data['nrg'][11]) : 0.0;
+        $ampereWB   = isset($data['amp']) ? intval($data['amp']) : 0;
+        $energie    = isset($data['wh'])  ? intval($data['wh'])  : 0;
+        $freigabe   = isset($data['alw']) ? (bool)$data['alw']   : false;
+        $kabelstrom = isset($data['cbl']) ? intval($data['cbl']) : 0;
+        $fehlercode = isset($data['err']) ? intval($data['err']) : 0;
+
+        // frc auslesen (kann 0,1,2 sein) und accessStateV2 auslesen (kann 0,1,2 sein)
+        $frcRaw   = isset($data['frc'])           ? intval($data['frc'])           : null;
+        $stateRaw = isset($data['accessStateV2']) ? intval($data['accessStateV2']) : null;
+
+        // Mapping: nur 2 bleibt 2, alles andere (0,1,null) wird zu 1
+        if ($frcRaw === 2) {
+            $accessStateV2 = 2;
+        } elseif ($stateRaw === 2) {
+            $accessStateV2 = 2;
+        } else {
+            $accessStateV2 = 1;
+        }
 
         $this->LogTemplate(
             'debug',
-            "UpdateStatus: car=$car, accessStateV2=$accessStateV2, freigabe=" . ($freigabe ? "true":"false")
+            "UpdateStatus: car={$car}, frcRaw={$frcRaw}, stateRaw={$stateRaw} → accessStateV2={$accessStateV2}, freigabe=" . ($freigabe ? "true":"false")
         );
 
         // Phasen-Einstellung (zum Log, nicht für Berechnung)
