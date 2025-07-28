@@ -492,7 +492,7 @@ class PVWallboxManager extends IPSModule
             $phasen = max(1, $cnt);
         }
         // Aufruf der vorhandenen Berechnungsfunktion
-//        $calc = $this->BerechnePVUeberschuss($phasen);
+////        $calc = $this->BerechnePVUeberschuss($phasen);
         $calc = $this->BerechnePVUeberschuss($phasen, false);
         // (SetValueAndLogChange wird dort bereits gemacht)
 
