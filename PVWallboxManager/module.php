@@ -535,13 +535,16 @@ class PVWallboxManager extends IPSModule
         $this->SetValueAndLogChange('Kabelstrom', $kabelstrom,'Kabeltyp');
         $this->SetValueAndLogChange('Fehlercode', $fehlercode,'Fehlercode','', 'warn');
 
-        // === NEU: SOC in Debug loggen, wenn gerade geladen wird ===
-        if ($this->GetValue('AccessStateV2') == 2) {
-            $socID      = $this->ReadPropertyInteger('CarSOCID');
-            $socCurrent = ($socID > 0 && IPS_VariableExists($socID))
-                ? GetValue($socID) . '%'
-                : 'n/a';
-            $this->LogTemplate('debug', "Aktueller Fahrzeug-SoC: {$socCurrent}");
+        // === SOC in Debug loggen, wenn gerade geladen wird ===
+        if ($accessStateV2 === 2) {
+            $socID       = $this->ReadPropertyInteger('CarSOCID');
+            $targetID    = $this->ReadPropertyInteger('CarTargetSOCID');
+            $socAktuell  = ($socID > 0 && IPS_VariableExists($socID))       ? GetValue($socID)    . '%' : 'n/a';
+            $socZiel     = ($targetID > 0 && IPS_VariableExists($targetID)) ? GetValue($targetID) . '%' : 'n/a';
+            $this->LogTemplate(
+                'debug',
+                "SoC (Ist / Ziel): {$socAktuell} / {$socZiel}"
+            );
         }
 
         $this->PruefeLadeendeAutomatisch();
