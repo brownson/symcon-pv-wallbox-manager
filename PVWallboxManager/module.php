@@ -1780,9 +1780,6 @@ class PVWallboxManager extends IPSModule
         if ($invertHV) $hausverbrauch *= -1;
         $hausverbrauch = round($hausverbrauch);
 
-        // Hausverbrauch ABZÜGLICH Wallbox-Leistung (für Visualisierung)
-////        $hausverbrauchAbzWallbox = round($hausverbrauch - $ladeleistung);
-
         // --- Hausverbrauch OHNE Wallbox-Leistung (W) ---
         // Nur sinnvoll, wenn Wallbox-Leistung > 0
         $hausverbrauchOhneWB = ($ladeleistung > 0) ? $hausverbrauch - $ladeleistung : $hausverbrauch;
@@ -1805,29 +1802,6 @@ class PVWallboxManager extends IPSModule
             $this->WriteAttributeString('HausverbrauchAbzWallboxBuffer', json_encode($buffer));
             $this->WriteAttributeFloat('HausverbrauchAbzWallboxLast', $hausverbrauchGefiltert);
         }
-//// old
-/*
-        // --- Glättung & Spike-Filter ---
-        $buffer = json_decode($this->ReadAttributeString('HausverbrauchAbzWallboxBuffer'), true);
-        if (!is_array($buffer)) $buffer = [];
-        $buffer[] = $hausverbrauchAbzWallbox;
-        if (count($buffer) > 3) array_shift($buffer);
-
-        $mittelwert = array_sum($buffer) / count($buffer);
-        $spikeSchwelle = 1.5 * $this->ReadPropertyInteger('MaxAmpere') * 230;
-        $letzterWert = floatval($this->ReadAttributeFloat('HausverbrauchAbzWallboxLast'));
-
-        if ($letzterWert > 0 && abs($hausverbrauchAbzWallbox - $letzterWert) > $spikeSchwelle) {
-            $hausverbrauchAbzWallboxGlaettet = $letzterWert;
-            $this->LogTemplate('warn', "Spike erkannt: $hausverbrauchAbzWallbox W (letzter Wert: $letzterWert W, Schwelle: $spikeSchwelle W) – Wert wird NICHT gespeichert!");
-        } else {
-            $hausverbrauchAbzWallboxGlaettet = $mittelwert;
-            $this->WriteAttributeString('HausverbrauchAbzWallboxBuffer', json_encode($buffer));
-            $this->WriteAttributeFloat('HausverbrauchAbzWallboxLast', $hausverbrauchAbzWallboxGlaettet);
-        }
-*/
-        // Für Anzeige/Log den geglätteten/spikegefilterten Wert nehmen:
-//        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausverbrauchAbzWallboxGlaettet, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
 
         // Batterie-Ladung (positiv = lädt, negativ = entlädt)
         $batID = $this->ReadPropertyInteger('BatterieladungID');
@@ -1841,7 +1815,6 @@ class PVWallboxManager extends IPSModule
         if ($batterieladung < 0) $batterieladung = 0; // Nur Laden zählt
 
         // Verbrauch gesamt (Batterie positiv = lädt, negativ = entlädt)
-//        $verbrauchGesamt = $hausverbrauchAbzWallbox + $batterieladung;
         $verbrauchGesamt = $hausverbrauchGefiltert + $batterieladung;
 
         // --- PV-Überschuss berechnen (Standardformel: PV – Hausverbrauch – Batterie) ---
@@ -1857,8 +1830,20 @@ class PVWallboxManager extends IPSModule
         } else {
             $ampere = 0;
         }
-////        $ampere = ceil($pvUeberschuss / (230 * $anzPhasen));
-////        $ampere = max($minAmp, min($maxAmp, $ampere));
+
+        $this->LogTemplate(
+            'debug',
+            sprintf(
+                "Berechnung PV-Überschuss: PV=%d W, Haus=%d W, Wallbox=%d W, Batterie=%d W → Überschuss=%d W, Ampere=%d A, Phasen=%d",
+                $pv,
+                $hausverbrauchGefiltert,
+                $ladeleistung,
+                $batterieladung,
+                $pvUeberschuss,
+                $ampere,
+                $anzPhasen
+            )
+        );
 
         // Visualisierung
         $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', 'W', 'debug');
@@ -1867,7 +1852,6 @@ class PVWallboxManager extends IPSModule
         // Rückgabe für die Steuerlogik
         return [
             'pv'             => round($pv),
-////            'haus'           => $hausverbrauchAbzWallbox,   // oder ggf. $hausverbrauch, wenn OHNE Wallbox geliefert wird!
             'haus'           => round($hausverbrauchGefiltert),
             'wallbox'        => round($ladeleistung),
             'batterie'       => round($batterieladung),
