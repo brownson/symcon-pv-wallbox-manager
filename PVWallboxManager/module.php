@@ -1700,7 +1700,7 @@ class PVWallboxManager extends IPSModule
         $status       = $this->GetValue('Status');
         $inInitial    = ($status === false || $status <= 1);
         $initialTxt   = $inInitial ? 'Aktiv' : 'Inaktiv';
-        $initialIntvl = $this->GetProperty('InitialCheckInterval');
+        $initialIntvl = $this->ReadPropertyInteger('InitialCheckInterval');
 
         // 4) Lademodus-Text
         $modus = '☀️ PVonly (nur PV-Überschuss)';
