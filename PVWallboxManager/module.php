@@ -2065,21 +2065,18 @@ class PVWallboxManager extends IPSModule
         $maxTimestamp = $now + 36 * 3600; // bis max 36h in die Zukunft
 
         foreach ($data['data'] as $item) {
+            if (!isset($item['start_timestamp'], $item['marketprice'])) {
+                continue;
+            }
             $start = intval($item['start_timestamp'] / 1000);
-            if ($start > $maxTimestamp) {
-                continue;   // nicht abbrechen, sondern überspringen
+            // nur Punkte innerhalb des Fensters behalten
+            if ($start < $now || $start > $maxTimestamp) {
+                continue;
             }
             $preise[] = [
                 'timestamp' => $start,
                 'price'     => floatval($item['marketprice'] / 10.0)
             ];
-        }
-
-        $this->LogTemplate('debug', "Preise-Array nach Verarbeitung: " . count($preise)); // Kurz-Log der Array-Größe
-
-        if (count($preise) === 0) {
-            $this->LogTemplate('warn', "Keine gültigen Preisdaten gefunden!");
-            return;
         }
 
         // Aktuellen Preis setzen (erster Datensatz)
