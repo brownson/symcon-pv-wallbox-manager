@@ -327,7 +327,7 @@ class PVWallboxManager extends IPSModule
                 if ($Value) {
                     $this->SetValue('ManuellLaden', true);
                     $this->SetValue('PV2CarModus', false);
-                    // (später: weitere Modis hier deaktivieren)
+                    // (später: weitere Modi hier deaktivieren)
                     $this->WriteAttributeInteger('ModusWechselZeit', time());
                     $this->LogTemplate('info', "🔌 Manuelles Vollladen aktiviert.");
                 } else {
