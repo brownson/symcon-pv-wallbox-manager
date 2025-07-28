@@ -581,80 +581,70 @@ class PVWallboxManager extends IPSModule
             $anzPhasenNeu,
             $desiredFRC
         );
+    }
 
-            // 7) Ladefreigabe setzen
-            $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
-            $this->SteuerungLadefreigabe(
-                $pvUeberschuss,
-                $mode,
-                $ampere,
-                $anzPhasenNeu,
-                $sollFRC
-            );
+    private function ModusManuellVollladen(array $data)
+    {
+        if (!$this->FahrzeugVerbunden($data)) {
+            // Kein Fahrzeug → Lademodi zurücksetzen und beenden
+            $this->ResetLademodiWennKeinFahrzeug();
+            return;
         }
 
-        private function ModusManuellVollladen(array $data)
-        {
-            if (!$this->FahrzeugVerbunden($data)) {
-                // Kein Fahrzeug → Lademodi zurücksetzen und beenden
-                $this->ResetLademodiWennKeinFahrzeug();
-                return;
-            }
+        // 1. Benutzervorgaben einlesen und validieren
+        $anzPhasenGewuenscht = $this->GetValue('ManuellPhasen') == 2 ? 2 : 1;
+        $ampereGewuenscht    = intval($this->GetValue('ManuellAmpere'));
+        $minAmp = $this->ReadPropertyInteger('MinAmpere');
+        $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+        $ampereGewuenscht = max($minAmp, min($maxAmp, $ampereGewuenscht));
 
-            // 1. Benutzervorgaben einlesen und validieren
-            $anzPhasenGewuenscht = $this->GetValue('ManuellPhasen') == 2 ? 2 : 1;
-            $ampereGewuenscht    = intval($this->GetValue('ManuellAmpere'));
-            $minAmp = $this->ReadPropertyInteger('MinAmpere');
-            $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
-            $ampereGewuenscht = max($minAmp, min($maxAmp, $ampereGewuenscht));
-
-            // 2. Phasenmodus nur setzen, wenn er sich ändert
-            $aktPhasen = $this->GetValue('Phasenmodus');
-            if ($aktPhasen !== $anzPhasenGewuenscht) {
-                $this->SetPhaseMode($anzPhasenGewuenscht);
-                $this->LogTemplate('debug', "Manuell: Phasenmodus gewechselt {$aktPhasen} → {$anzPhasenGewuenscht}");
-            }
-
-            // 3. Tatsächliche Phasenzahl auslesen
-            $anzPhasenIst = max(1, $this->GetValue('Phasenmodus'));
-
-            // 4. Für Visualisierung Überschuss berechnen
-            $energy   = $this->gatherEnergyData();
-            $energy   = $this->applyFilters($energy);
-            // false → kein doppeltes Debug-Log hier, Logging übernimmt calculateSurplus wenn gewünscht
-            $surplus  = $this->calculateSurplus($energy, $anzPhasenIst, false);
-
-            $ueberschuss_w = $surplus['ueberschuss_w'];
-            $ueberschuss_a = $surplus['ueberschuss_a'];
-
-            $this->SetValue('PV_Ueberschuss',   $ueberschuss_w);
-            $this->SetValue('PV_Ueberschuss_A', $ueberschuss_a);
-
-            // 5. Genutzte Phasen (Fahrzeug) nur loggen, wenn sich der Wert ändert
-            $this->SetValueAndLogChange('Phasenmodus', $anzPhasenIst, 'Genutzte Phasen (Fahrzeug)', '', 'debug');
-
-            // 6. Laden erzwingen + Ampere setzen – nur wenn sich etwas ändert
-            $this->SteuerungLadefreigabe(0, 'manuell', $ampereGewuenscht, $anzPhasenIst);
-
-            // 7. Abschließendes Logging mit den aufbereiteten Werten
-            $this->LogTemplate(
-                'ok',
-                sprintf(
-                    "🔌 Manuelles Vollladen aktiv (%d-phasig, %d A). PV=%dW, Haus=%dW, Wallbox=%dW, Batterie=%dW, Überschuss=%dW / %dA",
-                    $anzPhasenIst,
-                    $ampereGewuenscht,
-                    $energy['pv'],
-                    $energy['hausFiltered'],
-                    $energy['wallbox'],
-                    $energy['batt'],
-                    $ueberschuss_w,
-                    $ueberschuss_a
-                )
-            );
-
-            // 8. Timer ggf. anpassen
-            $this->SetTimerNachModusUndAuto();
+        // 2. Phasenmodus nur setzen, wenn er sich ändert
+        $aktPhasen = $this->GetValue('Phasenmodus');
+        if ($aktPhasen !== $anzPhasenGewuenscht) {
+            $this->SetPhaseMode($anzPhasenGewuenscht);
+            $this->LogTemplate('debug', "Manuell: Phasenmodus gewechselt {$aktPhasen} → {$anzPhasenGewuenscht}");
         }
+
+        // 3. Tatsächliche Phasenzahl auslesen
+        $anzPhasenIst = max(1, $this->GetValue('Phasenmodus'));
+
+        // 4. Für Visualisierung Überschuss berechnen
+        $energy   = $this->gatherEnergyData();
+        $energy   = $this->applyFilters($energy);
+        // false → kein doppeltes Debug-Log hier, Logging übernimmt calculateSurplus wenn gewünscht
+        $surplus  = $this->calculateSurplus($energy, $anzPhasenIst, false);
+
+        $ueberschuss_w = $surplus['ueberschuss_w'];
+        $ueberschuss_a = $surplus['ueberschuss_a'];
+
+        $this->SetValue('PV_Ueberschuss',   $ueberschuss_w);
+        $this->SetValue('PV_Ueberschuss_A', $ueberschuss_a);
+
+        // 5. Genutzte Phasen (Fahrzeug) nur loggen, wenn sich der Wert ändert
+        $this->SetValueAndLogChange('Phasenmodus', $anzPhasenIst, 'Genutzte Phasen (Fahrzeug)', '', 'debug');
+
+        // 6. Laden erzwingen + Ampere setzen – nur wenn sich etwas ändert
+        $this->SteuerungLadefreigabe(0, 'manuell', $ampereGewuenscht, $anzPhasenIst);
+
+        // 7. Abschließendes Logging mit den aufbereiteten Werten
+        $this->LogTemplate(
+            'ok',
+            sprintf(
+                "🔌 Manuelles Vollladen aktiv (%d-phasig, %d A). PV=%dW, Haus=%dW, Wallbox=%dW, Batterie=%dW, Überschuss=%dW / %dA",
+                $anzPhasenIst,
+                $ampereGewuenscht,
+                $energy['pv'],
+                $energy['hausFiltered'],
+                $energy['wallbox'],
+                $energy['batt'],
+                $ueberschuss_w,
+                $ueberschuss_a
+            )
+        );
+
+        // 8. Timer ggf. anpassen
+        $this->SetTimerNachModusUndAuto();
+    }
 
     private function ModusPV2CarLaden(array $data)
     {
@@ -709,7 +699,7 @@ class PVWallboxManager extends IPSModule
             $newPhasen,
             $desiredFRC
         );
-        }
+    }
 
     // =========================================================================
     // 6. WALLBOX STEUERN (SET-FUNKTIONEN)
