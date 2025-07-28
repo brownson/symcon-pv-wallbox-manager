@@ -707,7 +707,7 @@ class PVWallboxManager extends IPSModule
         $this->SetTimerNachModusUndAuto();
     }
 
-    private function ModusPV2CarLaden($data)
+    private function ModusPV2CarLaden(array $data)
     {
         if (!$this->FahrzeugVerbunden($data)) {
             $this->ResetLademodiWennKeinFahrzeug();
@@ -715,117 +715,110 @@ class PVWallboxManager extends IPSModule
         }
 
         // 1. Prozentwert holen (zwischen 0–100)
-        $anteil = $this->GetValue('PVAnteil');
-        $anteil = max(0, min(100, intval($anteil)));
+        $anteil = max(0, min(100, intval($this->GetValue('PVAnteil'))));
 
         // 2. Datenbasis mit aktueller Phasenanzahl holen
         $anzPhasenAlt = max(1, $this->GetValue('Phasenmodus'));
-        $werte = $this->BerechnePVUeberschussKomplett($anzPhasenAlt);
-
-            // Feld-Absicherung (nie undefined key!)
-            $pv            = $werte['pv']            ?? 0;
-            $haus          = $werte['haus']          ?? 0;
-            $wallbox       = $werte['wallbox']       ?? 0;
-            $batterie      = $werte['batterie']      ?? 0;
-            $ueberschuss_w = $werte['ueberschuss_w'] ?? 0;
-            $ueberschuss_a = $werte['ueberschuss_a'] ?? 0;
+        $werte        = $this->BerechnePVUeberschussKomplett($anzPhasenAlt);
+        // Feld-Absicherung
+        $pv            = $werte['pv']            ?? 0;
+        $haus          = $werte['haus']          ?? 0;
+        $wallbox       = $werte['wallbox']       ?? 0;
+        $batterie      = $werte['batterie']      ?? 0;
 
         // 3. PV2Car-Ladeleistung berechnen
-        $pv2car = $this->BerechnePV2CarLadeleistung($werte, $anteil);
-        $pvUeberschussPV2Car = $pv2car['roh_ueber']  ?? 0;
-        $anteilWatt          = $pv2car['anteil_watt'] ?? 0;
+        $pv2car               = $this->BerechnePV2CarLadeleistung($werte, $anteil);
+        $pvUeberschussPV2Car  = $pv2car['roh_ueber']   ?? 0;
+        $anteilWatt           = $pv2car['anteil_watt'] ?? 0;
 
-        // 4. Phasenumschaltung prüfen (immer auf aktuellem Überschuss!)
+        // 4. Phasenumschaltung prüfen
         $this->PruefeUndSetzePhasenmodus($pvUeberschussPV2Car);
-
-        // 5. Phasenanzahl ggf. nach Umschaltung neu holen und neu berechnen!
         $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
         if ($anzPhasen !== $anzPhasenAlt) {
-            $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
-            $pv            = $werte['pv']            ?? 0;
-            $haus          = $werte['haus']          ?? 0;
-            $wallbox       = $werte['wallbox']       ?? 0;
-            $batterie      = $werte['batterie']      ?? 0;
-            $ueberschuss_w = $werte['ueberschuss_w'] ?? 0;
-            $ueberschuss_a = $werte['ueberschuss_a'] ?? 0;
+            // Loggen der neuen Phasenanzahl
+            $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
+            // neu berechnen mit aktualisierten Phasen
+            $werte  = $this->BerechnePVUeberschussKomplett($anzPhasen);
             $pv2car = $this->BerechnePV2CarLadeleistung($werte, $anteil);
-            $pvUeberschussPV2Car = $pv2car['roh_ueber']  ?? 0;
+            $pvUeberschussPV2Car = $pv2car['roh_ueber']   ?? 0;
             $anteilWatt          = $pv2car['anteil_watt'] ?? 0;
         }
 
-        // 6. Visualisierungswerte IMMER korrekt setzen
-        $ampere = ($anzPhasen > 0) ? ceil($anteilWatt / (230 * $anzPhasen)) : 0;
-        $ampere = max($this->ReadPropertyInteger('MinAmpere'), min($this->ReadPropertyInteger('MaxAmpere'), $ampere));
-        $this->SetValue('PV_Ueberschuss', $pvUeberschussPV2Car);
-        $this->SetValue('PV_Ueberschuss_A', $ampere);
-        $this->SetValueAndLogChange('Phasenmodus', $anzPhasen, 'Genutzte Phasen', '', 'debug');
+        // 5. Ampere berechnen und Limits anwenden
+        $minAmp = $this->ReadPropertyInteger('MinAmpere');
+        $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+        $neuesAmpere = ($anzPhasen > 0)
+            ? (int)ceil($anteilWatt / (230 * $anzPhasen))
+            : 0;
+        $neuesAmpere = max($minAmp, min($maxAmp, $neuesAmpere));
+
+        // 6. Visualisierung über SetValueAndLogChange
+        $this->SetValueAndLogChange('PV_Ueberschuss',   $pvUeberschussPV2Car, 'PV-Überschuss', 'W', 'debug');
+        $this->SetValueAndLogChange('PV_Ueberschuss_A', $neuesAmpere,         'Überschuss Ampere', 'A', 'debug');
 
         // 7. Hausakku-SOC prüfen (falls aktiv)
-        $socID = $this->ReadPropertyInteger('HausakkuSOCID');
+        $socID       = $this->ReadPropertyInteger('HausakkuSOCID');
         $socSchwelle = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
-        $soc = ($socID > 0) ? @GetValue($socID) : false;
-        $socText = ($soc !== false) ? $soc . "%" : "(nicht gesetzt)";
+        $soc         = ($socID > 0 && @IPS_VariableExists($socID)) ? GetValue($socID) : false;
         if ($soc !== false && $soc >= $socSchwelle) {
-            $anteil = 100;
-            $pv2car = $this->BerechnePV2CarLadeleistung($werte, $anteil);
-            $pvUeberschussPV2Car = $pv2car['roh_ueber']  ?? 0;
-            $anteilWatt          = $pv2car['anteil_watt'] ?? 0;
-            $this->LogTemplate('ok', "Hausakku voll (SoC=$socText, Schwelle=$socSchwelle%). 100% PV-Überschuss wird geladen.");
+            $this->LogTemplate('ok', "Hausakku voll (SoC={$soc}%, Schwelle={$socSchwelle}%). 100% PV-Überschuss wird geladen.");
+            $anteilWatt          = ($pv2car = $this->BerechnePV2CarLadeleistung($werte, 100))['anteil_watt'] ?? 0;
+            $neuesAmpere         = max($minAmp, min($maxAmp, (int)ceil($anteilWatt / (230 * $anzPhasen))));
+            // Visualisierung anpassen
+            $this->SetValueAndLogChange('PV_Ueberschuss',   $pv2car['roh_ueber'] ?? 0, 'PV-Überschuss', 'W', 'debug');
+            $this->SetValueAndLogChange('PV_Ueberschuss_A', $neuesAmpere,            'Überschuss Ampere', 'A', 'debug');
         }
 
-        // 8. Hysterese
+        // 8. Hysterese-Zähler updaten
         $minLadeWatt    = $this->ReadPropertyInteger('MinLadeWatt');
         $minStopWatt    = $this->ReadPropertyInteger('MinStopWatt');
-        $startHysterese = $this->ReadPropertyInteger('StartLadeHysterese');
-        $stopHysterese  = $this->ReadPropertyInteger('StopLadeHysterese');
-        $startZaehler   = $this->ReadAttributeInteger('PV2CarStartZaehler');
-        $stopZaehler    = $this->ReadAttributeInteger('PV2CarStopZaehler');
-        $aktFreigabe    = ($this->GetValue('AccessStateV2') == 2);
+        $startHys       = $this->ReadPropertyInteger('StartLadeHysterese');
+        $stopHys        = $this->ReadPropertyInteger('StopLadeHysterese');
+        $startZ         = $this->ReadAttributeInteger('PV2CarStartZaehler');
+        $stopZ          = $this->ReadAttributeInteger('PV2CarStopZaehler');
+        $aktFreigabe    = ($this->GetValue('AccessStateV2') === 2);
 
-        // --- Start-Hysterese
+        // Start-Hysterese
         if ($anteilWatt >= $minLadeWatt) {
-            $startZaehler++;
-            $this->WriteAttributeInteger('PV2CarStartZaehler', $startZaehler);
+            $this->WriteAttributeInteger('PV2CarStartZaehler', ++$startZ);
             $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
-
-            if ($startZaehler >= $startHysterese && !$aktFreigabe) {
-                $this->LogTemplate('ok', "PV2Car: Start-Hysterese erreicht ({$startZaehler} x >= {$minLadeWatt} W). Ladefreigabe aktivieren.");
-                $this->SetForceState(2);
-                IPS_Sleep(500);
+            if ($startZ >= $startHys && !$aktFreigabe) {
+                $this->LogTemplate('ok', "PV2Car: Start-Hysterese erreicht ({$startZ}× ≥ {$minLadeWatt}W). Ladefreigabe aktivieren.");
                 $aktFreigabe = true;
             }
         } else {
             $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
         }
 
-        // --- Stop-Hysterese
+        // Stop-Hysterese
         if ($anteilWatt <= $minStopWatt) {
-            $stopZaehler++;
-            $this->WriteAttributeInteger('PV2CarStopZaehler', $stopZaehler);
+            $this->WriteAttributeInteger('PV2CarStopZaehler', ++$stopZ);
             $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
-
-            if ($stopZaehler >= $stopHysterese && $aktFreigabe) {
-                $this->LogTemplate('warn', "PV2Car: Stop-Hysterese erreicht ({$stopZaehler} x <= {$minStopWatt} W). Ladefreigabe deaktivieren.");
-                $this->SetForceStateAndAmpereIfChanged(1, $this->ReadPropertyInteger('MinAmpere'));
-                return;
+            if ($stopZ >= $stopHys && $aktFreigabe) {
+                $this->LogTemplate('warn', "PV2Car: Stop-Hysterese erreicht ({$stopZ}× ≤ {$minStopWatt}W). Ladefreigabe deaktivieren.");
+                $aktFreigabe = false;
             }
         } else {
             $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
         }
 
-        // 9. Laden (nur wenn erlaubt)
-        if ($anteilWatt >= $minLadeWatt && $this->GetValue('AccessStateV2') == 2) {
-            $this->SetForceStateAndAmpereIfChanged(2, $ampere);
-            $this->LogTemplate(
-                'ok',
-                "PV2Car: PV={$pv2car['pv']} W, HausOhneWB={$pv2car['haus']} W, Wallbox={$pv2car['wallbox']} W, Überschuss={$pvUeberschussPV2Car} W, Anteil={$anteil}% ({$anteilWatt} W), {$ampere} A"
-            );
-        } else {
-            $this->LogTemplate(
-                'debug',
-                "PV2Car: Anteil {$anteilWatt} W < MinLadeWatt ({$minLadeWatt} W) oder Freigabe nicht aktiv – keine Änderung."
-            );
-        }
+        // 9. Ladefreigabe steuern
+        $this->SteuerungLadefreigabe(
+            $anteilWatt,
+            'pv2car',
+            $neuesAmpere,
+            $anzPhasen
+        );
+
+        // 10. abschließendes Log
+        $freigabeText = $aktFreigabe ? 'aktiv' : 'inaktiv';
+        $this->LogTemplate(
+            'ok',
+            "PV2Car ($freigabeText): PV={$pv}W, Haus={$haus}W, WB={$wallbox}W, Batt={$batterie}W, Überschuss={$pvUeberschussPV2Car}W, Anteil={$anteil}% ({$anteilWatt}W), {$neuesAmpere}A"
+        );
+
+        // 11. Timer ggf. anpassen
+        $this->SetTimerNachModusUndAuto();
     }
 
     // =========================================================================
