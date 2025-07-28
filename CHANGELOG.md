@@ -8,6 +8,10 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 - Anzeigefehler in Status Info behoben
 - SOC Werte IST / ZIEL werden bei allen Lademodi berücksichtigt
 - Anzeige SCO IST / ZIEL vom Auto in Status Info
+- Modul bereinigt und aufgeräumt
+- doppelte Berechnungen bereinigt
+- doppelte Logs bereinigt
+- API Befehle nur senden wenn ein Wert zu ändern ist 
 
 ## [1.2b] - 2025-07-28
 - Bugfix "🏠 Hausverbrauch abzügl. Wallbox (W)" 0 Werte
