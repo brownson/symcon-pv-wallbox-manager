@@ -6,6 +6,8 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 ## [1.2b] - 🚧 in Vorbereitung 🚧
 - Bugfix "🏠 Hausverbrauch abzügl. Wallbox (W)" 0 Werte
 - Modul über Visiu aktivieren / deaktivieren neuer Boolean Variable
+- PV-Überschuss (W) und (A) wird jetzt immer berechnen
+- Lademodi "Manuell Vollladen": Die Ladeleistung richtet sich nun nach den manuell eingestellten Phasen- und Ampere-Werten. 🔀 Phasen (manuell) & 🔌 Ampere (manuell)
 
 ## [1.1b] - 2025-07-25
 - Börsenpreise wird zur vollen Stunde aktualisiert

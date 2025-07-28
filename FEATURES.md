@@ -29,7 +29,7 @@ Hier werden geplante Features gesammelt, Community-Wünsche, Ideen und größere
 - [x] Konfigurierbare Hysterese und Phasenumschaltung -> **Umgesetzt in: v1.0b**
 - [ ] Mehr Visualisierung/Logging im WebFront
 - [ ] Automatisches Reset nach Stromausfall
-- [ ] PV-Überschuss immer berechnen
+- [x] PV-Überschuss immer berechnen
 - [x] Modul über die Visu abschalten (Button) -> **Umgesetzt in: v1.2b**
 - [x] Bug 🏠 Hausverbrauch abzügl. Wallbox (W) wird beim Modulintervall 0 W berechnet -> **Umgesetzt in: v1.2b**
 - [x] Börsenpreise sollen zur vollen Stunde aktualisiert werden -> **Umgesetzt in: v1.1b**
