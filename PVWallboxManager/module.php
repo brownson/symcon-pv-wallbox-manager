@@ -643,6 +643,8 @@ class PVWallboxManager extends IPSModule
             $sollFRC = 1;
         }
 
+        $this->SteuerungLadefreigabe($pvUeberschuss, 'pvonly', $ampere, $anzPhasenNeu);
+/*
         // --- 6. ForceState + Ampere nur senden, wenn sich etwas ändert ---
         // SetForceStateAndAmpereIfChanged() prüft intern beides
         if ($sollFRC === 2) {
@@ -652,6 +654,7 @@ class PVWallboxManager extends IPSModule
                 // Kein Überschuss → Laden beenden, aber niemals Ampere=0
                 $this->SetForceState(1);
         }
+*/
     }
 
     /* alte PV Modus
@@ -790,7 +793,9 @@ class PVWallboxManager extends IPSModule
         //    Das kombiniert intern:
     //       if (currentForceState != 2) SetForceState(2);
     //       if (currentAmpere    != $ampereGewuenscht) SetChargingCurrent($ampereGewuenscht);
-        $this->SetForceStateAndAmpereIfChanged(2, $ampereGewuenscht);
+////        $this->SetForceStateAndAmpereIfChanged(2, $ampereGewuenscht);
+        $this->SteuerungLadefreigabe(0, 'manuell', $ampereGewuenscht,  $anzPhasenIst);
+
 
         // 7. Abschließendes Logging
         $this->LogTemplate(
@@ -1089,26 +1094,22 @@ class PVWallboxManager extends IPSModule
         ];
         $modeText = $modes[$state] ?? $state;
 
-        $this->LogTemplate('info', "SetForceState: Sende Wallbox-Modus '$modeText' ($state) an $url");
+        $this->LogTemplate('debug', "SetForceState: HTTP GET {$url}");
 
-        $response = $this->simpleCurlGet($url);
 
         if ($response['result'] === false || $response['httpcode'] != 200) {
-            $this->LogTemplate(
-                'error',
-                "SetForceState: Fehler beim Setzen auf '$modeText' ($state)! HTTP-Code: {$response['httpcode']}, cURL-Fehler: {$response['error']}"
-            );
+            $this->LogTemplate('error', "SetForceState-Fehler: HTTP {$response['httpcode']}");
             return false;
-        } else {
-            $this->LogTemplate('ok', "SetForceState: Wallbox-Modus auf '$modeText' ($state) gesetzt. (HTTP {$response['httpcode']})");
-            $varID = $this->GetIDForIdent('AccessStateV2');
-            if ($varID) {
-                SetValue($varID, $state);
-            }
-            // Direkt Status aktualisieren
-            //$this->UpdateStatus();
-            return true;
         }
+
+        // Nur den Erfolg als OK loggen
+        $this->LogTemplate('ok', "SetForceState: FRC={$state} gesetzt (HTTP {$response['httpcode']})");
+        // sofort lokal setzen, damit GetValue() stimmt
+        $varID = $this->GetIDForIdent('AccessStateV2');
+        if ($varID) {
+            SetValue($varID, $state);
+        }
+        return true;
     }
 
     public function SetChargingEnabled(bool $enabled)
@@ -1255,10 +1256,9 @@ class PVWallboxManager extends IPSModule
         $minUeberschuss = $this->ReadPropertyInteger('MinLadeWatt'); // z.B. 1400 W
 
         // Default: Immer FRC=1 → Kein Laden, Wallbox gesperrt (wartet auf Überschuss)
-        $sollFRC = 1;
-        if ($modus === 'manuell' || ($modus === 'pvonly' && $pvUeberschuss >= $minUeberschuss)) {
-            $sollFRC = 2; // Erzwungenes Laden
-        }
+        $sollFRC = ($modus === 'manuell' || ($modus === 'pvonly' && $pvUeberschuss >= $minUeberschuss))
+                ? 2
+                : 1;
 /*
         // PV-Modus: nur Laden bei Überschuss
         if ($modus === 'pvonly' && $pvUeberschuss >= $minUeberschuss) {
@@ -1273,6 +1273,7 @@ class PVWallboxManager extends IPSModule
         // Nur wenn nötig an Wallbox senden!
         $aktFRC = $this->GetValue('AccessStateV2');
         if ($aktFRC !== $sollFRC) {
+            $this->LogTemplate('debug', "SetForceState: sende FRC={$sollFRC} (Modus={$modus})");
             $this->SetForceState($sollFRC);
             IPS_Sleep(1000);
         }
@@ -1294,6 +1295,7 @@ class PVWallboxManager extends IPSModule
             // Zusatz: Prüfen, ob sich der gewünschte Ladestrom von aktuellem unterscheidet
             $currentAmp = $this->GetValue('Ampere');
             if ($currentAmp != $ampere) {
+                $this->LogTemplate('debug', "SetChargingCurrent: sende {$ampere}A");
                 $this->SetChargingCurrent($ampere);
 ////                $ok = $this->SetChargingCurrent($ampere);
 ////                if ($ok) {
