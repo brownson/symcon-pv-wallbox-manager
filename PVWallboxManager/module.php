@@ -1484,6 +1484,49 @@ class PVWallboxManager extends IPSModule
     // Hilfsfunktion: Setzt Timer richtig je nach Status und Modus
     private function SetTimerNachModusUndAuto()
     {
+        // --- 0. Vorbereitungen (Self-Healing) ---
+        if (!@is_int($this->ReadAttributeInteger('MarketPricesTimerInterval'))) {
+            $this->WriteAttributeInteger('MarketPricesTimerInterval', 0);
+        }
+        if (!@is_bool($this->ReadAttributeBoolean('MarketPricesActive'))) {
+            $this->WriteAttributeBoolean('MarketPricesActive', false);
+        }
+
+        // --- 1. Status-Wechsel erkennen und loggen ---
+        $car        = @$this->GetValue('Status');                  // aktueller Status 0/1/2...
+        $lastStatus = $this->ReadAttributeInteger('LastTimerStatus');
+        if ($car !== $lastStatus) {
+            $this->LogTemplate('debug', "SetTimerNachModusUndAuto: Status={$car}");
+            $this->WriteAttributeInteger('LastTimerStatus', $car);
+        }
+
+        // --- 2. Timer abschalten ---
+        $this->SetTimerInterval('PVWM_UpdateStatus', 0);
+        $this->SetTimerInterval('PVWM_InitialCheck', 0);
+
+        // --- 3. Modul deaktiviert? Dann alles aus ---
+        if (!$this->ReadPropertyBoolean('ModulAktiv')) {
+            $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
+            return;
+        }
+
+        // --- 4. Je nach Fahrzeugstatus einen Haupttimer setzen ---
+        $mainInterval    = intval($this->ReadPropertyInteger('RefreshInterval'));
+        $initialInterval = $this->GetInitialCheckInterval();
+
+        if ($car === false || $car <= 1) {
+            // bis Fahrzeug erkannt: Schnell-Poll
+            if ($initialInterval > 0) {
+                $this->SetTimerInterval('PVWM_InitialCheck', $initialInterval * 1000);
+            }
+        } else {
+            // Fahrzeug verbunden: regulärer Poll-Intervall
+            $this->SetTimerInterval('PVWM_UpdateStatus', $mainInterval * 1000);
+        }
+    }
+
+    /*    private function SetTimerNachModusUndAuto()
+    {
         // Timer- und Statusattribute initialisieren (Self-Healing nach Update/Neuinstallation)
         if (!@is_int($this->ReadAttributeInteger('MarketPricesTimerInterval'))) {
             $this->WriteAttributeInteger('MarketPricesTimerInterval', 0);
@@ -1525,7 +1568,7 @@ class PVWallboxManager extends IPSModule
             $this->SetTimerInterval('PVWM_InitialCheck', 0);
         }
     }
-
+*/
     private function ResetLademodiWennKeinFahrzeug()
     {
         if ($this->GetValue('Status') <= 1) {
