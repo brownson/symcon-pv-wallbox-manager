@@ -570,131 +570,91 @@ class PVWallboxManager extends IPSModule
         $this->UpdateStatusAnzeige();
     }
 
-    /* neu überarbeitet, sodass PV-Überschuss immer berechnet wird
-    public function UpdateStatus(string $mode = 'pvonly')
+    private function ModusPVonlyLaden(array $data, int $anzPhasenAlt, string $mode = 'pvonly')
     {
-        $this->LogTemplate('debug', "UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")");
-
-        $data = $this->getStatusFromCharger();
-
-        // Wallbox nicht erreichbar: Visualisierung zurücksetzen und abbrechen
-        if ($data === false) {
-            $this->ResetWallboxVisualisierungKeinFahrzeug();
-            $this->LogTemplate('debug', "Wallbox nicht erreichbar – Visualisierungswerte zurückgesetzt.");
-            $this->UpdateStatusAnzeige();
-            return;
-        }
-
-        // Defensive Extraktion (Werte rausziehen, Debug-Log anlegen)
-        $car        = (is_array($data) && isset($data['car'])) ? intval($data['car']) : 0;
-        $leistung   = (isset($data['nrg'][11]) && is_array($data['nrg'])) ? floatval($data['nrg'][11]) : 0.0;
-        $ampereWB   = isset($data['amp']) ? intval($data['amp']) : 0;
-        $energie    = isset($data['wh']) ? intval($data['wh']) : 0;
-        $freigabe   = isset($data['alw']) ? (bool)$data['alw'] : false;
-        $kabelstrom = isset($data['cbl']) ? intval($data['cbl']) : 0;
-        $fehlercode = isset($data['err']) ? intval($data['err']) : 0;
-        $accessStateV2 = 0;
-        if (isset($data['frc'])) {
-            $accessStateV2 = intval($data['frc']);
-        } elseif (isset($data['accessStateV2'])) {
-            $accessStateV2 = intval($data['accessStateV2']);
-        }
-
-        // Debug-Ausgabe für Fahrzeugstatus
-        $this->LogTemplate('debug', "UpdateStatus: car = $car, accessStateV2 = $accessStateV2, freigabe = " . ($freigabe ? "true" : "false"));
-
-        // Fahrzeug erkannt?
         if (!$this->FahrzeugVerbunden($data)) {
             $this->ResetLademodiWennKeinFahrzeug();
-            $this->UpdateStatusAnzeige();
             return;
         }
 
-        // === Phasen-Einstellung (Soll) und tatsächlich genutzte Phasen ermitteln ===
-        $psm = isset($data['psm']) ? intval($data['psm']) : 0;
-        $anzPhasenAlt = 1;
-        if (isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
-            $phasenSchwelle = 1.5;
-            $phasenAmpere = [
-                abs(floatval($data['nrg'][4])),
-                abs(floatval($data['nrg'][5])),
-                abs(floatval($data['nrg'][6]))
-            ];
-            $anzPhasenAlt = 0;
-            foreach ($phasenAmpere as $a) {
-                if ($a > $phasenSchwelle) $anzPhasenAlt++;
-            }
-            if ($anzPhasenAlt === 0) $anzPhasenAlt = 1; // Fallback: mindestens 1-phasig anzeigen!
-        }
-        $this->SetValueAndLogChange('PhasenmodusEinstellung', $psm, 'Phasenmodus (Einstellung)', '', 'debug');
-        $this->SetValueAndLogChange('Phasenmodus', $anzPhasenAlt, 'Genutzte Phasen', '', 'debug');
+        // --- 1. PV-Überschuss neu berechnen ---
+        $anzPhasen    = max(1, $this->GetValue('Phasenmodus'));
+        $berechnung   = $this->BerechnePVUeberschuss($anzPhasen);
+        $pvUeberschuss = $berechnung['ueberschuss_w'] ?? 0;
+        $ampere        = $berechnung['ueberschuss_a'] ?? 0;
 
-        // Status-Variablen setzen
-        $this->SetValueAndLogChange('Status',        $car,        'Status');
-        $this->SetValueAndLogChange('AccessStateV2', $accessStateV2, 'Wallbox Modus');
-        $this->SetValueAndLogChange('Leistung',      $leistung,   'Aktuelle Ladeleistung zum Fahrzeug', 'W');
-        $this->SetValueAndLogChange('Ampere',        $ampereWB,   'Maximaler Ladestrom', 'A');
-        $this->SetValueAndLogChange('Energie',       $energie,    'Geladene Energie', 'Wh');
-        $this->SetValueAndLogChange('Freigabe',      $freigabe,   'Ladefreigabe');
-        $this->SetValueAndLogChange('Kabelstrom',    $kabelstrom, 'Kabeltyp');
-        $this->SetValueAndLogChange('Fehlercode',    $fehlercode, 'Fehlercode', '', 'warn');
+        // --- 2. Visualisierung ---
+        $this->SetValue('PV_Ueberschuss',   $pvUeberschuss);
+        $this->SetValue('PV_Ueberschuss_A', $ampere);
 
-        $this->PruefeLadeendeAutomatisch();
+        // optional: Debug-Log der Berechnung
+        $this->LogTemplate(
+            'debug',
+            "PVonly: PV={$berechnung['pv']}W, Haus={$berechnung['haus']}W, Batterie={$berechnung['batterie']}W → Überschuss={$pvUeberschuss}W / {$ampere}A"
+        );
 
-        // ----- Modi-Logik: Immer ausführen -----
-
-        // 1. Manueller Modus
-        if ($this->GetValue('ManuellLaden')) {
-            $this->ModusManuellVollladen($data);
-        }
-        // 2. PV2Car-Modus (PV-Anteil laden)
-        elseif ($this->GetValue('PV2CarModus')) {
-            $this->ModusPV2CarLaden($data);
-        }
-        // 3. PVonly-Modus: komplett ausgelagert
-        else {
-            $this->ModusPVonlyLaden($data, $anzPhasenAlt, $mode);
+        // --- 3. Phasenmodus nur bei Änderung setzen ---
+        // (hier Deine bestehende Logik, z.B. via PruefeUndSetzePhasenmodus oder händisch)
+        $schwelle1 = $this->ReadPropertyInteger('Phasen1Schwelle');
+        $schwelle3 = $this->ReadPropertyInteger('Phasen3Schwelle');
+        $psmSoll   = ($pvUeberschuss >= $schwelle3) ? 2 : (($pvUeberschuss <= $schwelle1) ? 1 : $this->GetValue('Phasenmodus'));
+        $psmIst    = $this->GetValue('Phasenmodus');
+        if ($psmIst !== $psmSoll) {
+            $this->SetPhaseMode($psmSoll);
+            $this->LogTemplate('debug', "Phasenmodus geändert: {$psmIst} → {$psmSoll}");
+            $this->SetValueAndLogChange('Phasenmodus', $psmSoll, 'Genutzte Phasen', '', 'debug');
         }
 
-        // ---- Visualisierung: immer nach Modus ----
-        $anzPhasen = max(1, $this->GetValue('Phasenmodus'));
-        $werte = $this->BerechnePVUeberschussKomplett($anzPhasen);
-        $hausOhneWB = $werte['hausOhneWB'] ?? 0;
-////        $this->SetValueAndLogChange('Hausverbrauch_abz_Wallbox', $hausOhneWB, 'Hausverbrauch abz. Wallbox', 'W', 'debug');
+        // --- 4. Hysterese-Zähler aktualisieren ---
+        $minLadeWatt    = $this->ReadPropertyInteger('MinLadeWatt');
+        $minStopWatt    = $this->ReadPropertyInteger('MinStopWatt');
+        $startHysterese = $this->ReadPropertyInteger('StartLadeHysterese');
+        $stopHysterese  = $this->ReadPropertyInteger('StopLadeHysterese');
+        $startZ         = $this->ReadAttributeInteger('LadeStartZaehler');
+        $stopZ          = $this->ReadAttributeInteger('LadeStopZaehler');
+        $aktFRC         = $this->GetValue('AccessStateV2') === 2;
 
-        $this->UpdateStatusAnzeige();
+        // Start-Hysterese
+        if ($pvUeberschuss >= $minLadeWatt) {
+            $startZ++;
+            $this->WriteAttributeInteger('LadeStartZaehler', $startZ);
+            $this->WriteAttributeInteger('LadeStopZaehler', 0);
+        } else {
+            $this->WriteAttributeInteger('LadeStartZaehler', 0);
+        }
+
+        // Stop-Hysterese
+        if ($pvUeberschuss <= $minStopWatt) {
+            $stopZ++;
+            $this->WriteAttributeInteger('LadeStopZaehler', $stopZ);
+            $this->WriteAttributeInteger('LadeStartZaehler', 0);
+        } else {
+            $this->WriteAttributeInteger('LadeStopZaehler', 0);
+        }
+
+        // --- 5. Gewünschten Forced-State ermitteln ---
+        // erst nach Zähler-Prüfung, damit Hysterese greift
+        $sollFRC = 1; // default gesperrt
+        if ($startZ >= $startHysterese) {
+            $sollFRC = 2;
+        }
+        if ($stopZ >= $stopHysterese) {
+            $sollFRC = 1;
+        }
+
+        // --- 6. ForceState + Ampere nur senden, wenn sich etwas ändert ---
+        // SetForceStateAndAmpereIfChanged() prüft intern beides
+        $this->SetForceStateAndAmpereIfChanged($sollFRC, ($sollFRC === 2 ? $ampere : 0));
     }
-*/
 
+    /* alte PV Modus
     private function ModusPVonlyLaden($data, $anzPhasenAlt, $mode = 'pvonly')
     {
         if (!$this->FahrzeugVerbunden($data)) {
             $this->ResetLademodiWennKeinFahrzeug();
             return;
         }
-/*
-        $logParts = [];
-        $changed = false;
 
-        if ($this->GetValue('PhasenmodusEinstellung') != 1) {
-            $this->SetPhaseMode(1); // 1-phasig
-            $changed = true;
-            $logParts[] = "Phasenmodus auf 1-phasig";
-        }
-        if ($this->GetValue('Ampere') != 6) {
-            $this->SetChargingCurrent(6); // 6A
-            $changed = true;
-            $logParts[] = "Ampere auf 6A";
-        }
-        // KEIN SetValue('PV_Ueberschuss_A', 0) mehr hier!
-
-        if ($changed) {
-            $msg = "PVonly: Wallbox ";
-            $msg .= implode(', ', $logParts);
-            $msg .= " gesetzt (Grundzustand PVonly).";
-            $this->LogTemplate('ok', $msg);
-        }
-*/
         // --- Überschuss neu berechnen (nach eventueller Phasenumschaltung) ---
         $anzPhasenNeu = max(1, $this->GetValue('Phasenmodus'));
         $berechnung = $this->BerechnePVUeberschuss($anzPhasenNeu);
@@ -777,8 +737,67 @@ class PVWallboxManager extends IPSModule
         // Ladefreigabe steuern
         $this->SteuerungLadefreigabe($pvUeberschuss, $mode, $ampere, $anzPhasenNeu);
     }
+*/
 
-    private function ModusManuellVollladen($data)
+    private function ModusManuellVollladen(array $data)
+    {
+        if (!$this->FahrzeugVerbunden($data)) {
+            // Kein Fahrzeug → Lademodi zurücksetzen und beenden
+            $this->ResetLademodiWennKeinFahrzeug();
+            return;
+        }
+
+        // 1. Benutzervorgaben einlesen und validieren
+        $anzPhasenGewuenscht = $this->GetValue('ManuellPhasen') == 2 ? 2 : 1;  // Wunsch: 1- oder 3-phasig
+        $ampereGewuenscht    = intval($this->GetValue('ManuellAmpere'));
+        $minAmp = $this->ReadPropertyInteger('MinAmpere');
+        $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
+        $ampereGewuenscht = max($minAmp, min($maxAmp, $ampereGewuenscht));
+
+        // 2. Phasenmodus nur setzen, wenn er wirklich anders ist
+        $aktPhasen = $this->GetValue('Phasenmodus');
+        if ($aktPhasen !== $anzPhasenGewuenscht) {
+            $this->SetPhaseMode($anzPhasenGewuenscht);
+            $this->LogTemplate('debug', "Manuell: Phasenmodus gewechselt {$aktPhasen} → {$anzPhasenGewuenscht}");
+        }
+
+        // 3. Ist-Phasen auslesen (kann vom Fahrzeug abweichen)
+        $anzPhasenIst = max(1, $this->GetValue('Phasenmodus'));
+
+        // 4. PV-Überschuss neu berechnen für die Visualisierung
+        $werte = $this->BerechnePVUeberschussKomplett($anzPhasenIst);
+        $pv            = $werte['pv']           ?? 0;
+        $haus          = $werte['haus']         ?? 0;
+        $wallbox       = $werte['wallbox']      ?? 0;
+        $batterie      = $werte['batterie']     ?? 0;
+        $ueberschuss_w = $werte['ueberschuss_w'] ?? 0;
+        $ueberschuss_a = $werte['ueberschuss_a'] ?? 0;
+
+        $this->SetValue('PV_Ueberschuss',   $ueberschuss_w);
+        $this->SetValue('PV_Ueberschuss_A', $ueberschuss_a);
+
+        // 5. Genutzte Phasen (Fahrzeug) nur loggen, wenn sich der Wert ändert
+        $this->SetValueAndLogChange('Phasenmodus', $anzPhasenIst, 'Genutzte Phasen (Fahrzeug)', '', 'debug');
+
+        // 6. Laden erzwingen + Ampere setzen – **nur**, wenn sich etwas geändert hat
+        //    Das kombiniert intern:
+    //       if (currentForceState != 2) SetForceState(2);
+    //       if (currentAmpere    != $ampereGewuenscht) SetChargingCurrent($ampereGewuenscht);
+        $this->SetForceStateAndAmpereIfChanged(2, $ampereGewuenscht);
+
+        // 7. Abschließendes Logging
+        $this->LogTemplate(
+            'ok',
+            "🔌 Manuelles Vollladen aktiv ({$anzPhasenIst}-phasig, {$ampereGewuenscht}A). " .
+            "PV={$pv}W, Haus={$haus}W, Wallbox={$wallbox}W, Batterie={$batterie}W, " .
+            "Überschuss={$ueberschuss_w}W / {$ueberschuss_a}A"
+        );
+
+        // 8. Timer ggf. anpassen
+        $this->SetTimerNachModusUndAuto();
+    }
+
+/*    private function ModusManuellVollladen($data)
     {
         if (!$this->FahrzeugVerbunden($data)) {
             $this->ResetLademodiWennKeinFahrzeug();
@@ -839,7 +858,7 @@ class PVWallboxManager extends IPSModule
         // 9. Timer prüfen/setzen
         $this->SetTimerNachModusUndAuto();
     }
-
+*/
     private function ModusPV2CarLaden($data)
     {
         if (!$this->FahrzeugVerbunden($data)) {
