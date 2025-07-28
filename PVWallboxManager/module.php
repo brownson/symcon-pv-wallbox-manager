@@ -611,7 +611,6 @@ class PVWallboxManager extends IPSModule
         // 4. Für Visualisierung Überschuss berechnen
         $energy   = $this->gatherEnergyData();
         $energy   = $this->applyFilters($energy);
-        // false → kein doppeltes Debug-Log hier, Logging übernimmt calculateSurplus wenn gewünscht
         $surplus  = $this->calculateSurplus($energy, $anzPhasenIst, false);
 
         $ueberschuss_w = $surplus['ueberschuss_w'];
@@ -625,6 +624,11 @@ class PVWallboxManager extends IPSModule
 
         // 6. Laden erzwingen + Ampere setzen – nur wenn sich etwas ändert
         $this->SteuerungLadefreigabe(0, 'manuell', $ampereGewuenscht, $anzPhasenIst);
+
+        // 6b. Keine Hysterese aktiv – Zähler zurücksetzen
+        $this->WriteAttributeInteger('LadeStartZaehler', 0);
+        $this->WriteAttributeInteger('LadeStopZaehler', 0);
+        $this->LogTemplate('debug', "Manuell: Kein Hysterese- oder Phasenumschalt-Check aktiv.");
 
         // 7. Abschließendes Logging mit den aufbereiteten Werten
         $this->LogTemplate(
