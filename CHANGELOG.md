@@ -6,6 +6,7 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 ## [1.3b] - 🚧 in Vorbereitung 🚧
 - Statusanzeige "Warte auf Fahrzeug" umbenannt in "Fahrzeug verbunden / Bereit zum Laden"
 - Anzeigefehler in Status Info behoben
+- SOC Werte IST / ZIEL werden bei allen Lademodi berücksichtigt
 - Anzeige SCO IST / ZIEL vom Auto in Status Info
 
 ## [1.2b] - 2025-07-28
