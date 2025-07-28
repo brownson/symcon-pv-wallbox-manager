@@ -492,7 +492,8 @@ class PVWallboxManager extends IPSModule
             $phasen = max(1, $cnt);
         }
         // Aufruf der vorhandenen Berechnungsfunktion
-        $calc = $this->BerechnePVUeberschuss($phasen);
+//        $calc = $this->BerechnePVUeberschuss($phasen);
+        $calc = $this->BerechnePVUeberschuss($phasen, false);
         // (SetValueAndLogChange wird dort bereits gemacht)
 
         // === 2. Status-Variablen aus Wallbox holen ===
@@ -1760,7 +1761,8 @@ class PVWallboxManager extends IPSModule
     // =========================================================================
     // 9. BERECHNUNGEN
     // =========================================================================
-    private function BerechnePVUeberschuss($anzPhasen = 1)
+    private function BerechnePVUeberschuss(int $anzPhasen = 1, bool $log = true): array
+
     {
         // PV-Erzeugung holen
         $pvID = $this->ReadPropertyInteger('PVErzeugungID');
@@ -1829,12 +1831,12 @@ class PVWallboxManager extends IPSModule
             $pvRaw = $pvUeberschuss;
             $pvUeberschuss = 0;
             $ampere        = 0;
-            // Rundung für die Debug-Ausgabe:
-            $pvDisplay = round($pvRaw);
-            $this->LogTemplate(
-                'debug',
-                "PV-Überschuss <{$threshold} W (aktuell: {$pvDisplay} W) — setze auf 0."
-            );
+            if ($log) {
+                $this->LogTemplate(
+                    'debug',
+                    "PV-Überschuss <{$threshold} W (aktuell: " . round($pvRaw) . " W) — setze auf 0."
+                );
+            }
         }
 
         // --- Ladestrom (Ampere) berechnen ---
@@ -1847,23 +1849,30 @@ class PVWallboxManager extends IPSModule
             $ampere = 0;
         }
 
-        $this->LogTemplate(
-            'debug',
-            sprintf(
-                "Berechnung PV-Überschuss: PV=%d W, Haus=%d W, Wallbox=%d W, Batterie=%d W → Überschuss=%d W, Ampere=%d A, Phasen=%d",
-                $pv,
-                $hausverbrauchGefiltert,
-                $ladeleistung,
-                $batterieladung,
-                $pvUeberschuss,
-                $ampere,
-                $anzPhasen
-            )
-        );
+        if ($log) {
+            $this->LogTemplate(
+                'debug',
+                sprintf(
+                    "Berechnung PV-Überschuss: PV=%d W, Haus=%d W, Wallbox=%d W, Batterie=%d W → Überschuss=%d W, Ampere=%d A, Phasen=%d",
+                    $pv,
+                    $hausverbrauchGefiltert,
+                    $ladeleistung,
+                    $batterieladung,
+                    $pvUeberschuss,
+                    $ampere,
+                    $anzPhasen
+                )
+            );
+        }
 
-        // Visualisierung
-        $this->SetValueAndLogChange('PV_Ueberschuss', $pvUeberschuss, 'PV-Überschuss', 'W', 'debug');
-        $this->SetValueAndLogChange('PV_Ueberschuss_A', $ampere, 'PV-Überschuss (A)', 'A', 'debug');
+        // Visualisierung: entweder mit LogChanges oder „stumm“ nur SetValue
+        if ($log) {
+            $this->SetValueAndLogChange('PV_Ueberschuss',   $pvUeberschuss, 'PV-Überschuss',   'W', 'debug');
+            $this->SetValueAndLogChange('PV_Ueberschuss_A', $ampere,        'PV-Überschuss (A)', 'A', 'debug');
+        } else {
+            $this->SetValue('PV_Ueberschuss',   $pvUeberschuss);
+            $this->SetValue('PV_Ueberschuss_A', $ampere);
+        }
 
         // Rückgabe für die Steuerlogik
         return [
