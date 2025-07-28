@@ -1009,7 +1009,7 @@ class PVWallboxManager extends IPSModule
         $maxAmp = $this->ReadPropertyInteger('MaxAmpere');
         // Wertebereich prüfen
         if ($ampere < $minAmp || $ampere > $maxAmp) {
-            $this->LogTemplate('warn', "SetChargingCurrent: Ungültiger Wert ($ampere A). Erlaubt: $minAmp–$maxAmp A!");
+            $this->LogTemplate('warn', "SetChargingCurrent: Ungültiger Wert ($ampere A). Erlaubt: {$minAmp}-{$maxAmp} A!");
             return false;
         }
         $ip = $this->ReadPropertyString('WallboxIP');
