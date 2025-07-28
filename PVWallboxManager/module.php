@@ -59,6 +59,9 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeFloat('HausverbrauchAbzWallboxLast', 0.0);
         $this->RegisterAttributeInteger('NoPowerCounter', 0);
         $this->RegisterAttributeInteger('LastTimerStatus', -1);
+        $this->RegisterAttributeInteger('ModusWechselZeit', 0);
+
+
 
         // Variablen nach API v2
         $this->RegisterVariableInteger('Status',        'Status',                                   'PVWM.CarStatus',       1);
@@ -324,7 +327,8 @@ class PVWallboxManager extends IPSModule
                 if ($Value) {
                     $this->SetValue('ManuellLaden', true);
                     $this->SetValue('PV2CarModus', false);
-                    // (später: weitere Modi hier deaktivieren)
+                    // (später: weitere Modis hier deaktivieren)
+                    $this->WriteAttributeInteger('ModusWechselZeit', time());
                     $this->LogTemplate('info', "🔌 Manuelles Vollladen aktiviert.");
                 } else {
                     $this->SetValue('ManuellLaden', false);
