@@ -58,6 +58,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeString('HausverbrauchAbzWallboxBuffer', '[]');
         $this->RegisterAttributeFloat('HausverbrauchAbzWallboxLast', 0.0);
         $this->RegisterAttributeInteger('NoPowerCounter', 0);
+        $this->RegisterAttributeInteger('LastTimerStatus', -1);
 
         // Variablen nach API v2
         $this->RegisterVariableInteger('Status',        'Status',                                   'PVWM.CarStatus',       1);
