@@ -1524,8 +1524,8 @@ class PVWallboxManager extends IPSModule
             $this->SetTimerInterval('PVWM_UpdateStatus', $mainInterval * 1000);
         }
     }
-
-    /*    private function SetTimerNachModusUndAuto()
+/*
+    private function SetTimerNachModusUndAuto()
     {
         // Timer- und Statusattribute initialisieren (Self-Healing nach Update/Neuinstallation)
         if (!@is_int($this->ReadAttributeInteger('MarketPricesTimerInterval'))) {
