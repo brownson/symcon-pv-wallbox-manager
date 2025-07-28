@@ -564,8 +564,10 @@ class PVWallboxManager extends IPSModule
             }
         }
         else {
-            // Fahrzeug nicht da → nur Reset der Modi, nichts weiter
+            // Fahrzeug nicht da → Modus zurücksetzen
             $this->ResetLademodiWennKeinFahrzeug();
+            // Schnell-Poll wieder aktivieren
+            $this->SetTimerNachModusUndAuto();
         }
 
         // === 4. Visualisierung aktualisieren ===
