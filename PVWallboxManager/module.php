@@ -1696,7 +1696,13 @@ class PVWallboxManager extends IPSModule
         // 2) No-Power-Counter (Versuche ohne Leistung)
         $noPowerCounter = $this->ReadAttributeInteger('NoPowerCounter');
 
-        // Modus-Text bleibt wie bisher (wegen Prozent und Emojis!)
+        // 3) Initial-Check-Status & Intervall
+        $status       = $this->GetValue('Status');
+        $inInitial    = ($status === false || $status <= 1);
+        $initialTxt   = $inInitial ? 'Aktiv' : 'Inaktiv';
+        $initialIntvl = $this->GetProperty('InitialCheckInterval');
+
+        // 4) Lademodus-Text
         $modus = '☀️ PVonly (nur PV-Überschuss)';
         if ($this->GetValue('ManuellLaden')) {
             $phasenIst = $this->GetValue('Phasenmodus');   
@@ -1716,6 +1722,7 @@ class PVWallboxManager extends IPSModule
         $frcTxt       = $this->GetProfileText('AccessStateV2');          // z.B. "Laden (erzwungen)"
 
         $html = '<div style="font-size:15px; line-height:1.7em;">';
+        $html .= "<b>Initial-Check:</b> {$initialTxt} (Intervall: {$initialIntvl} s)<br>";
         $html .= "<b>Lademodus:</b> $modus<br>";
         $html .= "<b>SOC Auto (Ist / Ziel):</b> {$socAktuell} / {$socZiel}<br>";
 ///        $html .= "<b>No-Power-Counter:</b> {$noPowerCounter}×<hr>";
