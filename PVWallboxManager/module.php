@@ -2072,24 +2072,12 @@ class PVWallboxManager extends IPSModule
         }
 
         // --- Preise aufbereiten (nächste 36h) ---
-        $preise = [];
-        $now = time();
-        $maxTimestamp = $now + 36 * 3600; // bis max 36h in die Zukunft
-
-        foreach ($data['data'] as $item) {
-            if (!isset($item['start_timestamp'], $item['marketprice'])) {
-                continue;
-            }
-            $start = intval($item['start_timestamp'] / 1000);
-            // nur Punkte innerhalb des Fensters behalten
-            if ($start < $now || $start > $maxTimestamp) {
-                continue;
-            }
-            $preise[] = [
-                'timestamp' => $start,
+        $preise = array_map(function($item) {
+            return [
+                'timestamp' => intval($item['start_timestamp'] / 1000),
                 'price'     => floatval($item['marketprice'] / 10.0)
             ];
-        }
+        }, $data['data']);
 
         // Aktuellen Preis setzen (erster Datensatz)
         $aktuellerPreis = $preise[0]['price'];
@@ -2114,22 +2102,18 @@ class PVWallboxManager extends IPSModule
             return '<span style="color:#888;">Keine Preisdaten verfügbar.</span>';
         }
 
-        // === NEU: Suche die ersten $max Preise ab jetzt ===
         $now = time();
-        $startIndex = 0;
-        foreach ($preise as $idx => $dat) {
-            // suche den ersten Eintrag **nach** jetzt
-            if ($dat['timestamp'] >= $now) {
-                $startIndex = $idx;
-                break;
-            }
-        }
-        $preise = array_slice($preise, $startIndex, $max);
-        // ================================================
+        // 1) nur zukünftige oder aktuelle Zeitpunkte behalten
+        $future = array_filter($preise, function($p) use ($now) {
+            return $p['timestamp'] >= $now;
+        });
+        // 2) auf die ersten $max Einträge kürzen
+        $slice = array_slice(array_values($future), 0, $max);
 
-        $allePreise = array_column($preise, 'price');
-        $min = min($allePreise);
-        $maxPrice = max($allePreise);
+        // === ab hier unverändert weiterverarbeiten $slice statt $preise ===
+        $allePreise = array_column($slice, 'price');
+        $min        = min($allePreise);
+        $maxPrice   = max($allePreise);
 
         // CSS – KEINE Farbvorgabe für Text!
         $html = <<<EOT
