@@ -591,33 +591,57 @@ class PVWallboxManager extends IPSModule
         $stopZ          = $this->ReadAttributeInteger('LadeStopZaehler');
         $aktFRC         = ($this->GetValue('AccessStateV2') === 2);
 
-        // Start-Hysterese
+        // --- Start-Hysterese ---
         if ($pvUeberschuss >= $minLadeWatt) {
             $startZ++;
             $this->WriteAttributeInteger('LadeStartZaehler', $startZ);
+            // Stop-Zähler zurücksetzen
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
+
+            // Log jeden Zyklus
+            $this->LogTemplate(
+                'info',
+                "Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minLadeWatt} W"
+            );
+
             if ($startZ >= $startHys) {
-                $this->LogTemplate('ok', "Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minLadeWatt}W → Freigabe an.");
+                // Schwelle erreicht → Freigabe an und Zähler zurücksetzen
+                $this->LogTemplate(
+                    'ok',
+                    "Start-Hysterese erreicht → Freigabe an."
+                );
                 $freigabe = true;
-                // Counter zurücksetzen, damit er nicht weiter hochläuft
                 $this->WriteAttributeInteger('LadeStartZaehler', 0);
             }
         } else {
+            // unter Min → Zähler zurücksetzen
             $this->WriteAttributeInteger('LadeStartZaehler', 0);
         }
 
-        // Stop-Hysterese
+        // --- Stop-Hysterese ---
         if ($pvUeberschuss <= $minStopWatt) {
             $stopZ++;
             $this->WriteAttributeInteger('LadeStopZaehler', $stopZ);
+            // Start-Zähler zurücksetzen
             $this->WriteAttributeInteger('LadeStartZaehler', 0);
+
+            // Log jeden Zyklus
+            $this->LogTemplate(
+                'info',
+                "Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStopWatt} W"
+            );
+
             if ($stopZ >= $stopHys) {
-                $this->LogTemplate('warn', "Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStopWatt}W → Freigabe aus.");
+                // Schwelle erreicht → Freigabe aus und Zähler zurücksetzen
+                $this->LogTemplate(
+                    'warn',
+                    "Stop-Hysterese erreicht → Freigabe aus."
+                );
                 $freigabe = false;
-                // Counter zurücksetzen, damit er nicht weiter hochläuft
                 $this->WriteAttributeInteger('LadeStopZaehler', 0);
             }
         } else {
+            // über MinStop → Zähler zurücksetzen
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
         }
 
@@ -760,13 +784,19 @@ class PVWallboxManager extends IPSModule
             $startZ++;
             $this->WriteAttributeInteger('PV2CarStartZaehler', $startZ);
             $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
+            // Log jeden Zyklus
+            $this->LogTemplate(
+                'info',
+                "PV2Car-Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minStart} W"
+            );
+
             if ($startZ >= $startHys) {
+                // wenn Schwelle erreicht, Freigabe an und Zähler zurücksetzen
                 $this->LogTemplate(
-                    'info',
-                    "PV2Car-Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minStart} W → Freigabe an."
+                    'ok',
+                    "PV2Car-Start-Hysterese erreicht → Freigabe an."
                 );
                 $freigabe = true;
-                // Zähler zurücksetzen nach dem Schalten
                 $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
             }
         } else {
@@ -778,13 +808,19 @@ class PVWallboxManager extends IPSModule
             $stopZ++;
             $this->WriteAttributeInteger('PV2CarStopZaehler', $stopZ);
             $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
+            // Log jeden Zyklus
+            $this->LogTemplate(
+                'info',
+                "PV2Car-Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStop} W"
+            );
+
             if ($stopZ >= $stopHys) {
+                // wenn Schwelle erreicht, Freigabe aus und Zähler zurücksetzen
                 $this->LogTemplate(
                     'warn',
-                    "PV2Car-Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStop} W → Freigabe aus."
+                    "PV2Car-Stop-Hysterese erreicht → Freigabe aus."
                 );
                 $freigabe = false;
-                // Zähler zurücksetzen nach dem Schalten
                 $this->WriteAttributeInteger('PV2CarStopZaehler', 0);
             }
         } else {
