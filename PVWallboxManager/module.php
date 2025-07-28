@@ -1910,9 +1910,15 @@ class PVWallboxManager extends IPSModule
 
         $threshold = 250;
         if ($pvUeberschuss < $threshold) {
-            $this->LogTemplate('debug', "PV-Überschuss <$threshold W (aktuell: {$pvUeberschuss} W) — setze auf 0.");
+            $pvRaw = $pvUeberschuss;
             $pvUeberschuss = 0;
             $ampere        = 0;
+            // Rundung für die Debug-Ausgabe:
+            $pvDisplay = round($pvRaw);
+            $this->LogTemplate(
+                'debug',
+                "PV-Überschuss <{$threshold} W (aktuell: {$pvDisplay} W) — setze auf 0."
+            );
         }
 
         // --- Ladestrom (Ampere) berechnen ---
