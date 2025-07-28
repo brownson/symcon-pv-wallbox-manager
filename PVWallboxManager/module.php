@@ -596,6 +596,10 @@ class PVWallboxManager extends IPSModule
             $startZ++;
             $this->WriteAttributeInteger('LadeStartZaehler', $startZ);
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
+            $this->LogTemplate(
+                'info',
+                "Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minLadeWatt} W"
+            );
         } else {
             $this->WriteAttributeInteger('LadeStartZaehler', 0);
         }
@@ -605,6 +609,10 @@ class PVWallboxManager extends IPSModule
             $stopZ++;
             $this->WriteAttributeInteger('LadeStopZaehler', $stopZ);
             $this->WriteAttributeInteger('LadeStartZaehler', 0);
+            $this->LogTemplate(
+                'info',
+                "Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStopWatt} W"
+            );
         } else {
             $this->WriteAttributeInteger('LadeStopZaehler', 0);
         }
@@ -746,6 +754,10 @@ class PVWallboxManager extends IPSModule
         if ($anteilWatt >= $minStart) {
             $this->WriteAttributeInteger('PV2CarStartZaehler', ++$startZ);
             $this->WriteAttributeInteger('PV2CarStopZaehler',   0);
+            $this->LogTemplate(
+                'info',
+                "PV2Car-Start-Hysterese: {$startZ}/{$startHys} Zyklen ≥ {$minStart} W"
+            );
             if ($startZ >= $startHys) {
                 $this->LogTemplate('ok', "PV2Car: Start-Hysterese erreicht ({$startZ}×) → Freigabe an.");
                 $freigabe = true;
@@ -756,6 +768,10 @@ class PVWallboxManager extends IPSModule
         if ($anteilWatt <= $minStop) {
             $this->WriteAttributeInteger('PV2CarStopZaehler', ++$stopZ);
             $this->WriteAttributeInteger('PV2CarStartZaehler', 0);
+            $this->LogTemplate(
+                'info',
+                "PV2Car-Stop-Hysterese: {$stopZ}/{$stopHys} Zyklen ≤ {$minStop} W"
+            );
             if ($stopZ >= $stopHys) {
                 $this->LogTemplate('warn', "PV2Car: Stop-Hysterese erreicht ({$stopZ}×) → Freigabe aus.");
                 $freigabe = false;
