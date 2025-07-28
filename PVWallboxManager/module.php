@@ -1859,7 +1859,7 @@ class PVWallboxManager extends IPSModule
         $html = '<div style="font-size:15px; line-height:1.7em;">';
         $html .= "<b>Lademodus:</b> $modus<br>";
         $html .= "<b>SOC Auto (Ist / Ziel):</b> {$socAktuell} / {$socZiel}<br>";
-        $html .= "<b>No-Power-Counter:</b> {$noPowerCounter}×<hr>";
+///        $html .= "<b>No-Power-Counter:</b> {$noPowerCounter}×<hr>";
         $html .= "<b>Phasen Wallbox-Einstellung:</b> $psmSollTxt<br>";
         $html .= "<b>Genutzte Phasen (Fahrzeug):</b> $psmIstTxt<br>";
         $html .= "<b>Status:</b> $statusTxt<br>";
