@@ -498,14 +498,12 @@ class PVWallboxManager extends IPSModule
         $freigabe     = isset($data['alw']) ? (bool)$data['alw']   : false;
         $kabelstrom   = isset($data['cbl']) ? intval($data['cbl']) : 0;
         $fehlercode   = isset($data['err']) ? intval($data['err']): 0;
-        $accessStateV2 = 1;
-        if (isset($data['frc'])) {
-            $accessStateV2 = intval($data['frc']);
-        } elseif (isset($data['accessStateV2'])) {
-            $accessStateV2 = intval($data['accessStateV2']);
-        }
+        $accessStateV2 = intval($data['frc'] ?? $data['accessStateV2'] ?? 1);
 
-        $this->LogTemplate('debug', "UpdateStatus: car=$car, accessStateV2=$accessStateV2, freigabe=" . ($freigabe ? "true":"false"));
+        $this->LogTemplate(
+            'debug',
+            "UpdateStatus: car=$car, accessStateV2=$accessStateV2, freigabe=" . ($freigabe ? "true":"false")
+        );
 
         // Phasen-Einstellung (zum Log, nicht für Berechnung)
         $this->SetValueAndLogChange('PhasenmodusEinstellung', $psm, 'Phasenmodus (Einstellung)', '', 'debug');
@@ -2067,17 +2065,14 @@ class PVWallboxManager extends IPSModule
         $maxTimestamp = $now + 36 * 3600; // bis max 36h in die Zukunft
 
         foreach ($data['data'] as $item) {
-            if (isset($item['start_timestamp'], $item['marketprice'])) {
-                $start = intval($item['start_timestamp'] / 1000);
-                // if ($start < $now) continue; // optional je nach Use-Case
-////                if ($start > $maxTimestamp) break;
-                if ($start > $maxTimestamp) continue;
-                $preise[] = [
-                    'timestamp' => $start,
-                    'price' => floatval($item['marketprice'] / 10.0)
-                ];
-                // Kein Einzel-Log hier!
+            $start = intval($item['start_timestamp'] / 1000);
+            if ($start > $maxTimestamp) {
+                continue;   // nicht abbrechen, sondern überspringen
             }
+            $preise[] = [
+                'timestamp' => $start,
+                'price'     => floatval($item['marketprice'] / 10.0)
+            ];
         }
 
         $this->LogTemplate('debug', "Preise-Array nach Verarbeitung: " . count($preise)); // Kurz-Log der Array-Größe
