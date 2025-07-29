@@ -21,6 +21,8 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 - Doppelte Berechnungen und redundante Logs entfernt  
 - API-Befehle werden nur gesendet, wenn sich ein Wert tatsächlich ändert  
 - Hysterese für Phasenumschaltung und Start/Stop vollständig implementiert
+- PV-Überschuss < 250 W wird als 0 W angezeigt
+- NoPowerCounter nach 3 aufeinanderfolgenden fehlenden Leistungswerten (unter 100 W) wir angenommen, dass Ladeziel erreicht
 
 ### Bereinigt
 - Modulstruktur bereinigt und neu organisiert
