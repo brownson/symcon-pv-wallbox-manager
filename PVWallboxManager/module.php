@@ -253,10 +253,28 @@ class PVWallboxManager extends IPSModule
                 IPS_SetProperty($this->InstanceID, 'ModulAktiv', $Value);
                 IPS_ApplyChanges($this->InstanceID);
             if (!$Value) {
-                $this->SetForceState(1);
-                $this->LogTemplate('info', 'Modul deaktiviert – Wallbox auf Nicht Laden gestellt (FRC=1).');
-            }
-            break;
+                // 1) Wallbox sperren
+                    $this->SetForceState(1);
+
+                    // 2) Lademodi zurücksetzen (wiederverwendbar)
+                    $this->ResetModiNachLadeende();
+
+                    // 3) Daten-Anzeige zurücksetzen
+                    $this->SetValue('PV_Ueberschuss',   0);
+                    $this->SetValue('PV_Ueberschuss_A', 0);
+                    $this->SetValue('Hausverbrauch_W',  0);
+                    $this->SetValue('Hausverbrauch_abz_Wallbox', 0);
+
+                    // 4) Timer abschalten
+                    $this->SetTimerInterval('PVWM_UpdateStatus',     0);
+                    $this->SetTimerInterval('PVWM_InitialCheck',     0);
+                    $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
+
+                    $this->LogTemplate('info', 'Modul deaktiviert – Wallbox gesperrt, Modi zurückgesetzt, Timer gestoppt.');
+                }
+                // Anzeige immer aktualisieren
+                $this->UpdateStatusAnzeige();
+                break;
 
             case "UpdateStatus":
                 $this->UpdateStatus($Value);
@@ -1339,6 +1357,9 @@ class PVWallboxManager extends IPSModule
             $modusText = '☀️ PVonly (nur PV-Überschuss)';
         }
 
+        // --- Modul aktiv/inaktiv ---
+        $moduleActive = $this->ReadPropertyBoolean('ModulAktiv');
+
         // --- Profiltexte ---
         $psmSollTxt = $this->GetProfileText('PhasenmodusEinstellung');
         $psmIstTxt  = $this->GetProfileText('Phasenmodus');
@@ -1357,6 +1378,7 @@ class PVWallboxManager extends IPSModule
             'psmIstTxt'     => $psmIstTxt,
             'statusTxt'     => $statusTxt,
             'frcTxt'        => $frcTxt,
+            'moduleActive'  => $moduleActive,
         ];
     }
 
@@ -1376,6 +1398,10 @@ class PVWallboxManager extends IPSModule
     private function renderStatusHtml(array $d): string
     {
         $html  = '<div style="font-size:15px; line-height:1.7em;">';
+        if (!$d['moduleActive']) {
+            $html .= "<span style=\"color:red; font-weight:bold;\">● Modul deaktiviert</span><br>";
+        }
+
         if ($d['inInitial']) {
             $html .= "<b>Initial-Check:</b> Aktiv (Intervall: {$d['initialInt']} s)<br>";
         }
