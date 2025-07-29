@@ -253,10 +253,28 @@ class PVWallboxManager extends IPSModule
                 IPS_SetProperty($this->InstanceID, 'ModulAktiv', $Value);
                 IPS_ApplyChanges($this->InstanceID);
             if (!$Value) {
-                $this->SetForceState(1);
-                $this->LogTemplate('info', 'Modul deaktiviert – Wallbox auf Nicht Laden gestellt (FRC=1).');
-            }
-            break;
+                // 1) Wallbox sperren
+                    $this->SetForceState(1);
+
+                    // 2) Lademodi zurücksetzen (wiederverwendbar)
+                    $this->ResetModiNachLadeende();
+
+                    // 3) Daten-Anzeige zurücksetzen
+                    $this->SetValue('PV_Ueberschuss',   0);
+                    $this->SetValue('PV_Ueberschuss_A', 0);
+                    $this->SetValue('Hausverbrauch_W',  0);
+                    $this->SetValue('Hausverbrauch_abz_Wallbox', 0);
+
+                    // 4) Timer abschalten
+                    $this->SetTimerInterval('PVWM_UpdateStatus',     0);
+                    $this->SetTimerInterval('PVWM_InitialCheck',     0);
+                    $this->SetTimerInterval('PVWM_UpdateMarketPrices', 0);
+
+                    $this->LogTemplate('info', 'Modul deaktiviert – Wallbox gesperrt, Modi zurückgesetzt, Timer gestoppt.');
+                }
+                // Anzeige immer aktualisieren
+                $this->UpdateStatusAnzeige();
+                break;
 
             case "UpdateStatus":
                 $this->UpdateStatus($Value);
@@ -294,6 +312,7 @@ class PVWallboxManager extends IPSModule
                     $this->LogTemplate('debug', 'Neutralmodus nach Moduswechsel: Ladefreigabe gesperrt bis ' . date("H:i:s", time() + 30));
 
                     // sofortige Aktualisierung der Wallbox-Werte
+                    IPS_Sleep(1000);
                     $this->refreshChargerData();
 
                 }
@@ -1220,9 +1239,15 @@ class PVWallboxManager extends IPSModule
 
     private function PruefeLadeendeAutomatisch()
     {
+        // → DEBUG: Einstieg in die Ladeende-Prüfung (nur wenn DebugLogging = true)
+        $this->LogTemplate('debug', 'PruefeLadeendeAutomatisch aufgerufen.');
+
         // 1) Lese SOC-Properties
         $socID       = $this->ReadPropertyInteger('CarSOCID');
         $socTargetID = $this->ReadPropertyInteger('CarTargetSOCID');
+
+        // → DEBUG: gelesene Property-IDs
+        $this->LogTemplate('debug', "CarSOCID={$socID}, CarTargetSOCID={$socTargetID}");
 
         $socAktuell = ($socID > 0 && IPS_VariableExists($socID))
             ? GetValue($socID)
@@ -1231,43 +1256,72 @@ class PVWallboxManager extends IPSModule
             ? GetValue($socTargetID)
             : null;
 
+        // → DEBUG: tatsächliche SOC-Werte
+        $this->LogTemplate(
+            'debug',
+            sprintf(
+                "SOC-Aktuell=%s, SOC-Ziel=%s",
+                var_export($socAktuell, true),
+                var_export($socZiel, true)
+            )
+        );
+
         // 2) Lade-Freigabe aktuell?
         $aktFreigabe = ($this->GetValue('AccessStateV2') == 2);
+        // → DEBUG: Freigabe-Status
+        $this->LogTemplate('debug', 'Ladefreigabe aktiv: ' . ($aktFreigabe ? 'ja' : 'nein'));
 
-        // 3) Wenn SOC-Properties gültig sind, nutze Ziel-SOC-Logik
+        // 3) Primäre Erkennung über SOC-Schwelle
         if ($socAktuell !== null && $socZiel !== null && $aktFreigabe) {
             if ($socAktuell >= $socZiel) {
                 $this->LogTemplate(
                     'ok',
-                    "Ziel-SoC erreicht (Aktuell: {$socAktuell}%, Ziel: {$socZiel}%) – beende Ladung."
+                    "🔌 Ziel-SOC erreicht (Aktuell: {$socAktuell}%, Ziel: {$socZiel}%) – beende Ladung."
                 );
                 $this->SetForceState(1);
                 $this->ResetModiNachLadeende();
-                return;
+            } else {
+                $this->LogTemplate(
+                    'debug',
+                    "SOC noch nicht erreicht (Aktuell: {$socAktuell}%, Ziel: {$socZiel}%)."
+                );
             }
-            // Wenn SOC-Logik greift, überspringe No-Power
+            // SOC-Logik greift: kein Fallback
             return;
         }
 
-        // 4) Fallback: No-Power-Counter, wenn keine SOC-Properties gesetzt
+        // 4) Fallback: No-Power-Counter, wenn keine SOC-Properties gesetzt oder Freigabe
         if ($aktFreigabe) {
             $ladeleistung = $this->GetValue('Leistung');
+            // → DEBUG: aktuelle Leistung und Counter vor Erhöhung
+            $cntVorher = $this->ReadAttributeInteger('NoPowerCounter');
+            $this->LogTemplate(
+                'debug',
+                "Fallback-Pfad: Leistung={$ladeleistung} W, NoPowerCounter vorher={$cntVorher}"
+            );
+
             if ($ladeleistung < 100) {
-                $cnt = $this->ReadAttributeInteger('NoPowerCounter') + 1;
+                $cnt = $cntVorher + 1;
                 $this->WriteAttributeInteger('NoPowerCounter', $cnt);
+                $this->LogTemplate('debug', "NoPowerCounter erhöht auf {$cnt}");
+
                 if ($cnt >= 6) {
                     $this->LogTemplate(
                         'ok',
-                        "Keine Ladeleistung mehr – beende Ladung nach {$cnt} Versuchen."
+                        "🔌 Ladeende erkannt: keine Leistung mehr nach {$cnt} Versuchen."
                     );
                     $this->SetForceState(1);
                     $this->ResetModiNachLadeende();
                     $this->WriteAttributeInteger('NoPowerCounter', 0);
+                    $this->LogTemplate('debug', "NoPowerCounter zurückgesetzt");
                 }
             } else {
                 // Leistung wieder vorhanden → Counter zurücksetzen
+                $this->LogTemplate('debug', 'Leistung wieder ≥100 W → NoPowerCounter zurücksetzen');
                 $this->WriteAttributeInteger('NoPowerCounter', 0);
             }
+        } else {
+            $this->LogTemplate('debug', 'Kein Ladevorgang aktiv, Fallback übersprungen.');
         }
     }
 
@@ -1338,6 +1392,9 @@ class PVWallboxManager extends IPSModule
             $modusText = '☀️ PVonly (nur PV-Überschuss)';
         }
 
+        // --- Modul aktiv/inaktiv ---
+        $moduleActive = $this->ReadPropertyBoolean('ModulAktiv');
+
         // --- Profiltexte ---
         $psmSollTxt = $this->GetProfileText('PhasenmodusEinstellung');
         $psmIstTxt  = $this->GetProfileText('Phasenmodus');
@@ -1356,6 +1413,7 @@ class PVWallboxManager extends IPSModule
             'psmIstTxt'     => $psmIstTxt,
             'statusTxt'     => $statusTxt,
             'frcTxt'        => $frcTxt,
+            'moduleActive'  => $moduleActive,
         ];
     }
 
@@ -1375,6 +1433,10 @@ class PVWallboxManager extends IPSModule
     private function renderStatusHtml(array $d): string
     {
         $html  = '<div style="font-size:15px; line-height:1.7em;">';
+        if (!$d['moduleActive']) {
+            $html .= "<span style=\"color:red; font-weight:bold;\">● Modul deaktiviert</span><br>";
+        }
+
         if ($d['inInitial']) {
             $html .= "<b>Initial-Check:</b> Aktiv (Intervall: {$d['initialInt']} s)<br>";
         }

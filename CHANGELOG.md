@@ -3,18 +3,27 @@
 Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.  
 **Repository:** https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager
 
-## [1.3b] - 🚧 in Vorbereitung 🚧
-- SOC Werte IST / ZIEL werden bei allen Lademodi berücksichtigt
-- Status-Info: "Warte auf Fahrzeug" umbenannt in "Fahrzeug verbunden / Bereit zum Laden"
-- Status-Info: Anzeigefehler in Status-Info behoben
-- Status-Info: SCO IST / ZIEL vom Auto in Status Info
-- Status-Info: Vollständige Überarbeitung Anzeige-Status
-- Modul bereinigt und aufgeräumt
-- doppelte Berechnungen bereinigt
-- doppelte Logs bereinigt
-- API Befehle nur senden wenn ein Wert zu ändern ist
-- Hysterse für Phasenumschaltung und Start/Stop vollständig implenentiert
-- Manuell Volladen startet sofort mit den eingestellten Ampere und Phasen (Hystersen werden nicht berücksichtigt)
+## [1.4b] - 🚧 in Vorbereitung 🚧
+
+## [1.3b] - 2025-07-29
+### Hinzugefügt
+- SOC-Werte (IST/ZIEL) werden jetzt in allen Lademodi berücksichtigt  
+- Manuelles Vollladen startet sofort mit konfigurierter Stromstärke und Phasen (Hysterese nicht angewendet)
+
+### Geändert
+- Status-Anzeige komplett neu gestaltet  
+- „Warte auf Fahrzeug“ umbenannt in „Fahrzeug verbunden / Bereit zum Laden“  
+- Modul-deaktiviert-Zustand wird jetzt angezeigt  
+- SOC IST/ZIEL vom Fahrzeug in der Status-Info angezeigt
+
+### Behoben
+- Anzeige- und Berechnungsfehler in der Status-Info korrigiert  
+- Doppelte Berechnungen und redundante Logs entfernt  
+- API-Befehle werden nur gesendet, wenn sich ein Wert tatsächlich ändert  
+- Hysterese für Phasenumschaltung und Start/Stop vollständig implementiert
+
+### Bereinigt
+- Modulstruktur bereinigt und neu organisiert
 
 ## [1.2b] - 2025-07-28
 - Bugfix "🏠 Hausverbrauch abzügl. Wallbox (W)" 0 Werte
