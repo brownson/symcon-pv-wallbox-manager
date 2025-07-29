@@ -1289,8 +1289,8 @@ class PVWallboxManager extends IPSModule
                 $this->WriteAttributeInteger('NoPowerCounter', $cnt);
                 $this->LogTemplate('debug', "NoPowerCounter erhöht auf {$cnt}");
 
-                if ($cnt >= 6) {
-                    $this->LogTemplate('ok', "🔌 Ladeende erkannt: keine Leistung nach {$cnt} Updates – beende Ladung.");
+                if ($cnt >= 3) {
+                    $this->LogTemplate('ok', "🔌 Ladeende erkannt: keine Leistung nach {$cnt} Updates (3 Intervalle) – beende Ladung.");
                     $this->SetForceState(1);
                     $this->ResetModiNachLadeende();
                     // Counter zurücksetzen
@@ -1855,8 +1855,11 @@ class PVWallboxManager extends IPSModule
                 $this->ReadPropertyInteger('MinAmpere'),
                 min($this->ReadPropertyInteger('MaxAmpere'), $amp)
             );
-        } elseif ($log) {
-            $this->LogTemplate('debug', "PV-Überschuss <{$cutoff}W ({$rawSurplus}W) → setze auf 0");
+        } else {
+            $rawSurplus = 0;
+            if ($log) {
+                $this->LogTemplate('debug', "PV-Überschuss <{$cutoff}W → nicht angezeigt (auf 0 gesetzt)");
+            }
         }
 
         // Logging & Visualisierung
