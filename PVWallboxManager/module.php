@@ -28,6 +28,7 @@ public function Create()
             'LastTimerStatus'                => -1,
             'NeutralModeUntil'               => 0,
             'LetztePhasenUmschaltung'        => 0,
+            'LastStatusInfoHTML'            => '',
         ]);
 
         // 2) Properties from form.json
