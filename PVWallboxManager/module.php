@@ -1443,14 +1443,14 @@ class PVWallboxManager extends IPSModule
         }
 
         $html .= "<b>Lademodus:</b> $modus<br>";
+        $html .= "<b>Status:</b> $statusTxt<br>";
+        $html .= "<b>Wallbox Modus:</b> $frcTxt<br>";
         $html .= "<b>SOC Auto (Ist / Ziel):</b> {$socAktuell} / {$socZiel}<br>";
 
         //$html .= "<b>No-Power-Counter:</b> {$noPowerCounter}×<hr>"; // Optional: für Debug
 
         $html .= "<b>Phasen Wallbox-Einstellung:</b> $psmSollTxt<br>";
         $html .= "<b>Genutzte Phasen (Fahrzeug):</b> $psmIstTxt<br>";
-        $html .= "<b>Status:</b> $statusTxt<br>";
-        $html .= "<b>Wallbox Modus:</b> $frcTxt<br>";
 
         if ($neutralActive) {
             $html .= "<b>Neutralmodus:</b> aktiv bis " . date("H:i:s", $neutralUntil) . "<br>";
