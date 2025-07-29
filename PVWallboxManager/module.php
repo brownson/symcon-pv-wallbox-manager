@@ -1395,17 +1395,12 @@ class PVWallboxManager extends IPSModule
 
     private function VerhindereStartHystereseKurzNachModuswechsel(int $sekunden = 30): bool
     {
-        // Falls das Attribut aus irgendeinem Grund nicht existiert → jetzt registrieren
-        if (!@property_exists($this, 'ModusWechselZeit')) {
-            $this->RegisterAttributeInteger('ModusWechselZeit', 0);
-        }
-
-        // Alternativ robust über try-catch:
         $letzterWechsel = 0;
         try {
             $letzterWechsel = $this->ReadAttributeInteger('ModusWechselZeit');
         } catch (Throwable $e) {
-            $this->RegisterAttributeInteger('ModusWechselZeit', 0);
+            // Attribut existiert noch nicht – als Default auf 0 setzen
+            $this->WriteAttributeInteger('ModusWechselZeit', 0);
             $letzterWechsel = 0;
         }
 
