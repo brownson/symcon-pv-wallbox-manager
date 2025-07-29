@@ -418,18 +418,16 @@ public function Create()
     // =========================================================================
     public function UpdateStatus(string $mode = 'pvonly')
     {
-        // 0) Start-Log
-        $this->LogTemplate('debug', sprintf(
-            "UpdateStatus getriggert (Modus: %s, Zeit: %s)",
-            $mode, date('H:i:s')
-        ));
+        // Start-Log
+        $this->LogTemplate('debug', "UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")");
 
-        // 1) Neutral-Modus prüfen
-        if ($this->isNeutralModeActive()) {
-            $this->LogTemplate('debug', 'Neutralmodus aktiv, Ladefreigänge blockiert');
-            $this->SetForceState(1);
+        // 0) Neutralmodus?
+        if ($this->handleNeutralMode()) {
             return;
         }
+
+        // 1) Initial-Check?
+        $inInitial = $this->handleInitialCheck();
 
         // 2) Status von der Wallbox holen
         $data = $this->fetchChargerStatus();
@@ -1508,6 +1506,33 @@ public function Create()
             $this->ResetLademodiWennKeinFahrzeug();
             $this->SetTimerNachModusUndAuto();
         }
+    }
+
+    private function handleNeutralMode(): bool
+    {
+        $until = $this->ReadAttributeInteger('NeutralModeUntil');
+        if ($until > time()) {
+            $this->LogTemplate('debug', 'Neutralmodus aktiv – Ladefreigabe gesperrt bis ' . date('H:i:s', $until));
+            $this->SetForceState(1);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Prüft, ob wir aktuell im Initial-Check sind und setzt ggf. den Schnell-Poll-Timer.
+     * Gibt true zurück, wenn Initial-Check aktiv ist.
+     */
+    private function handleInitialCheck(): bool
+    {
+        $status = $this->GetValue('Status');
+        $inInitial = ($status === false || $status <= 1);
+        if ($inInitial) {
+            // hier könnten wir z.B. SetTimerInterval('PVWM_InitialCheck', ...) setzen
+            $this->LogTemplate('debug', "Initial-Check aktiv (Status={$status})");
+            return true;
+        }
+        return false;
     }
 
     // =========================================================================
