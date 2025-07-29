@@ -1296,56 +1296,61 @@ public function Create()
      */
     private function collectStatusData(): array
     {
-        // SoC
-        $socAktuell = $this->getValueOrNa('CarSOCID', '%');
-        $socZiel    = $this->getValueOrNa('CarTargetSOCID', '%');
+        // --- SoC-Werte aus Properties, nicht aus Idents! ---
+        $carSocId    = $this->ReadPropertyInteger('CarSOCID');
+        $socAktuell  = ($carSocId > 0 && @IPS_VariableExists($carSocId))
+            ? GetValue($carSocId) . '%'
+            : 'n/a';
+        $carTargetId = $this->ReadPropertyInteger('CarTargetSOCID');
+        $socZiel     = ($carTargetId > 0 && @IPS_VariableExists($carTargetId))
+            ? GetValue($carTargetId) . '%'
+            : 'n/a';
 
-        // Status / Initial-Check
+        // --- Status / Initial-Check ---
         $status     = $this->GetValue('Status');
         $inInitial  = ($status === false || $status <= 1);
         $initialInt = $this->ReadPropertyInteger('InitialCheckInterval');
 
-        // Neutralmodus
-        $until       = intval($this->ReadAttributeInteger('NeutralModeUntil'));
+        // --- Neutralmodus ---
+        $until        = intval($this->ReadAttributeInteger('NeutralModeUntil'));
         $neutralActive = ($until > time());
 
-        // Lademodus-Text
+        // --- Lademodus-Text ---
         if ($this->GetValue('ManuellLaden')) {
-            $data['modusText'] = sprintf(
+            $modusText = sprintf(
                 '🔌 Manuell: Vollladen (%d-phasig, %d A)',
                 $this->GetValue('Phasenmodus'),
                 $this->GetValue('ManuellAmpere')
             );
         }
         elseif ($this->GetValue('PV2CarModus')) {
-            $data['modusText'] = '🌞 PV-Anteil laden ('.$this->GetValue('PVAnteil').'% )';
+            $modusText = '🌞 PV-Anteil laden (' . $this->GetValue('PVAnteil') . '%)';
         }
         elseif ($this->GetValue('ZielzeitLaden')) {
-            $data['modusText'] = '⏰ Zielzeitladung';
+            $modusText = '⏰ Zielzeitladung';
         }
         else {
-            $data['modusText'] = '☀️ PVonly (nur PV-Überschuss)';
+            $modusText = '☀️ PVonly (nur PV-Überschuss)';
         }
 
-        // Profiltexte
-        $data['psmSollTxt'] = $this->GetProfileText('PhasenmodusEinstellung');
-        $data['psmIstTxt']  = $this->GetProfileText('Phasenmodus');
-        $data['statusTxt']  = $this->GetProfileText('Status');
-        $data['frcTxt']     = $this->GetProfileText('AccessStateV2');
+        // --- Profiltexte ---
+        $psmSollTxt = $this->GetProfileText('PhasenmodusEinstellung');
+        $psmIstTxt  = $this->GetProfileText('Phasenmodus');
+        $statusTxt  = $this->GetProfileText('Status');
+        $frcTxt     = $this->GetProfileText('AccessStateV2');
 
-        // alles in Array packen
         return [
-            'inInitial'    => $inInitial,
-            'initialInt'   => $initialInt,
-            'neutralActive'=> $neutralActive,
-            'neutralUntil' => $until,
-            'socAktuell'   => $socAktuell,
-            'socZiel'      => $socZiel,
-            'modusText'    => $data['modusText'],
-            'psmSollTxt'   => $data['psmSollTxt'],
-            'psmIstTxt'    => $data['psmIstTxt'],
-            'statusTxt'    => $data['statusTxt'],
-            'frcTxt'       => $data['frcTxt'],
+            'socAktuell'    => $socAktuell,
+            'socZiel'       => $socZiel,
+            'inInitial'     => $inInitial,
+            'initialInt'    => $initialInt,
+            'neutralActive' => $neutralActive,
+            'neutralUntil'  => $until,
+            'modusText'     => $modusText,
+            'psmSollTxt'    => $psmSollTxt,
+            'psmIstTxt'     => $psmIstTxt,
+            'statusTxt'     => $statusTxt,
+            'frcTxt'        => $frcTxt,
         ];
     }
 
