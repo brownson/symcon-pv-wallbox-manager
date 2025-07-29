@@ -7,7 +7,7 @@ class PVWallboxManager extends IPSModule
     // 1. KONSTRUKTOR & INITIALISIERUNG
     // =========================================================================
 
-public function Create()
+    public function Create()
     {
         parent::Create();
 
@@ -1504,7 +1504,8 @@ public function Create()
     private function extractChargerVariables(array $data): array
     {
         return [
-            'car'      => intval($data['car'] ?? 0),
+            'psm'      => intval($data['psm']   ?? 0),
+            'car'      => intval($data['car']   ?? 0),
             'leistung' => $data['nrg'][11]      ?? 0.0,
             'ampereWB' => $data['amp']          ?? 0,
             'energie'  => $data['wh']           ?? 0,
@@ -1515,8 +1516,27 @@ public function Create()
             'stateRaw' => $data['accessStateV2']?? null,
         ];
     }
+
     private function syncChargerVariables(array $vars, int $phasen): void
     {
+        // 1) Soll-Phasenmodus aus API
+        $this->SetValueAndLogChange(
+            'PhasenmodusEinstellung',
+            $vars['psm'],
+            'Wallbox-Phasen Soll',
+            '',
+            'debug'
+        );
+
+        // 2) Tatsächliche genutzte Phasen
+        $this->SetValueAndLogChange(
+            'Phasenmodus',
+            $phasen,
+            'Genutzte Phasen',
+            '',
+            'debug'
+        );
+
         $accessStateV2 = ($vars['frcRaw'] === 2 || $vars['stateRaw'] === 2) ? 2 : 1;
         $this->SetValueAndLogChange('PhasenmodusEinstellung', $vars['psm'] ?? 0, 'Phasenmodus (Einstellung)', '', 'debug');
         $this->SetValueAndLogChange('Phasenmodus',           $phasen,                    'Genutzte Phasen',            '', 'debug');
