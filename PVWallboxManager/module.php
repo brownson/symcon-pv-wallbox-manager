@@ -1410,7 +1410,8 @@ class PVWallboxManager extends IPSModule
 
     private function VerhindereStopHystereseKurzNachModuswechsel(int $sekunden = 15): bool
     {
-        $ts = intval($this->GetBuffer("LetzterModusWechsel"));
+//        $ts = intval($this->GetBuffer("LetzterModusWechsel"));
+        $ts = $this->ReadAttributeInteger('ModusWechselZeit');
         $diff = time() - $ts;
         if ($diff < $sekunden) {
             $this->LogTemplate('debug', "PVonly: Moduswechsel liegt {$diff}s zurück → Stop-Hysterese blockiert.");
@@ -1672,7 +1673,7 @@ class PVWallboxManager extends IPSModule
         $desiredFRC   = $aktFRC;
 
         // 🛑 Sperre nach Moduswechsel – kein Start erlaubt
-        if ($this->VerhindereStartHystereseKurzNachModuswechsel(30)) {
+        if ($aktFRC === 2 && $this->VerhindereStopHystereseKurzNachModuswechsel(15)) {
             return $aktFRC;
         }
 
