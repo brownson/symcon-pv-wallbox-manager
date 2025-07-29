@@ -1453,7 +1453,6 @@ class PVWallboxManager extends IPSModule
             $this->LogTemplate('debug', "Status-Info HTMLBox unverändert, kein Update.");
         }
     }
-        
 
     // =========================================================================
     // 8. LOGGING / DEBUG / STATUSMELDUNGEN
