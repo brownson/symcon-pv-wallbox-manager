@@ -294,6 +294,7 @@ class PVWallboxManager extends IPSModule
                     $this->LogTemplate('debug', 'Neutralmodus nach Moduswechsel: Ladefreigabe gesperrt bis ' . date("H:i:s", time() + 30));
 
                     // sofortige Aktualisierung der Wallbox-Werte
+                    IPS_Sleep(1000);
                     $this->refreshChargerData();
 
                 }
