@@ -7,158 +7,104 @@ class PVWallboxManager extends IPSModule
     // 1. KONSTRUKTOR & INITIALISIERUNG
     // =========================================================================
 
-    public function Create()
+public function Create()
     {
-        // Immer zuerst
         parent::Create();
 
+        // 1) Custom Profiles & Attribute defaults
         $this->RegisterCustomProfiles();
-        $this->RegisterAttributeInteger('MarketPricesTimerInterval', 0);
-        $this->RegisterAttributeBoolean('MarketPricesActive', false);
+        $this->registerAttributes([
+            'MarketPricesTimerInterval'      => 0,
+            'MarketPricesActive'             => false,
+            'PV2CarStartZaehler'             => 0,
+            'PV2CarStopZaehler'              => 0,
+            'Phasen1Zaehler'                 => 0,
+            'Phasen3Zaehler'                 => 0,
+            'LadeStartZaehler'               => 0,
+            'LadeStopZaehler'                => 0,
+            'HausverbrauchAbzWallboxBuffer'  => '[]',
+            'HausverbrauchAbzWallboxLast'    => 0.0,
+            'NoPowerCounter'                 => 0,
+            'LastTimerStatus'                => -1,
+            'NeutralModeUntil'               => 0,
+            'LetztePhasenUmschaltung'        => 0,
+        ]);
 
-        // Properties aus form.json
-        $this->RegisterPropertyString('WallboxIP', '0.0.0.0');
-        $this->RegisterPropertyString('WallboxAPIKey', '');
-        $this->RegisterPropertyInteger('RefreshInterval', 30);
-        $this->RegisterPropertyBoolean('ModulAktiv', true);
-        $this->RegisterPropertyBoolean('DebugLogging', false);
-        $this->RegisterPropertyInteger('MinAmpere', 6);   // Minimal möglicher Ladestrom
-        $this->RegisterPropertyInteger('MaxAmpere', 16);  // Maximal möglicher Ladestrom
-        $this->RegisterPropertyInteger('Phasen1Schwelle', 3680); // Beispiel: 1-phasig ab < 1.400 W
-        $this->RegisterPropertyInteger('Phasen3Schwelle', 4140); // Beispiel: 3-phasig ab > 3.700 W
-        $this->RegisterAttributeInteger('PV2CarStartZaehler', 0);
-        $this->RegisterAttributeInteger('PV2CarStopZaehler', 0);
+        // 2) Properties from form.json
+        $this->registerProperties([
+            'WallboxIP'             => ['type'=>'string',  'default'=>'0.0.0.0'],
+            'WallboxAPIKey'         => ['type'=>'string',  'default'=>''],
+            'RefreshInterval'       => ['type'=>'integer', 'default'=>30],
+            'ModulAktiv'            => ['type'=>'boolean', 'default'=>true],
+            'DebugLogging'          => ['type'=>'boolean', 'default'=>false],
+            'MinAmpere'             => ['type'=>'integer', 'default'=>6],
+            'MaxAmpere'             => ['type'=>'integer', 'default'=>16],
+            'Phasen1Schwelle'       => ['type'=>'integer', 'default'=>3680],
+            'Phasen3Schwelle'       => ['type'=>'integer', 'default'=>4140],
+            'HausakkuSOCID'         => ['type'=>'integer', 'default'=>0],
+            'HausakkuSOCVollSchwelle'=>['type'=>'integer',  'default'=>95],
+            'CarSOCID'              => ['type'=>'integer', 'default'=>0],
+            'CarTargetSOCID'        => ['type'=>'integer', 'default'=>0],
+            'CarBatteryCapacity'    => ['type'=>'float',   'default'=>0],
+            'Phasen1Limit'          => ['type'=>'integer', 'default'=>3],
+            'Phasen3Limit'          => ['type'=>'integer', 'default'=>3],
+            'MinLadeWatt'           => ['type'=>'integer', 'default'=>1400],
+            'MinStopWatt'           => ['type'=>'integer', 'default'=>1100],
+            'StartLadeHysterese'    => ['type'=>'integer', 'default'=>3],
+            'StopLadeHysterese'     => ['type'=>'integer', 'default'=>3],
+            'InitialCheckInterval'  => ['type'=>'integer', 'default'=>10],
+            'PVErzeugungID'         => ['type'=>'integer', 'default'=>0],
+            'PVErzeugungEinheit'    => ['type'=>'string',  'default'=>'W'],
+            'HausverbrauchID'       => ['type'=>'integer', 'default'=>0],
+            'HausverbrauchEinheit'  => ['type'=>'string',  'default'=>'W'],
+            'InvertHausverbrauch'   => ['type'=>'boolean', 'default'=>false],
+            'BatterieladungID'      => ['type'=>'integer', 'default'=>0],
+            'BatterieladungEinheit' => ['type'=>'string',  'default'=>'W'],
+            'InvertBatterieladung'  => ['type'=>'boolean', 'default'=>false],
+            'UseMarketPrices'       => ['type'=>'boolean', 'default'=>false],
+            'MarketPriceProvider'   => ['type'=>'string',  'default'=>'awattar_at'],
+            'MarketPriceAPI'        => ['type'=>'string',  'default'=>''],
+        ]);
 
-        // Property für Hausakku SoC und Schwelle
-        $this->RegisterPropertyInteger('HausakkuSOCID', 0); // VariableID für SoC des Hausakkus (Prozent)
-        $this->RegisterPropertyInteger('HausakkuSOCVollSchwelle', 95); // Schwelle ab wann als „voll“ gilt (Prozent)
-
-        // Fahrzeugdaten
-        $this->RegisterPropertyInteger('CarSOCID', 0);           // Variable-ID aktueller SoC
-        $this->RegisterPropertyInteger('CarTargetSOCID', 0);     // Variable-ID Ziel-SoC
-        $this->RegisterPropertyFloat('CarBatteryCapacity', 0); // Standardwert für z.B. ID.3 Pure (52 kWh)
-
-        // Hysterese-Zyklen als Properties
-        $this->RegisterPropertyInteger('Phasen1Limit', 3); // z.B. 3 = nach 3x Umschalten
-        $this->RegisterPropertyInteger('Phasen3Limit', 3);
-        $this->RegisterPropertyInteger('MinLadeWatt', 1400);      // Schwelle zum Starten (W)
-        $this->RegisterPropertyInteger('MinStopWatt', 1100);      // Schwelle zum Stoppen (W)
-        $this->RegisterPropertyInteger('StartLadeHysterese', 3);  // Zyklen Start-Hysterese
-        $this->RegisterPropertyInteger('StopLadeHysterese', 3);   // Zyklen Stop-Hysterese
-        $this->RegisterPropertyInteger('InitialCheckInterval', 10); // 0 = deaktiviert, 5–60 Sek.
-
+        // 3) Modul-Aktiv Switch
         $this->RegisterVariableBoolean('ModulAktiv_Switch', '✅ Modul aktiv', '~Switch', 900);
         $this->EnableAction('ModulAktiv_Switch');
-    
-        // Hysterese-Zähler (werden NICHT im WebFront angezeigt)
-        $this->RegisterAttributeInteger('Phasen1Zaehler', 0);
-        $this->RegisterAttributeInteger('Phasen3Zaehler', 0);
-        $this->RegisterAttributeInteger('LadeStartZaehler', 0);
-        $this->RegisterAttributeInteger('LadeStopZaehler', 0);
-        $this->RegisterAttributeString('HausverbrauchAbzWallboxBuffer', '[]');
-        $this->RegisterAttributeFloat('HausverbrauchAbzWallboxLast', 0.0);
-        $this->RegisterAttributeInteger('NoPowerCounter', 0);
-        $this->RegisterAttributeInteger('LastTimerStatus', -1);
-        $this->RegisterAttributeInteger('NeutralModeUntil', 0);
 
-        // Variablen nach API v2
-        $this->RegisterVariableInteger('Status',        'Status',                                   'PVWM.CarStatus',       1);
-        $this->RegisterVariableInteger('AccessStateV2', 'Wallbox Modus',                            'PVWM.AccessStateV2',   2);
-        $this->RegisterVariableFloat('Leistung',        'Aktuelle Ladeleistung zum Fahrzeug (W)',   'PVWM.Watt',            3);
-        IPS_SetIcon($this->GetIDForIdent('Leistung'),   'Flash');
-        $this->RegisterVariableInteger('Ampere',        'Max. Ladestrom (A)',                       'PVWM.Ampere',          4);
-        IPS_SetIcon($this->GetIDForIdent('Ampere'),     'Energy');
+        // 4) API- & Status-Variablen
+        $this->registerVariables([
+            ['integer', 'Status',                       'Status',                                   'PVWM.CarStatus',            1,  'Car'],
+            ['integer', 'AccessStateV2',                'Wallbox Modus',                            'PVWM.AccessStateV2',        2,  'LockOpen'],
+            ['float',   'Leistung',                     'Aktuelle Ladeleistung zum Fahrzeug (W)',   'PVWM.Watt',                 3,  'Flash'],
+            ['integer', 'Ampere',                       'Max. Ladestrom (A)',                       'PVWM.Ampere',               4,  'Energy'],
+            ['boolean', 'Freigabe',                     'Ladefreigabe',                             'PVWM.ALW',                  6,  'Power'],
+            ['integer', 'Kabelstrom',                   'Kabeltyp (A)',                             'PVWM.AmpereCable',          7,  'Energy'],
+            ['float',   'Energie',                      'Geladene Energie (Wh)',                    'PVWM.Wh',                   8,  null],
+            ['integer', 'Fehlercode',                   'Fehlercode',                               'PVWM.ErrorCode',            9,  null],
+            ['float',   'PV_Ueberschuss',               '☀️ PV-Überschuss (W)',                     'PVWM.Watt',                10, 'solar-panel'],
+            ['integer', 'PV_Ueberschuss_A',             '⚡ PV-Überschuss (A)',                     'PVWM.Ampere',              12, 'Energy'],
+            ['float',   'Hausverbrauch_W',              '🏠 Hausverbrauch (W)',                     'PVWM.Watt',                13, 'home'],
+            ['float',   'Hausverbrauch_abz_Wallbox',    '🏠 Hausverbrauch abzügl. Wallbox (W)',     'PVWM.Watt',                15, 'home'],
+            ['float',   'CurrentSpotPrice',             'Aktueller Börsenpreis (ct/kWh)',           'PVWM.CentPerKWh',          30, 'Euro'],
+            ['string',  'MarketPrices',                 'Börsenpreis-Vorschau',                     '',                         31, null],
+            ['string',  'MarketPricesPreview',          '📊 Börsenpreis-Vorschau (HTML)',           '~HTMLBox',                 32, null],
+            ['integer', 'TargetTime',                   'Zielzeit',                                 '~UnixTimestampTime',       20, 'clock'],
+            ['boolean', 'ManuellLaden',                 '🔌 Manuell: Vollladen aktiv',              '~Switch',                  40, null],
+            ['boolean', 'PV2CarModus',                  '🌞 PV-Anteil laden',                       '~Switch',                  41, 'SolarPanel'],
+            ['boolean', 'ZielzeitLaden',                '⏰ Zielzeit-Ladung',                       '~Switch',                  42, null],
+            ['integer', 'PVAnteil',                     'PV-Anteil (%)',                            'PVWM.Percent',             43, 'Percent'],
+            ['integer', 'ManuellAmpere',                '🔌 Ampere (manuell)',                      'PVWM.Ampere',              44, null],
+            ['integer', 'ManuellPhasen',                '🔀 Phasen (manuell)',                      'PVWM.PSM',                 45, null],
+            ['integer', 'PhasenmodusEinstellung',       '🟢 Wallbox-Phasen Soll (Einstellung)',     'PVWM.PSM',                 50, 'Lightning'],
+            ['integer', 'Phasenmodus',                  '🔵 Genutzte Phasen (Fahrzeug)',            'PVWM.PhasenText',          51, 'Lightning'],
+            ['string',  'StatusInfo',                   'ℹ️ Status-Info',                            '~HTMLBox',                70,  null],
+        ]);
 
-        $this->RegisterVariableBoolean('Freigabe',      'Ladefreigabe',                             'PVWM.ALW',             6);
-        $this->RegisterVariableInteger('Kabelstrom',    'Kabeltyp (A)',                             'PVWM.AmpereCable',     7);
-        IPS_SetIcon($this->GetIDForIdent('Kabelstrom'), 'Energy');
-        $this->RegisterVariableFloat('Energie',         'Geladene Energie (Wh)',                    'PVWM.Wh',              8);
-        $this->RegisterVariableInteger('Fehlercode',    'Fehlercode',                               'PVWM.ErrorCode',       9);
+        // 5) Timer für Updates
+        $this->RegisterTimer('PVWM_UpdateStatus',       0, 'IPS_RequestAction('.$this->InstanceID.',"UpdateStatus","pvonly");');
+        $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, 'IPS_RequestAction('.$this->InstanceID.',"UpdateMarketPrices","");');
+        $this->RegisterTimer('PVWM_InitialCheck',       0, 'IPS_RequestAction('.$this->InstanceID.',"UpdateStatus","pvonly");');
 
-        // === 3. Energiequellen ===
-        $this->RegisterPropertyInteger('PVErzeugungID', 0);
-        $this->RegisterPropertyString('PVErzeugungEinheit', 'W');
-        //$this->RegisterPropertyInteger('NetzeinspeisungID', 0);
-        $this->RegisterPropertyString('NetzeinspeisungEinheit', 'W');
-        $this->RegisterPropertyBoolean('InvertNetzeinspeisung', false);
-        $this->RegisterPropertyInteger('HausverbrauchID', 0);
-        $this->RegisterPropertyString('HausverbrauchEinheit', 'W');
-        $this->RegisterPropertyBoolean('InvertHausverbrauch', false);
-        $this->RegisterPropertyInteger('BatterieladungID', 0);
-        $this->RegisterPropertyString('BatterieladungEinheit', 'W');
-        $this->RegisterPropertyBoolean('InvertBatterieladung', false);
-
-        $this->RegisterPropertyBoolean('UseMarketPrices', false);
-        $this->RegisterPropertyString('MarketPriceProvider', 'awattar_at');
-        $this->RegisterPropertyString('MarketPriceAPI', '');
-
-        $this->RegisterVariableFloat('CurrentSpotPrice','Aktueller Börsenpreis (ct/kWh)',                   'PVWM.CentPerKWh', 30);
-        $this->RegisterVariableString('MarketPrices', 'Börsenpreis-Vorschau', '', 31);
-
-        $this->RegisterVariableString('MarketPricesPreview', '📊 Börsenpreis-Vorschau (HTML)', '~HTMLBox', 32);
-
-        // Zielzeit für Zielzeitladung
-        $this->RegisterVariableInteger('TargetTime', 'Zielzeit', '~UnixTimestampTime', 20);
-        IPS_SetIcon($this->GetIDForIdent('TargetTime'), 'clock');
-
-        // === Modul-Variablen für Visualisierung, Status, Lademodus etc. ===
-        $this->RegisterVariableFloat('PV_Ueberschuss','☀️ PV-Überschuss (W)',                               'PVWM.Watt', 10);
-        IPS_SetIcon($this->GetIDForIdent('PV_Ueberschuss'), 'solar-panel');
-
-        $this->RegisterVariableInteger('PV_Ueberschuss_A', '⚡ PV-Überschuss (A)',                             'PVWM.Ampere', 12);
-        IPS_SetIcon($this->GetIDForIdent('PV_Ueberschuss_A'), 'Energy');
-
-        // Hausverbrauch (W)
-        $this->RegisterVariableFloat('Hausverbrauch_W','🏠 Hausverbrauch (W)',                              'PVWM.Watt', 13);
-        IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_W'), 'home');
-
-        // Hausverbrauch abzügl. Wallbox (W) – wie vorher empfohlen
-        $this->RegisterVariableFloat('Hausverbrauch_abz_Wallbox','🏠 Hausverbrauch abzügl. Wallbox (W)',    'PVWM.Watt',15);
-        IPS_SetIcon($this->GetIDForIdent('Hausverbrauch_abz_Wallbox'), 'home');
-
-        // Lademodi
-        $this->RegisterVariableBoolean('ManuellLaden', '🔌 Manuell: Vollladen aktiv', '~Switch', 40);
-        $this->EnableAction('ManuellLaden');
-        $this->RegisterVariableBoolean('PV2CarModus', '🌞 PV-Anteil laden', '~Switch', 41);
-        IPS_SetIcon($this->GetIDForIdent('PV2CarModus'), 'SolarPanel');
-        $this->EnableAction('PV2CarModus');
-        $this->RegisterVariableBoolean('ZielzeitLaden', '⏰ Zielzeit-Ladung', '~Switch', 42);
-        $this->RegisterVariableInteger('PVAnteil',    'PV-Anteil (%)',                                      'PVWM.Percent',43);
-        IPS_SetIcon($this->GetIDForIdent('PVAnteil'), 'Percent');
-        $this->EnableAction('PVAnteil');
-
-        // Im Create()-Bereich, nach den anderen Variablen
-        $this->RegisterVariableInteger('PhasenmodusEinstellung', '🟢 Wallbox-Phasen Soll (Einstellung)', 'PVWM.PSM', 50);
-        IPS_SetIcon($this->GetIDForIdent('PhasenmodusEinstellung'), 'Lightning');
-
-        $this->RegisterVariableInteger('Phasenmodus', '🔵 Genutzte Phasen (Fahrzeug)', 'PVWM.PhasenText', 51);
-        IPS_SetIcon($this->GetIDForIdent('Phasenmodus'), 'Lightning');
-
-        // --- Manuell: Ampere und Phasen einstellbar machen ---
-        $this->RegisterVariableInteger('ManuellAmpere', '🔌 Ampere (manuell)', 'PVWM.Ampere', 44);
-        $this->EnableAction('ManuellAmpere');
-        if ($this->GetValue('ManuellAmpere') < $this->ReadPropertyInteger('MinAmpere')) {
-            $this->SetValue('ManuellAmpere', $this->ReadPropertyInteger('MaxAmpere')); // Default = MaxAmpere
-        }
-
-        $this->RegisterVariableInteger('ManuellPhasen', '🔀 Phasen (manuell)', 'PVWM.PSM', 45);
-        $this->EnableAction('ManuellPhasen');
-        if (!in_array($this->GetValue('ManuellPhasen'), [1, 2])) {
-            $this->SetValue('ManuellPhasen', 2); // Default = 3-phasig
-        }
-
-        $this->RegisterVariableString('StatusInfo', 'ℹ️ Status-Info', '~HTMLBox', 70);
-        $this->RegisterAttributeString('LastStatusInfoHTML', '');
-
-        $this->RegisterAttributeInteger('LetztePhasenUmschaltung', 0);
-
-        // Timer für zyklische Abfrage (z.B. alle 30 Sek.)
-        $this->RegisterTimer('PVWM_UpdateStatus', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
-        $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateMarketPrices", "");');
-        
-        // Schnell-Poll-Timer für Initialcheck
-        $this->RegisterTimer('PVWM_InitialCheck', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "UpdateStatus", "pvonly");');
-
+        // 6) Initialisierung Timer/Events
         $this->SetTimerNachModusUndAuto();
     }
 
@@ -1476,6 +1422,46 @@ class PVWallboxManager extends IPSModule
             $this->LogTemplate('debug', "Status-Info HTMLBox aktualisiert.");
         } else {
             $this->LogTemplate('debug', "Status-Info HTMLBox unverändert, kein Update.");
+        }
+    }
+
+    private function registerAttributes(array $list): void
+    {
+        foreach ($list as $ident => $default) {
+            switch (gettype($default)) {
+                case 'boolean': $this->RegisterAttributeBoolean($ident, $default); break;
+                case 'integer': $this->RegisterAttributeInteger($ident, $default); break;
+                case 'double':  $this->RegisterAttributeFloat($ident,   $default); break;
+                case 'string':  $this->RegisterAttributeString($ident,  $default); break;
+            }
+        }
+    }
+
+    private function registerProperties(array $list): void
+    {
+        foreach ($list as $ident => $cfg) {
+            switch ($cfg['type']) {
+                case 'string':  $this->RegisterPropertyString($ident, $cfg['default']); break;
+                case 'integer': $this->RegisterPropertyInteger($ident, $cfg['default']); break;
+                case 'boolean': $this->RegisterPropertyBoolean($ident, $cfg['default']); break;
+                case 'float':   $this->RegisterPropertyFloat($ident,   $cfg['default']); break;
+            }
+        }
+    }
+
+    private function registerVariables(array $list): void
+    {
+        foreach ($list as $cfg) {
+            list($type, $ident, $name, $profile, $position, $icon) = $cfg + [null,null,null,null,null,null];
+            switch ($type) {
+                case 'integer': $this->RegisterVariableInteger($ident, $name, $profile, $position); break;
+                case 'float':   $this->RegisterVariableFloat($ident,   $name, $profile, $position); break;
+                case 'boolean': $this->RegisterVariableBoolean($ident, $name, $profile, $position); break;
+                case 'string':  $this->RegisterVariableString($ident,  $name, $profile, $position); break;
+            }
+            if (!empty($icon)) {
+                IPS_SetIcon($this->GetIDForIdent($ident), $icon);
+            }
         }
     }
 
