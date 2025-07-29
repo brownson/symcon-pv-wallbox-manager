@@ -1438,6 +1438,8 @@ class PVWallboxManager extends IPSModule
         $html .= "<b>Genutzte Phasen (Fahrzeug):</b> $psmIstTxt<br>";
         $html .= "<b>Status:</b> $statusTxt<br>";
         $html .= "<b>Wallbox Modus:</b> $frcTxt";
+        if ($this->ReadAttributeInteger('NeutralModeUntil') > time()) {
+        $html .= "<b>Neutralmodus:</b> aktiv bis " . date("H:i:s", $this->ReadAttributeInteger('NeutralModeUntil')) . "<br>";
         $html .= '</div>';
 
         // Nur aktualisieren, wenn sich der Text geändert hat
