@@ -1442,6 +1442,10 @@ class PVWallboxManager extends IPSModule
             $html .= "<b>Initial-Check:</b> Aktiv (Intervall: {$initialIntvl} s)<br>";
         }
 
+        if ($neutralActive) {
+            $html .= "<b>Neutralmodus:</b> aktiv bis " . date("H:i:s", $neutralUntil) . "<br>";
+        }
+
         $html .= "<b>Lademodus:</b> $modus<br>";
         $html .= "<b>Status:</b> $statusTxt<br>";
         $html .= "<b>Wallbox Modus:</b> $frcTxt<br>";
@@ -1451,10 +1455,6 @@ class PVWallboxManager extends IPSModule
 
         $html .= "<b>Phasen Wallbox-Einstellung:</b> $psmSollTxt<br>";
         $html .= "<b>Genutzte Phasen (Fahrzeug):</b> $psmIstTxt<br>";
-
-        if ($neutralActive) {
-            $html .= "<b>Neutralmodus:</b> aktiv bis " . date("H:i:s", $neutralUntil) . "<br>";
-        }
 
         $html .= '</div>';
 

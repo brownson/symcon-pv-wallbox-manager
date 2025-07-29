@@ -4,10 +4,11 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 **Repository:** https://github.com/Sol-IoTiv/symcon-pv-wallbox-manager
 
 ## [1.3b] - 🚧 in Vorbereitung 🚧
-- Statusanzeige "Warte auf Fahrzeug" umbenannt in "Fahrzeug verbunden / Bereit zum Laden"
-- Anzeigefehler in Status Info behoben
 - SOC Werte IST / ZIEL werden bei allen Lademodi berücksichtigt
-- Anzeige SCO IST / ZIEL vom Auto in Status Info
+- Status-Info: "Warte auf Fahrzeug" umbenannt in "Fahrzeug verbunden / Bereit zum Laden"
+- Status-Info: Anzeigefehler in Status-Info behoben
+- Status-Info: SCO IST / ZIEL vom Auto in Status Info
+- Status-Info: Vollständige Überarbeitung Anzeige-Status
 - Modul bereinigt und aufgeräumt
 - doppelte Berechnungen bereinigt
 - doppelte Logs bereinigt
