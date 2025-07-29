@@ -1393,28 +1393,28 @@ class PVWallboxManager extends IPSModule
         $this->LogTemplate('debug', "Moduswechsel-Zeitstempel gesetzt: " . date("H:i:s", $now));
     }
 
-    private function VerhindereStartHystereseKurzNachModuswechsel(int $sekunden = 30): bool
-    {
+private function VerhindereStartHystereseKurzNachModuswechsel(int $sekunden = 30): bool
+{
+    $letzterWechsel = 0;
+    try {
+        $letzterWechsel = $this->ReadAttributeInteger('ModusWechselZeit');
+    } catch (Throwable $e) {
+        // Attribut existiert noch nicht – als Default auf 0 setzen
+        $this->WriteAttributeInteger('ModusWechselZeit', 0);
         $letzterWechsel = 0;
-        try {
-            $letzterWechsel = $this->ReadAttributeInteger('ModusWechselZeit');
-        } catch (Throwable $e) {
-            // Attribut existiert noch nicht – als Default auf 0 setzen
-            $this->WriteAttributeInteger('ModusWechselZeit', 0);
-            $letzterWechsel = 0;
-        }
+    }
 
-        if ($letzterWechsel <= 0) {
-            return false;
-        }
-
-        $diff = time() - $letzterWechsel;
-        if ($diff < $sekunden) {
-            $this->LogTemplate('debug', "Start-Hysterese blockiert: Letzter Moduswechsel vor {$diff}s (< {$sekunden}s).");
-            return true;
-        }
+    if ($letzterWechsel <= 0) {
         return false;
     }
+
+    $diff = time() - $letzterWechsel;
+    if ($diff < $sekunden) {
+        $this->LogTemplate('debug', "Start-Hysterese blockiert: Letzter Moduswechsel vor {$diff}s (< {$sekunden}s).");
+        return true;
+    }
+    return false;
+}
 
     private function VerhindereStopHystereseKurzNachModuswechsel(int $sekunden = 15): bool
     {
