@@ -1404,8 +1404,6 @@ public function Create()
         }
     }
 
-
-
     private function registerAttributes(array $list): void
     {
         foreach ($list as $ident => $default) {
