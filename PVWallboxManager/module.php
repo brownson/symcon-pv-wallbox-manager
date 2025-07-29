@@ -292,6 +292,10 @@ class PVWallboxManager extends IPSModule
                     // Neutralmodus aktivieren (z.B. 30 Sek)
                     $this->WriteAttributeInteger('NeutralModeUntil', time() + 30);
                     $this->LogTemplate('debug', 'Neutralmodus nach Moduswechsel: Ladefreigabe gesperrt bis ' . date("H:i:s", time() + 30));
+
+                    // sofortige Aktualisierung der Wallbox-Werte
+                    $this->refreshChargerData();
+
                 }
                 $this->SetTimerNachModusUndAuto();
                 $this->UpdateStatus('manuell');
@@ -1623,6 +1627,38 @@ class PVWallboxManager extends IPSModule
             $this->LogTemplate('debug', "Initial-Check aktiv (Status={$status})");
         }
         return $inInitial;
+    }
+
+    /**
+     * Holt direkt die aktuellen Wallbox-Daten, synchronisiert alle Werte und updatet die Anzeige.
+     */
+    private function refreshChargerData(): void
+    {
+        // 1) Daten holen
+        $data = $this->getStatusFromCharger();
+        if ($data === false) {
+            // Wallbox nicht erreichbar – wir könnten hier noch Reset einbauen
+            return;
+        }
+
+        // 2) Phasen ermitteln
+        $phasen = $this->determinePhases($data);
+
+        // 3) Charger-Variablen synchronisieren
+        $vars = $this->extractChargerVariables($data);
+        $this->syncChargerVariables($vars, $phasen);
+
+        // 4) Hausverbrauch aktualisieren
+        $energyRaw = $this->gatherEnergyData();
+        $this->updateHousePower($energyRaw);
+
+        // 5) PV-Überschuss anzeigen, wenn kein Fahrzeug da
+        if (!$this->isCarConnected($data)) {
+            $this->updateSurplusDisplayWithoutCar($energyRaw);
+        }
+
+        // 6) UI aktualisieren
+        $this->UpdateStatusAnzeige();
     }
 
     // =========================================================================
