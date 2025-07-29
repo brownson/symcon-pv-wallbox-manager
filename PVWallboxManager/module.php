@@ -289,6 +289,8 @@ class PVWallboxManager extends IPSModule
                 // Nur EIN Modus darf aktiv sein!
                 if ($Value) {
                     $this->SetValue('ManuellLaden', true);
+                    $this->WriteAttributeInteger('NoPowerCounter', 0);
+                    $this->LogTemplate('debug', 'NoPowerCounter zurückgesetzt (ManuellLaden gestartet).');
                     $this->SetValue('PV2CarModus', false);
                     // (später: weitere Modi hier deaktivieren)
                     $this->LogTemplate('info', "🔌 Manuelles Vollladen aktiviert.");
@@ -324,6 +326,8 @@ class PVWallboxManager extends IPSModule
                 // Nur EIN Modus darf aktiv sein!
                 if ($Value) {
                     $this->SetValue('PV2CarModus', true);
+                    $this->WriteAttributeInteger('NoPowerCounter', 0);
+                    $this->LogTemplate('debug', 'NoPowerCounter zurückgesetzt (PV2CarModus gestartet).');
                     $this->SetValue('ManuellLaden', false);
                     $this->LogTemplate('info', "🌞 PV-Anteil laden aktiviert.");
                 } else {
@@ -1290,39 +1294,36 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        // 4) Fallback: No-Power-Counter, wenn keine SOC-Properties gesetzt oder Freigabe
+        // 4) Fallback: No-Power-Counter in allen Lademodi, solange Freigabe aktiv
         if ($aktFreigabe) {
-            $ladeleistung = $this->GetValue('Leistung');
-            // → DEBUG: aktuelle Leistung und Counter vor Erhöhung
-            $cntVorher = $this->ReadAttributeInteger('NoPowerCounter');
-            $this->LogTemplate(
-                'debug',
-                "Fallback-Pfad: Leistung={$ladeleistung} W, NoPowerCounter vorher={$cntVorher}"
-            );
+                $ladeleistung = $this->GetValue('Leistung');
+                $cntVorher    = $this->ReadAttributeInteger('NoPowerCounter');
+                $this->LogTemplate('debug', "Fallback-Pfad: Ladeleistung={$ladeleistung} W, NoPowerCounter vorher={$cntVorher}");
 
-            if ($ladeleistung < 100) {
-                $cnt = $cntVorher + 1;
-                $this->WriteAttributeInteger('NoPowerCounter', $cnt);
-                $this->LogTemplate('debug', "NoPowerCounter erhöht auf {$cnt}");
+                if ($ladeleistung < 100) {
+                    $cnt = $cntVorher + 1;
+                    $this->WriteAttributeInteger('NoPowerCounter', $cnt);
+                    $this->LogTemplate('debug', "NoPowerCounter erhöht auf {$cnt}");
 
-                if ($cnt >= 6) {
-                    $this->LogTemplate(
-                        'ok',
-                        "🔌 Ladeende erkannt: keine Leistung mehr nach {$cnt} Versuchen."
-                    );
-                    $this->SetForceState(1);
-                    $this->ResetModiNachLadeende();
-                    $this->WriteAttributeInteger('NoPowerCounter', 0);
-                    $this->LogTemplate('debug', "NoPowerCounter zurückgesetzt");
+                    if ($cnt >= 6) {
+                        $this->LogTemplate(
+                            'ok',
+                            "🔌 Ladeende erkannt: keine Leistung mehr nach {$cnt} Versuchen – Ladevorgang beendet."
+                        );
+                        $this->SetForceState(1);
+                        $this->ResetModiNachLadeende();
+                        $this->WriteAttributeInteger('NoPowerCounter', 0);
+                        $this->LogTemplate('debug', "NoPowerCounter zurückgesetzt");
+                    }
+             } else {
+                // Leistung wieder vorhanden → Counter zurücksetzen
+                $this->LogTemplate('debug', 'Leistung ≥100 W → NoPowerCounter zurücksetzen');
+                $this->WriteAttributeInteger('NoPowerCounter', 0);
                 }
             } else {
-                // Leistung wieder vorhanden → Counter zurücksetzen
-                $this->LogTemplate('debug', 'Leistung wieder ≥100 W → NoPowerCounter zurücksetzen');
-                $this->WriteAttributeInteger('NoPowerCounter', 0);
+                // keine Ladefreigabe → Fallback übersprungen
+                $this->LogTemplate('debug', 'Keine Ladefreigabe – Fallback übersprungen.');
             }
-        } else {
-            $this->LogTemplate('debug', 'Kein Ladevorgang aktiv, Fallback übersprungen.');
-        }
     }
 
     private function ResetModiNachLadeende()
