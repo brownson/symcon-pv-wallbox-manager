@@ -59,7 +59,7 @@ class PVWallboxManager extends IPSModule
         $this->RegisterAttributeFloat('HausverbrauchAbzWallboxLast', 0.0);
         $this->RegisterAttributeInteger('NoPowerCounter', 0);
         $this->RegisterAttributeInteger('LastTimerStatus', -1);
-        $this->RegisterAttributeInteger('ModusWechselZeit', 0);
+        $this->RegisterAttributeInteger('NeutralModeUntil', 0);
 
         // Variablen nach API v2
         $this->RegisterVariableInteger('Status',        'Status',                                   'PVWM.CarStatus',       1);
@@ -343,8 +343,9 @@ class PVWallboxManager extends IPSModule
                     $this->WriteAttributeInteger('LadeStopZaehler', 0);
                     $this->LogTemplate('debug', "Hysterese-Zähler nach Deaktivierung ManuellLaden zurückgesetzt.");
 
-                    // NEU: Sperrzeit für Hysterese setzen
-                    $this->SetModuswechselZeitstempel();
+                    // Neutralmodus aktivieren (z.B. 30 Sek)
+                    $this->WriteAttributeInteger('NeutralModeUntil', time() + 30);
+                    $this->LogTemplate('debug', 'Neutralmodus nach Moduswechsel: Ladefreigabe gesperrt bis ' . date("H:i:s", time() + 30));
                 }
                 $this->SetTimerNachModusUndAuto();
                 $this->UpdateStatus('manuell');
@@ -473,6 +474,13 @@ class PVWallboxManager extends IPSModule
     {
         // 0) Start-Log
         $this->LogTemplate('debug', "UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")");
+        
+        $neutralUntil = $this->ReadAttributeInteger('NeutralModeUntil');
+        if ($neutralUntil > time()) {
+            $this->LogTemplate('debug', 'Neutralmodus aktiv – Ladevorgänge blockiert bis ' . date("H:i:s", $neutralUntil));
+            $this->SetForceState(1); // Wallbox gesperrt, falls nicht eh schon
+            return;
+        }
 
         // 1) Status von der Wallbox holen
         $data = $this->getStatusFromCharger();
@@ -1384,41 +1392,6 @@ class PVWallboxManager extends IPSModule
             $this->SetValueAndLogChange('PV_Ueberschuss_A', 0, 'PV-Überschuss (A)', 'A', 'ok');
             $this->LogTemplate('ok', "Nach Ladeende: Zurück auf 1-phasig/6A/0A für PVonly.");
         }
-    }
-
-    private function SetModuswechselZeitstempel()
-    {
-        $now = time();
-        $this->WriteAttributeInteger('ModusWechselZeit', $now);
-        $this->LogTemplate('debug', "Moduswechsel-Zeitstempel gesetzt: " . date("H:i:s", $now));
-    }
-
-    private function VerhindereStartHystereseKurzNachModuswechsel(int $sekunden = 30): bool
-    {
-        $letzterWechsel = $this->ReadAttributeInteger('ModusWechselZeit');
-        if ($letzterWechsel <= 0) {
-            return false;
-        }
-
-        $diff = time() - $letzterWechsel;
-        if ($diff < $sekunden) {
-            $this->LogTemplate('debug', "Start-Hysterese blockiert: Letzter Moduswechsel vor {$diff}s (< {$sekunden}s).");
-            return true;
-        }
-        return false;
-    }
-
-    private function VerhindereStopHystereseKurzNachModuswechsel(int $sekunden = 15): bool
-    {
-//        $ts = intval($this->GetBuffer("LetzterModusWechsel"));
-        $ts = $this->ReadAttributeInteger('ModusWechselZeit');
-        $diff = time() - $ts;
-        if ($diff < $sekunden) {
-            $this->LogTemplate('debug', "PVonly: Moduswechsel liegt {$diff}s zurück → Stop-Hysterese blockiert.");
-            $this->WriteAttributeInteger('LadeStopZaehler', 0);
-            return true;
-        }
-        return false;
     }
 
     private function UpdateStatusAnzeige()
