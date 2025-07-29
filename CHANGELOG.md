@@ -6,24 +6,24 @@ Alle Änderungen, Features & Fixes des Moduls werden hier dokumentiert.
 ## [1.4b] - 🚧 in Vorbereitung 🚧
 
 ## [1.3b] - 2025-07-29
-### Added
-- SOC values (actual/target) are now respected in all charging modes
-- Manual “full charge” starts immediately at the configured current and phases (hysteresis not applied)
+### Hinzugefügt
+- SOC-Werte (IST/ZIEL) werden jetzt in allen Lademodi berücksichtigt  
+- Manuelles Vollladen startet sofort mit konfigurierter Stromstärke und Phasen (Hysterese nicht angewendet)
 
-### Changed
-- Status display completely redesigned
-- “Warte auf Fahrzeug” renamed to “Fahrzeug verbunden / Bereit zum Laden”
-- Module-disabled state is now indicated
-- SOC actual/target from the vehicle shown in status info
+### Geändert
+- Status-Anzeige komplett neu gestaltet  
+- „Warte auf Fahrzeug“ umbenannt in „Fahrzeug verbunden / Bereit zum Laden“  
+- Modul-deaktiviert-Zustand wird jetzt angezeigt  
+- SOC IST/ZIEL vom Fahrzeug in der Status-Info angezeigt
 
-### Fixed
-- Display and calculation errors in status info corrected
-- Duplicate calculations and redundant logs removed
-- API commands only sent when a value actually changes
-- Hysteresis for phase switching and start/stop fully implemented
+### Behoben
+- Anzeige- und Berechnungsfehler in der Status-Info korrigiert  
+- Doppelte Berechnungen und redundante Logs entfernt  
+- API-Befehle werden nur gesendet, wenn sich ein Wert tatsächlich ändert  
+- Hysterese für Phasenumschaltung und Start/Stop vollständig implementiert
 
-### Refactored
-- Module structure cleaned up and reorganized
+### Bereinigt
+- Modulstruktur bereinigt und neu organisiert
 
 ## [1.2b] - 2025-07-28
 - Bugfix "🏠 Hausverbrauch abzügl. Wallbox (W)" 0 Werte
