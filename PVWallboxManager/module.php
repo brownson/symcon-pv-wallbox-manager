@@ -1395,25 +1395,30 @@ class PVWallboxManager extends IPSModule
 
     private function UpdateStatusAnzeige()
     {
-        // 1) SoC-Werte holen
+        // === 1. Daten sammeln & vorbereiten ===
+
+        // SoC-Werte
         $socID       = $this->ReadPropertyInteger('CarSOCID');
         $targetID    = $this->ReadPropertyInteger('CarTargetSOCID');
         $socAktuell  = ($socID > 0 && @IPS_VariableExists($socID))       ? GetValue($socID)       . '%' : 'n/a';
         $socZiel     = ($targetID > 0 && @IPS_VariableExists($targetID)) ? GetValue($targetID)    . '%' : 'n/a';
 
-        // 2) No-Power-Counter (Versuche ohne Leistung)
+        // No-Power-Counter (Versuche ohne Leistung)
         $noPowerCounter = $this->ReadAttributeInteger('NoPowerCounter');
 
-        // 3) Initial-Check-Status & Intervall
+        // Neutralmodus (nur wenn aktiv)
+        $neutralUntil = intval($this->ReadAttributeInteger('NeutralModeUntil'));
+        $neutralActive = ($neutralUntil > time());
+
+        // Initial-Check (nur wenn aktiv)
         $status       = $this->GetValue('Status');
         $inInitial    = ($status === false || $status <= 1);
-        $initialTxt   = $inInitial ? 'Aktiv' : 'Inaktiv';
         $initialIntvl = $this->ReadPropertyInteger('InitialCheckInterval');
 
-        // 4) Lademodus-Text
+        // Lademodus-Text
         $modus = '☀️ PVonly (nur PV-Überschuss)';
         if ($this->GetValue('ManuellLaden')) {
-            $phasenIst = $this->GetValue('Phasenmodus');   
+            $phasenIst = $this->GetValue('Phasenmodus');
             $ampere    = $this->GetValue('ManuellAmpere');
             $modus     = "🔌 Manuell: Vollladen ({$phasenIst}-phasig, {$ampere} A)";
         } elseif ($this->GetValue('PV2CarModus')) {
@@ -1423,27 +1428,37 @@ class PVWallboxManager extends IPSModule
             $modus = '⏰ Zielzeitladung';
         }
 
-        // Text aus Profil lesen!
+        // Text aus Profil lesen
         $psmSollTxt   = $this->GetProfileText('PhasenmodusEinstellung'); // z.B. "1-phasig"
         $psmIstTxt    = $this->GetProfileText('Phasenmodus');            // z.B. "1-phasig", "2-phasig", "3-phasig"
         $statusTxt    = $this->GetProfileText('Status');                 // z.B. "Fahrzeug lädt"
         $frcTxt       = $this->GetProfileText('AccessStateV2');          // z.B. "Laden (erzwungen)"
 
+        // === 2. HTML-Block bauen ===
+
         $html = '<div style="font-size:15px; line-height:1.7em;">';
-        $html .= "<b>Initial-Check:</b> {$initialTxt} (Intervall: {$initialIntvl} s)<br>";
+
+        if ($inInitial) {
+            $html .= "<b>Initial-Check:</b> Aktiv (Intervall: {$initialIntvl} s)<br>";
+        }
+
         $html .= "<b>Lademodus:</b> $modus<br>";
         $html .= "<b>SOC Auto (Ist / Ziel):</b> {$socAktuell} / {$socZiel}<br>";
-///        $html .= "<b>No-Power-Counter:</b> {$noPowerCounter}×<hr>";
+
+        //$html .= "<b>No-Power-Counter:</b> {$noPowerCounter}×<hr>"; // Optional: für Debug
+
         $html .= "<b>Phasen Wallbox-Einstellung:</b> $psmSollTxt<br>";
         $html .= "<b>Genutzte Phasen (Fahrzeug):</b> $psmIstTxt<br>";
         $html .= "<b>Status:</b> $statusTxt<br>";
-        $html .= "<b>Wallbox Modus:</b> $frcTxt";
-        if ($this->ReadAttributeInteger('NeutralModeUntil') > time()) {
-        $html .= "<b>Neutralmodus:</b> aktiv bis " . date("H:i:s", $this->ReadAttributeInteger('NeutralModeUntil')) . "<br>";
+        $html .= "<b>Wallbox Modus:</b> $frcTxt<br>";
+
+        if ($neutralActive) {
+            $html .= "<b>Neutralmodus:</b> aktiv bis " . date("H:i:s", $neutralUntil) . "<br>";
         }
+
         $html .= '</div>';
 
-        // Nur aktualisieren, wenn sich der Text geändert hat
+        // === 3. Nur bei Änderung setzen ===
         $lastHtml = $this->ReadAttributeString('LastStatusInfoHTML');
         if ($lastHtml !== $html) {
             SetValue($this->GetIDForIdent('StatusInfo'), $html);
