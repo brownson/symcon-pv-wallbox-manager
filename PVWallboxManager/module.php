@@ -513,6 +513,14 @@ class PVWallboxManager extends IPSModule
             'Hausverbrauch abzgl. Wallbox (W)'
         );
 
+        if ($car <= 1) {
+            // KEIN Auto erkannt → PV-Überschuss im Hauptteil setzen
+            $filtered = $this->applyFilters($energyRaw);
+            $surplus  = $this->calculateSurplus($filtered, 1, false); // Phasen=1 für Anzeige
+            $this->SetValue('PV_Ueberschuss',   $surplus['ueberschuss_w']);
+            $this->SetValue('PV_Ueberschuss_A', $surplus['ueberschuss_a']);
+        }
+
         // 4) Wallbox-Status-Variablen auslesen & schreiben
         $car        = isset($data['car'])  ? intval($data['car'])  : 0;
         $leistung   = $data['nrg'][11]     ?? 0.0;
