@@ -1240,59 +1240,67 @@ class PVWallboxManager extends IPSModule
 
     private function PruefeLadeendeAutomatisch()
     {
-        // 0) Status aller Modi loggen
+        // 0) Status aller Modi und Force-State loggen
         $currentFRC = $this->GetValue('AccessStateV2'); // 2 = laden erzwungen
-        $manuell    = $this->GetValue('ManuellLaden')  ? 'ja' : 'nein';
-        $pv2car     = $this->GetValue('PV2CarModus')   ? 'ja' : 'nein';
-        $zielzeit   = $this->GetValue('ZielzeitLaden') ? 'ja' : 'nein';
-        $this->LogTemplate('debug', "FRC={$currentFRC}, Manuell={$manuell}, PV2Car={$pv2car}, Zielzeit={$zielzeit}");
-        $this->LogTemplate('debug', 'PruefeLadeendeAutomatisch aufgerufen.');
+        $manuell    = $this->GetValue('ManuellLaden')   ? 'ja' : 'nein';
+        $pv2car     = $this->GetValue('PV2CarModus')    ? 'ja' : 'nein';
+        $zielzeit   = $this->GetValue('ZielzeitLaden')  ? 'ja' : 'nein';
+        $this->LogTemplate('debug', "PruefeLadeendeAutomatisch aufgerufen: FRC={$currentFRC}, Manuell={$manuell}, PV2Car={$pv2car}, Zielzeit={$zielzeit}");
 
-        // 1) SOC-Properties auslesen
+        // 1) SOC-Werte einlesen
         $socID       = $this->ReadPropertyInteger('CarSOCID');
         $socTargetID = $this->ReadPropertyInteger('CarTargetSOCID');
-        $this->LogTemplate('debug', "CarSOCID={$socID}, CarTargetSOCID={$socTargetID}");
-        $socAktuell = ($socID > 0 && IPS_VariableExists($socID)) ? GetValue($socID) : null;
-        $socZiel    = ($socTargetID > 0 && IPS_VariableExists($socTargetID)) ? GetValue($socTargetID) : null;
-        $this->LogTemplate('debug', sprintf("SOC-Aktuell=%s, SOC-Ziel=%s",
-            var_export($socAktuell, true), var_export($socZiel, true)));
+        $socAktuell  = ($socID > 0 && IPS_VariableExists($socID))              ? GetValue($socID)        : null;
+        $socZiel     = ($socTargetID > 0 && IPS_VariableExists($socTargetID)) ? GetValue($socTargetID) : null;
+        $this->LogTemplate('debug', "SOC-Aktuell={$socAktuell}, SOC-Ziel={$socZiel}");
 
-        // 2) Freigabe prüfen
-        $aktFreigabe = ($currentFRC == 2);
-        $this->LogTemplate('debug', 'Ladefreigabe aktiv: ' . ($aktFreigabe ? 'ja' : 'nein'));
+        // 2) Prüfen, ob gerade geladen wird (erzwungen ODER einer der Modi aktiv)
+        $loadActive = (
+            $currentFRC === 2
+            || $this->GetValue('ManuellLaden')
+            || $this->GetValue('PV2CarModus')
+            || $this->GetValue('ZielzeitLaden')
+        );
+        $this->LogTemplate('debug', 'Ladefreigabe/Modus aktiv: ' . ($loadActive ? 'ja' : 'nein'));
 
-        // 3) Primäre Erkennung über SOC-Schwelle
-        if ($aktFreigabe && $socAktuell !== null && $socZiel !== null) {
+        // 3) Primäre Erkennung per SOC
+        if ($loadActive && $socAktuell !== null && $socZiel !== null) {
             if ($socAktuell >= $socZiel) {
                 $this->LogTemplate('ok', "🔌 Ziel-SOC erreicht ({$socAktuell}% ≥ {$socZiel}%) – beende Ladung.");
                 $this->SetForceState(1);
                 $this->ResetModiNachLadeende();
-            } else {
-                $this->LogTemplate('debug', "SOC noch nicht erreicht (Aktuell: {$socAktuell}%, Ziel: {$socZiel}%).");
+                // Counter zurücksetzen
+                $this->WriteAttributeInteger('NoPowerCounter', 0);
+                return;
             }
-            return;
+            // SOC noch nicht erreicht → weiter zum Fallback
+            $this->LogTemplate('debug', "SOC ({$socAktuell}%) < Ziel ({$socZiel}%) – Fallback wird geprüft.");
         }
 
-        // 4) Fallback: NoPowerCounter in allen Lademodi, solange Ladefreigabe aktiv
-        if ($aktFreigabe || $this->GetValue('ManuellLaden') || $this->GetValue('PV2CarModus') || $this->GetValue('ZielzeitLaden')) {
-            $ladeleistung = $this->GetValue('Leistung');
-            $cntVorher    = $this->ReadAttributeInteger('NoPowerCounter');
-            $this->LogTemplate('debug', "Fallback-Pfad: Ladeleistung={$ladeleistung} W, NoPowerCounter vorher={$cntVorher}");
+        // 4) Fallback: No-Power-Counter
+        if ($loadActive) {
+            $leistung  = $this->GetValue('Leistung');
+            $cntVorher = $this->ReadAttributeInteger('NoPowerCounter');
+            $this->LogTemplate('debug', "Fallback-Pfad: Leistung={$leistung} W, NoPowerCounter vorher={$cntVorher}");
 
-            if ($ladeleistung < 100) {
+            if ($leistung < 100) {
+                // kein Strom → Counter hochzählen
                 $cnt = $cntVorher + 1;
                 $this->WriteAttributeInteger('NoPowerCounter', $cnt);
                 $this->LogTemplate('debug', "NoPowerCounter erhöht auf {$cnt}");
+
                 if ($cnt >= 6) {
-                    $this->LogTemplate('ok', "🔌 Ladeende erkannt: keine Leistung nach {$cnt} Updates – Ladevorgang beendet.");
+                    $this->LogTemplate('ok', "🔌 Ladeende erkannt: keine Leistung nach {$cnt} Updates – beende Ladung.");
                     $this->SetForceState(1);
                     $this->ResetModiNachLadeende();
+                    // Counter zurücksetzen
                     $this->WriteAttributeInteger('NoPowerCounter', 0);
                     $this->LogTemplate('debug', "NoPowerCounter zurückgesetzt");
                 }
             } else {
+                // Leistung wieder da → Counter sofort zurücksetzen
                 $this->WriteAttributeInteger('NoPowerCounter', 0);
-                $this->LogTemplate('debug', 'Leistung ≥100 W → NoPowerCounter zurückgesetzt');
+                $this->LogTemplate('debug', 'Leistung ≥100 W → NoPowerCounter zurückgesetzt');
             }
         } else {
             $this->LogTemplate('debug', 'Kein aktiver Lademodus oder keine Freigabe – Fallback übersprungen.');
