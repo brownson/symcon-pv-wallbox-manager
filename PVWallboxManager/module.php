@@ -1806,6 +1806,24 @@ class PVWallboxManager extends IPSModule
         ];
     }
 
+    private function VerhindereStopHystereseKurzNachModuswechsel(int $cooldownSekunden): bool
+        {
+            $letzte = $this->ReadAttributeInteger('LetztePhasenUmschaltung');
+            if ($letzte <= 0) {
+                // nie umgeschaltet → kein Cooldown
+                return false;
+            }
+            $vergangen = time() - $letzte;
+            if ($vergangen < $cooldownSekunden) {
+                $this->LogTemplate(
+                    'debug',
+                    "Stop-Hysterese unterdrückt ({$vergangen}s seit Phasenwechsel < {$cooldownSekunden}s)"
+                );
+                return true;
+            }
+            return false;
+        }
+
     private function BerechneLadefreigabeMitHysterese(int $pvUeberschuss): int
     {
         $minLadeWatt  = $this->ReadPropertyInteger('MinLadeWatt');
