@@ -1290,81 +1290,116 @@ public function Create()
         }
     }
 
-    private function UpdateStatusAnzeige()
+    /**
+     * Liest alle Variablen, Attribute und Profile aus
+     * und packt sie in ein assoziatives Array.
+     */
+    private function collectStatusData(): array
     {
-        // === 1. Daten sammeln & vorbereiten ===
+        // SoC
+        $socAktuell = $this->getValueOrNa('CarSOCID', '%');
+        $socZiel    = $this->getValueOrNa('CarTargetSOCID', '%');
 
-        // SoC-Werte
-        $socID       = $this->ReadPropertyInteger('CarSOCID');
-        $targetID    = $this->ReadPropertyInteger('CarTargetSOCID');
-        $socAktuell  = ($socID > 0 && @IPS_VariableExists($socID))       ? GetValue($socID)       . '%' : 'n/a';
-        $socZiel     = ($targetID > 0 && @IPS_VariableExists($targetID)) ? GetValue($targetID)    . '%' : 'n/a';
+        // Status / Initial-Check
+        $status     = $this->GetValue('Status');
+        $inInitial  = ($status === false || $status <= 1);
+        $initialInt = $this->ReadPropertyInteger('InitialCheckInterval');
 
-        // No-Power-Counter (Versuche ohne Leistung)
-        $noPowerCounter = $this->ReadAttributeInteger('NoPowerCounter');
-
-        // Neutralmodus (nur wenn aktiv)
-        $neutralUntil = intval($this->ReadAttributeInteger('NeutralModeUntil'));
-        $neutralActive = ($neutralUntil > time());
-
-        // Initial-Check (nur wenn aktiv)
-        $status       = $this->GetValue('Status');
-        $inInitial    = ($status === false || $status <= 1);
-        $initialIntvl = $this->ReadPropertyInteger('InitialCheckInterval');
+        // Neutralmodus
+        $until       = intval($this->ReadAttributeInteger('NeutralModeUntil'));
+        $neutralActive = ($until > time());
 
         // Lademodus-Text
-        $modus = '☀️ PVonly (nur PV-Überschuss)';
         if ($this->GetValue('ManuellLaden')) {
-            $phasenIst = $this->GetValue('Phasenmodus');
-            $ampere    = $this->GetValue('ManuellAmpere');
-            $modus     = "🔌 Manuell: Vollladen ({$phasenIst}-phasig, {$ampere} A)";
-        } elseif ($this->GetValue('PV2CarModus')) {
-            $prozent = $this->GetValue('PVAnteil');
-            $modus = "🌞 PV-Anteil laden ({$prozent} %)";
-        } elseif ($this->GetValue('ZielzeitLaden')) {
-            $modus = '⏰ Zielzeitladung';
+            $data['modusText'] = sprintf(
+                '🔌 Manuell: Vollladen (%d-phasig, %d A)',
+                $this->GetValue('Phasenmodus'),
+                $this->GetValue('ManuellAmpere')
+            );
+        }
+        elseif ($this->GetValue('PV2CarModus')) {
+            $data['modusText'] = '🌞 PV-Anteil laden ('.$this->GetValue('PVAnteil').'% )';
+        }
+        elseif ($this->GetValue('ZielzeitLaden')) {
+            $data['modusText'] = '⏰ Zielzeitladung';
+        }
+        else {
+            $data['modusText'] = '☀️ PVonly (nur PV-Überschuss)';
         }
 
-        // Text aus Profil lesen
-        $psmSollTxt   = $this->GetProfileText('PhasenmodusEinstellung'); // z.B. "1-phasig"
-        $psmIstTxt    = $this->GetProfileText('Phasenmodus');            // z.B. "1-phasig", "2-phasig", "3-phasig"
-        $statusTxt    = $this->GetProfileText('Status');                 // z.B. "Fahrzeug lädt"
-        $frcTxt       = $this->GetProfileText('AccessStateV2');          // z.B. "Laden (erzwungen)"
+        // Profiltexte
+        $data['psmSollTxt'] = $this->GetProfileText('PhasenmodusEinstellung');
+        $data['psmIstTxt']  = $this->GetProfileText('Phasenmodus');
+        $data['statusTxt']  = $this->GetProfileText('Status');
+        $data['frcTxt']     = $this->GetProfileText('AccessStateV2');
 
-        // === 2. HTML-Block bauen ===
+        // alles in Array packen
+        return [
+            'inInitial'    => $inInitial,
+            'initialInt'   => $initialInt,
+            'neutralActive'=> $neutralActive,
+            'neutralUntil' => $until,
+            'socAktuell'   => $socAktuell,
+            'socZiel'      => $socZiel,
+            'modusText'    => $data['modusText'],
+            'psmSollTxt'   => $data['psmSollTxt'],
+            'psmIstTxt'    => $data['psmIstTxt'],
+            'statusTxt'    => $data['statusTxt'],
+            'frcTxt'       => $data['frcTxt'],
+        ];
+    }
 
-        $html = '<div style="font-size:15px; line-height:1.7em;">';
-
-        if ($inInitial) {
-            $html .= "<b>Initial-Check:</b> Aktiv (Intervall: {$initialIntvl} s)<br>";
+    /** Helfer: liest Variable-ID aus und hängt Einheit an oder gibt 'n/a' */
+    private function getValueOrNa(string $ident, string $unit = ''): string
+    {
+        $vid = $this->GetIDForIdent($ident);
+        if ($vid && @IPS_VariableExists($vid)) {
+            return GetValue($vid) . $unit;
         }
+        return 'n/a';
+    }
 
-        if ($neutralActive) {
-            $html .= "<b>Neutralmodus:</b> aktiv bis " . date("H:i:s", $neutralUntil) . "<br>";
+    /**
+     * Nimmt das Data-Array und liefert den fertigen HTML-Block zurück.
+     */
+    private function renderStatusHtml(array $d): string
+    {
+        $html  = '<div style="font-size:15px; line-height:1.7em;">';
+        if ($d['inInitial']) {
+            $html .= "<b>Initial-Check:</b> Aktiv (Intervall: {$d['initialInt']} s)<br>";
         }
-
-        $html .= "<b>Lademodus:</b> $modus<br>";
-        $html .= "<b>Status:</b> $statusTxt<br>";
-        $html .= "<b>Wallbox Modus:</b> $frcTxt<br>";
-        $html .= "<b>SOC Auto (Ist / Ziel):</b> {$socAktuell} / {$socZiel}<br>";
-
-        //$html .= "<b>No-Power-Counter:</b> {$noPowerCounter}×<hr>"; // Optional: für Debug
-
-        $html .= "<b>Phasen Wallbox-Einstellung:</b> $psmSollTxt<br>";
-        $html .= "<b>Genutzte Phasen (Fahrzeug):</b> $psmIstTxt<br>";
-
+        if ($d['neutralActive']) {
+            $t = date("H:i:s", $d['neutralUntil']);
+            $html .= "<b>Neutralmodus:</b> aktiv bis {$t}<br>";
+        }
+        $html .= "<b>Lademodus:</b> {$d['modusText']}<br>";
+        $html .= "<b>Status:</b> {$d['statusTxt']}<br>";
+        $html .= "<b>Wallbox Modus:</b> {$d['frcTxt']}<br>";
+        $html .= "<b>SOC Auto (Ist / Ziel):</b> {$d['socAktuell']} / {$d['socZiel']}<br>";
+        $html .= "<b>Phasen Wallbox-Einstellung:</b> {$d['psmSollTxt']}<br>";
+        $html .= "<b>Genutzte Phasen (Fahrzeug):</b> {$d['psmIstTxt']}<br>";
         $html .= '</div>';
+        return $html;
+    }
 
-        // === 3. Nur bei Änderung setzen ===
-        $lastHtml = $this->ReadAttributeString('LastStatusInfoHTML');
-        if ($lastHtml !== $html) {
+    private function UpdateStatusAnzeige(): void
+    {
+        $data = $this->collectStatusData();
+        $html = $this->renderStatusHtml($data);
+
+        // nur setzen, wenn sich was geändert hat
+        $last = $this->ReadAttributeString('LastStatusInfoHTML');
+        if ($last !== $html) {
             SetValue($this->GetIDForIdent('StatusInfo'), $html);
             $this->WriteAttributeString('LastStatusInfoHTML', $html);
             $this->LogTemplate('debug', "Status-Info HTMLBox aktualisiert.");
-        } else {
+        }
+        else {
             $this->LogTemplate('debug', "Status-Info HTMLBox unverändert, kein Update.");
         }
     }
+
+
 
     private function registerAttributes(array $list): void
     {
@@ -1494,17 +1529,50 @@ public function Create()
     // 8) Modus-Routing
     private function routeChargingMode(array $data, string $mode, int $phasen): void
     {
-        if ($this->isCarConnected($data) && $this->FahrzeugVerbunden($data)) {
-            if ($this->GetValue('ManuellLaden')) {
-                $this->ModusManuellVollladen($data);
-            } elseif ($this->GetValue('PV2CarModus')) {
-                $this->ModusPV2CarLaden($data);
-            } else {
-                $this->ModusPVonlyLaden($data, $phasen, $mode);
-            }
-        } else {
+        // Map Modus-Schlüssel auf Handler-Methoden
+        $handlers = [
+            'manuell' => 'ModusManuellVollladen',
+            'pv2car'  => 'ModusPV2CarLaden',
+            'pvonly'  => 'ModusPVonlyLaden',
+            // später z.B. 'zielzeit' => 'ModusZielzeitLaden',
+        ];
+
+        // 1) Prüfe: Fahrzeug verbunden?
+        if (!$this->isCarConnected($data) || !$this->FahrzeugVerbunden($data)) {
             $this->ResetLademodiWennKeinFahrzeug();
             $this->SetTimerNachModusUndAuto();
+            return;
+        }
+
+        // 2) Bestimme aktuellen Modus-Key
+        if ($this->GetValue('ManuellLaden')) {
+            $key = 'manuell';
+        }
+        elseif ($this->GetValue('PV2CarModus')) {
+            $key = 'pv2car';
+        }
+        else {
+            // Default: PVonly (egal ob $mode übergeben wird)
+            $key = 'pvonly';
+        }
+
+        // 3) Handler-Methode aus Map holen
+        if (!isset($handlers[$key])) {
+            $this->LogTemplate('warn', "Unbekannter Lademodus: {$key}");
+            return;
+        }
+        $method = $handlers[$key];
+
+        // 4) Modus-Methode aufrufen
+        switch ($key) {
+            case 'pvonly':
+                // braucht noch Phasen und $mode
+                $this->$method($data, $phasen, $mode);
+                break;
+            default:
+                // manuell und pv2car nur mit $data
+                $this->$method($data);
+                break;
         }
     }
 
@@ -1525,14 +1593,12 @@ public function Create()
      */
     private function handleInitialCheck(): bool
     {
-        $status = $this->GetValue('Status');
+        $status    = $this->GetValue('Status');
         $inInitial = ($status === false || $status <= 1);
         if ($inInitial) {
-            // hier könnten wir z.B. SetTimerInterval('PVWM_InitialCheck', ...) setzen
             $this->LogTemplate('debug', "Initial-Check aktiv (Status={$status})");
-            return true;
         }
-        return false;
+        return $inInitial;
     }
 
     // =========================================================================
