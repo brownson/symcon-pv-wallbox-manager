@@ -1239,9 +1239,15 @@ class PVWallboxManager extends IPSModule
 
     private function PruefeLadeendeAutomatisch()
     {
+        // → DEBUG: Einstieg in die Ladeende-Prüfung (nur wenn DebugLogging = true)
+        $this->LogTemplate('debug', 'PruefeLadeendeAutomatisch aufgerufen.');
+
         // 1) Lese SOC-Properties
         $socID       = $this->ReadPropertyInteger('CarSOCID');
         $socTargetID = $this->ReadPropertyInteger('CarTargetSOCID');
+
+        // → DEBUG: gelesene Property-IDs
+        $this->LogTemplate('debug', "CarSOCID={$socID}, CarTargetSOCID={$socTargetID}");
 
         $socAktuell = ($socID > 0 && IPS_VariableExists($socID))
             ? GetValue($socID)
@@ -1250,43 +1256,72 @@ class PVWallboxManager extends IPSModule
             ? GetValue($socTargetID)
             : null;
 
+        // → DEBUG: tatsächliche SOC-Werte
+        $this->LogTemplate(
+            'debug',
+            sprintf(
+                "SOC-Aktuell=%s, SOC-Ziel=%s",
+                var_export($socAktuell, true),
+                var_export($socZiel, true)
+            )
+        );
+
         // 2) Lade-Freigabe aktuell?
         $aktFreigabe = ($this->GetValue('AccessStateV2') == 2);
+        // → DEBUG: Freigabe-Status
+        $this->LogTemplate('debug', 'Ladefreigabe aktiv: ' . ($aktFreigabe ? 'ja' : 'nein'));
 
-        // 3) Wenn SOC-Properties gültig sind, nutze Ziel-SOC-Logik
+        // 3) Primäre Erkennung über SOC-Schwelle
         if ($socAktuell !== null && $socZiel !== null && $aktFreigabe) {
             if ($socAktuell >= $socZiel) {
                 $this->LogTemplate(
                     'ok',
-                    "Ziel-SoC erreicht (Aktuell: {$socAktuell}%, Ziel: {$socZiel}%) – beende Ladung."
+                    "🔌 Ziel-SOC erreicht (Aktuell: {$socAktuell}%, Ziel: {$socZiel}%) – beende Ladung."
                 );
                 $this->SetForceState(1);
                 $this->ResetModiNachLadeende();
-                return;
+            } else {
+                $this->LogTemplate(
+                    'debug',
+                    "SOC noch nicht erreicht (Aktuell: {$socAktuell}%, Ziel: {$socZiel}%)."
+                );
             }
-            // Wenn SOC-Logik greift, überspringe No-Power
+            // SOC-Logik greift: kein Fallback
             return;
         }
 
-        // 4) Fallback: No-Power-Counter, wenn keine SOC-Properties gesetzt
+        // 4) Fallback: No-Power-Counter, wenn keine SOC-Properties gesetzt oder Freigabe
         if ($aktFreigabe) {
             $ladeleistung = $this->GetValue('Leistung');
+            // → DEBUG: aktuelle Leistung und Counter vor Erhöhung
+            $cntVorher = $this->ReadAttributeInteger('NoPowerCounter');
+            $this->LogTemplate(
+                'debug',
+                "Fallback-Pfad: Leistung={$ladeleistung} W, NoPowerCounter vorher={$cntVorher}"
+            );
+
             if ($ladeleistung < 100) {
-                $cnt = $this->ReadAttributeInteger('NoPowerCounter') + 1;
+                $cnt = $cntVorher + 1;
                 $this->WriteAttributeInteger('NoPowerCounter', $cnt);
+                $this->LogTemplate('debug', "NoPowerCounter erhöht auf {$cnt}");
+
                 if ($cnt >= 6) {
                     $this->LogTemplate(
                         'ok',
-                        "Keine Ladeleistung mehr – beende Ladung nach {$cnt} Versuchen."
+                        "🔌 Ladeende erkannt: keine Leistung mehr nach {$cnt} Versuchen."
                     );
                     $this->SetForceState(1);
                     $this->ResetModiNachLadeende();
                     $this->WriteAttributeInteger('NoPowerCounter', 0);
+                    $this->LogTemplate('debug', "NoPowerCounter zurückgesetzt");
                 }
             } else {
                 // Leistung wieder vorhanden → Counter zurücksetzen
+                $this->LogTemplate('debug', 'Leistung wieder ≥100 W → NoPowerCounter zurücksetzen');
                 $this->WriteAttributeInteger('NoPowerCounter', 0);
             }
+        } else {
+            $this->LogTemplate('debug', 'Kein Ladevorgang aktiv, Fallback übersprungen.');
         }
     }
 
