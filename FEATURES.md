@@ -22,8 +22,15 @@ Hier werden geplante Features gesammelt, Community-Wünsche, Ideen und größere
     - [ ] Zeitgesteuertes Laden (z.B. Zielzeit, günstige Börsenzeiten)
     - [x] PV2Car mit Prozentsteuerung -> **Umgesetzt in: v1.1b**
     - [ ] neuer Lademodi (Laden Manuell steuern) -> Start/Stop, Amperevorgabe, Phasenvorgabe
+
 ---
 
+## 💡 Ideen
+
+- [ ] Ladestatistik als HTMLBox
+- [ ] Chart-Darstellung für Ladevorgänge
+
+---
 ## 🛠️ Technische Verbesserungen
 
 - [x] Konfigurierbare Hysterese und Phasenumschaltung -> **Umgesetzt in: v1.0b**
