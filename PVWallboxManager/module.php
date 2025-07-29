@@ -417,110 +417,52 @@ public function Create()
     // =========================================================================
     public function UpdateStatus(string $mode = 'pvonly')
     {
-        $car = 0;
-        
         // 0) Start-Log
-        $this->LogTemplate('debug', "UpdateStatus getriggert (Modus: $mode, Zeit: " . date("H:i:s") . ")");
-        
-        $neutralUntil = $this->ReadAttributeInteger('NeutralModeUntil');
-        if ($neutralUntil > time()) {
-            $this->LogTemplate('debug', 'Neutralmodus aktiv – Ladevorgänge blockiert bis ' . date("H:i:s", $neutralUntil));
-            $this->SetForceState(1); // Wallbox gesperrt, falls nicht eh schon
+        $this->LogTemplate('debug', sprintf(
+            "UpdateStatus getriggert (Modus: %s, Zeit: %s)",
+            $mode, date('H:i:s')
+        ));
+
+        // 1) Neutral-Modus prüfen
+        if ($this->isNeutralModeActive()) {
+            $this->LogTemplate('debug', 'Neutralmodus aktiv, Ladefreigänge blockiert');
+            $this->SetForceState(1);
             return;
         }
 
-        // 1) Status von der Wallbox holen
-        $data = $this->getStatusFromCharger();
+        // 2) Status von der Wallbox holen
+        $data = $this->fetchChargerStatus();
         if ($data === false) {
-            $this->ResetWallboxVisualisierungKeinFahrzeug();
-            $this->LogTemplate('debug', "Wallbox nicht erreichbar – Visualisierungswerte zurückgesetzt.");
-            $this->UpdateStatusAnzeige();
+            $this->handleChargerUnavailable();
             return;
         }
 
-        // 2) Phasenzahl ermitteln (für spätere Modus-Methoden)
-        $psm    = isset($data['psm']) ? intval($data['psm']) : 0;
-        $phasen = 1;
-        if (isset($data['nrg'][4], $data['nrg'][5], $data['nrg'][6])) {
-            $schluss = 1.5;
-            $cnt = 0;
-            foreach ([$data['nrg'][4], $data['nrg'][5], $data['nrg'][6]] as $strom) {
-                if (abs(floatval($strom)) > $schluss) {
-                    $cnt++;
-                }
-            }
-            $phasen = max(1, $cnt);
-        }
+        // 3) Phasenanzahl ermitteln
+        $phasen = $this->determinePhases($data);
 
-        // 3) Hausverbrauch für WebFront aktualisieren (ohne Überschuss)
+        // 4) Hausverbrauch & WebFront aktualisieren
         $energyRaw = $this->gatherEnergyData();
-        $this->SetValueAndLogChange('Hausverbrauch_W',           $energyRaw['haus'],                           'Hausverbrauch (W)');
-        $this->SetValueAndLogChange(
-            'Hausverbrauch_abz_Wallbox',
-            max(0, $energyRaw['haus'] - $energyRaw['wallbox']),
-            'Hausverbrauch abzgl. Wallbox (W)'
-        );
+        $this->updateHousePower($energyRaw);
 
-        if ($car <= 1) {
-            // KEIN Auto erkannt → PV-Überschuss im Hauptteil setzen
-            $filtered = $this->applyFilters($energyRaw);
-            $surplus  = $this->calculateSurplus($filtered, 1, false); // Phasen=1 für Anzeige
-            $this->SetValue('PV_Ueberschuss',   $surplus['ueberschuss_w']);
-            $this->SetValue('PV_Ueberschuss_A', $surplus['ueberschuss_a']);
+        // 5) PV-Überschuss anzeigen, wenn kein Fahrzeug verbunden
+        if (!$this->isCarConnected($data)) {
+            $this->updateSurplusDisplayWithoutCar($energyRaw);
         }
 
-        // 4) Wallbox-Status-Variablen auslesen & schreiben
-        $car        = isset($data['car'])  ? intval($data['car'])  : 0;
-        $leistung   = $data['nrg'][11]     ?? 0.0;
-        $ampereWB   = $data['amp']         ?? 0;
-        $energie    = $data['wh']          ?? 0;
-        $freigabe   = (bool)($data['alw']   ?? false);
-        $kabelstrom = $data['cbl']         ?? 0;
-        $fehlercode = $data['err']         ?? 0;
+        // 6) Charger-Status synchronisieren
+        $vars = $this->extractChargerVariables($data);
+        $this->syncChargerVariables($vars, $phasen);
 
-        $frcRaw     = $data['frc']             ?? null;
-        $stateRaw   = $data['accessStateV2']   ?? null;
-        $accessStateV2 = ($frcRaw === 2 || $stateRaw === 2) ? 2 : 1;
-
-        $this->SetValueAndLogChange('PhasenmodusEinstellung', $psm,     'Phasenmodus (Einstellung)', '', 'debug');
-        $this->SetValueAndLogChange('Phasenmodus',           $phasen, 'Genutzte Phasen',            '', 'debug');
-        $this->SetValueAndLogChange('Status',                $car,        'Status');
-        $this->SetValueAndLogChange('AccessStateV2',         $accessStateV2, 'Wallbox Modus');
-        $this->SetValueAndLogChange('Leistung',              $leistung,   'Aktuelle Ladeleistung zum Fahrzeug', 'W');
-        $this->SetValueAndLogChange('Ampere',                $ampereWB,   'Maximaler Ladestrom',             'A');
-        $this->SetValueAndLogChange('Energie',               $energie,    'Geladene Energie',                'Wh');
-        $this->SetValueAndLogChange('Freigabe',              $freigabe,   'Ladefreigabe');
-        $this->SetValueAndLogChange('Kabelstrom',            $kabelstrom,'Kabeltyp');
-        $this->SetValueAndLogChange('Fehlercode',            $fehlercode,'Fehlercode','', 'warn');
-
-        // optional: SOC-Logging wenn gerade geladen
-        if ($accessStateV2 === 2) {
-            // … SOC-Logging wie bisher …
-        }
-
-        // 5) Automatisches Ladeende prüfen
+        // 7) Automatisches Ladeende prüfen
         $this->PruefeLadeendeAutomatisch();
 
-        // 6) Modi-Steuerung: hier wird jeweils in der Modus-Methode die Überschuss-Berechnung gemacht
-        if ($car > 1 && $this->FahrzeugVerbunden($data)) {
-            if ($this->GetValue('ManuellLaden')) {
-                $this->ModusManuellVollladen($data);
-            }
-            elseif ($this->GetValue('PV2CarModus')) {
-                $this->ModusPV2CarLaden($data);
-            }
-            else {
-                $this->ModusPVonlyLaden($data, $phasen, $mode);
-            }
-        }
-        else {
-            $this->ResetLademodiWennKeinFahrzeug();
-            $this->SetTimerNachModusUndAuto();
-        }
+        // 8) Lademodus steuern
+        $this->routeChargingMode($data, $mode, $phasen);
 
-        // 7) WebFront-Anzeige aktualisieren
+        // 9) Anzeige aktualisieren
         $this->UpdateStatusAnzeige();
     }
+
 
     private function ModusPVonlyLaden(array $data, int $anzPhasenAlt, string $mode = 'pvonly')
     {
@@ -1462,6 +1404,108 @@ public function Create()
             if (!empty($icon)) {
                 IPS_SetIcon($this->GetIDForIdent($ident), $icon);
             }
+        }
+    }
+
+    // 1) Neutral-Modus prüfen
+    private function isNeutralModeActive(): bool
+    {
+        return intval($this->ReadAttributeInteger('NeutralModeUntil')) > time();
+    }
+
+    // 2) Wallbox-Status holen & auf Fehler prüfen
+    private function fetchChargerStatus()
+    {
+        $data = $this->getStatusFromCharger();
+        return $data === false ? false : $data;
+    }
+    private function handleChargerUnavailable(): void
+    {
+        $this->ResetWallboxVisualisierungKeinFahrzeug();
+        $this->LogTemplate('debug', 'Wallbox nicht erreichbar – Visualisierung zurückgesetzt');
+        $this->UpdateStatusAnzeige();
+    }
+
+    // 3) Phasenanzahl bestimmen
+    private function determinePhases(array $data): int
+    {
+        $cnt = 0;
+        foreach ([$data['nrg'][4] ?? 0, $data['nrg'][5] ?? 0, $data['nrg'][6] ?? 0] as $strom) {
+            if (abs(floatval($strom)) > 1.5) {
+                $cnt++;
+            }
+        }
+        return max(1, $cnt);
+    }
+
+    // 4) Hausverbrauch updaten
+    private function updateHousePower(array $energyRaw): void
+    {
+        $this->SetValueAndLogChange('Hausverbrauch_W', $energyRaw['haus'], 'Hausverbrauch (W)');
+        $this->SetValueAndLogChange(
+            'Hausverbrauch_abz_Wallbox',
+            max(0, $energyRaw['haus'] - $energyRaw['wallbox']),
+            'Hausverbrauch abzgl. Wallbox (W)'
+        );
+    }
+
+    // 5) Fahrzeug-Status
+    private function isCarConnected(array $data): bool
+    {
+        return isset($data['car']) && intval($data['car']) > 1;
+    }
+    private function updateSurplusDisplayWithoutCar(array $energyRaw): void
+    {
+        $filtered = $this->applyFilters($energyRaw);
+        $surplus  = $this->calculateSurplus($filtered, 1, false);
+        $this->SetValue('PV_Ueberschuss',   $surplus['ueberschuss_w']);
+        $this->SetValue('PV_Ueberschuss_A', $surplus['ueberschuss_a']);
+    }
+
+    // 6) Charger-Variablen synchronisieren
+    private function extractChargerVariables(array $data): array
+    {
+        return [
+            'car'      => intval($data['car'] ?? 0),
+            'leistung' => $data['nrg'][11]      ?? 0.0,
+            'ampereWB' => $data['amp']          ?? 0,
+            'energie'  => $data['wh']           ?? 0,
+            'freigabe' => (bool)($data['alw']   ?? false),
+            'kabel'    => $data['cbl']          ?? 0,
+            'err'      => $data['err']          ?? 0,
+            'frcRaw'   => $data['frc']          ?? null,
+            'stateRaw' => $data['accessStateV2']?? null,
+        ];
+    }
+    private function syncChargerVariables(array $vars, int $phasen): void
+    {
+        $accessStateV2 = ($vars['frcRaw'] === 2 || $vars['stateRaw'] === 2) ? 2 : 1;
+        $this->SetValueAndLogChange('PhasenmodusEinstellung', $vars['psm'] ?? 0, 'Phasenmodus (Einstellung)', '', 'debug');
+        $this->SetValueAndLogChange('Phasenmodus',           $phasen,                    'Genutzte Phasen',            '', 'debug');
+        $this->SetValueAndLogChange('Status',                $vars['car'],               'Status');
+        $this->SetValueAndLogChange('AccessStateV2',         $accessStateV2,             'Wallbox Modus');
+        $this->SetValueAndLogChange('Leistung',              $vars['leistung'],          'Aktuelle Ladeleistung (W)',  'W');
+        $this->SetValueAndLogChange('Ampere',                $vars['ampereWB'],          'Max. Ladestrom',             'A');
+        $this->SetValueAndLogChange('Energie',               $vars['energie'],           'Geladene Energie',           'Wh');
+        $this->SetValueAndLogChange('Freigabe',              $vars['freigabe'],          'Ladefreigabe');
+        $this->SetValueAndLogChange('Kabelstrom',            $vars['kabel'],             'Kabeltyp');
+        $this->SetValueAndLogChange('Fehlercode',            $vars['err'],               'Fehlercode', '', 'warn');
+    }
+
+    // 8) Modus-Routing
+    private function routeChargingMode(array $data, string $mode, int $phasen): void
+    {
+        if ($this->isCarConnected($data) && $this->FahrzeugVerbunden($data)) {
+            if ($this->GetValue('ManuellLaden')) {
+                $this->ModusManuellVollladen($data);
+            } elseif ($this->GetValue('PV2CarModus')) {
+                $this->ModusPV2CarLaden($data);
+            } else {
+                $this->ModusPVonlyLaden($data, $phasen, $mode);
+            }
+        } else {
+            $this->ResetLademodiWennKeinFahrzeug();
+            $this->SetTimerNachModusUndAuto();
         }
     }
 
