@@ -1297,13 +1297,14 @@ public function Create()
     private function collectStatusData(): array
     {
         // --- SoC-Werte aus Properties, nicht aus Idents! ---
-        $carSocId    = $this->ReadPropertyInteger('CarSOCID');
-        $socAktuell  = ($carSocId > 0 && @IPS_VariableExists($carSocId))
-            ? GetValue($carSocId) . '%'
+        $socVarID    = $this->ReadPropertyInteger('CarSOCID');
+        $socAktuell  = ($socVarID > 0 && @IPS_VariableExists($socVarID))
+            ? GetValue($socVarID) . '%'
             : 'n/a';
-        $carTargetId = $this->ReadPropertyInteger('CarTargetSOCID');
-        $socZiel     = ($carTargetId > 0 && @IPS_VariableExists($carTargetId))
-            ? GetValue($carTargetId) . '%'
+
+        $targetVarID = $this->ReadPropertyInteger('CarTargetSOCID');
+        $socZiel     = ($targetVarID > 0 && @IPS_VariableExists($targetVarID))
+            ? GetValue($targetVarID) . '%'
             : 'n/a';
 
         // --- Status / Initial-Check ---
