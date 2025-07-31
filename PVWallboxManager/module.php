@@ -596,47 +596,64 @@ class PVWallboxManager extends IPSModule
             return;
         }
 
-        // 1. PV-Anteil holen
-        $anteil      = max(0, min(100, intval($this->GetValue('PVAnteil'))));
-        // 2. aktuelle Phasenanzahl
-        $oldPhasen   = max(1, $this->GetValue('Phasenmodus'));
-        // 3. Basisdaten holen & filtern
-        $energy      = $this->applyFilters($this->gatherEnergyData());
-        // 4. Roh-Überschuss und Watt-Anteil berechnen
-        $pv2car      = $this->calculatePV2Car($energy, $anteil);
-        $rohUeb      = $pv2car['roh_ueber'];
-        $anteilWatt  = $pv2car['anteil_watt'];
+        // 1) PV-Anteil (0–100 %)
+        $anteil = max(0, min(100, intval($this->GetValue('PVAnteil'))));
 
-        // 5. PHASEN-HYSTERESE:
-        $this->PruefeUndSetzePhasenmodus($rohUeb);
+        // 2) Alte Phasen merken
+        $oldPhasen = max(1, $this->GetValue('Phasenmodus'));
+
+        // 3) Energie-Daten holen und filtern
+        $energy       = $this->gatherEnergyData();
+        $filtered     = $this->applyFilters($energy);
+        $rawSurplus   = max(0, $energy['pv'] - $filtered['hausFiltered']);
+
+        // 4) Exponentielle Glättung
+        $alpha        = $this->ReadPropertyFloat('SmoothingAlpha');
+        $lastSmooth   = $this->ReadAttributeFloat('SmoothedSurplus');
+        $smooth       = $alpha * $rawSurplus + (1 - $alpha) * $lastSmooth;
+        $this->WriteAttributeFloat('SmoothedSurplus', $smooth);
+
+        // 5) PV-Anteil in Watt umrechnen
+        $anteilWatt = intval(round($smooth * $anteil / 100));
+
+        // 6) Phasen-Hysterese wie gewohnt
+        $this->PruefeUndSetzePhasenmodus($smooth);
         $newPhasen = max(1, $this->GetValue('Phasenmodus'));
         if ($newPhasen !== $oldPhasen) {
-            $this->SetValueAndLogChange('Phasenmodus', $newPhasen, 'Genutzte Phasen', '', 'debug');
-            // mit neuer Phasenanzahl neu berechnen:
-            $energy     = $this->applyFilters($this->gatherEnergyData());
-            $pv2car     = $this->calculatePV2Car($energy, $anteil);
-            $rohUeb     = $pv2car['roh_ueber'];
-            $anteilWatt = $pv2car['anteil_watt'];
+            // bei Phasenwechsel neu berechnen
+            $energy     = $this->gatherEnergyData();
+            $filtered   = $this->applyFilters($energy);
+            $rawSurplus = max(0, $energy['pv'] - $filtered['hausFiltered']);
+            $smooth     = $alpha * $rawSurplus + (1 - $alpha) * $smooth;
+            $anteilWatt = intval(round($smooth * $anteil / 100));
         }
 
-        // 6. Ampere-Berechnung
-        $minAmp   = $this->ReadPropertyInteger('MinAmpere');
-        $maxAmp   = $this->ReadPropertyInteger('MaxAmpere');
-        $ampere   = $newPhasen
-                ? (int)ceil($anteilWatt / (230 * $newPhasen))
-                : 0;
-        $ampere   = max($minAmp, min($maxAmp, $ampere));
+        // 7) Ziel-Ampere berechnen
+        $minAmp    = $this->ReadPropertyInteger('MinAmpere');
+        $maxAmp    = $this->ReadPropertyInteger('MaxAmpere');
+        $desiredA  = $newPhasen
+            ? (int)ceil($anteilWatt / (230 * $newPhasen))
+            : 0;
+        $desiredA  = max($minAmp, min($maxAmp, $desiredA));
 
-        // 7. Visualisierung
-        $this->SetValueAndLogChange('PV_Ueberschuss',   $rohUeb,   'PV-Überschuss',   'W', 'debug');
-        $this->SetValueAndLogChange('PV_Ueberschuss_A', $ampere,   'Überschuss Ampere','A','debug');
+        // 8) Ramp-Rate begrenzen
+        $lastA     = $this->ReadAttributeInteger('LastChargingCurrent');
+        $maxDelta  = $this->ReadPropertyInteger('MaxRampDeltaAmp');
+        $diff      = $desiredA - $lastA;
+        $diff      = max(-$maxDelta, min($maxDelta, $diff));
+        $ampere    = $lastA + $diff;
+        $this->WriteAttributeInteger('LastChargingCurrent', $ampere);
 
-        // 8. Freigabe-Hysterese prüfen
+        // 9) Visualisierung aktualisieren
+        $this->SetValueAndLogChange('PV_Ueberschuss',   round($smooth), 'PV-Überschuss',     'W', 'debug');
+        $this->SetValueAndLogChange('PV_Ueberschuss_A', $ampere,         'PV-Überschuss (A)', 'A', 'debug');
+
+        // 10) Hysterese-Freigabe prüfen
         $desiredFRC = $this->BerechneLadefreigabeMitHysterese($anteilWatt);
 
-        // 9. Steuerung
+        // 11) Wallbox steuern
         $this->SteuerungLadefreigabe(
-            $rohUeb,
+            $smooth,
             'pv2car',
             $ampere,
             $newPhasen,
