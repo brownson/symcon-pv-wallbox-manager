@@ -1858,7 +1858,8 @@ class PVWallboxManager extends IPSModule
         return [
             'roh_ueber'   => $rohUeberschuss,
             'anteil_watt' => $anteilWatt,
-        ];
+            ];
+        }
     }
 
     /**
