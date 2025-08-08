@@ -465,6 +465,18 @@ class PVWallboxManager extends IPSModule
 
         // 4) Hausverbrauch & WebFront aktualisieren
         $energyRaw = $this->gatherEnergyData();
+
+        // --- Neu: Debug-Log der Rohdaten inkl. Einheit (immer W) ---
+        $this->LogTemplate(
+            'debug',
+            sprintf(
+                "gatherEnergyData liefert: PV=%dW, Haus=%dW, Batt=%dW",
+                $energyRaw['pv'],
+                $energyRaw['haus'],
+                $energyRaw['batt']
+            )
+        );
+
         $this->updateHousePower($energyRaw);
 
         // 5) PV-Überschuss anzeigen, wenn kein Fahrzeug verbunden
