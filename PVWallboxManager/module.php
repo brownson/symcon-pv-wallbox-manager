@@ -620,13 +620,14 @@ class PVWallboxManager extends IPSModule
         $rawSurplus   = max(0, $energy['pv'] - $filtered['hausFiltered']);
 
         // 4) Exponentielle Glättung
-        $alpha        = $this->ReadPropertyFloat('SmoothingAlpha');
-        $lastSmooth   = $this->ReadAttributeFloat('SmoothedSurplus');
-        $smooth       = $alpha * $rawSurplus + (1 - $alpha) * $lastSmooth;
-        $this->WriteAttributeFloat('SmoothedSurplus', $smooth);
+//        $alpha        = $this->ReadPropertyFloat('SmoothingAlpha');
+//        $lastSmooth   = $this->ReadAttributeFloat('SmoothedSurplus');
+//        $smooth       = $alpha * $rawSurplus + (1 - $alpha) * $lastSmooth;
+//        $this->WriteAttributeFloat('SmoothedSurplus', $smooth);
 
         // 5) PV-Anteil in Watt umrechnen
-        $anteilWatt = intval(round($smooth * $anteil / 100));
+        $anteilWatt = intval(round($rawSurplus * $anteil / 100));
+
 
         // 6) Phasen-Hysterese wie gewohnt
         $this->PruefeUndSetzePhasenmodus($smooth);
@@ -637,7 +638,7 @@ class PVWallboxManager extends IPSModule
             $filtered   = $this->applyFilters($energy);
             $rawSurplus = max(0, $energy['pv'] - $filtered['hausFiltered']);
             $smooth     = $alpha * $rawSurplus + (1 - $alpha) * $smooth;
-            $anteilWatt = intval(round($smooth * $anteil / 100));
+            $anteilWatt = intval(round($rawSurplus * $anteil / 100));
         }
 
         // 7) Ziel-Ampere berechnen
