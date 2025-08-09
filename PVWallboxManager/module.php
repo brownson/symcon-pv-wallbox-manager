@@ -29,7 +29,10 @@ class PVWallboxManager extends IPSModule
             'LastTimerStatus'                => -1,
             'NeutralModeUntil'               => 0,
             'LetztePhasenUmschaltung'        => 0,
-            'LastStatusInfoHTML'            => '',
+            'LastStatusInfoHTML'             => '',
+            'SpikeHoldCounter'               => 0,
+            'SchemaVersion'      => 0,
+            'SpikeAmpereBasis'   => 0, 
         ]);
 
         // 2) Properties from form.json
@@ -126,6 +129,8 @@ class PVWallboxManager extends IPSModule
         $this->SetTimerNachModusUndAuto();
         $this->SetMarketPriceTimerZurVollenStunde();
         $this->UpdateHausverbrauchEvent();
+
+        $this->migrateAndSelfHeal();
     }
 
     // =========================================================================
@@ -1741,6 +1746,41 @@ class PVWallboxManager extends IPSModule
         $this->UpdateStatusAnzeige();
     }
 
+    private function migrateAndSelfHeal(): void
+    {
+        // a) Einmalige Migration auf 1.3b → Filter zurücksetzen
+        $schema = intval($this->ReadAttributeInteger('SchemaVersion'));
+        if ($schema < 10301) { // 1.3b = 10301 (frei wählbar)
+            $this->ResetHausverbrauchFilter();
+            $this->WriteAttributeInteger('SchemaVersion', 10301);
+            $this->LogTemplate('ok', 'Migration 1.3b: Hausverbrauch-Filter automatisch zurückgesetzt.');
+        }
+
+        // b) Falls MaxAmpere geändert → Spike-Schwellen neu initialisieren
+        $lastAmp = intval($this->ReadAttributeInteger('SpikeAmpereBasis'));
+        $curAmp  = intval($this->ReadPropertyInteger('MaxAmpere'));
+        if ($lastAmp !== $curAmp) {
+            $this->ResetHausverbrauchFilter();
+            $this->WriteAttributeInteger('SpikeAmpereBasis', $curAmp);
+            $this->LogTemplate('info', "MaxAmpere geändert {$lastAmp} → {$curAmp}, Filter neu initialisiert.");
+        }
+
+        // c) Defekte/ungültige Buffer erkennen → reset
+        $buf = @json_decode($this->ReadAttributeString('HausverbrauchAbzWallboxBuffer'), true);
+        if (!is_array($buf)) {
+            $this->ResetHausverbrauchFilter();
+            $this->LogTemplate('warn', 'Filter-Puffer war ungültig – automatisch zurückgesetzt.');
+        }
+    }
+
+    public function ResetHausverbrauchFilter()
+    {
+        $this->WriteAttributeString('HausverbrauchAbzWallboxBuffer', '[]');
+        $this->WriteAttributeFloat('HausverbrauchAbzWallboxLast', 0);
+        $this->WriteAttributeInteger('SpikeHoldCounter', 0);
+        $this->LogTemplate('ok', 'Hausverbrauch-Filter zurückgesetzt.');
+    }
+
     // =========================================================================
     // 8. LOGGING / DEBUG / STATUSMELDUNGEN
     // =========================================================================
@@ -1816,31 +1856,47 @@ class PVWallboxManager extends IPSModule
      */
     private function applyFilters(array $data): array
     {
-        // Raw-Hausverbrauch ohne Wallbox
+        // Roh: Hausverbrauch ohne Wallbox-Leistung
         $raw = max(0, $data['haus'] - $data['wallbox']);
 
-        // Puffer­array (letzte 3 Werte)
+        // Gleitender Mittelwert über 3 Punkte
         $buf = json_decode($this->ReadAttributeString('HausverbrauchAbzWallboxBuffer'), true) ?: [];
         $buf[] = $raw;
-        if (count($buf) > 3) {
-            array_shift($buf);
-        }
+        if (count($buf) > 3) array_shift($buf);
         $mean = array_sum($buf) / count($buf);
 
-        // Spike-Schwelle
+        // Spike-Erkennung auf Basis MaxAmpere
         $threshold = 1.5 * $this->ReadPropertyInteger('MaxAmpere') * 230;
-        $last      = floatval($this->ReadAttributeFloat('HausverbrauchAbzWallboxLast'));
 
-        if ($last > 0 && abs($raw - $last) > $threshold) {
-            $filtered = $last;
-            $this->LogTemplate('warn', "Spike erkannt: {$raw}W → bleibe bei {$last}W");
+        $last = floatval($this->ReadAttributeFloat('HausverbrauchAbzWallboxLast'));
+        $hold = intval($this->ReadAttributeInteger('SpikeHoldCounter'));
+
+        if ($last > 0 && abs($mean - $last) > $threshold) {
+            // Spike erkannt → nicht einfrieren, sondern begrenzte Schrittweite
+            $hold++;
+            $this->WriteAttributeInteger('SpikeHoldCounter', $hold);
+
+            $maxStep = max(300, (int)($threshold * 0.4)); // min 300 W pro Zyklus
+            $delta   = max(-$maxStep, min($mean - $last, $maxStep));
+            $filtered = (int)round($last + $delta);
+
+            $this->LogTemplate('warn', "Spike erkannt: {$mean}W → begrenzt auf {$filtered}W (Hold={$hold})");
+
+            // Falls 5 Zyklen lang Spike → neuen Wert erzwingen
+            if ($hold >= 5) {
+                $filtered = (int)round($mean);
+                $this->WriteAttributeInteger('SpikeHoldCounter', 0);
+                $this->LogTemplate('warn', "Spike hielt 5 Zyklen – neuen Wert übernommen: {$filtered}W");
+            }
         } else {
-            $filtered = $mean;
+            // Normalbetrieb: Mittelwert übernehmen und States pflegen
+            $filtered = (int)round($mean);
+            $this->WriteAttributeInteger('SpikeHoldCounter', 0);
             $this->WriteAttributeString('HausverbrauchAbzWallboxBuffer', json_encode($buf));
-            $this->WriteAttributeFloat('HausverbrauchAbzWallboxLast', $mean);
+            $this->WriteAttributeFloat('HausverbrauchAbzWallboxLast', $filtered);
         }
 
-        $data['hausFiltered'] = round($filtered);
+        $data['hausFiltered'] = $filtered;
         return $data;
     }
 
