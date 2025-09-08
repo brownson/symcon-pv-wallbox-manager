@@ -73,8 +73,7 @@ class PVWallboxManager extends IPSModule
 
         // 3) Modul-Aktiv Switch
         $this->RegisterVariableBoolean('ModulAktiv_Switch', '✅ Modul aktiv', '~Switch', 900);
-        $this->EnableAction('ModulAktiv_Switch');
-
+  
         // 4) API- & Status-Variablen
         $this->registerVariables([
             ['integer', 'Status',                       'Status',                                   'PVWM.CarStatus',            1,  'Car'],
@@ -104,6 +103,14 @@ class PVWallboxManager extends IPSModule
             ['string',  'StatusInfo',                   'ℹ️ Status-Info',                            '~HTMLBox',                70,  null],
         ]);
 
+        $this->EnableAction('ModulAktiv_Switch');
+        $this->EnableAction('ManuellAmpere');
+        $this->EnableAction('ManuellPhasen');
+        $this->EnableAction('ManuellLaden');
+        $this->EnableAction('PV2CarModus');
+        $this->EnableAction('PVAnteil');
+
+        
         // 5) Timer für Updates
         $this->RegisterTimer('PVWM_UpdateStatus',       0, 'IPS_RequestAction('.$this->InstanceID.',"UpdateStatus","pvonly");');
         $this->RegisterTimer('PVWM_UpdateMarketPrices', 0, 'IPS_RequestAction('.$this->InstanceID.',"UpdateMarketPrices","");');
@@ -258,8 +265,8 @@ class PVWallboxManager extends IPSModule
                 $this->SetValue('ModulAktiv_Switch', $Value);
                 IPS_SetProperty($this->InstanceID, 'ModulAktiv', $Value);
                 IPS_ApplyChanges($this->InstanceID);
-            if (!$Value) {
-                // 1) Wallbox sperren
+                if (!$Value) {
+                    // 1) Wallbox sperren
                     $this->SetForceState(1);
 
                     // 2) Lademodi zurücksetzen (wiederverwendbar)
@@ -899,7 +906,7 @@ class PVWallboxManager extends IPSModule
         }
 
         // === Auf 1-phasig umschalten ===
-        if ($aktModus == 2 && $pvUeberschuss <= $schwelle1) {
+        if ($aktModus > 1 && $pvUeberschuss <= $schwelle1) {
             $zaehler = $this->ReadAttributeInteger('Phasen1Zaehler') + 1;
             $this->WriteAttributeInteger('Phasen1Zaehler', $zaehler);
             $this->WriteAttributeInteger('Phasen3Zaehler', 0);
