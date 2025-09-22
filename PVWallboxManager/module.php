@@ -1908,37 +1908,6 @@ class PVWallboxManager extends IPSModule
     }
 
     /**
-     * 2.5) Anteilsberechnung für PV2Car-Modus
-     *
-     * @param array $data         Ergebnis von applyFilters(): ['pv','wallbox','hausFiltered','batt']
-     * @param int   $anteilProzent Prozentwert 0–100
-     * @return array              ['roh_ueber','anteil_watt']
-     */
-    private function calculatePV2Car(array $data, int $anteilProzent): array
-    {
-        
-        // wenn Hausakku voll ist, dann 100 % PV2Car ***
-        $socID  = $this->ReadPropertyInteger('HausakkuSOCID');
-        $voll   = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
-        $soc    = ($socID > 0 && IPS_VariableExists($socID)) ? GetValue($socID) : null;
-        if ($soc !== null && $soc >= $voll) {
-            $this->LogTemplate('info', "Hausakku voll ({$soc} % ≥ {$voll} %) → PV-Anteil override auf 100 %");
-            $anteilProzent = 100;
-
-        // Roh-Überschuss = PV minus gefiltertem Hausverbrauch
-        $rohUeberschuss = max(0, $data['pv'] - $data['hausFiltered']);
-
-        // Watt-Anteil für’s Auto
-        $anteilWatt = intval(round($rohUeberschuss * $anteilProzent / 100));
-
-        return [
-            'roh_ueber'   => $rohUeberschuss,
-            'anteil_watt' => $anteilWatt,
-            ];
-        }
-    }
-
-    /**
      * 3) Überschuss und Ampere berechnen (inkl. Threshold und Hysterese-Logging)
      */
     private function calculateSurplus(array $data, int $anzPhasen, bool $log = true): array
@@ -1948,6 +1917,17 @@ class PVWallboxManager extends IPSModule
 
         // Gesamtverbrauch
         $cons = $data['hausFiltered'] + $batLoad;
+
+        // Wenn Batterie "nahe" voll, alles in Auto um Batterie Buffer für 
+        //    a.) PV liefert nicht mehr genung für Auto 
+        //    b.) Nur mehr 1 phasiges Laden möglich, Rest in Batterie
+        $socID  = $this->ReadPropertyInteger('HausakkuSOCID');
+        $voll   = $this->ReadPropertyInteger('HausakkuSOCVollSchwelle');
+        $soc    = ($socID > 0 && IPS_VariableExists($socID)) ? GetValue($socID) : null;
+        if ($soc !== null && $soc >= $voll) {
+            $cons = $data['hausFiltered'];
+        }
+    
 
         // Roh-Überschuss
         $rawSurplus = max(0, $data['pv'] - $cons);
@@ -2066,7 +2046,7 @@ class PVWallboxManager extends IPSModule
         return $desiredFRC;
     }
 
-//=========================================================================
+    //=========================================================================
     // 10. EXTERNE SCHNITTSTELLEN & FORECAST
     // =========================================================================
     private function AktualisiereMarktpreise()
